@@ -49,8 +49,10 @@ calls only your app could decide ([When a call needs approval](./tool-approval.m
 
 To keep the runs of a host without a conversation id as well, turn on `PersistAllConversations`:
 `AddTypeshift().WithOptions(options => options.PersistAllConversations = true)`. Such a run then starts a
-conversation under a new id, and its response's `ConversationId` names it, so the next run continues it with
-`support.WithConversationId(Guid.Parse(response.ConversationId!))`. A handoff continues that conversation. A call on
+conversation under a new id, and its response's `ConversationId` names it as text. The next run continues it with
+`support.WithConversationId(response.GetConversationId<Guid>())`, which reads the id typed as your store keeps it. A
+`WithConversationId(response.ConversationId!)` would name another conversation, under a `string` id. A handoff
+continues that conversation. A call on
 the [raw path](./running-agents.md#the-raw-path) names its conversation in `ChatOptions.ConversationId`, a string, so
 the conversation it starts is under a `string` id, and the next call continues it with
 `options.ConversationId = response.ConversationId`.
@@ -101,15 +103,17 @@ An entry serializes itself with `Serialize()` and `ConversationEntry.Deserialize
 it is. `System.Text.Json` writes and reads that same JSON, and Newtonsoft.Json writes it as a string, so a store or an
 API can pass entries on with either library and no settings.
 
+The host of a conversation loads its entries, for a chat page that reloads or a job that looks for interrupted runs.
+It reads through the store of the id's type, or the memory Typeshift keeps without one:
+
 <!-- snippet: load-conversation -->
 <a id='snippet-load-conversation'></a>
 ```cs
-var store = provider.GetRequiredService<IConversationStore<int>>();
-var entries = await store.LoadConversationAsync(conversationId, ct);
+var entries = await support.WithConversationId(conversationId).LoadConversationAsync(ct);
 
 Console.WriteLine($"{entries.Count} entries, {entries.Sum(entry => entry.Usage?.TotalTokenCount)} tokens");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L23-L28' title='Snippet source file'>snippet source</a> | <a href='#snippet-load-conversation' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L23-L27' title='Snippet source file'>snippet source</a> | <a href='#snippet-load-conversation' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Runs that fail or stop early are stored too:
@@ -163,7 +167,7 @@ its last stored step, without new input:
 ```cs
 var resumed = await support.WithSettingsId(settingsId).WithConversationId(interrupted).ResumeAsync();
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L74-L76' title='Snippet source file'>snippet source</a> | <a href='#snippet-resume' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L73-L75' title='Snippet source file'>snippet source</a> | <a href='#snippet-resume' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 `ResumeAsync` also continues a conversation whose decisions your app answered with `RecordAnswersAsync`: it carries
@@ -244,7 +248,7 @@ var tracker = provider.GetRequiredService<ConversationTracker<int>>();
 foreach (var run in tracker.Runs)
     Console.WriteLine($"{run.Agent} is answering conversation {run.Conversation} on {run.Model}");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L32-L37' title='Snippet source file'>snippet source</a> | <a href='#snippet-live-sessions' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L31-L36' title='Snippet source file'>snippet source</a> | <a href='#snippet-live-sessions' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 `WatchRunsAsync` tells a UI when that list changes, so a list of running conversations needs no polling. It yields the
@@ -257,7 +261,7 @@ Cancelling ends the loop with an `OperationCanceledException`, so catch it where
 await foreach (var run in tracker.WatchRunsAsync(ct))
     Console.WriteLine($"Conversation {run.Conversation} is {(run.Ended ? "idle" : "running")}");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L101-L104' title='Snippet source file'>snippet source</a> | <a href='#snippet-watch-runs' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L100-L103' title='Snippet source file'>snippet source</a> | <a href='#snippet-watch-runs' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ::: warning The tracker lists every customer's runs
@@ -301,7 +305,7 @@ while (!tracker.TrySteer(conversationId, input))
     }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L51-L66' title='Snippet source file'>snippet source</a> | <a href='#snippet-steering' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L50-L65' title='Snippet source file'>snippet source</a> | <a href='#snippet-steering' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 To stop a run, cancel its token. It is stored up to where it stopped.
@@ -320,7 +324,7 @@ model response and tool result as it stores it. A browser can follow them over S
 await foreach (var update in tracker.WatchAsync(conversationId, ct))
     Console.Write(update.Text);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L86-L89' title='Snippet source file'>snippet source</a> | <a href='#snippet-watch-conversation' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L85-L88' title='Snippet source file'>snippet source</a> | <a href='#snippet-watch-conversation' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Text, reasoning and usage updates are merged and published at most every 100 ms, and other updates go out at once.

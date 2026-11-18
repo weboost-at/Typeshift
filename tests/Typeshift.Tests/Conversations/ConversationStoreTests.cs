@@ -837,6 +837,43 @@ public class ConversationStoreTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_No_Store_The_Host_Loads_The_Conversation_It_Ran()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        var services = new ServiceCollection();
+        services.AddTypeshift().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddSingleton(ChatClient).AddSingleton(Models);
+
+        await using var provider = services.BuildServiceProvider(validateScopes: true);
+        await using var scope = provider.CreateAsyncScope();
+
+        var chat = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
+            .WithConversationId(Data.Agent.ConversationId);
+
+        await chat.RunAsync(Data.Tool.Question, Ct);
+
+        // Act
+        var entries = await chat.LoadConversationAsync(Ct);
+
+        // Assert
+        entries.SelectMany(entry => entry.Messages).Select(message => message.Text)
+            .Should()
+            .Equal(Data.Tool.Question, Data.Tool.Answer);
+    }
+
+    [Fact]
+    public async Task Given_A_Host_Without_A_Conversation_Loading_Its_History_Throws()
+    {
+        // Act
+        var load = () => Host<ProbeAgent>().LoadConversationAsync(Ct);
+
+        // Assert
+        await load.Should().ThrowAsync<InvalidOperationException>().WithMessage("*WithConversationId*");
+    }
+
+    [Fact]
     public async Task Given_No_Live_Update_Options_A_Watcher_Receives_The_Updates_Of_A_Streaming_Run()
     {
         // Arrange

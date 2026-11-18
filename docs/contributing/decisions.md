@@ -1359,7 +1359,10 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   and starts none, and a handoff continues the caller's. Every run with a conversation names it in
   `ChatResponse.ConversationId`, and each streaming update in a copy, since the tool loop still holds the update and
   reads an update that names a conversation as one the service keeps, which would leave the history out of its next
-  call.
+  call. That id is text, so `response.GetConversationId<TId>()` parses it as the store's id type, with the invariant
+  culture, for `WithConversationId`: the text itself compiles there too and names a conversation under a `string`.
+  A conversation's host loads its entries with `LoadConversationAsync()`, through the store of the id's type or
+  D69's memory, which an app cannot resolve itself.
 - **Where:** `DependencyInjection/TypeshiftOptions.cs`, `DependencyInjection/TypeshiftBuilder.cs`,
   `Conversations/ConversationChatClient.cs`, `Hosting/ResolvedChatOptions.cs`, `Hosting/AgentHost.cs`,
   `Storage/StoreAccess.cs`.

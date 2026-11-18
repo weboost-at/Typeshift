@@ -11,7 +11,7 @@ section names the declaration that adds a member.
 ## The agent host
 
 `AgentHost<TAgent>` runs one agent. Its own members are `Agent`, `Services`, `WithSettingsId`,
-`WithConversationId`, its runs without settings, `CreateChatClientAsync`, the members for
+`WithConversationId`, its runs without settings, `CreateChatClientAsync`, `LoadConversationAsync`, the members for
 [the decisions of a conversation](#decisions-of-the-conversation), `DisposeAsync` and `Dispose`. The generator adds
 the typed runs and settings of each agent.
 
@@ -194,6 +194,16 @@ them. On options of a host without a conversation id, `ChatOptions.ConversationI
 
 It throws an `InvalidOperationException` when no client is registered for the options' provider and model, and none
 for every agent.
+
+### `LoadConversationAsync`
+
+`Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(CancellationToken ct = default)`
+
+`LoadConversationAsync` loads every entry of the host's conversation, the one `WithConversationId(id)` gave it, in
+order ([What is stored](./conversations.md#what-is-stored)). It reads through the store of the id's type, or the
+memory Typeshift keeps when your app registered no store, and starts no run. It throws an
+`InvalidOperationException` on a host without a conversation id, or when your app registered stores and none keeps
+conversations under the id's type.
 
 ### Decisions of the conversation
 

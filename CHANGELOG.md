@@ -162,6 +162,13 @@ All notable changes to this project are documented here. The format follows
 - `ResumeAsync<TResult>()` and `ResumeStreamingAsync<TResult>()` resume a typed run that a crash cut off, asking the
   model for `TResult` again; before, it resumed untyped. `tracker.TrySteer(conversation, message)` steers with a
   user's `ChatMessage`, which may carry images or files, beside the overload that takes text.
+- `host.LoadConversationAsync()` loads the entries of the host's conversation, for a chat page that reloads, also
+  where your app registered no store and Typeshift keeps conversations in memory. Before, the page resolved
+  `IConversationStore<TId>` itself, which throws without a registered store.
+- `response.GetConversationId<Guid>()` reads the id of the conversation a run stored, typed as your store keeps it,
+  so `support.WithConversationId(response.GetConversationId<Guid>())` continues a conversation that
+  `PersistAllConversations` started. `WithConversationId(response.ConversationId!)` compiled and named another
+  conversation, under a `string` id.
 - `host.Services` is the scope a host's runs resolve their services from. A background job sets your app's scoped
   state there before it runs, as in `support.Services.GetRequiredService<CurrentTenant>().Id = tenant;`, where a
   request's middleware would. Before, a host from the runtime hid its scope, so a job's tools ran with that state

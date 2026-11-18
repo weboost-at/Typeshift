@@ -44,6 +44,34 @@ public class PersistAllConversationsTests : MultiAgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Conversation_Typeshift_Started_Its_Typed_Id_Continues_It()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer)).Reply(Text(Data.Tool.Answer));
+
+        var first = await Host<ProbeAgent>().RunAsync(Data.Tool.Question, Ct);
+
+        // Act
+        await Host<ProbeAgent>()
+            .WithConversationId(first.GetConversationId<Guid>())
+            .RunAsync(Data.Agent.FollowUp, Ct);
+
+        // Assert
+        ChatClient.Requests[1].Select(message => message.Text)
+            .Should().Equal(Data.Tool.Question, Data.Tool.Answer, Data.Agent.FollowUp);
+    }
+
+    [Fact]
+    public void Given_A_Run_Without_A_Conversation_Reading_Its_Conversation_Id_Throws()
+    {
+        // Act
+        var read = () => new ChatResponse().GetConversationId<Guid>();
+
+        // Assert
+        read.Should().Throw<InvalidOperationException>().WithMessage("*PersistAllConversations*");
+    }
+
+    [Fact]
     public async Task Given_Every_Conversation_Kept_Two_Runs_Without_An_Id_Start_A_Conversation_Each()
     {
         // Arrange

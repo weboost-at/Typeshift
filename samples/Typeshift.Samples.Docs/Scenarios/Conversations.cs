@@ -21,8 +21,7 @@ internal static class Conversations
         // end-snippet
 
         // begin-snippet: load-conversation
-        var store = provider.GetRequiredService<IConversationStore<int>>();
-        var entries = await store.LoadConversationAsync(conversationId, ct);
+        var entries = await support.WithConversationId(conversationId).LoadConversationAsync(ct);
 
         Console.WriteLine($"{entries.Count} entries, {entries.Sum(entry => entry.Usage?.TotalTokenCount)} tokens");
         // end-snippet
@@ -69,7 +68,7 @@ internal static class Conversations
         var interrupted = 12;
         var question = new ChatMessage(ChatRole.User, "Where is my refund?");
         var entry = new ConversationEntry("support_agent", [question], TimeProvider.System.GetUtcNow());
-        await store.AppendConversationAsync(interrupted, entry, ct);
+        await provider.GetRequiredService<IConversationStore<int>>().AppendConversationAsync(interrupted, entry, ct);
 
         // begin-snippet: resume
         var resumed = await support.WithSettingsId(settingsId).WithConversationId(interrupted).ResumeAsync();

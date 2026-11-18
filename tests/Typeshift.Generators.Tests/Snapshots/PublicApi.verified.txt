@@ -44,6 +44,7 @@ public System.Threading.Tasks.Task<Microsoft.Extensions.AI.IChatClient> Typeshif
 public void Typeshift.AgentHost<TAgent>.Dispose()
 public System.Threading.Tasks.ValueTask Typeshift.AgentHost<TAgent>.DisposeAsync()
 public System.Threading.Tasks.Task<Typeshift.ConversationDecisions> Typeshift.AgentHost<TAgent>.GetDecisionsAsync(System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
+public System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Typeshift.ConversationEntry>> Typeshift.AgentHost<TAgent>.LoadConversationAsync(System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
 public System.Threading.Tasks.Task<Typeshift.ConversationDecisions> Typeshift.AgentHost<TAgent>.RecordAnswersAsync(System.Collections.Generic.IReadOnlyList<Typeshift.DecisionAnswer> answers, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
 public System.Threading.Tasks.Task<Microsoft.Extensions.AI.ChatOptions> Typeshift.AgentHost<TAgent>.ResolveOptionsAsync(System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
 public System.Threading.Tasks.Task<Microsoft.Extensions.AI.ChatResponse> Typeshift.AgentHost<TAgent>.ResumeAsync(System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
@@ -117,9 +118,11 @@ public Typeshift.ChatOptionsBuilder Typeshift.ChatOptionsBuilder.WithTools(param
 public Typeshift.ChatOptionsBuilder Typeshift.ChatOptionsBuilder.WithTopK(int topK)
 public Typeshift.ChatOptionsBuilder Typeshift.ChatOptionsBuilder.WithTopP(float topP)
 public static class Typeshift.ChatResponseExtensions
+public static TId Typeshift.ChatResponseExtensions.GetConversationId<TId>(Microsoft.Extensions.AI.ChatResponse response) where TId : notnull, System.IParsable<TId>
 public static Typeshift.ChatResponseExtensions.extension(Microsoft.Extensions.AI.ChatResponse)
 public bool Typeshift.ChatResponseExtensions.extension(Microsoft.Extensions.AI.ChatResponse).ConversationIncomplete { get; }
 public System.Collections.Generic.IReadOnlyList<Typeshift.Decision> Typeshift.ChatResponseExtensions.extension(Microsoft.Extensions.AI.ChatResponse).Decisions { get; }
+public TId Typeshift.ChatResponseExtensions.extension(Microsoft.Extensions.AI.ChatResponse).GetConversationId<TId>() where TId : System.IParsable<TId>
 public static Typeshift.ChatResponseExtensions.extension(Microsoft.Extensions.AI.ChatResponseUpdate)
 public bool Typeshift.ChatResponseExtensions.extension(Microsoft.Extensions.AI.ChatResponseUpdate).ConversationIncomplete { get; }
 public System.Collections.Generic.IReadOnlyList<Typeshift.Decision> Typeshift.ChatResponseExtensions.extension(Microsoft.Extensions.AI.ChatResponseUpdate).Decisions { get; }

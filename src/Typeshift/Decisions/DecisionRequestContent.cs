@@ -46,6 +46,25 @@ public static class ChatResponseExtensions
         /// <see cref="ConversationStoreException"/>.
         /// </summary>
         public bool ConversationIncomplete => IsIncomplete(response.AdditionalProperties);
+
+        // D73: the id names the conversation as text, which a host continues only typed as its store keeps it
+        /// <summary>
+        /// The id of the conversation the run stored, typed as your conversation store keeps it, such as the
+        /// <see cref="Guid"/> of a conversation that <c>PersistAllConversations</c> started:
+        /// <c>support.WithConversationId(response.GetConversationId&lt;Guid&gt;())</c> continues it. It parses
+        /// <c>ConversationId</c>, the text Microsoft.Extensions.AI carries, with the invariant culture.
+        /// </summary>
+        /// <typeparam name="TId">The id type of your conversation store.</typeparam>
+        /// <returns>The conversation's id.</returns>
+        /// <exception cref="InvalidOperationException">The run stored no conversation.</exception>
+        /// <exception cref="FormatException">The id is not a <typeparamref name="TId"/>.</exception>
+        public TId GetConversationId<TId>() where TId : IParsable<TId> =>
+            TId.Parse(
+                response.ConversationId
+                ?? throw new InvalidOperationException(
+                    "The run stored no conversation: give the host a conversation id, or turn on "
+                    + "PersistAllConversations, to keep its runs."),
+                System.Globalization.CultureInfo.InvariantCulture);
     }
 
     extension(ChatResponseUpdate update)

@@ -604,6 +604,24 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
     private DecisionLedger Ledger => new(Store, _services.GetService<TimeProvider>() ?? TimeProvider.System);
 #pragma warning restore RS0030
 
+    // D69, D72: through the store of the id's type, so the memory a new app runs on answers too
+    /// <summary>
+    /// Loads the history of the host's conversation, from <c>WithConversationId</c>: every entry its runs stored, in
+    /// order, for a chat page that reloads or a job that looks for interrupted runs. It starts no run.
+    /// More in the guide:
+    /// <see href="https://weboost-at.github.io/Typeshift/guide/conversations#what-is-stored">What is stored</see>.
+    /// </summary>
+    /// <param name="ct">Cancels the load.</param>
+    /// <returns>The entries; none for a conversation that never ran.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// The host has no conversation, or stores are registered and none keeps conversations under its id's type.
+    /// </exception>
+    public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(CancellationToken ct = default) =>
+        (_conversationId
+            ?? throw new InvalidOperationException(
+                "A conversation's history needs a conversation: load it on a host from WithConversationId(id)."))
+        .LoadConversationAsync(Store, ct);
+
     /// <summary>
     /// Loads what the host's conversation, from <c>WithConversationId</c>, waits for: the decisions your app has not
     /// answered yet, whether the answered ones are ready to be carried out, the tools approved for the conversation
