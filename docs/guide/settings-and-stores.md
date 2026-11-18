@@ -273,6 +273,63 @@ reads them. A value that goes wrong together with another layer, such as a store
 agent's code sets, is found by the run that resolves the layers. That run throws an `InvalidOperationException`
 that names the agent and the option, before it calls the model or stores an entry in its conversation.
 
+### Settings from a request
+
+An agent's `Settings` holds every member its code made configurable, and nothing else: `Configurable(...)` is the
+allow-list of what stored settings and runs may change. Within that list, Typeshift checks only that a run can go
+with a value, not who chose it.
+
+::: warning Settings from a request are as trusted as their sender
+A caller who may post `SupportAgent.Settings` picks the model and the provider whose client and key serve the runs,
+replaces the instructions and raises the limits. On an agent with a configurable `Mode`, they can run in `Auto`, where
+no call waits for approval ([Setting the mode](./tool-approval.md#setting-the-mode)).
+:::
+
+Bind the whole record only for people who may change every member, such as your staff. A form your customers fill in
+gets a record of its own, with the members they may change:
+
+<!-- snippet: support-preferences -->
+<a id='snippet-support-preferences'></a>
+```cs
+// What a customer may change of the support agent's settings; the model and the instructions stay your staff's
+internal sealed record SupportPreferences(string? ArticleLanguage);
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/SettingsEndpoints.cs#L9-L12' title='Snippet source file'>snippet source</a> | <a href='#snippet-support-preferences' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+The endpoint copies the form onto the customer's stored settings:
+
+<!-- snippet: settings-endpoint -->
+<a id='snippet-settings-endpoint'></a>
+```cs
+app.MapPut("/settings", async (
+    SupportPreferences preferences,
+    AgentHost<SupportAgent> support,
+    ICurrentCustomer customer,
+    CancellationToken ct) =>
+{
+    await support
+        .WithSettingsId(customer.Id)
+        .ConfigureAsync(settings => settings with
+        {
+            SearchArticles = settings.SearchArticles with { Language = preferences.ArticleLanguage }
+        }, ct);
+
+    return TypedResults.NoContent();
+});
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/SettingsEndpoints.cs#L20-L36' title='Snippet source file'>snippet source</a> | <a href='#snippet-settings-endpoint' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+- The settings id is the current customer's, from `ICurrentCustomer`, never a value of the request, so a customer
+  changes only their own settings. An endpoint that takes a settings id from the request, such as your staff's,
+  checks first that the caller may change the settings under it.
+- `ConfigureAsync` sets the one member and keeps every other stored value, so the model and the instructions stay
+  as your staff stored them. An empty field arrives as null, which removes the customer's choice, so the layer below
+  applies again.
+- The same holds for a run's `settings` argument: build it in code from what the request may choose, rather than
+  binding `Settings` from the body ([Run settings](./running-agents.md#run-settings)).
+
 ## The stores
 
 Each kind of stored data goes through an interface of its own. Until you write a store over your database, one of

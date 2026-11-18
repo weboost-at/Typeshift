@@ -129,7 +129,9 @@ you ship, your app has to do these things itself:
   ([Conversation ids](./conversations.md#conversation-ids)).
 - Filter the tracker's `Runs` and `WatchRunsAsync` by the caller before you return them
   ([Live runs](./conversations.md#live-runs)).
-- Mark as configurable only what a customer may change ([Precedence](./settings-and-stores.md#precedence)).
+- Mark as configurable only what may change at runtime, and let a customer's settings form set only what the
+  customer may change, under their own settings id
+  ([Settings from a request](./settings-and-stores.md#settings-from-a-request)).
 - Decide which tool calls wait for a person, and write your rules before a run goes in auto mode
   ([Approval and modes](./tool-approval.md)).
 - Check input steered into a run where you check a run's input: a guardrail in run middleware implements

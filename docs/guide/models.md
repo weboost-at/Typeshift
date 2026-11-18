@@ -404,6 +404,10 @@ await support.WithSettingsId(42).ConfigureAsync(settings => settings with
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/AgentSettings.cs#L13-L21' title='Snippet source file'>snippet source</a> | <a href='#snippet-configure-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
+A provider in settings picks among the clients your app registered, and with a key per customer, whose key pays for
+the run. So a settings page offers the providers the user may pick, rather than taking one from the request as it is
+([Settings from a request](./settings-and-stores.md#settings-from-a-request)).
+
 ## The summary model
 
 [Compaction](./conversations.md#compaction) summarizes the oldest turns with the run's own model unless you name

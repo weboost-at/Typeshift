@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -9,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Typeshift.Samples.Agents;
 using Typeshift.Samples.Hosting;
 using Typeshift.Samples.Stores.EfCore;
 using Typeshift.Samples.Tickets;
@@ -18,7 +20,8 @@ namespace Typeshift.Samples.Scenarios;
 
 // Serves the chat endpoints on a local port and calls them as a chat UI would: a message, another customer's chat,
 // a decision loaded again and answered by its id, questions answered by label and in words, a streamed answer, and a
-// second message while the answer to the first is under way
+// second message while the answer to the first is under way. Then the customer's settings form, and a staff endpoint
+// that binds the whole Settings record
 internal static class ChatEndpoint
 {
     public static async Task RunAsync(IChatClient client, string database)
@@ -41,6 +44,14 @@ internal static class ChatEndpoint
         }
 
         app.MapChats();
+        app.MapSettings();
+
+        app.MapPut("/staff/settings/{customerId:int}", (
+            int customerId,
+            SupportAgent.Settings settings,
+            AgentHost<SupportAgent> support,
+            CancellationToken ct) => support.WithSettingsId(customerId).ConfigureAsync(_ => settings, ct));
+
         await app.StartAsync();
 
         var server = app.Services.GetRequiredService<IServer>();
@@ -123,6 +134,7 @@ internal static class ChatEndpoint
         held.Release.SetResult();
         (await slow).EnsureSuccessStatusCode();
 
+        await CheckSettingsAsync(app.Services, http);
         await app.StopAsync();
     }
 
@@ -148,6 +160,35 @@ internal static class ChatEndpoint
             return await base.GetResponseAsync(messages, options, cancellationToken);
         }
     }
+
+    private static async Task CheckSettingsAsync(IServiceProvider services, HttpClient http)
+    {
+        var form = await http.PutAsJsonAsync("/settings", new SupportPreferences("de"));
+        form.EnsureSuccessStatusCode();
+
+        await using var scope = services.CreateAsyncScope();
+        var support = scope.ServiceProvider.GetRequiredService<AgentHost<SupportAgent>>();
+        var customer = scope.ServiceProvider.GetRequiredService<ICurrentCustomer>();
+
+        var stored = await support.WithSettingsId(customer.Id).LoadSettingsAsync();
+        if (stored.Data.SearchArticles.Language != "de" || stored.Data.Model is not null)
+            throw new InvalidOperationException("Expected the form to set the article language alone.");
+
+        var miscased = await http.PutAsync("/staff/settings/8", Json("""{"Temperature":0.5}"""));
+        if (miscased.StatusCode != HttpStatusCode.BadRequest)
+            throw new InvalidOperationException("Expected a member in another case to be refused.");
+
+        if ((await support.WithSettingsId(8).LoadSettingsAsync()).Version != 0)
+            throw new InvalidOperationException("Expected a refused body to store nothing.");
+
+        var staff = await http.PutAsync("/staff/settings/8", Json("""{"temperature":0.5}"""));
+        staff.EnsureSuccessStatusCode();
+
+        if ((await support.WithSettingsId(8).LoadSettingsAsync()).Data.Temperature != 0.5f)
+            throw new InvalidOperationException("Expected the staff endpoint to store the settings it was sent.");
+    }
+
+    private static StringContent Json(string json) => new(json, Encoding.UTF8, "application/json");
 
     private static async Task<T> PostAsync<T>(HttpClient http, string path, object body)
     {

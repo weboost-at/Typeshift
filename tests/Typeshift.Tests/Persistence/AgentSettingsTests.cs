@@ -133,9 +133,12 @@ public class AgentSettingsTests : AgentTestBase
 
     [Theory]
     [InlineData(nameof(RunOptions.MaxToolIterations), 0)]
+    [InlineData(nameof(RunOptions.MaxToolIterations), -1)]
     [InlineData(nameof(RunOptions.MaxConsecutiveToolErrors), -1)]
     [InlineData(nameof(RunOptions.MaxInputTokens), 0)]
+    [InlineData(nameof(RunOptions.MaxInputTokens), -1)]
     [InlineData(nameof(RunOptions.TargetInputTokens), 0)]
+    [InlineData(nameof(RunOptions.TargetInputTokens), -1)]
     public async Task Given_Settings_Out_Of_Range_Saving_Throws_And_Stores_Nothing(string option, int value)
     {
         // Arrange

@@ -49,6 +49,10 @@ chat.MapPost("/messages", async (
 - The `CancellationToken` is the request's, so the run is cancelled when the user leaves the page. A run that should
   finish anyway takes no token.
 - `ChatReply` is the JSON the UI gets back: the answer's text and the decisions it waits for.
+- The settings id is the customer's own, never a value of the request, and the body carries only the text. Settings
+  can set every member the agent made configurable, the model, the instructions and the mode among them, so a
+  customer changes theirs through a form that holds only what they may change
+  ([Settings from a request](./settings-and-stores.md#settings-from-a-request)).
 
 The filter on the group checks that the chat belongs to the caller before any endpoint of the group runs, because
 Typeshift resumes whichever conversation it is given
