@@ -32,8 +32,39 @@ The run takes its `IChatClient` from the run's services: the client your app reg
 names, or the default client when the agent names none. A provider nothing is registered for fails the run before it
 starts. [Models and providers](./models.md) shows how to register the clients and how an agent names its model.
 
+Every run takes a `CancellationToken` last, which reaches its model calls and its tools. Cancelling it stops the run
+with an `OperationCanceledException`, so pass the token of the request or job that waits for the answer. On the
+host's own members the token goes second, as in `RunAsync("Where is my refund?", ct)`, and a run with
+[run settings](#run-settings) passes it after them: `RunAsync(input, settings: run, ct: ct)`. A run with a
+conversation is stored up to where it stopped ([What is stored](./conversations.md#what-is-stored)).
+
 [How a run works](./how-a-run-works.md) follows the steps every run passes through, streaming or not, from resolving
 its options to the model's answer.
+
+## Images and files
+
+`RunAsync` also takes a `ChatMessage`, so the user's message can carry an image, a file or several parts, as
+Microsoft.Extensions.AI's contents do:
+
+<!-- snippet: run-message -->
+<a id='snippet-run-message'></a>
+```cs
+var question = new ChatMessage(
+    ChatRole.User,
+    [
+        new TextContent("Is this the charge on my statement?"),
+        new DataContent(statement, "image/png")
+    ]);
+
+var charge = await support.RunAsync(question, ct);
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L36-L45' title='Snippet source file'>snippet source</a> | <a href='#snippet-run-message' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+- `statement` stands for the bytes of an image the user uploaded, and `DataContent` carries them with their media
+  type. A file on the web goes in a `UriContent` instead.
+- The provider and the model decide which kinds of content they read, so check that yours reads images before your
+  UI offers an upload.
 
 ## Run any agent
 
@@ -74,7 +105,7 @@ var settingsId = 42;
 
 var stored = await support.WithSettingsId(settingsId).RunAsync("Where is my refund?");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L41-L45' title='Snippet source file'>snippet source</a> | <a href='#snippet-run-with-settings-id' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L67-L71' title='Snippet source file'>snippet source</a> | <a href='#snippet-run-with-settings-id' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ## Run settings
@@ -96,7 +127,7 @@ var run = new SupportAgent.Settings
 
 var thorough = await support.WithSettingsId(settingsId).RunAsync("Where is my refund?", settings: run);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L49-L60' title='Snippet source file'>snippet source</a> | <a href='#snippet-run-settings' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L75-L86' title='Snippet source file'>snippet source</a> | <a href='#snippet-run-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Values the run leaves null keep what the stored settings or the agent's code set, as
@@ -113,7 +144,7 @@ var report = await support.WithSettingsId(settingsId).RunAsync<RefundStatus>("Su
 
 Console.WriteLine($"{report.Result.Invoice}: {report.Result.State}");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L64-L68' title='Snippet source file'>snippet source</a> | <a href='#snippet-structured-output' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L90-L94' title='Snippet source file'>snippet source</a> | <a href='#snippet-structured-output' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 <!-- snippet: structured-output-type -->
@@ -128,7 +159,7 @@ internal enum RefundState
     Paid
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L108-L117' title='Snippet source file'>snippet source</a> | <a href='#snippet-structured-output-type' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L169-L178' title='Snippet source file'>snippet source</a> | <a href='#snippet-structured-output-type' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 `T`'s XML docs describe its properties, as they describe the types tools take
@@ -143,7 +174,31 @@ fails the run before it calls the model, naming the member. Leave such a member 
 `[JsonIgnore]`, since the model could not send one anyway. A tool's parameters fail the same way, and that message
 names the tool and the parameter too.
 
-`RunStreamingAsync<T>` streams that answer as the model writes it. Read its updates to the end, and its `Response`
+A typed run returns whatever the model answered, and `Result` reads it when you first ask for it. So `Result` throws a
+`JsonException` when the answer is no JSON of `T`, such as a model that answered in prose, and an
+`InvalidOperationException` when the response holds no answer to read, such as a run that ends asking your app.
+`TryGetResult` tells without throwing:
+
+<!-- snippet: typed-run-try -->
+<a id='snippet-typed-run-try'></a>
+```cs
+var chat = support.WithSettingsId(settingsId).WithConversationId(conversationId);
+
+var closing = await chat.RunAsync<RefundStatus>("Close ticket 1234.");
+
+if (closing.TryGetResult(out var status))
+    Console.WriteLine($"{status.Invoice}: {status.State}");
+else
+    Console.WriteLine($"No result yet: {closing.Decisions.Count} decision waits for an answer.");
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L100-L109' title='Snippet source file'>snippet source</a> | <a href='#snippet-typed-run-try' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+The ticket's close waits for your app's [approval](./tool-approval.md), so the run has no result yet, and its
+`Decisions` lists what it asks. `AnswerAsync<T>` and `AnswerStreamingAsync<T>` ask for `T` again when they continue
+the run.
+
+`RunStreamingAsync<T>` streams the typed answer as the model writes it. Read its updates to the end, and its `Response`
 holds the result:
 
 <!-- snippet: structured-streaming -->
@@ -156,7 +211,7 @@ await foreach (var update in summary)
 
 Console.WriteLine($" ({summary.Response.Result.State})");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L72-L79' title='Snippet source file'>snippet source</a> | <a href='#snippet-structured-streaming' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L119-L126' title='Snippet source file'>snippet source</a> | <a href='#snippet-structured-streaming' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The updates carry the model's JSON as it writes it, under `data` for a `T` that is not an object, so show the user
@@ -164,8 +219,7 @@ The updates carry the model's JSON as it writes it, under `data` for a `T` that 
 second `await foreach` throws an `InvalidOperationException`. `Response` throws one until the updates are read to the
 end, and keeps throwing when the run failed, was cancelled or was left early.
 
-Both typed runs also take a `ChatMessage`. `AnswerAsync<T>` and `AnswerStreamingAsync<T>` ask for `T` again when
-they continue a run that waited for your app's [approval](./tool-approval.md). An agent the run is
+Both typed runs also take a `ChatMessage` ([Images and files](#images-and-files)). An agent the run is
 [handed off](./multi-agent.md) to answers in `T` too.
 
 ## Streaming
@@ -179,7 +233,7 @@ updates, and the stream goes on with the model's next response:
 await foreach (var update in support.WithSettingsId(settingsId).RunStreamingAsync("Where is my refund?"))
     Console.Write(update.Text);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L83-L86' title='Snippet source file'>snippet source</a> | <a href='#snippet-streaming' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L130-L133' title='Snippet source file'>snippet source</a> | <a href='#snippet-streaming' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Anyone [watching the conversation](./conversations.md#live-updates) sees the updates too.
@@ -202,7 +256,7 @@ var options = await support.WithSettingsId(settingsId).ResolveOptionsAsync(setti
 using var client = await support.CreateChatClientAsync(options);
 var response = await client.GetResponseAsync([new ChatMessage(ChatRole.User, "Where is my refund?")], options);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L90-L95' title='Snippet source file'>snippet source</a> | <a href='#snippet-raw-path' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L137-L142' title='Snippet source file'>snippet source</a> | <a href='#snippet-raw-path' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The client is the run's whole pipeline, the tool loop and the agent's run options included. It serves concurrent

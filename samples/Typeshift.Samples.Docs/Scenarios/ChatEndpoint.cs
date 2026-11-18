@@ -18,10 +18,10 @@ using Typeshift.Samples.Web;
 
 namespace Typeshift.Samples.Scenarios;
 
-// Serves the chat endpoints on a local port and calls them as a chat UI would: a message, another customer's chat,
-// a decision loaded again and answered by its id, questions answered by label and in words, a streamed answer, and a
-// second message while the answer to the first is under way. Then the customer's settings form, and a staff endpoint
-// that binds the whole Settings record
+// Serves the chat endpoints and the hub on a local port and calls them as a chat UI would: a message, another
+// customer's chat, a decision loaded again and answered by its id, questions answered by label and in words, a
+// streamed answer, a second message while the answer to the first is under way, and the hub's negotiation. Then the
+// customer's settings form, and a staff endpoint that binds the whole Settings record
 internal static class ChatEndpoint
 {
     public static async Task RunAsync(IChatClient client, string database)
@@ -34,7 +34,13 @@ internal static class ChatEndpoint
         Registration.Register(builder.Services, held, held, database);
         builder.Services.AddSingleton<IChats, SampleChats>();
 
+        // begin-snippet: conversation-hub-map
+        builder.Services.AddSignalR();
+
         await using var app = builder.Build();
+
+        app.MapHub<ConversationHub>("/hub");
+        // end-snippet
 
         var contexts = app.Services.GetRequiredService<IDbContextFactory<TypeshiftDb>>();
 
@@ -133,6 +139,10 @@ internal static class ChatEndpoint
 
         held.Release.SetResult();
         (await slow).EnsureSuccessStatusCode();
+
+        var hub = await http.PostAsync("/hub/negotiate?negotiateVersion=1", content: null);
+        if (hub.StatusCode != HttpStatusCode.OK)
+            throw new InvalidOperationException($"Expected the hub to be mapped: {hub.StatusCode}");
 
         await CheckSettingsAsync(app.Services, http);
         await app.StopAsync();

@@ -345,6 +345,20 @@ public class AgentRunTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_An_Answer_In_Prose_Reading_Its_Result_Throws_A_Json_Exception()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        var response = await Host<ProbeAgent>().RunAsync<Company>(Data.Tool.Question, ct: Ct);
+        var read = () => response.Result;
+
+        // Assert
+        read.Should().Throw<JsonException>();
+    }
+
+    [Fact]
     public async Task Given_A_Result_Type_With_Xml_Docs_The_Response_Schema_Describes_Its_Properties()
     {
         // Arrange

@@ -23,6 +23,7 @@ var shop = Path.Combine(Path.GetTempPath(), $"typeshift-samples-shop-{Guid.NewGu
 
 await NoContainer.RunAsync(client);
 await SmallestAgent.RunAsync(client);
+await KeepEveryConversation.RunAsync(client);
 await OutputGuardrail.RunAsync();
 await MinimalApi.RunAsync(client);
 var services = Registration.Register(new ServiceCollection(), client, client, database);
@@ -43,7 +44,7 @@ await using (var provider = services.BuildServiceProvider(new ServiceProviderOpt
 
     await StoreVerification.RunAsync(provider);
     await AgentSettings.RunAsync(provider);
-    await RunningAgents.RunAsync(provider);
+    await RunningAgents.RunAsync(provider, CancellationToken.None);
     await Conversations.RunAsync(provider, CancellationToken.None);
     await Approval.RunAsync(provider);
     await Questions.RunAsync(provider);

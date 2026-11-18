@@ -9,7 +9,7 @@ namespace Typeshift.Samples.Hosting;
 // or "Run" a command, two order lookups in one response, questions to the user before it opens a ticket, a call of a
 // sub-agent it is offered, a handoff to billing about a charge, of find_companies for the city it is given, JSON when
 // the run asks for it, otherwise one fixed answer; once a tool answered, it answers in text, listing the companies
-// find_companies found
+// find_companies found. Like a provider's client, it stops at a cancelled token
 internal sealed class CannedChatClient : IChatClient
 {
     public const string Answer = "Your refund was approved and reaches your account within five days.";
@@ -42,7 +42,9 @@ internal sealed class CannedChatClient : IChatClient
         IEnumerable<ChatMessage> messages,
         ChatOptions? options = null,
         CancellationToken cancellationToken = default) =>
-        Task.FromResult(new ChatResponse(Respond([.. messages], options)) { ModelId = options?.ModelId });
+        cancellationToken.IsCancellationRequested
+            ? Task.FromCanceled<ChatResponse>(cancellationToken)
+            : Task.FromResult(new ChatResponse(Respond([.. messages], options)) { ModelId = options?.ModelId });
 
     public async IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
         IEnumerable<ChatMessage> messages,
@@ -50,6 +52,7 @@ internal sealed class CannedChatClient : IChatClient
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         await Task.Yield();
+        cancellationToken.ThrowIfCancellationRequested();
 
         var message = Respond([.. messages], options);
         yield return new ChatResponseUpdate(message.Role, message.Contents) { ModelId = options?.ModelId };

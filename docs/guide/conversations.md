@@ -48,29 +48,66 @@ calls only your app could decide ([When a call needs approval](./tool-approval.m
 ### Keeping every conversation
 
 To keep the runs of a host without a conversation id as well, turn on `PersistAllConversations`:
-`AddTypeshift().WithOptions(options => options.PersistAllConversations = true)`. Such a run then starts a
-conversation under a new id, and its response's `ConversationId` names it as text. The next run continues it with
-`support.WithConversationId(response.GetConversationId<Guid>())`, which reads the id typed as your store keeps it. A
-`WithConversationId(response.ConversationId!)` would name another conversation, under a `string` id. A handoff
-continues that conversation. A call on
-the [raw path](./running-agents.md#the-raw-path) names its conversation in `ChatOptions.ConversationId`, a string, so
-the conversation it starts is under a `string` id, and the next call continues it with
-`options.ConversationId = response.ConversationId`.
 
-Some runs start no conversation, even with the option on:
+<!-- snippet: persist-all-conversations -->
+<a id='snippet-persist-all-conversations'></a>
+```cs
+services.AddTypeshift()
+    .WithOptions(options => options.PersistAllConversations = true);
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/KeepEveryConversation.cs#L16-L19' title='Snippet source file'>snippet source</a> | <a href='#snippet-persist-all-conversations' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
 
-- A sub-agent's run, which belongs to its caller's conversation.
-- A run without input: it continues an interrupted run ([Resuming](#resuming)), and a new conversation has none.
-- A raw-path call whose options did not come from `ResolveOptionsAsync`, such as `ChatOptions` your code created, or
-  a call with no options at all ([the raw path](./running-agents.md#the-raw-path)).
+Such a run then starts a conversation under a new id, and its response's `ConversationId` names it as text. The next
+run continues it on a host with that id, read as the type your store keeps it in. Here `assistant` is the host of
+[the smallest agent](./defining-agents.md#the-smallest-agent), which has no conversation id:
 
-New ids are `Guid`s of version 7, which sort by the time they were made. A run of the host's members keeps its new
-conversation in your `IConversationStore<Guid>`, and a raw-path call keeps it under the `Guid`'s text in your
-`IConversationStore<string>`. For a conversation store of another id type, give the ids with
-`options.NewConversationIds(() => ...)`; the raw path takes them when they are strings. Without a store the new
-conversation fits, a run that starts one throws an `InvalidOperationException` that names `NewConversationIds`. Runs
-that start together call the function at the same time, so make it thread-safe, and have it return an id no
-conversation has on every call.
+<!-- snippet: persist-all-conversations-run -->
+<a id='snippet-persist-all-conversations-run'></a>
+```cs
+var first = await assistant.RunAsync("Where is my refund?");
+var chat = assistant.WithConversationId(first.GetConversationId<Guid>());
+
+var next = await chat.RunAsync("When will it arrive?");
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/KeepEveryConversation.cs#L27-L32' title='Snippet source file'>snippet source</a> | <a href='#snippet-persist-all-conversations-run' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+`GetConversationId<Guid>()` parses the text back into the `Guid`, while `WithConversationId(first.ConversationId!)`
+would name another conversation, under a `string` id. A handoff continues the conversation its run started.
+
+Which runs start a conversation, and where it is kept:
+
+| Run without a conversation id | Starts a conversation | Kept under |
+|---|---|---|
+| A run of the host, streaming or not | Yes | A new `Guid` of version 7, in your `IConversationStore<Guid>` |
+| A call on the [raw path](./running-agents.md#the-raw-path) with options from `ResolveOptionsAsync` | Yes | The new `Guid`'s text, in your `IConversationStore<string>` |
+| A raw-path call with `ChatOptions` your code created, or with none | No | Nothing is stored |
+| A raw-path call without input, which would continue an interrupted run ([Resuming](#resuming)) | No | Nothing is stored |
+| A sub-agent's run | No | Its caller's conversation |
+
+A raw-path call names its conversation in `ChatOptions.ConversationId`, a string, so the next call continues the
+conversation with `options.ConversationId = response.ConversationId`. A `Guid` of version 7 sorts by the time it was
+made. For a conversation store of another id type, give the new ids with `NewConversationIds`:
+
+<!-- snippet: new-conversation-ids -->
+<a id='snippet-new-conversation-ids'></a>
+```cs
+services.AddTypeshift()
+    .WithOptions(options =>
+    {
+        options.PersistAllConversations = true;
+        options.NewConversationIds(() => $"chat-{Guid.CreateVersion7():N}");
+    });
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/KeepEveryConversation.cs#L45-L52' title='Snippet source file'>snippet source</a> | <a href='#snippet-new-conversation-ids' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+- The raw path takes these ids only when they are strings, and the `Guid`'s text otherwise.
+- Without a store of the new ids' type, a run that starts a conversation throws an `InvalidOperationException` that
+  names `NewConversationIds`.
+- Runs that start together call the function at the same time, so make it thread-safe, and have it return an id no
+  conversation has on every call.
 
 ::: danger Check the caller before you use a conversation id
 Typeshift resumes whichever conversation it is given, so deciding who may see one is your app's job. Check the caller
@@ -169,6 +206,8 @@ var resumed = await support.WithSettingsId(settingsId).WithConversationId(interr
 ```
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L73-L75' title='Snippet source file'>snippet source</a> | <a href='#snippet-resume' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
+
+`ResumeStreamingAsync` does the same and streams the continuation, as `RunStreamingAsync` streams a run.
 
 `ResumeAsync` also continues a conversation whose decisions your app answered with `RecordAnswersAsync`: it carries
 the answers out and goes on. While decisions are still open, it calls no model and returns them

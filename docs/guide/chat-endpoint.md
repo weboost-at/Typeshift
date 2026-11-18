@@ -193,14 +193,28 @@ internal sealed class ConversationHub(ConversationTracker<int> tracker, IChats c
 - The hub takes `ConversationTracker<int>` because the sample's chats have `int` ids. Inject the tracker of your
   chats' id type, such as `ConversationTracker<Guid>`; the container has one for every id type
   ([Live runs](./conversations.md#live-runs)).
-- Register SignalR with `builder.Services.AddSignalR()`, and map the hub behind your authentication, for example
-  `app.MapHub<ConversationHub>("/hub").RequireAuthorization()`. In a hub, the current customer comes from the
-  connection's user, so `ICurrentCustomer` reads it from there.
+- In a hub, the current customer comes from the connection's user, so `ICurrentCustomer` reads it from there.
 - The browser calls `connection.stream("Watch", chatId)`. SignalR cancels `ct` when the browser disposes its
   subscription or the connection drops, which ends the loop.
 - A watch replays nothing, so a page that opens a chat shows its stored history first and then watches. An answer
   that was streaming when the page opened shows from where the page joined, and the stored history holds it whole
   once its run has ended.
+
+Your app registers SignalR with its services and maps the hub next to the chat endpoints:
+
+<!-- snippet: conversation-hub-map -->
+<a id='snippet-conversation-hub-map'></a>
+```cs
+builder.Services.AddSignalR();
+
+await using var app = builder.Build();
+
+app.MapHub<ConversationHub>("/hub");
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/ChatEndpoint.cs#L37-L43' title='Snippet source file'>snippet source</a> | <a href='#snippet-conversation-hub-map' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+Map it behind your authentication, as the endpoints are, for example with `RequireAuthorization()` after `MapHub`.
 
 ## Load the decisions
 

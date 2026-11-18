@@ -9,7 +9,7 @@ namespace Typeshift.Samples.Scenarios;
 
 internal static class RunningAgents
 {
-    public static async Task RunAsync(IServiceProvider provider)
+    public static async Task RunAsync(IServiceProvider provider, CancellationToken ct)
     {
         // begin-snippet: run
         await using var scope = provider.CreateAsyncScope();
@@ -19,6 +19,32 @@ internal static class RunningAgents
 
         Console.WriteLine($"{answer.Messages[^1].AuthorName}: {answer.Text}");
         // end-snippet
+
+        using (var leaving = new CancellationTokenSource())
+        {
+            await leaving.CancelAsync();
+
+            var stopped = await ThrowsAsync<OperationCanceledException>(
+                () => support.RunAsync("Where is my refund?", leaving.Token));
+
+            Expect(stopped, "a cancelled token to stop the run");
+        }
+
+        // The bytes of an image the user uploaded: here the first ones of a PNG file
+        byte[] statement = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
+
+        // begin-snippet: run-message
+        var question = new ChatMessage(
+            ChatRole.User,
+            [
+                new TextContent("Is this the charge on my statement?"),
+                new DataContent(statement, "image/png")
+            ]);
+
+        var charge = await support.RunAsync(question, ct);
+        // end-snippet
+
+        Expect(charge.Text == answer.Text, "a run on a message with an image answers");
 
         await using (var request = provider.CreateAsyncScope())
         {
@@ -69,6 +95,27 @@ internal static class RunningAgents
 
         Expect(report.Result.State == RefundState.Approved, "structured output is parsed");
 
+        var conversationId = 15;
+
+        // begin-snippet: typed-run-try
+        var chat = support.WithSettingsId(settingsId).WithConversationId(conversationId);
+
+        var closing = await chat.RunAsync<RefundStatus>("Close ticket 1234.");
+
+        if (closing.TryGetResult(out var status))
+            Console.WriteLine($"{status.Invoice}: {status.State}");
+        else
+            Console.WriteLine($"No result yet: {closing.Decisions.Count} decision waits for an answer.");
+        // end-snippet
+
+        Expect(closing.Decisions.Count == 1, "a typed run that asks to list its decision");
+        Expect(!closing.TryGetResult(out _), "a typed run that asks to have no result");
+
+        var unread = await ThrowsAsync<InvalidOperationException>(() => Task.FromResult(closing.Result));
+        Expect(unread, "the result of a typed run that asks to throw");
+
+        await chat.CancelDecisionsAsync(ct);
+
         // begin-snippet: structured-streaming
         var summary = support.WithSettingsId(settingsId).RunStreamingAsync<RefundStatus>("Summarize the refund.");
 
@@ -102,6 +149,20 @@ internal static class RunningAgents
     private static void Expect(bool condition, string what)
     {
         if (!condition) throw new InvalidOperationException($"Expected {what}.");
+    }
+
+    private static async Task<bool> ThrowsAsync<TException>(Func<Task> action)
+        where TException : Exception
+    {
+        try
+        {
+            await action();
+            return false;
+        }
+        catch (TException)
+        {
+            return true;
+        }
     }
 }
 
