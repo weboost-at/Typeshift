@@ -1,12 +1,14 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Typeshift.Samples.Hosting;
 using Typeshift.Samples.Quickstart;
 using Typeshift.Samples.Scenarios;
 using Typeshift.Samples.Stores.EfCore;
 
-// Runs every scenario the guide shows; a scenario that breaks throws, which fails CI. The toolsets of the guide are
-// checked at compile time, by the analyzer, and need no scenario of their own.
+// Runs what the guide shows: every agent, toolset, rule and provider of the pages, each scenario checking what its
+// page says, and every registration the pages show, built and resolved. A scenario that breaks throws, which fails
+// CI. Only a real provider's call stays compile-only: its clients are built, and nothing calls them
 var client = new CannedChatClient();
 
 await Quickstart.RunAsync(client);
@@ -20,6 +22,8 @@ var database = Path.Combine(Path.GetTempPath(), $"typeshift-samples-{Guid.NewGui
 await NoContainer.RunAsync(client);
 await MinimalApi.RunAsync(client);
 var services = Registration.Register(new ServiceCollection(), client, client, database);
+services.AddSingleton<SampleLog>();
+services.AddSingleton<ILoggerProvider>(registered => registered.GetRequiredService<SampleLog>());
 
 await using (var provider = services.BuildServiceProvider(new ServiceProviderOptions
 {
@@ -41,7 +45,14 @@ await using (var provider = services.BuildServiceProvider(new ServiceProviderOpt
     await Modes.RunAsync(provider);
     await Middleware.RunAsync(provider);
     await MultiAgent.RunAsync(provider);
+    await LongRunning.RunAsync(provider);
+    await Toolsets.RunAsync(provider);
+    await Mcp.RunAsync(provider);
+    await ChatHub.RunAsync(provider);
+    await Observability.RunAsync(provider);
 }
+
+await ShownRegistrations.RunAsync(client);
 
 var web = Path.Combine(Path.GetTempPath(), $"typeshift-samples-web-{Guid.NewGuid():N}.db");
 await ChatEndpoint.RunAsync(client, web);

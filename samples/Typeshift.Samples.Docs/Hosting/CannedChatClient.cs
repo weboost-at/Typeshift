@@ -5,10 +5,10 @@ using Microsoft.Extensions.AI;
 namespace Typeshift.Samples.Hosting;
 
 // Stands in for a provider's client, so the guide's scenarios run without a network. It answers as a model would in
-// each scenario: a plan in plan mode, a call of close_ticket when asked to close a ticket, questions to the user when
-// asked to open one, a call of run_command when asked to run a command, a call of a sub-agent it is offered, a
-// handoff to billing about a charge, of find_companies for the city it is given, JSON when the run asks for it,
-// otherwise one fixed answer; once a tool answered, it answers in text, listing the companies find_companies found
+// each scenario: a plan in plan mode, a call of the tool the input asks for when it is offered, such as "Close ticket"
+// or "Run" a command, questions to the user before it opens a ticket, a call of a sub-agent it is offered, a handoff
+// to billing about a charge, of find_companies for the city it is given, JSON when the run asks for it, otherwise one
+// fixed answer; once a tool answered, it answers in text, listing the companies find_companies found
 internal sealed class CannedChatClient : IChatClient
 {
     public const string Answer = "Your refund was approved and reaches your account within five days.";
@@ -76,10 +76,20 @@ internal sealed class CannedChatClient : IChatClient
                 Call("ask_user", ("questions", Questions)),
             (false, _) when offers.Contains("run_command") && input.StartsWith("Run ") =>
                 Call("run_command", ("command", input["Run ".Length..])),
+            (false, _) when offers.Contains("search_articles") && input.StartsWith("Search the help center for ") =>
+                Call("search_articles", ("query", input["Search the help center for ".Length..])),
+            (false, _) when offers.Contains("find_ticket") && input.StartsWith("Find ticket ") =>
+                Call("find_ticket", ("key", Key(input["Find ticket ".Length..]))),
+            (false, _) when offers.Contains("escalate_ticket") && input.StartsWith("Escalate ticket ") =>
+                Call("escalate_ticket", ("number", int.Parse(input["Escalate ticket ".Length..]))),
+            (false, _) when offers.Contains("explore_agent") && input.StartsWith("Ask the explorer ") =>
+                Call("explore_agent", ("input", input["Ask the explorer ".Length..])),
             (false, _) when offers.Contains("research_agent") =>
                 Call("research_agent", ("input", "Vienna")),
             (false, _) when offers.Contains("handoff_to_billing_agent") && input.Contains("charged") =>
                 Call("handoff_to_billing_agent"),
+            (_, ChatResponseFormatJson { SchemaName: "CityCompanies" }) =>
+                new TextContent("""{ "City": "Vienna", "Companies": ["Robotik Wien", "Danube Drives"] }"""),
             (_, ChatResponseFormatJson) =>
                 new TextContent("""{ "Invoice": "INV-7", "State": "Approved", "Expected": "2026-11-02" }"""),
             (false, _) when offers.Contains("find_companies") => Call("find_companies", ("city", input)),
@@ -109,6 +119,9 @@ internal sealed class CannedChatClient : IChatClient
             [.. var others, var last] => $"Found {string.Join(", ", others)} and {last}."
         };
     }
+
+    // A ticket's number, or the words of its title
+    private static object Key(string text) => int.TryParse(text, out var number) ? number : text;
 
     private static FunctionCallContent Call(string name, params (string Name, object Value)[] arguments) =>
         new(

@@ -72,7 +72,7 @@ var approvals = answer.Decisions.OfType<ApprovalDecision>().ToList();
 foreach (var approval in approvals)
     Console.WriteLine($"Approve {approval.Tool}({approval.Arguments})?");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Approval.cs#L15-L23' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-run' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Approval.cs#L16-L24' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-run' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 If the model called other tools in the same response, those calls wait too, even when they need no approval, and run
@@ -99,7 +99,7 @@ host with the same conversation id:
 ```cs
 var resumed = await chat.AnswerAsync([.. approvals.Select(approval => approval.Approve())]);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Approval.cs#L25-L27' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-resume' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Approval.cs#L26-L28' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-resume' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 `AnswerAsync` records the answers. Once no decision of the conversation is left open, it carries them out and
@@ -150,7 +150,7 @@ you, or when the user leaves the chat:
 ```cs
 var cancelled = await chat.CancelDecisionsAsync();
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Approval.cs#L72-L74' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-cancel' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Approval.cs#L73-L75' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-cancel' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 None of the calls runs. The conversation's next run tells the model that the request was withdrawn, whether it
@@ -180,7 +180,7 @@ catch (DecisionClosedException closed)
         Console.WriteLine($"The decision {decision} is closed: {reason}.");
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Approval.cs#L33-L43' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-closed' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Approval.cs#L34-L44' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-closed' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 One closed answer rejects the whole call: the other answers passed with it are not recorded either. Answer again
@@ -210,7 +210,7 @@ var asked = again.Decisions.OfType<ApprovalDecision>().Single();
 
 await chat.AnswerAsync([asked.ApproveForConversation()]);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Approval.cs#L45-L50' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-for-conversation' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Approval.cs#L46-L51' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-for-conversation' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 `GetDecisionsAsync()` lists the conversation's standing approvals, each with its tool and the time it took effect:
@@ -223,7 +223,7 @@ var decisions = await chat.GetDecisionsAsync();
 foreach (var standing in decisions.Standing)
     Console.WriteLine($"{standing.Tool} runs without asking since {standing.GrantedAt:t}.");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Approval.cs#L55-L60' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-standing' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Approval.cs#L56-L61' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-standing' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 `RevokeStandingApprovalAsync(tool)` withdraws one, and the tool asks again:
@@ -233,7 +233,7 @@ foreach (var standing in decisions.Standing)
 ```cs
 await chat.RevokeStandingApprovalAsync("close_ticket");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Approval.cs#L65-L67' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-revoke' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Approval.cs#L66-L68' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-revoke' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 For an [MCP server's](./mcp.md) tool, pass the server as well, as `Standing` lists it:
@@ -269,7 +269,7 @@ abstains on the rest. Register it with `WithApprovalRule<T>()`, and Typeshift re
 services.AddTypeshift()
     .WithApprovalRule<ShellGuard>();
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L73-L76' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-rule-registration' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L75-L78' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-rule-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Every rule sees every call that requires approval, with the arguments the model sent, so it decides on exactly the

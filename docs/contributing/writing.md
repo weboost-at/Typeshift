@@ -183,9 +183,11 @@ of each kind of fact, and its change checklist names the pages a kind of change 
 
 ## Where the code comes from
 
-Every C# block is a region of `samples/Typeshift.Samples.Docs`, which builds with the solution. CI runs its program,
-which executes each documented scenario and throws when one breaks. A region is marked in the source with comments,
-in any file type:
+Every C# block is a region of `samples/Typeshift.Samples.Docs`, which builds with the solution. CI runs its program
+on a canned chat client: each scenario runs the agents, toolsets, rules and providers of its page, checks what the page
+says about them, and throws when one breaks, and every registration a page shows is built and resolved on services of
+its own. Only a call to a real provider stays unrun: its clients are built with a key that is no key, and nothing
+calls them. A region is marked in the source with comments, in any file type:
 
 ```text
 // begin-snippet: settings-picks

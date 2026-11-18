@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using Typeshift.Samples.Hosting;
+using Typeshift.Samples.Knowledge;
 using Typeshift.Samples.Stores.EfCore;
 using Typeshift.Samples.Tickets;
 
@@ -31,6 +32,7 @@ internal static class Registration
         services.AddDbContextFactory<TypeshiftDb>(options => options.UseSqlite($"Data Source={database}"));
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<ITicketClient, InMemoryTicketClient>();
+        services.AddSingleton<IArticleIndex, InMemoryArticleIndex>();
         services.AddScoped<ICurrentCustomer, SampleCustomer>();
         services.AddScoped<RefundDesk>();
         services.AddLogging();

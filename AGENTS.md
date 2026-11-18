@@ -236,7 +236,7 @@ These fail the build when the repository's own rules slip, so a rule never depen
 | `tests/Typeshift.Tests` | Runtime behavior, through real `FunctionInvokingChatClient` loops and a scripted `IChatClient`. |
 | `tests/Typeshift.Tests.Toolsets` | Toolsets in an assembly of their own, which `Typeshift.Tests` references for modules, stamps and JSON contexts across assemblies. |
 | `tests/Typeshift.Generators.Tests` | Snapshots, one test per diagnostic, incremental caching, guard tests. |
-| `samples/Typeshift.Samples.Docs` | The code every guide page shows, run as scenarios in CI. |
+| `samples/Typeshift.Samples.Docs` | The code every guide page shows, run as scenarios in CI on a canned client, each checking what its page says; only the calls to a real provider stay unrun. |
 | `samples/Typeshift.Samples.Console` | A host published as Native AOT in CI, failing on any trim or AOT warning, and once more trimmed without AOT (`-p:TrimmedOnly=true`). |
 | `samples/Typeshift.Samples.PackageConsumer` | A consumer of the packed package rather than the projects, run by CI after the pack. |
 | `docs/` | The VitePress site: `guide/` for users, `contributing/` for this repository, `contributing/templates/` for new pages, `.vitepress/lint.mjs` for the docs rules, `.vitepress/snippets.mjs` for running mdsnippets. |

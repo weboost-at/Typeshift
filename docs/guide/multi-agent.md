@@ -68,7 +68,7 @@ var reports = scope.ServiceProvider.GetRequiredService<AgentHost<ReportAgent>>()
 
 var report = await reports.RunAsync("Compare the robotics scenes of Vienna and Graz.");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/MultiAgent.cs#L13-L18' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent-as-tool-run' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/MultiAgent.cs#L15-L20' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent-as-tool-run' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 A sub-agent needs a description and a lower_snake_case name ([TSH023](./diagnostics.md#tsh023)), because its name
@@ -240,7 +240,7 @@ var second = await triage.RunAsync("It was invoice 2024-17.");
 
 Console.WriteLine($"{second.Messages[^1].AuthorName}: {second.Text}");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/MultiAgent.cs#L22-L31' title='Snippet source file'>snippet source</a> | <a href='#snippet-handoff-run' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/MultiAgent.cs#L24-L33' title='Snippet source file'>snippet source</a> | <a href='#snippet-handoff-run' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 A handoff ends the handing agent's turn, and none of the tool calls the model made in the same response runs.

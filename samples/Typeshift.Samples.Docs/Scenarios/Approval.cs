@@ -1,6 +1,7 @@
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using Typeshift.Samples.Agents;
+using Typeshift.Samples.Hosting;
 using Typeshift.Samples.Tickets;
 
 namespace Typeshift.Samples.Scenarios;
@@ -96,6 +97,11 @@ internal static class Approval
         var allowed = await coding.RunAsync("Run dotnet test");
         if (!Results(allowed).Contains("Ran dotnet test."))
             throw new InvalidOperationException("Expected a command the rule names to run in auto mode.");
+
+        // A call a rule rejects never reaches the tool middleware, so it saw the one command that ran
+        var audited = services.GetRequiredService<SampleLog>().Audited.Count(line => line.EndsWith(" run_command"));
+        if (audited != 1)
+            throw new InvalidOperationException($"Expected the tool middleware to see one command, not {audited}.");
 
         await coding.SetModeAsync(AgentMode.Default);
 

@@ -41,7 +41,7 @@ services.AddTypeshift()
 services.AddKeyedChatClient("openai", fast);
 services.AddKeyedChatClient("anthropic", reasoning);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L18-L26' title='Snippet source file'>snippet source</a> | <a href='#snippet-registration' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L19-L27' title='Snippet source file'>snippet source</a> | <a href='#snippet-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 `fast` and `reasoning` are `IChatClient`s your app creates. The last two lines register them under the keys `openai`
