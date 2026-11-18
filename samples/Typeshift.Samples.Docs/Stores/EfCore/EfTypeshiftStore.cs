@@ -133,10 +133,13 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts)
     {
         await using var db = await contexts.CreateDbContextAsync(ct);
 
+        // An entry without a number, as an earlier version wrote it, keeps NULL, which the unique key allows twice
+        long? sequence = entry.Sequence > 0 ? entry.Sequence : null;
+
         var rows = await db.Database.ExecuteSqlAsync(
             $"""
             INSERT INTO "Entries" ("Conversation", "Sequence", "IsSummary", "Json")
-            VALUES ({conversation}, {entry.Sequence}, {entry.IsSummary}, {entry.Serialize()})
+            VALUES ({conversation}, {sequence}, {entry.IsSummary}, {entry.Serialize()})
             ON CONFLICT ("Conversation", "Sequence") DO NOTHING
             """,
             ct);

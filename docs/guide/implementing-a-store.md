@@ -652,10 +652,13 @@ public async Task AppendConversationAsync(int conversation, ConversationEntry en
 {
     await using var db = await contexts.CreateDbContextAsync(ct);
 
+    // An entry without a number, as an earlier version wrote it, keeps NULL, which the unique key allows twice
+    long? sequence = entry.Sequence > 0 ? entry.Sequence : null;
+
     var rows = await db.Database.ExecuteSqlAsync(
         $"""
         INSERT INTO "Entries" ("Conversation", "Sequence", "IsSummary", "Json")
-        VALUES ({conversation}, {entry.Sequence}, {entry.IsSummary}, {entry.Serialize()})
+        VALUES ({conversation}, {sequence}, {entry.IsSummary}, {entry.Serialize()})
         ON CONFLICT ("Conversation", "Sequence") DO NOTHING
         """,
         ct);
@@ -665,7 +668,7 @@ public async Task AppendConversationAsync(int conversation, ConversationEntry en
         throw new StoreConflictException($"Conversation {conversation} holds entry {entry.Sequence} already.");
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/EfTypeshiftStore.cs#L129-L148' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-append' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/EfTypeshiftStore.cs#L129-L151' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-append' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 - **Say so with `RefusesTakenSequences`.** It is false unless your store returns true, and
@@ -675,7 +678,7 @@ public async Task AppendConversationAsync(int conversation, ConversationEntry en
 - **Leave older rows without a number.** Add the column so that it allows NULL, which a unique key allows any number
   of times, and leave it NULL for the rows that were there before. A run reads the numbers from the entries' JSON,
   where those rows have none, counts them and numbers its first entry after them, so a number a migration wrote
-  into the column can collide with the run's own.
+  into the column can collide with the run's own. Store an entry that arrives without a number, 0, as NULL too.
 - **Tell your own retry from a second run.** A database client that retries an insert that had succeeded, as EF Core's
   retry on failure can, finds the number taken by its own row. Compare that row's JSON with the entry, and return
   without an exception when they are the same.
@@ -742,7 +745,7 @@ public async Task<long> SaveDecisionsAsync(int conversation, string json, long l
 }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/EfTypeshiftStore.cs#L150-L187' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-decisions' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/EfTypeshiftStore.cs#L153-L190' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-decisions' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Keep decisions in a table of their own, as the sample does, or under a key no settings id can take. Settings ids and
