@@ -51,6 +51,7 @@ return await Demo.RunAsync(async () =>
     services.AddDemoServices(catalog, canned);
 
     services.AddTypeshift()
+        .WithStore(Demo.Store())
         .WithChatClientProvider<RoutingChatClientProvider>()
         .WithApprovalRule<ShellGuard>()
         .WithToolMiddleware<AuditToolCalls>();

@@ -7,8 +7,8 @@ using Typeshift.Demos.Providers;
 namespace Typeshift.Demos.Hosting;
 
 /// <summary>
-/// What every demo's host registers: the user-defined providers from <c>providers.json</c>, the store under
-/// <c>.typeshift/</c>, and the canned models the demo brings.
+/// What every demo's host registers: the user-defined providers from <c>providers.json</c> and the canned models the
+/// demo brings, beside the store each demo's chain registers under <c>.typeshift/</c>.
 /// </summary>
 public static class Demo
 {
@@ -45,9 +45,7 @@ public static class Demo
     }
 
     // FRICTION: this library cannot call AddTypeshift() for its hosts, since only the generator of the calling project
-    // intercepts the call (D1), so each demo calls it next to this and names the provider itself. The store is
-    // registered here as each store interface directly, as WithStore<T>() would, since WithStore<T>() takes a type the
-    // container must be able to construct, and this store takes a directory.
+    // intercepts the call (D1), so each demo calls it next to this and names the provider and the store itself
     public static IServiceCollection AddDemoServices(
         this IServiceCollection services,
         ProviderCatalog catalog,
@@ -56,14 +54,12 @@ public static class Demo
         services.AddSingleton(catalog);
         services.AddSingleton(canned);
         services.AddSingleton<ClientCache>();
-        services.AddSingleton(new JsonFileStore(DataDirectory));
-        services.AddSingleton<ISettingsStore<Guid>>(provider => provider.GetRequiredService<JsonFileStore>());
-        services.AddSingleton<IConversationStore<Guid>>(provider => provider.GetRequiredService<JsonFileStore>());
-        services.AddSingleton<IDecisionStore<Guid>>(provider => provider.GetRequiredService<JsonFileStore>());
-        services.AddSingleton<ITypeshiftStore<Guid>>(provider => provider.GetRequiredService<JsonFileStore>());
 
         return services;
     }
+
+    // The store on disk the demos share, for the chain's WithStore
+    public static JsonFileStore Store() => new(DataDirectory);
 
     public static bool Flag(string[] args, string flag) => args.Contains(flag, StringComparer.Ordinal);
 
