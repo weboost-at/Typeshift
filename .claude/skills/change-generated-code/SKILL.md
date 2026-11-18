@@ -70,6 +70,21 @@ Read `docs/contributing/architecture.md`, "The generator and the analyzer", firs
 4. Keep `IncrementalTests` green: an edit outside a toolset or agent keeps every output cached, and an agent's output
    stays cached while what it offers is unchanged. A new step of the pipeline gets a name in `TrackingNames` and a
    place in the test of an unrelated edit, whose `Cached` fails for a step that produced nothing.
-5. Debug the output of a real project: no project keeps the generated files, so build it with
+5. After a change of the parsers or of `ConstructorChains`, run `measure` and `fuzz` of
+   `tools/Typeshift.Tools.Generators`, as step 5 of `docs/contributing/releasing.md` shows: compare what `measure`
+   prints with the table under "Known gaps" in `docs/contributing/status.md`, and `fuzz` must end with no cut that
+   made the generator or the analyzer throw.
+6. A generated member your app calls or reads is documented in `docs/guide/generated-members.md`, with its
+   signature, and what an emitter writes in `docs/contributing/architecture.md`, "The generator and the analyzer".
+7. Debug the output of a real project: no project keeps the generated files, so build it with
    `dotnet build <project> -c Release -p:EmitCompilerGeneratedFiles=true` and read them in its
    `obj/Release/net11.0/generated/Typeshift.Generators/Typeshift.Generators.TypeshiftGenerator/` folder.
+
+## Finish
+
+- **Changelog.** A line in `CHANGELOG.md` for what a user can observe, by the rule in `AGENTS.md`, "Commits".
+- **Docs.** The pages the change checklist under "Docs" in `AGENTS.md` names for your change, the code they show
+  from `samples/Typeshift.Samples.Docs`, through the `update-docs` playbook.
+- **Demos.** After a change of public API, of generated code or of a diagnostic, build the demos as `AGENTS.md`,
+  "Build and test", shows; fix a demo you broke, or say so under the **Demos** heading of the pull request.
+- **Check.** The commands of `AGENTS.md`, "Build and test", with the suite green three times in a row.

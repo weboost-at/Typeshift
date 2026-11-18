@@ -66,8 +66,12 @@ configuring a tool the agent does not offer need no diagnostic, because no gener
    Then run `npm run docs:snippets`, which writes the example into the section. Run it again whenever
    `DiagnosticSources.cs` gains a line above a region, since the links under the examples name their lines. A
    mistake that no C# of one file shows, a build property or a referenced assembly for example, has no region: add
-   its ID to `WithoutExample` in `DiagnosticCatalogTests`.
-6. **Changelog.** One line under `[Unreleased]` in `CHANGELOG.md`.
+   its ID to `WithoutExample` in `DiagnosticCatalogTests`. Last, give the rule a row of the behavior table in
+   `docs/contributing/status.md`, with the tests of the ID.
+6. **The repository's own code.** A sample, a test project or a demo that makes the mistake now fails its build,
+   with a warning too, since warnings are errors. Fix that code, or, in a test file that sets the mistake up on
+   purpose, disable the ID with `#pragma warning disable TSHxxx // <reason>` and add the ID to the list of such
+   pragmas in `AGENTS.md`, "Build and test".
 
 `DiagnosticCatalogTests` fails when an ID has no docs row, no docs section or no `..._TSHxxx_Is_Reported_...` test,
 when its row states another severity or title than the descriptor, when its section does not open with the title in
@@ -86,6 +90,11 @@ row's last cell says otherwise.
   add the ID to the "Retired IDs" table of `docs/guide/diagnostics.md` with its last title and the version that
   dropped it. The number is never used again.
 
-## Check
+## Finish
 
-Build and run the whole suite with the commands of `AGENTS.md`, "Build and test".
+- **Changelog.** A line in `CHANGELOG.md` for what a user can observe, by the rule in `AGENTS.md`, "Commits".
+- **Docs.** The pages the change checklist under "Docs" in `AGENTS.md` names for your change, the code they show
+  from `samples/Typeshift.Samples.Docs`, through the `update-docs` playbook.
+- **Demos.** After a change of public API, of generated code or of a diagnostic, build the demos as `AGENTS.md`,
+  "Build and test", shows; fix a demo you broke, or say so under the **Demos** heading of the pull request.
+- **Check.** The commands of `AGENTS.md`, "Build and test", with the suite green three times in a row.

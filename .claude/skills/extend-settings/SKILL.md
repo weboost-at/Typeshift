@@ -20,4 +20,17 @@ description: Change how Typeshift tool settings work - configurable members, the
   overrides under `"tools"` (D44).
 
 Tests: `ToolOverridesTests` and `Persistence/` (runtime), the snapshots of `ToolsetGenerationTests` and
-`AgentGenerationTests` (generator).
+`AgentGenerationTests` (generator). A change of what the generator reads or writes follows the `change-generated-code`
+playbook as well: its rules, the catalogs of shapes, the snapshots and the stamp version.
+
+Docs: the storable types are listed in `docs/guide/tool-settings.md#storable-types`, the `Settings` JSON in
+`docs/guide/settings-and-stores.md`.
+
+## Finish
+
+- **Changelog.** A line in `CHANGELOG.md` for what a user can observe, by the rule in `AGENTS.md`, "Commits".
+- **Docs.** The pages the change checklist under "Docs" in `AGENTS.md` names for your change, the code they show
+  from `samples/Typeshift.Samples.Docs`, through the `update-docs` playbook.
+- **Demos.** After a change of public API, of generated code or of a diagnostic, build the demos as `AGENTS.md`,
+  "Build and test", shows; fix a demo you broke, or say so under the **Demos** heading of the pull request.
+- **Check.** The commands of `AGENTS.md`, "Build and test", with the suite green three times in a row.
