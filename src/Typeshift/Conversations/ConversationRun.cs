@@ -326,9 +326,12 @@ internal sealed class ConversationRun(
     {
         var list = messages.ToList();
 
-        foreach (var content in list.SelectMany(message => message.Contents))
+        foreach (var message in list)
         {
-            _stored.Add(content);
+            for (var i = 0; i < message.Contents.Count; i++)
+            {
+                _stored.Add(message.Contents[i]);
+            }
         }
 
         HoldCallIds(UniqueCallIdsChatClient.Ids(list));
@@ -428,13 +431,7 @@ internal sealed class ConversationRun(
     // are stored, then the steering input waiting is taken in, past run middleware (D30), and stored (D51)
     public async Task<List<ChatMessage>> PrepareCallAsync(IEnumerable<ChatMessage> messages, CancellationToken ct)
     {
-        var call = messages.ToList();
-
-        foreach (var (after, message) in _injected)
-        {
-            var at = call.FindIndex(step => step.Contents.Any(content => ReferenceEquals(content, after)));
-            call.Insert(at < 0 ? call.Count : at + 1, message);
-        }
+        var call = WithSteering(messages);
 
         // The tool loop's own copies of the streamed response come first, never a tool result
         var steps = call.Select(Unstored).OfType<ChatMessage>().ToList();
@@ -456,6 +453,52 @@ internal sealed class ConversationRun(
         }
 
         if (steering.Count > 0) await AppendAsync(steering);
+        return call;
+    }
+
+    // D51: each steering input goes back behind the message that holds the content it followed, and one that followed
+    // another input behind that one, in their order; an input whose content is gone goes last. One pass over the
+    // call's contents, since a run puts every input back before each of its later model calls
+    private List<ChatMessage> WithSteering(IEnumerable<ChatMessage> messages)
+    {
+        if (_injected.Count == 0) return [.. messages];
+
+        var behind = new Dictionary<AIContent, List<ChatMessage>>(ReferenceEqualityComparer.Instance);
+
+        foreach (var (after, message) in _injected.Where(injected => injected.After is not null))
+        {
+            if (!behind.TryGetValue(after!, out var inputs)) behind[after!] = inputs = [];
+            inputs.Add(message);
+        }
+
+        var placed = new HashSet<ChatMessage>(ReferenceEqualityComparer.Instance);
+        List<ChatMessage> call = [];
+
+        void Place(ChatMessage message)
+        {
+            call.Add(message);
+
+            foreach (var content in message.Contents)
+            {
+                if (!behind.Remove(content, out var inputs)) continue;
+
+                foreach (var input in inputs)
+                {
+                    if (placed.Add(input)) Place(input);
+                }
+            }
+        }
+
+        foreach (var message in messages)
+        {
+            Place(message);
+        }
+
+        foreach (var (_, input) in _injected)
+        {
+            if (placed.Add(input)) Place(input);
+        }
+
         return call;
     }
 
@@ -678,8 +721,15 @@ internal sealed class ConversationRun(
     // The contents of a message not stored yet, as a message of their own; null when all are
     private ChatMessage? Unstored(ChatMessage message)
     {
-        if (message.Contents.All(IsKnown)) return null;
-        if (!message.Contents.Any(IsKnown)) return message;
+        var known = 0;
+
+        for (var i = 0; i < message.Contents.Count; i++)
+        {
+            if (IsKnown(message.Contents[i])) known++;
+        }
+
+        if (known == message.Contents.Count) return null;
+        if (known == 0) return message;
 
         var step = message.Clone();
         step.Contents = [.. message.Contents.Where(content => !IsKnown(content))];

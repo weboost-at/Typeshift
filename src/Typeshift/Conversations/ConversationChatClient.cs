@@ -800,7 +800,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         run.MarkStored(history);
 
         // D59: the ids of what the history leaves out, and of the background calls a summary left working
-        run.HoldCallIds(UniqueCallIdsChatClient.Ids(entries.SelectMany(entry => entry.Messages)));
+        run.HoldCallIds(UniqueCallIdsChatClient.Ids(entries));
         run.HoldCallIds(entries.FirstOrDefault()?.BackgroundCalls?.Keys ?? []);
 
         // D80: decisions still open and nothing to continue with: no model is called, and the run's end is stored if

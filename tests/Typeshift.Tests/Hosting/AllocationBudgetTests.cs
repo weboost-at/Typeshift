@@ -18,8 +18,8 @@ public class AllocationBudgetTests : AgentTestBase
     // 12,296 B when set, 14,232 B since each JSON result goes to the provider as text
     private const int ModelCallBudget = 18_000;
 
-    // 2,047 B when set
-    private const int EntryBudget = 2_500;
+    // 2,047 B when set, 1,303 B since the history is built without a list for each of its messages
+    private const int EntryBudget = 1_950;
 
     private const int Rounds = 4;
 

@@ -1768,7 +1768,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   with its end, so `TrySteer`'s true promises the input reaches a model, of this run or the next. Stopping a run is
   cancelling its token. Steering input goes in after the message the tool loop's messages ended with when it
   arrived, found by reference in every later call of the run, so context that grows between passes cannot move it
-  between a call and its result. Input a run took and no model received is stored with the run's end or its
+  between a call and its result. The call's contents are read once for all the inputs, which go back in their
+  order, rather than searched for each input, which cost seconds a call once thousands of inputs waited. Input a run took and no model received is stored with the run's end or its
   handoff. Steering input a run takes after it asked your app expires what it asked, as a new message does (D81). A
   background agent's answer expires nothing and starts no model call while a batch is open: it is stored, and the
   run that carries the answers out reads it. A run holds at most 32 of the user's inputs, or 262,144 characters of

@@ -9,27 +9,28 @@ namespace Typeshift;
 // provider receives one
 internal static class ConversationHistory
 {
+    // Built on every run, from every entry since the last summary: a message that keeps its contents, as nearly all
+    // do, is taken as it is, and only one with a call looks for results
     public static List<ChatMessage> From(IReadOnlyList<ConversationEntry> entries)
     {
-        var messages = SinceSummary(entries).SelectMany(entry => entry.Messages).ToList();
+        var since = SinceSummary(entries);
+        var messages = new List<ChatMessage>();
+
+        for (var i = 0; i < since.Count; i++)
+        {
+            messages.AddRange(since[i].Messages);
+        }
+
         var pairs = new Pairs(messages);
-        var usable = new List<ChatMessage>();
+        var usable = new List<ChatMessage>(messages.Count);
 
         foreach (var message in messages)
         {
-            var kept = message.Contents
-                .Where(content => content switch
-                {
-                    ErrorContent or InputRequestContent or InputResponseContent => false,
-                    FunctionCallContent call => pairs.Keeps(call),
-                    FunctionResultContent result => pairs.StaysIn(message, result),
-                    _ => true
-                })
-                .ToList();
+            if (KeepsAll(message, pairs)) usable.Add(message);
+            else if (With(message, [.. message.Contents.Where(content => Keeps(content, message, pairs))]) is { } left)
+                usable.Add(left);
 
-            if (With(message, kept) is { } left) usable.Add(left);
-
-            usable.AddRange(pairs.ResultsOf(message));
+            if (Calls(message)) usable.AddRange(pairs.ResultsOf(message));
         }
 
         return usable;
@@ -38,8 +39,39 @@ internal static class ConversationHistory
     // D32: compaction stored what it left of the history; what came before is in it
     public static IReadOnlyList<ConversationEntry> SinceSummary(IReadOnlyList<ConversationEntry> entries)
     {
-        var start = entries.ToList().FindLastIndex(entry => entry.IsSummary);
-        return [.. entries.Skip(Math.Max(start, 0))];
+        var start = entries.Count - 1;
+        while (start > 0 && !entries[start].IsSummary) start--;
+
+        return start <= 0 ? entries : [.. entries.Skip(start)];
+    }
+
+    private static bool KeepsAll(ChatMessage message, Pairs pairs)
+    {
+        for (var i = 0; i < message.Contents.Count; i++)
+        {
+            if (!Keeps(message.Contents[i], message, pairs)) return false;
+        }
+
+        return true;
+    }
+
+    private static bool Keeps(AIContent content, ChatMessage message, Pairs pairs) =>
+        content switch
+        {
+            ErrorContent or InputRequestContent or InputResponseContent => false,
+            FunctionCallContent call => pairs.Keeps(call),
+            FunctionResultContent result => pairs.StaysIn(message, result),
+            _ => true
+        };
+
+    private static bool Calls(ChatMessage message)
+    {
+        for (var i = 0; i < message.Contents.Count; i++)
+        {
+            if (message.Contents[i] is FunctionCallContent) return true;
+        }
+
+        return false;
     }
 
     // D50: the highest number among the entries. An entry an earlier version stored has none and counts one past the
@@ -79,8 +111,10 @@ internal static class ConversationHistory
         {
             foreach (var message in messages)
             {
-                foreach (var content in message.Contents)
+                for (var i = 0; i < message.Contents.Count; i++)
                 {
+                    var content = message.Contents[i];
+
                     if (content is FunctionCallContent call) _calls[call.CallId] = call;
                     if (content is FunctionResultContent result) _results[result.CallId] = (result, message);
                 }

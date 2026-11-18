@@ -49,16 +49,29 @@ internal sealed class UniqueCallIdsChatClient(IChatClient inner) : DelegatingCha
         }
     }
 
-    public static IEnumerable<string> Ids(IEnumerable<ChatMessage> messages) =>
-        messages
-            .SelectMany(message => message.Contents)
-            .Select(content => content switch
+    // Read for every message a run starts from, so by index rather than an enumerator per message
+    public static IEnumerable<string> Ids(IEnumerable<ChatMessage> messages)
+    {
+        foreach (var message in messages)
+        {
+            for (var i = 0; i < message.Contents.Count; i++)
             {
-                FunctionCallContent call => call.CallId,
-                FunctionResultContent result => result.CallId,
-                _ => null
-            })
-            .OfType<string>();
+                if (message.Contents[i] is FunctionCallContent call) yield return call.CallId;
+                if (message.Contents[i] is FunctionResultContent result) yield return result.CallId;
+            }
+        }
+    }
+
+    public static IEnumerable<string> Ids(IReadOnlyList<ConversationEntry> entries)
+    {
+        for (var i = 0; i < entries.Count; i++)
+        {
+            foreach (var id in Ids(entries[i].Messages))
+            {
+                yield return id;
+            }
+        }
+    }
 
     // The ids of the call and of the conversation, those its history leaves out included
     private static HashSet<string> Used(IEnumerable<ChatMessage> messages, ChatOptions? options)

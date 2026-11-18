@@ -557,6 +557,9 @@ All notable changes to this project are documented here. The format follows
   one with a sub-agent's result, a background answer or a summary, holds in `Usage` what the run spent beside its
   model calls, so the entries' usage adds up to the responses'. An app that wants the model calls of one agent alone
   sums the `chat` spans, or the entries that have a `Model`.
+- A run on a long conversation allocates a third less for each stored entry, 1,303 bytes where it took 2,061: it
+  builds the history it starts from without a list and an enumerator for each message. Steering input goes back
+  into each later model call of a run in one pass over the call, where each input was searched for on its own.
 
 ### Fixed
 

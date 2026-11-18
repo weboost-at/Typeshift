@@ -421,6 +421,41 @@ public class ConversationRunTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_Many_Steering_Inputs_A_Later_Call_Puts_Them_Back_In_Their_Order()
+    {
+        // Arrange
+        var gate = new TaskCompletionSource();
+
+        ChatClient
+            .Reply(gate, Text(Data.Tool.Answer))
+            .Reply(Call(Data.Tool.CallId, "probe", ("query", Data.Tool.Query)))
+            .Reply(Text(Data.Agent.FollowUp));
+
+        var run = Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Tool.Question, Ct);
+        await ChatClient.Requested;
+
+        Tracker.TrySteer(Data.Agent.ConversationId, Data.Agent.Steering);
+        Tracker.TrySteer(Data.Agent.ConversationId, Data.Agent.CompanyName);
+        Tracker.TrySteer(Data.Agent.ConversationId, Data.Agent.Reason);
+
+        // Act
+        gate.SetResult();
+        await run;
+
+        // Assert
+        ChatClient.Requests[2].Select(message => message.Role == ChatRole.User ? message.Text : message.Role.Value)
+            .Should()
+            .Equal(
+                Data.Tool.Question,
+                "assistant",
+                Data.Agent.Steering,
+                Data.Agent.CompanyName,
+                Data.Agent.Reason,
+                "assistant",
+                "tool");
+    }
+
+    [Fact]
     public async Task Given_A_Full_Steering_Queue_Steering_Throws_A_ConversationBusyException()
     {
         // Arrange
