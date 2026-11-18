@@ -220,6 +220,52 @@ Run options set the [mode](./tool-approval.md#the-three-modes) a run starts in, 
 the calls of one response run at the same time, and when the history is [compacted](./conversations.md#compaction).
 [Builders](./builders.md#runoptionsbuilder) lists each one with its default and the range it accepts.
 
+### Tool calls at the same time
+
+`WithConcurrentToolCalls(true)` runs the tool calls of one model response at the same time, which saves time when the
+model asks for several lookups at once. Every call runs in the run's scope, the one the host was resolved from, so
+the calls share its scoped services. The sub-agents the model calls in one response share them as well, and so does
+a [sub-agent in the background](./multi-agent.md#in-the-background), which works beside the calls that follow.
+
+::: warning A `DbContext` serves one call at a time
+EF Core [allows one operation at a time](https://learn.microsoft.com/ef/core/dbcontext-configuration/#avoiding-dbcontext-threading-issues)
+on a `DbContext`. When two calls query the request's scoped context at once, one of them fails with an
+`InvalidOperationException`, or, where EF Core does not notice, they can corrupt the context's state. The model reads
+only that the call failed ([When a tool fails](./toolsets.md#when-a-tool-fails)), and whether it happens depends on
+which calls the model makes in one response.
+:::
+
+So a tool that may run beside another creates what it needs in each call. With EF Core, register the context with
+`AddDbContextFactory<T>` and take the factory instead of the context:
+
+<!-- snippet: db-context-factory -->
+<a id='snippet-db-context-factory'></a>
+```cs
+internal partial class OrderToolset : Toolset
+{
+    public OrderToolset() => AddTool(GetOrderAsync);
+
+    /// <summary>
+    /// Reads one of the customer's orders by its number.
+    /// </summary>
+    /// <param name="number">The order's number.</param>
+    public static async Task<Order?> GetOrderAsync(int number, IServiceProvider services, CancellationToken ct)
+    {
+        var contexts = services.GetRequiredService<IDbContextFactory<ShopDb>>();
+        await using var db = await contexts.CreateDbContextAsync(ct);
+
+        return await db.Orders.FindAsync([number], ct);
+    }
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Orders/OrderToolset.cs#L6-L23' title='Snippet source file'>snippet source</a> | <a href='#snippet-db-context-factory' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+Each call gets a context of its own and disposes it when the call ends. For a service of your own that is not
+thread-safe, create a scope in the call with `IServiceScopeFactory` and resolve the service there. That scope holds
+new instances of every scoped service, so read what the call needs from the run's services, such as the current
+customer, before you create it.
+
 ## Tool settings
 
 `Configure{Tool}()` sets a tool's [settings](./tool-settings.md) for every run of this agent, over the record's code

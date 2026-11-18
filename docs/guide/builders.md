@@ -129,7 +129,7 @@ mode without the pick ([Setting the mode](./tool-approval.md#setting-the-mode)).
 | `WithMode(AgentMode mode)` | `Default` | Any mode | Sets the [mode](./tool-approval.md#the-three-modes) runs start in: `Default`, `Plan` or `Auto`. |
 | `WithMaxToolIterations(int iterations)` | 40 | 1 or more | Sets the most rounds of tool calls the agent makes in one run. Calls your app [approves](./tool-approval.md#approving-or-rejecting) run in the next run, which counts its own, and so does an agent the run is [handed off](./multi-agent.md#handoff) to. |
 | `WithMaxConsecutiveToolErrors(int errors)` | 3 | 0 or more | Sets how many rounds of tool calls in a row may fail before the failing tool's exception ends the run and reaches your code. |
-| `WithConcurrentToolCalls(bool concurrent)` | off | On or off | Runs the tool calls in one model response at the same time. |
+| `WithConcurrentToolCalls(bool concurrent)` | off | On or off | Runs the tool calls in one model response at the same time, sharing the run's scoped services ([Tool calls at the same time](./defining-agents.md#tool-calls-at-the-same-time)). |
 | `WithMaxInputTokens(int tokens)` | off | Above 0 | Turns [compaction](./conversations.md#compaction) on at this many input tokens. |
 | `WithTargetInputTokens(int tokens)` | half the maximum | Above 0 and below the maximum | Sets how far compaction shrinks the history. |
 | `WithSummaryModel(string model)` | the run's model | Not blank | Sets the model that summarizes the oldest turns when clearing old tool results does not shrink the history enough, served by the run's provider. Made configurable, it also adds `SummaryProvider` to `Settings` ([the summary model](./models.md#the-summary-model)). |

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Typeshift.Samples.Hosting;
+using Typeshift.Samples.Orders;
 using Typeshift.Samples.Quickstart;
 using Typeshift.Samples.Scenarios;
 using Typeshift.Samples.Stores.EfCore;
@@ -18,6 +19,7 @@ await FileSettings.RunAsync(settings);
 Directory.Delete(settings, recursive: true);
 
 var database = Path.Combine(Path.GetTempPath(), $"typeshift-samples-{Guid.NewGuid():N}.db");
+var shop = Path.Combine(Path.GetTempPath(), $"typeshift-samples-shop-{Guid.NewGuid():N}.db");
 
 await NoContainer.RunAsync(client);
 await SmallestAgent.RunAsync(client);
@@ -25,6 +27,7 @@ await MinimalApi.RunAsync(client);
 var services = Registration.Register(new ServiceCollection(), client, client, database);
 services.AddSingleton<SampleLog>();
 services.AddSingleton<ILoggerProvider>(registered => registered.GetRequiredService<SampleLog>());
+services.AddDbContextFactory<ShopDb>(options => options.UseSqlite($"Data Source={shop}"));
 
 await using (var provider = services.BuildServiceProvider(new ServiceProviderOptions
 {
@@ -48,6 +51,7 @@ await using (var provider = services.BuildServiceProvider(new ServiceProviderOpt
     await MultiAgent.RunAsync(provider);
     await LongRunning.RunAsync(provider);
     await Toolsets.RunAsync(provider);
+    await ConcurrentToolCalls.RunAsync(provider);
     await Mcp.RunAsync(provider);
     await ChatHub.RunAsync(provider);
     await Observability.RunAsync(provider);
@@ -61,6 +65,7 @@ await ChatEndpoint.RunAsync(client, web);
 
 Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
 File.Delete(database);
+File.Delete(shop);
 File.Delete(web);
 
 return 0;

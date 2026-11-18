@@ -135,8 +135,10 @@ doc:
 | `AIFunctionArguments` | The raw arguments the model sent. |
 
 The `IServiceProvider` is the scope you resolved the agent's host from. So when you resolve the host in a web
-request, every tool of the run reaches that request's scoped services, such as the current customer. A nullable
-parameter of these types is filled the same way, so `CancellationToken? ct = null` receives the call's token.
+request, every tool of the run reaches that request's scoped services, such as the current customer. Calls that run
+at the same time share them too, so a tool that uses a `DbContext` takes a factory instead
+([Tool calls at the same time](./defining-agents.md#tool-calls-at-the-same-time)). A nullable parameter of these
+types is filled the same way, so `CancellationToken? ct = null` receives the call's token.
 
 Every other parameter is an argument the model fills. A service as a parameter, such as `ITicketClient tickets`, is
 therefore not injected: it would be an argument that JSON cannot create, and the analyzer warns about it, as it does

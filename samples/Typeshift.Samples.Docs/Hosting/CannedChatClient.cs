@@ -6,9 +6,10 @@ namespace Typeshift.Samples.Hosting;
 
 // Stands in for a provider's client, so the guide's scenarios run without a network. It answers as a model would in
 // each scenario: a plan in plan mode, a call of the tool the input asks for when it is offered, such as "Close ticket"
-// or "Run" a command, questions to the user before it opens a ticket, a call of a sub-agent it is offered, a handoff
-// to billing about a charge, of find_companies for the city it is given, JSON when the run asks for it, otherwise one
-// fixed answer; once a tool answered, it answers in text, listing the companies find_companies found
+// or "Run" a command, two order lookups in one response, questions to the user before it opens a ticket, a call of a
+// sub-agent it is offered, a handoff to billing about a charge, of find_companies for the city it is given, JSON when
+// the run asks for it, otherwise one fixed answer; once a tool answered, it answers in text, listing the companies
+// find_companies found
 internal sealed class CannedChatClient : IChatClient
 {
     public const string Answer = "Your refund was approved and reaches your account within five days.";
@@ -65,6 +66,14 @@ internal sealed class CannedChatClient : IChatClient
         var offers = (options?.Tools ?? []).Select(tool => tool.Name).ToHashSet();
         var answered = messages.Count > 0 && messages[^1].Role == ChatRole.Tool;
         var input = messages.LastOrDefault(message => message.Role == ChatRole.User)?.Text ?? "";
+
+        // Two calls in one response, which an agent with concurrent tool calls runs at the same time
+        if (!answered && offers.Contains("get_order") && input.StartsWith("Where are orders "))
+        {
+            return new ChatMessage(
+                ChatRole.Assistant,
+                [Call("get_order", ("number", 1)), Call("get_order", ("number", 2))]);
+        }
 
         AIContent content = (answered, options?.ResponseFormat) switch
         {

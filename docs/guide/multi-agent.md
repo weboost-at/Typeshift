@@ -60,7 +60,8 @@ why, the exception is logged and set on the call's span, and the calling run goe
 
 Its tool calls and tokens stay out of the caller's history, which keeps a long run's context small. A sub-agent can
 read twenty files and answer in one paragraph, and only the paragraph reaches the caller. When the calling agent's run
-options set `WithConcurrentToolCalls(true)`, the sub-agents the model calls in one response work at the same time.
+options set `WithConcurrentToolCalls(true)`, the sub-agents the model calls in one response work at the same time, in
+the caller's scope ([Tool calls at the same time](./defining-agents.md#tool-calls-at-the-same-time)).
 
 Run the calling agent like any other:
 
@@ -156,6 +157,8 @@ When the sub-agent finishes, its answer reaches the calling run as a message bef
   conversation's next run tells the model it was lost, so the model can call it again.
 - A background sub-agent that fails tells the calling model so in its message, without the exception's message.
   Typeshift logs the exception as an error and records it on the calling run's span.
+- It works in the caller's scope, beside the caller's next tool calls, so its tools and the caller's share that
+  scope's services ([Tool calls at the same time](./defining-agents.md#tool-calls-at-the-same-time)).
 
 The sub-agent itself is an agent like any other. This one explores the workspace with a fast model and offers only
 the reading tools of the app's `WorkspaceToolset`, so none of its calls needs approval:
