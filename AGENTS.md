@@ -12,6 +12,9 @@ the playbook. That is meant to be enough; if you had to dig for something, add i
 | Change what the generator reads or writes | `docs/contributing/architecture.md`, "The generator and the analyzer" | `.claude/skills/change-generated-code` |
 | Tool settings: configurable members, overrides | `docs/guide/tool-settings.md`; D18, D19 | `.claude/skills/extend-settings` |
 | Runtime behavior or public API | `docs/contributing/architecture.md`; the subject's decisions | `.claude/skills/add-runtime-feature` |
+| Fix a bug | "Bug fix" in the change checklist under "Docs"; `docs/contributing/status.md#known-gaps` | the playbook of the code the fix touches |
+| Remove or change public API | "Removed or changed public API" in the change checklist under "Docs"; `docs/contributing/releasing.md#breaking-changes-during-the-alpha` | `.claude/skills/add-runtime-feature` |
+| Bump a dependency | "Dependency bump" in the change checklist under "Docs" | none: the row names the files |
 | Docs, README, the code they show | `docs/contributing/writing.md`; "Docs" below | `.claude/skills/update-docs` |
 | Audit the docs for drift and rule breaks | "Docs" below | `.claude/skills/review-docs` |
 | A release | `docs/contributing/releasing.md` | none: prepare its steps 1 to 5 (the changelog section, the API comparison, the demos, the generator's measurements), a person pushes the tag |
@@ -79,7 +82,8 @@ npm run docs:snippets:check
   and `humanizer`), the .NET SDK `global.json` asks for (from dot.net; a limited network has to allow dot.net and
   builds.dotnet.microsoft.com), the tools and the packages. A step that fails is named in the hook's last line and
   does not stop the others. An environment's own setup script has to install the same SDK.
-- `global.json` pins the .NET 11 SDK, and every project targets `net11.0` (D61).
+- `global.json` pins the .NET 11 SDK, and every project targets `net11.0` (D61) but the generator, which targets
+  netstandard2.0 like every analyzer, so that each compiler loads it (D8).
 - The build is warning-free with `TreatWarningsAsErrors`. CS1591 is switched off in `tests/.editorconfig` and
   `demos/.editorconfig`, and by the package for a consumer that never chose XML docs (D68). A test file that sets up
   what a diagnostic reports disables it by pragma, with its reason beside it: TSH024, TSH028, TSH030, TSH034,
@@ -97,16 +101,21 @@ npm run docs:snippets:check
 - Run the whole suite three times before you call a change done, all green every time. A test that depends on the
   order of concurrent work, as the conversation and background agent tests can, fails only in some runs. CI repeats
   the suite twice on `main` and for a release, where no pull request waits for it.
+- CI runs both suites once more under the culture da-DK, which has the decimal comma. After a change to number or
+  date formatting, stored JSON or a literal the generator writes, run that yourself:
+  `dotnet test --solution Typeshift.slnx -c Release --no-build -- -culture da-DK`.
 - CI collects coverage in its Linux job and uploads the merged Cobertura file as the artifact `coverage`, without a
   gate. For the same file on your machine, add
   `--coverage --coverage-output-format cobertura --results-directory artifacts/coverage` to the test command.
 - The docs site: `npm ci`, then `npm run docs:check` (the snippets against their sources, markdownlint, the docs
-  rules, a build that fails on dead links) or `npm run docs:dev`.
+  rules, a build that fails on dead links) or `npm run docs:dev`. Run the check after any change of Markdown, this
+  file and the playbooks included, of the code a page shows or of `lint.mjs`: the docs rules also check the paths,
+  anchors and tests that this file, the playbooks and the contributing pages name.
 - The demos in `demos/` stay outside the solution and outside the checks of a pull request, by the owner's choice.
   The `demos` workflow builds them and runs each one offline on `main`, once a day and by hand, and is never a
-  required check. A change to public API builds them before you push:
-  `dotnet build demos/Typeshift.Demos.slnx -c Release`. When it breaks one, fix it in the same PR, or say so under a
-  **Demos** heading in the PR's description.
+  required check. A change to public API, to the code the generator writes or to what the analyzer reports builds
+  them before you push: `dotnet build demos/Typeshift.Demos.slnx -c Release`. When it breaks one, fix it in the same
+  PR, or say so under the **Demos** heading of the PR's description (`.github/pull_request_template.md`).
 - Dependabot (`.github/dependabot.yml`) proposes new versions of the packages, the docs toolchain and the workflows'
   actions once a week. It skips Roslyn (D8) and FluentAssertions 8, whose license changed.
 
@@ -173,9 +182,14 @@ style; the essentials:
 | Change | Touch |
 |---|---|
 | New public API a user calls | Its feature's guide page (a sample region, then mdsnippets), its reference page, the glossary if it adds a term, and the guide link in the summary of a new entry point. When it changes the first run: the quick start of `src/Typeshift/PACKAGE.md` and, as a proposal to the owner, of `README.md` |
-| New builder or `AddTypeshift()` chain call | `builders.md` or `registration.md#the-chain`, the guide page that teaches it |
+| Removed or changed public API | Its line under Changed or Removed in `CHANGELOG.md`, with the call before and after; the reviewed `PublicApi.verified.txt`, and `KnownTypes.StampVersion` raised when `GeneratedContract.verified.txt` changes (D7); the demos built; every page, sample and XML doc that names the old call: grep for it |
+| New builder or `AddTypeshift()` chain call | `builders.md` or `registration.md#the-chain`, the guide page that teaches it, a sample region that shows it. A builder call of a toolset or an agent only returns the next builder or records a value at runtime (D4): the parser, its model and the emitter carry what it declares, and the analyzer checks its arguments (the `change-generated-code` playbook) |
 | New or changed diagnostic | `diagnostics.md` row and section with its failing example, a region of `DiagnosticSources.cs` (guard tests check both), the guide page that states the rule |
-| Changed default or limit | The reference table, then every page that states it: grep for the old value |
+| New or changed generated member | `generated-members.md` for a member your app calls or reads, `contributing/architecture.md#the-generator-and-the-analyzer` for what an emitter writes, the generator snapshots, a line in `CHANGELOG.md`, the demos built |
+| Bug fix | A regression test named for the rule the bug broke, in the class of its subject; a line under Fixed in `CHANGELOG.md`, what happens now and what went wrong; in `contributing/status.md`, its entry under "Known gaps" removed when it has one, and the test in the behavior table |
+| Change of what a store must do, or of a document it keeps | The rules `VerifyAsync` checks (`Storage/StoreExtensions.cs`, D58); both built-in stores, `InMemoryTypeshiftStore` and `FileAgentSettingsStore`; the docs' store in `samples/Typeshift.Samples.Docs/Stores/EfCore` and the demos' in `demos/Typeshift.Demos.Shared/Hosting/JsonFileStore.cs`; `implementing-a-store.md`; the `SchemaVersion` of a document whose JSON changes, such as `ConversationEntry` or `DecisionDocument` (D40); a line under Changed in `CHANGELOG.md` |
+| Dependency bump | `Directory.Packages.props`, never Roslyn (D8); the consumer sample's own `Directory.Packages.props` in `samples/Typeshift.Samples.PackageConsumer`, which repeats the version of Microsoft.Extensions.DependencyInjection. A new Microsoft.Extensions.AI can change the schema of a tool (`ToolSchemaTests`) and the public API snapshot. The demos built; a line under Changed in `CHANGELOG.md` when a dependency of the package moves |
+| Changed default or limit | The reference table, then every page and XML doc that states it: grep `docs/` and `src/` for the old value |
 | New duty for the app: a default that is open, a check the app must make | A line of `what-is-typeshift.md#before-you-ship` that links the section, and a callout on the feature's page |
 | Change in the run pipeline | `how-a-run-works.md` and its diagram, `contributing/architecture.md#a-run`, D29 |
 | New page | First a section of an existing page; otherwise a template from `docs/contributing/templates/`, the sidebar, the neighbours' `## Related`, a row of the fact map above |
@@ -355,6 +369,10 @@ them for every test project, without exemptions. A failure reads `<file>:<line>:
 - Subject: `<Past-tense verb> <file or feature>, <what changed>`, at most 72 characters, no type prefix, no
   semicolon, no trailing period. A body only when the reason is not obvious, wrapped at 72.
 - One logical change per commit that builds and passes; a type and its tests go together.
+- What a user can observe gets a line in `CHANGELOG.md`, in the commit of the change: under `## [Unreleased]`, in its
+  `### Added`, `### Changed`, `### Removed` or `### Fixed`, never under a released version. The line says what the
+  user sees now, and a fix also what went wrong; a break says what to write instead, and under Changed starts with
+  **Breaking:**. A change of the docs, the tests or the repository's tooling alone gets none.
 - Stage by pathspec, never `git add -A`. Never commit `.context/`.
 - Check every message before committing with the owner's `git-commit` skill when it is installed (it is not part of
   this repository); otherwise check the rules above by hand.
