@@ -1,3 +1,4 @@
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Typeshift.Tests.Approval.Support;
@@ -80,3 +81,20 @@ public partial class GuardedAgent : Agent
     }
 }
 #pragma warning restore TSH037
+
+// Researches with a hosted tool it marks as reading only, beside one it leaves unmarked
+public partial class ResearchingAgent : Agent
+{
+    public ResearchingAgent()
+    {
+        WithChatOptions()
+            .WithModel("scripted", "guarded-model")
+            .WithTools(new HostedCodeInterpreterTool())
+            .WithReadOnlyTools(new HostedWebSearchTool());
+
+        WithRunOptions().Configurable(r => r.Mode);
+
+        UseToolset<GuardedToolset>()
+            .Exclude(t => t.CloseTicket);
+    }
+}

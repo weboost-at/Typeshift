@@ -151,6 +151,22 @@ public sealed class ChatOptionsBuilder
         Set(options => options.Tools = [.. options.Tools ?? [], .. tools]);
 
     /// <summary>
+    /// Adds tools of no toolset that only read, such as a <see cref="HostedWebSearchTool"/>, as
+    /// <see cref="WithTools"/> does, and marks them so plan mode offers them. The provider receives each tool as it
+    /// is given.
+    /// More in the guide:
+    /// <see href="https://weboost-at.github.io/Typeshift/guide/tool-approval#plan-mode">Plan mode</see>.
+    /// </summary>
+    /// <param name="tools">The tools.</param>
+    /// <returns>The same chain.</returns>
+    public ChatOptionsBuilder WithReadOnlyTools(params AITool[] tools)
+    {
+        // D52: the agent knows the tools themselves, so no wrapper hides a hosted tool from the provider's client
+        _agent.ReadOnlyTools.UnionWith(tools);
+        return WithTools(tools);
+    }
+
+    /// <summary>
     /// Sets a provider-specific option.
     /// </summary>
     /// <typeparam name="TValue">The option's type.</typeparam>

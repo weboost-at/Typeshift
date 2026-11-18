@@ -40,8 +40,9 @@ internal sealed class ModeChatClient(IChatClient inner, Func<RunOptions, int, IC
         return Math.Max(1, left) + (options.ConversationRun!.HasReplay ? 1 : 0);
     }
 
-    // D52: plan mode offers the tools that only read, a toolset's or an MCP server's, the sub-agents, which plan too,
-    // and the tool that presents the plan; a sub-agent presents none, it answers its caller
+    // D52: plan mode offers the tools that only read, a toolset's, an MCP server's or one of the agent's chat options,
+    // the sub-agents, which plan too, and the tool that presents the plan; a sub-agent presents none, it answers its
+    // caller
     private static ChatOptions ForMode(ResolvedChatOptions options)
     {
         var offered = (ResolvedChatOptions)options.Clone();
@@ -63,7 +64,8 @@ internal sealed class ModeChatClient(IChatClient inner, Func<RunOptions, int, IC
             return offered;
         }
 
-        var planning = tools.Where(IsPlanningTool).ToList();
+        var agent = options.AgentRun!.Agent;
+        var planning = tools.Where(tool => IsPlanningTool(tool) || agent.ReadOnlyTools.Contains(tool)).ToList();
 
         if (options.Caller is not null)
         {

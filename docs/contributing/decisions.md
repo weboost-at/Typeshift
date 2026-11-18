@@ -1877,8 +1877,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 
 - **Status:** owner.
 - **Decision:** `AgentMode` `Default`, `Plan`, `Auto`, a run option (`WithMode`, configurable like any run option).
-  `Plan` offers only tools marked `ReadOnly()` (toolset tools, or MCP servers with `UseMcpServer(...).ReadOnly()`),
-  and a built-in `exit_plan_mode(plan)`, which asks your app with a `PlanDecision`; `plan.Approve(mode)` continues in
+  `Plan` offers only tools marked `ReadOnly()` (toolset tools, MCP servers with `UseMcpServer(...).ReadOnly()`, or
+  tools of the chat options added with `WithReadOnlyTools(...)`), and a built-in `exit_plan_mode(plan)`, which asks your app with a `PlanDecision`; `plan.Approve(mode)` continues in
   `Default` or `Auto`, a rejection's reason sends the model back to planning. Handoffs are not offered in plan mode:
   an agent that plans answers itself until its plan is approved. Offering them is open, now that the agent handed
   to would plan in the conversation's mode. Outside a host's run in plan mode a
@@ -1902,13 +1902,18 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   stays in that mode to its end. Entries no longer store the mode. One an earlier version stored on a run's ending
   entry or on a summary holds while the document names none: the run that finds it copies it into the document with
   its first save, and until then repeats it on a summary it writes, since later runs read nothing before a summary.
+- **Tools of no toolset:** `WithReadOnlyTools(...)` records the tools on the agent by reference, and plan mode offers
+  a tool it recorded. A provider's client knows a hosted tool, such as `HostedWebSearchTool`, by its type, so the mark
+  wraps nothing: the provider receives the tool itself. A context provider's tools carry no mark and stay hidden.
 - **Where:** `Agents/RunOptions.cs`, `Decisions/ExitPlanModeFunction.cs`, `Approval/ModeChatClient.cs`, the gate of
-  D81, `Decisions/DecisionLedger.cs` (`SetModeAsync`, `StartAsync`), `Conversations/ConversationChatClient.cs`.
+  D81, `Decisions/DecisionLedger.cs` (`SetModeAsync`, `StartAsync`), `Conversations/ConversationChatClient.cs`,
+  `Agents/ChatOptionsBuilder.cs` (`WithReadOnlyTools`).
 - **Alternatives:** modes as tools the model calls (MAF's `mode_get`/`mode_set`), which lets the model leave plan
   mode unasked; a classifier built into auto mode, where a rule the host writes can ask any model it chooses; the
   mode on each run's ending entry, which every agent of a handoff had to pass on and every summary to repeat, and
   which a run's settings were the only way to change; an approved plan's mode holding for one run only, and a mode
-  that is never a stored setting, both left open.
+  that is never a stored setting, both left open; a wrapper that marks a tool of no toolset as reading only, which
+  hides a hosted tool from the client that sends it.
 
 ### D54. Runs starting and ending are a feed too
 

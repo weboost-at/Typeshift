@@ -116,6 +116,7 @@ the client receives, so the provider's default applies:
 | `WithResponseFormat(ChatResponseFormat format)` | `ResponseFormat` | The provider's | No |
 | `WithToolMode(ChatToolMode mode)` | `ToolMode` | The provider's | No |
 | `WithTools(params AITool[] tools)` | Adds tools of no toolset to `Tools`, such as a `HostedWebSearchTool` or a function from `AIFunctionFactory` | None | No |
+| `WithReadOnlyTools(params AITool[] tools)` | Adds tools of no toolset to `Tools` as `WithTools` does, and marks them as reading only, so [plan mode](./tool-approval.md#plan-mode) offers them. The provider receives each tool as it was given | None | No |
 | `WithAdditionalProperty<TValue>(string key, TValue value)` | A provider-specific option in `AdditionalProperties` | None | No |
 
 ## RunOptionsBuilder

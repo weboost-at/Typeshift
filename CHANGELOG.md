@@ -196,6 +196,10 @@ All notable changes to this project are documented here. The format follows
   agents: the generator reads the `///` comments the compiler keeps as plain comments then. They were lost, and
   TSH011 named each such tool and agent. TSH011 now names a tool's parameter whose type has XML docs, which reach
   the schema only with the setting on.
+- `WithChatOptions().WithReadOnlyTools(new HostedWebSearchTool())` adds tools of no toolset that only read, and plan
+  mode offers them beside the toolsets' read-only tools. The provider receives each tool as it was given. Before,
+  plan mode hid every tool of the chat options, so an agent whose research is a provider's web search planned with
+  `exit_plan_mode` alone.
 
 ### Changed
 

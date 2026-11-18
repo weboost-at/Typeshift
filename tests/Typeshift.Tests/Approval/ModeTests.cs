@@ -121,6 +121,56 @@ public class ModeTests : ApprovalTestBase
     }
 
     [Fact]
+    public async Task Given_A_Hosted_Tool_Marked_Read_Only_Plan_Mode_Offers_It()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await Host<ResearchingAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(
+            Data.Tool.Question,
+            settings: new() { Mode = AgentMode.Plan },
+            ct: Ct);
+
+        // Assert
+        ChatClient.Options[0]!.Tools!.Select(tool => tool.Name)
+            .Should()
+            .Equal("read_ticket", "web_search", "exit_plan_mode");
+    }
+
+    [Fact]
+    public async Task Given_A_Hosted_Tool_Without_The_Mark_Plan_Mode_Hides_It()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await Host<ResearchingAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(
+            Data.Tool.Question,
+            settings: new() { Mode = AgentMode.Plan },
+            ct: Ct);
+
+        // Assert
+        ChatClient.Options[0]!.Tools!.Should().NotContain(tool => tool is HostedCodeInterpreterTool);
+    }
+
+    [Fact]
+    public async Task Given_A_Hosted_Tool_Marked_Read_Only_The_Provider_Receives_The_Tool_Itself()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await Host<ResearchingAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(
+            Data.Tool.Question,
+            settings: new() { Mode = AgentMode.Plan },
+            ct: Ct);
+
+        // Assert
+        ChatClient.Options[0]!.Tools!.Should().ContainSingle(tool => tool is HostedWebSearchTool);
+    }
+
+    [Fact]
     public async Task Given_Plan_Mode_The_Instructions_Ask_For_A_Plan()
     {
         // Arrange

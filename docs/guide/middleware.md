@@ -309,7 +309,8 @@ itself, such as `ask_user` ([TSH035](./diagnostics.md#tsh035) lists them). The s
 
 ::: warning Plan mode hides context tools
 Context tools carry no `ReadOnly()` mark, so [plan mode](./tool-approval.md#plan-mode) hides them. To offer a tool in
-plan mode, declare it in a toolset and mark it `ReadOnly()`.
+plan mode, declare it in a toolset and mark it `ReadOnly()`, or add it to the agent's chat options with
+`WithReadOnlyTools(...)`.
 :::
 
 ## Related

@@ -126,6 +126,7 @@ public Typeshift.ChatOptionsBuilder Typeshift.ChatOptionsBuilder.WithMaxOutputTo
 public Typeshift.ChatOptionsBuilder Typeshift.ChatOptionsBuilder.WithModel(string model)
 public Typeshift.ChatOptionsBuilder Typeshift.ChatOptionsBuilder.WithModel<TProviderId>(TProviderId provider, string model) where TProviderId : notnull
 public Typeshift.ChatOptionsBuilder Typeshift.ChatOptionsBuilder.WithPresencePenalty(float penalty)
+public Typeshift.ChatOptionsBuilder Typeshift.ChatOptionsBuilder.WithReadOnlyTools(params Microsoft.Extensions.AI.AITool[] tools)
 public Typeshift.ChatOptionsBuilder Typeshift.ChatOptionsBuilder.WithReasoning(Microsoft.Extensions.AI.ReasoningOptions reasoning)
 public Typeshift.ChatOptionsBuilder Typeshift.ChatOptionsBuilder.WithResponseFormat(Microsoft.Extensions.AI.ChatResponseFormat format)
 public Typeshift.ChatOptionsBuilder Typeshift.ChatOptionsBuilder.WithSeed(long seed)

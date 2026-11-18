@@ -135,8 +135,9 @@ WithChatOptions()
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/StatusAgent.cs#L9-L13' title='Snippet source file'>snippet source</a> | <a href='#snippet-hosted-mcp' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-The model provider then connects to the server itself, and your `IMcpToolProvider` takes no part. A hosted tool
-carries no `ReadOnly()` mark, so plan mode hides it.
+The model provider then connects to the server itself, and your `IMcpToolProvider` takes no part. Plan mode hides a
+hosted tool added with `WithTools(...)`. Add a server that only reads with `WithReadOnlyTools(...)` instead, and
+[plan mode](./tool-approval.md#plan-mode) offers it.
 
 ::: warning Only some clients send a hosted server
 The `IChatClient` that serves the run has to send the server to the provider, and only a client of an API that

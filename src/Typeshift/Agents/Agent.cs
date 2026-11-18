@@ -41,6 +41,9 @@ public abstract class Agent
 
     internal List<McpServerUse> McpServers { get; } = [];
 
+    // D52: the tools of WithReadOnlyTools, which plan mode offers, by reference
+    internal HashSet<AITool> ReadOnlyTools { get; } = new(ReferenceEqualityComparer.Instance);
+
     // D82: whether the model may ask the user through ask_user
     internal bool AsksUser { get; private set; }
 

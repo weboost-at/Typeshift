@@ -360,7 +360,7 @@ var chat = triage.WithConversationId(conversationId);
 
 var planned = await chat.RunAsync("Sort out ticket 1234.", settings: plan);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Modes.cs#L14-L19' title='Snippet source file'>snippet source</a> | <a href='#snippet-switch-mode' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Modes.cs#L15-L20' title='Snippet source file'>snippet source</a> | <a href='#snippet-switch-mode' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 A conversation keeps its mode once something names one. Three things do: the settings you pass to a run, an
@@ -375,7 +375,7 @@ A conversation whose mode nothing named has each run in the mode of the agent th
 ```cs
 await chat.SetModeAsync(AgentMode.Default);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Modes.cs#L34-L36' title='Snippet source file'>snippet source</a> | <a href='#snippet-set-mode' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Modes.cs#L35-L37' title='Snippet source file'>snippet source</a> | <a href='#snippet-set-mode' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The switch holds from the conversation's next run on. A run that is going on stays in the mode it began in.
@@ -403,11 +403,11 @@ needs no pick, and reject in an [approval rule](#approval-rules) what must never
 
 Plan mode lets the model research and propose a plan before it changes anything, so your app approves the whole plan
 before any step runs. Approve the plan into auto mode, and its steps run without asking, unless a rule rejects them.
-The model sees only the tools marked `ReadOnly()`, a toolset's or an [MCP server's](./mcp.md), plus its
-[sub-agents](./multi-agent.md#sub-agents) and `exit_plan_mode`, and Typeshift adds a short instruction to research,
-then present the plan. A sub-agent called in plan mode sees only its own read-only tools and answers its caller, which
-presents the plan. The model is offered no [handoff](./multi-agent.md#handoff) in plan mode, so an agent that plans
-answers the run itself.
+The model sees only the tools marked `ReadOnly()`, a toolset's or an [MCP server's](./mcp.md), and those the agent's
+chat options add with `WithReadOnlyTools(...)`, plus its [sub-agents](./multi-agent.md#sub-agents) and
+`exit_plan_mode`, and Typeshift adds a short instruction to research, then present the plan. A sub-agent called in
+plan mode sees only its own read-only tools and answers its caller, which presents the plan. The model is offered no
+[handoff](./multi-agent.md#handoff) in plan mode, so an agent that plans answers the run itself.
 
 `exit_plan_mode(plan)` ends the run with a `PlanDecision` that carries the plan:
 
@@ -418,7 +418,7 @@ var proposal = planned.Decisions.OfType<PlanDecision>().Single();
 
 Console.WriteLine(proposal.Plan);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Modes.cs#L21-L25' title='Snippet source file'>snippet source</a> | <a href='#snippet-plan-mode' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Modes.cs#L22-L26' title='Snippet source file'>snippet source</a> | <a href='#snippet-plan-mode' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Approve it with `Approve(mode)` to continue in the mode your app picks, `Default` or `Auto`:
@@ -428,7 +428,7 @@ Approve it with `Approve(mode)` to continue in the mode your app picks, `Default
 ```cs
 await chat.AnswerAsync([proposal.Approve(AgentMode.Auto)]);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Modes.cs#L27-L29' title='Snippet source file'>snippet source</a> | <a href='#snippet-approve-plan' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Modes.cs#L28-L30' title='Snippet source file'>snippet source</a> | <a href='#snippet-approve-plan' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 To reject the plan, answer with `Reject(reason)`. The model receives the reason as feedback and goes back to planning.
@@ -442,6 +442,22 @@ tool's alone, as `ask_user` is: a tool of yours cannot have it ([TSH035](./diagn
 A tool without `ReadOnly()` is hidden in plan mode, whatever it does. Mark every tool that only reads, so the model can
 research with it.
 :::
+
+A tool of no toolset, such as a provider's web search, carries the mark when the agent adds it with
+`WithReadOnlyTools(...)` in place of `WithTools(...)`:
+
+<!-- snippet: read-only-tools -->
+<a id='snippet-read-only-tools'></a>
+```cs
+WithChatOptions()
+    .WithModel("openai", "gpt-5-mini")
+    .WithReadOnlyTools(new HostedWebSearchTool());
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/TroubleshootingAgent.cs#L12-L16' title='Snippet source file'>snippet source</a> | <a href='#snippet-read-only-tools' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+- The provider receives the `HostedWebSearchTool` itself: the agent remembers which tools it marked and wraps none.
+- A tool a [context provider](./middleware.md#context-tools) returns carries no mark and stays hidden in plan mode.
 
 ## Auto mode
 

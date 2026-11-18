@@ -1,3 +1,4 @@
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using Typeshift.Samples.Agents;
 
@@ -37,5 +38,15 @@ internal static class Modes
 
         if ((await chat.GetDecisionsAsync()).Mode != AgentMode.Default)
             throw new InvalidOperationException("Expected the conversation to be back in the default mode.");
+
+        var troubleshooting = scope.ServiceProvider.GetRequiredService<AgentHost<TroubleshootingAgent>>();
+
+        var research = await troubleshooting.ResolveOptionsAsync();
+        if (!research.Tools!.Any(tool => tool is HostedWebSearchTool))
+            throw new InvalidOperationException("Expected the provider to receive the hosted tool as it was given.");
+
+        var troubleshot = await troubleshooting.WithConversationId(14).RunAsync("The printer jams.");
+        if (troubleshot.Decisions is not [PlanDecision])
+            throw new InvalidOperationException("Expected the agent to plan with its read-only tools first.");
     }
 }
