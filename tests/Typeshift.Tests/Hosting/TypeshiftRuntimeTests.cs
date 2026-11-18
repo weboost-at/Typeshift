@@ -469,41 +469,45 @@ public class TypeshiftRuntimeTests : AgentTestBase
     }
 
     [Fact]
-    public async Task Given_A_Copy_Of_A_Host_Of_The_Runtime_Disposed_The_Host_Still_Runs_In_Its_Scope()
-    {
-        // Arrange
-        ChatClient
-            .Reply(Call(Data.Tool.CallId, "probe", ("query", Data.Tool.Query)))
-            .Reply(Text(Data.Tool.Answer))
-            .Reply(Call(Data.Tool.SecondCallId, "probe", ("query", Data.Tool.Query)))
-            .Reply(Text(Data.Tool.Answer));
-
-        await using var probe = Runtime.Agent<ProbeAgent>();
-        var copy = probe.WithConversationId(Data.Agent.ConversationId);
-        var copyRun = await copy.RunAsync(Data.Tool.Question, ct: Ct);
-
-        // Act
-        await copy.DisposeAsync();
-        var hostRun = await probe.RunAsync(Data.Tool.Question, ct: Ct);
-        var copyScope = copyRun.Assert.ToolResult<ProbeResult>(Data.Tool.CallId, Json).Scope;
-        var hostScope = hostRun.Assert.ToolResult<ProbeResult>(Data.Tool.SecondCallId, Json).Scope;
-
-        // Assert
-        copyScope.Should().NotBeNull();
-        hostScope.Should().Be(copyScope);
-    }
-
-    [Fact]
-    public async Task Given_A_Copy_Of_A_Host_Of_The_Runtime_Disposed_The_Scoped_Services_Of_Its_Runs_Stay_Undisposed()
+    public async Task Given_A_Copy_Of_A_Host_Of_The_Runtime_Disposed_The_Scoped_Services_Of_Its_Runs_Are_Disposed()
     {
         // Arrange
         ChatClient.Reply(Text(Data.Tool.Answer));
-        await using var probe = Runtime.Agent<ProbeAgent>();
-        var copy = probe.WithConversationId(Data.Agent.ConversationId);
-        await copy.RunAsync(Data.Tool.Question, ct: Ct);
+        var chat = Runtime.Agent<ProbeAgent>().WithConversationId(Data.Agent.ConversationId);
+        await chat.RunAsync(Data.Tool.Question, ct: Ct);
 
         // Act
-        await copy.DisposeAsync();
+        await chat.DisposeAsync();
+
+        // Assert
+        _created.Should().ContainSingle();
+        _created[0].Disposed.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Given_A_Host_Of_The_Runtime_Whose_Copy_Was_Disposed_A_Run_Fails_Saying_So()
+    {
+        // Arrange
+        await using var probe = Runtime.Agent<ProbeAgent>();
+        await probe.WithConversationId(Data.Agent.ConversationId).DisposeAsync();
+
+        // Act
+        var run = async () => await probe.RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        await run.Should().ThrowAsync<ObjectDisposedException>();
+    }
+
+    [Fact]
+    public async Task Given_A_Copy_Of_An_Injected_Host_Disposed_The_Request_Scopes_Services_Stay_Undisposed()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+        var chat = Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId);
+        await chat.RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Act
+        await chat.DisposeAsync();
 
         // Assert
         _created.Should().ContainSingle();

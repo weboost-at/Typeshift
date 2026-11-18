@@ -144,7 +144,9 @@ declared, and `Agent.Description` what `WithDescription` or the agent's `<summar
 `AgentHost<TAgent> WithSettingsId<TId>(TId id)` and `AgentHost<TAgent> WithConversationId<TId>(TId id)`, where `TId`
 is any type but a nullable one.
 
-Both return a copy of the host with the id, in the host's scope, and throw an `ArgumentNullException` for a null id.
+Both return a copy of the host with the id, in the host's scope, and leave the host they are called on as it was.
+Disposing the copy disposes what disposing the host would ([`DisposeAsync`](#disposeasync-and-dispose)). Both throw
+an `ArgumentNullException` for a null id.
 [Ids of your own types](./settings-and-stores.md#ids-of-your-own-types) explains the copy and the store its id picks:
 an `ISettingsStore<TId>` for a settings id, an `IConversationStore<TId>` for a conversation id.
 
@@ -204,9 +206,11 @@ none of them [keeps decisions](./implementing-a-store.md#which-store-serves-a-ca
 ### `DisposeAsync` and `Dispose`
 
 `ValueTask DisposeAsync()` and `void Dispose()` dispose the scope of a host that `TypeshiftRuntime.Agent<TAgent>()`
-created, and with it the scoped services its runs resolved. A host your container resolved, such as one injected into
-a request, owns nothing, so disposing it does nothing. Dispose a host once its runs and streams are done, since they
-use its scope. `Dispose` throws an `InvalidOperationException` when a scoped service implements only
+created, and with it the scoped services its runs resolved. A copy from `WithSettingsId` or `WithConversationId`
+disposes the same scope, and disposing it a second time does nothing. A host your container resolved, such as one
+injected into a request, owns nothing, so disposing it or a copy of it does nothing. Dispose a host once its runs and
+streams are done, since they use its scope: once the host or a copy is disposed, a run of any of them throws an
+`ObjectDisposedException`. `Dispose` throws an `InvalidOperationException` when a scoped service implements only
 `IAsyncDisposable`, so prefer `await using`.
 
 ### The host's scope

@@ -167,6 +167,10 @@ Console.WriteLine($"{research.Agent.Name}: {answer.Text}");
   ([Registering clients](./models.md#registering-clients)).
 - Create the runtime once and keep it while your app runs. Disposing it disposes its singletons, such as your
   store, but not the client. A host's scoped services are disposed only with the host, so dispose each host as well.
+- A copy of a host, from `WithSettingsId` or `WithConversationId`, runs in the host's scope and disposes it as the
+  host would. So `await using var chat = runtime.Agent<SupportAgent>().WithConversationId(ticket);` takes the host,
+  its id and its disposal in one line. Once the host or one of its copies is disposed, a run of any of them throws an
+  `ObjectDisposedException`.
 
 The chain's `Services` are the service collection of the container the runtime builds. Register there what the
 chain has no call for, such as logging and the services your tools resolve:

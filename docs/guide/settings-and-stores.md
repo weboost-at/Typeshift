@@ -103,8 +103,9 @@ in code, and each id's type picks the store of that type:
 
 Each call returns a copy of the host with the id, in the host's scope, so
 `support.WithSettingsId(42).WithConversationId(chat).RunAsync(input)` runs with both, and `support` itself keeps none.
-A copy is a small object, so make one wherever your code has the ids, such as in each request. It never disposes
-the scope, so it works as long as `support` does. Ids of the same value and different types are different ids: a
+A copy is a small object, so make one wherever your code has the ids, such as in each request. Disposing it disposes
+what disposing `support` would, which for a host from the runtime is its scope
+([The runtime](./registration.md#the-runtime)). Ids of the same value and different types are different ids: a
 conversation under 5 as an `int` is not the one under 5 as a `long`.
 [Which store serves a call](./implementing-a-store.md#which-store-serves-a-call) says what happens to an id whose type
 none of your stores keeps.

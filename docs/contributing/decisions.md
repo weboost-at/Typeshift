@@ -1234,9 +1234,10 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   with a settings id load, save and configure the id's settings in place of the agent's own (D66). `WithStore<T>()`
   registers a store as each store interface its declared type implements, of any id type, and TSH028 reports only a
   type that is no store. Without any store, D69 keeps one store in memory per id type, and warns on the first write
-  that one of them takes. A copy runs in its host's scope and owns none of it (D76): disposing a copy leaves the scope
-  alone, so the copy works as long as the host it came from, and only a host the runtime created disposes the scope,
-  once.
+  that one of them takes. A copy runs in its host's scope and disposes it as the host would (D76), so
+  `await using var chat = runtime.Agent<T>().WithConversationId(id);`, the line the API invites, ends the unit of work
+  it began. A scope's disposal is idempotent, so the host and its copies may each be disposed, and once one of them
+  is, a run of any of them throws `ObjectDisposedException`, as the owner chose.
 - **The raw path:** `ResolveOptionsAsync()` hands the host's conversation on with the options. On a host without one,
   `ChatOptions.ConversationId`, a string, names a conversation in the `IConversationStore<string>`, the owner's
   choice: the raw path has no type of its own to parse it into.
@@ -1261,7 +1262,9 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   needs `MakeGenericType` and misses an id whose runtime type differs from its declared one; copies that share the
   scope's ownership with their host, by a count, which keep it open while any copy lives and make each copy one more
   thing to dispose; one tracker of the build's id type with generic overloads for other id types, the interim design,
-  whose `Runs` listed only the build's; registering the trackers of common id types up front, a list nobody chose.
+  whose `Runs` listed only the build's; registering the trackers of common id types up front, a list nobody chose;
+  copies that own none of the scope, the first design, under which that line disposed a copy that owned nothing and
+  leaked the scope, with every scoped service its runs resolved, without a word.
 
 ### D73. Every conversation can be kept
 
@@ -1357,8 +1360,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   does nothing. `runtime.Agent<TAgent>()` creates an async scope and a host that owns it: one unit of work, whose runs
   use that scope's services as D25 has every host use its scope's. `AgentHost<TAgent>` is `IAsyncDisposable` and
   `IDisposable`. Disposing a host the runtime created disposes its scope; disposing one the container resolved, such
-  as one injected into a request, does nothing, since the container owns that scope, and so does disposing a copy from
-  `WithSettingsId` or `WithConversationId` (D72), which shares its host's scope. A scope keeps every disposable
+  as one injected into a request, does nothing, since the container owns that scope. A copy from `WithSettingsId` or
+  `WithConversationId` (D72) disposes what its host would: the unit of work is the host and its copies. A scope keeps every disposable
   the container builds until it ends, so the library builds the hosts of sub-agents and handoffs itself
   (`AgentHost<TAgent>.In`) rather than resolving them, or a long-lived host would collect one for each run.
   `runtime.Services` is the root provider, for singletons such as a `ConversationTracker<TId>`. A request still injects

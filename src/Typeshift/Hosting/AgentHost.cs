@@ -31,13 +31,16 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
     private StoreId? _settingsId;
     private StoreId? _conversationId;
 
-    internal AgentHost(TAgent agent, IServiceProvider services)
+    internal AgentHost(TAgent agent, IServiceProvider services, AsyncServiceScope? scope = null)
     {
         Agent = agent;
         _services = services;
+        _scope = scope;
     }
 
-    internal AgentHost(TAgent agent, AsyncServiceScope scope) : this(agent, scope.ServiceProvider) => _scope = scope;
+    internal AgentHost(TAgent agent, AsyncServiceScope scope) : this(agent, scope.ServiceProvider, scope)
+    {
+    }
 
     // D76: built rather than resolved where the library makes a host, since a scope keeps every disposable the
     // container builds until it ends
@@ -63,14 +66,15 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
     public TAgent Agent { get; }
 
     /// <summary>
-    /// A host whose runs apply the settings stored under an id, over the agent's own, and whose settings members load,
-    /// save and configure them. The id's type picks the store: an <see cref="ISettingsStore{TId}"/> of that type.
+    /// Returns a copy of this host with a settings id and leaves this host as it was. The copy's runs apply the
+    /// settings stored under the id, over the agent's own, and its settings members load, save and configure them.
+    /// The id's type picks the store: an <see cref="ISettingsStore{TId}"/> of that type.
     /// </summary>
     /// <param name="id">The id of the stored settings.</param>
     /// <typeparam name="TId">The id's type.</typeparam>
     /// <returns>
-    /// A host with the id, in this host's scope; this one keeps the ids it had. Disposing it leaves the scope to this
-    /// host.
+    /// The copy, with this host's conversation id and in its scope. Disposing it disposes what disposing this host
+    /// would.
     /// </returns>
     /// <exception cref="ArgumentNullException"><paramref name="id"/> is null.</exception>
     public AgentHost<TAgent> WithSettingsId<TId>(TId id) where TId : notnull
@@ -80,14 +84,14 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
     }
 
     /// <summary>
-    /// A host whose runs resume a conversation and store what they add to it. The id's type picks the store: an
+    /// Returns a copy of this host with a conversation id and leaves this host as it was. The copy's runs resume the
+    /// conversation and store what they add to it. The id's type picks the store: an
     /// <see cref="IConversationStore{TId}"/> of that type.
     /// </summary>
     /// <param name="id">The conversation's id.</param>
     /// <typeparam name="TId">The id's type.</typeparam>
     /// <returns>
-    /// A host with the id, in this host's scope; this one keeps the ids it had. Disposing it leaves the scope to this
-    /// host.
+    /// The copy, with this host's settings id and in its scope. Disposing it disposes what disposing this host would.
     /// </returns>
     /// <exception cref="ArgumentNullException"><paramref name="id"/> is null.</exception>
     public AgentHost<TAgent> WithConversationId<TId>(TId id) where TId : notnull
@@ -96,9 +100,9 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
         return Copy(_settingsId, new StoreId<TId>(id));
     }
 
-    // D72, D76: a copy shares this host's scope but never owns it, so only the host the runtime created disposes it
+    // D72, D76: a copy runs in this host's scope and disposes it as this host would; a scope's disposal is idempotent
     private AgentHost<TAgent> Copy(StoreId? settingsId, StoreId? conversationId) =>
-        new(Agent, _services)
+        new(Agent, _services, _scope)
         {
             _settingsId = settingsId,
             _conversationId = conversationId
@@ -305,15 +309,16 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
 
     /// <summary>
     /// Disposes the scope of a host <see cref="TypeshiftRuntime.Agent{TAgent}"/> created, and with it the scoped
-    /// services its runs resolved. A host your app's container resolved, injected into a request for example, owns
-    /// nothing, and disposing it leaves its scope alone. So does a copy <c>WithSettingsId</c> or
-    /// <c>WithConversationId</c> made, which works only as long as the host it came from.
+    /// services its runs resolved. A copy from <c>WithSettingsId</c> or <c>WithConversationId</c> disposes the same
+    /// scope, so the host and its copies may each be disposed, and once one of them is, a run of any of them throws
+    /// an <see cref="ObjectDisposedException"/>. A host your app's container resolved, injected into a request for
+    /// example, owns nothing, and disposing it or a copy of it leaves its scope alone.
     /// </summary>
     /// <returns>The disposal.</returns>
     public ValueTask DisposeAsync() => _scope?.DisposeAsync() ?? ValueTask.CompletedTask;
 
     /// <summary>
-    /// Disposes the scope of a host <see cref="TypeshiftRuntime.Agent{TAgent}"/> created. Prefer
+    /// Disposes the scope of a host <see cref="TypeshiftRuntime.Agent{TAgent}"/> created, as a copy of it does. Prefer
     /// <see cref="DisposeAsync"/>: this one throws when a scoped service disposes only asynchronously.
     /// </summary>
     /// <exception cref="InvalidOperationException">

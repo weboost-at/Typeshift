@@ -51,8 +51,9 @@ public sealed class TypeshiftRuntime : IAsyncDisposable, IDisposable
     // D76: a unit of work, whose scope the host owns
     /// <summary>
     /// Creates the host of an agent, ready to run, in a scope of its own: its tools, its chat client provider, its
-    /// middleware and every other scoped service resolve there, apart from other hosts'. Dispose the host once its
-    /// runs and streams are done, which disposes the scope.
+    /// middleware and every other scoped service resolve there, apart from other hosts'. Dispose the host, or a copy
+    /// of it from <c>WithSettingsId</c> or <c>WithConversationId</c>, once its runs and streams are done, which
+    /// disposes the scope.
     /// </summary>
     /// <typeparam name="TAgent">The agent.</typeparam>
     /// <returns>The host, with the agent's typed members.</returns>

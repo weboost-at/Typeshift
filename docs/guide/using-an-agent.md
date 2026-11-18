@@ -132,7 +132,9 @@ internal sealed class TicketDigest(TypeshiftRuntime runtime, TimeProvider time) 
 <!-- endSnippet -->
 
 `runtime.Agent<SupportAgent>()` gives the job's host a scope of its own, as a request has, and `await using`
-disposes that scope when the job is done ([The runtime](./registration.md#the-runtime)). Register the job with
+disposes that scope when the job is done ([The runtime](./registration.md#the-runtime)). A job with an id takes the
+copy in the same line: `await using var chat = runtime.Agent<SupportAgent>().WithConversationId(ticket);` disposes the
+scope as the host would. Register the job with
 `services.AddHostedService<TicketDigest>()`. Its timer waits on the `TimeProvider` your app registers, for example
 with `services.AddSingleton(TimeProvider.System)`.
 

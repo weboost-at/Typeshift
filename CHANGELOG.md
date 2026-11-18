@@ -146,6 +146,13 @@ All notable changes to this project are documented here. The format follows
   host from what `BuildServiceProvider()` returned creates a scope first, or moves to `TypeshiftRuntime.Create`.
   Before, such a host ran every request on one instance of each scoped service where scopes are not validated, so
   one customer's chat client provider and its key served all customers.
+- **Breaking:** disposing a copy of a host from `runtime.Agent<TAgent>()`, made by `WithSettingsId` or
+  `WithConversationId`, disposes the host's scope, as disposing the host does. So
+  `await using var chat = runtime.Agent<SupportAgent>().WithConversationId(ticket);` disposes the scope and its scoped
+  services when the job ends. Before, it disposed a copy that owned nothing and leaked the scope, with every scoped
+  service its runs resolved. Disposing the host and its copies each is safe, and once one of them is disposed, a run
+  of any of them throws an `ObjectDisposedException`: code that disposed a copy and ran the host after it keeps the
+  copy without `using`.
 - **Breaking:** a run fails before its first model call when its chat client runs a tool loop of its own, as one
   registered with `services.AddChatClient(client).UseFunctionInvocation()` does. Register the client without
   `UseFunctionInvocation()`: Typeshift runs the tool loop. Before, the tools of such a run ran outside tool
