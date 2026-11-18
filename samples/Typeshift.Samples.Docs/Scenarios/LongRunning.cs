@@ -2,6 +2,7 @@ using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using Typeshift.Samples.Agents;
 using Typeshift.Samples.Hosting;
+using Typeshift.Samples.Web;
 
 namespace Typeshift.Samples.Scenarios;
 
@@ -36,5 +37,9 @@ internal static class LongRunning
 
         if (!answer.Contains("explore_agent") || !answer.Contains(CannedChatClient.Answer))
             throw new InvalidOperationException($"Expected the explorer's answer as a message: {answer}");
+
+        // A chat page shows what the user and the agents said, and the explorer's answer is for the coding agent
+        if (ChatLine.From(stored).Any(line => line.Text == answer))
+            throw new InvalidOperationException("Expected the chat's lines to leave the explorer's answer out.");
     }
 }

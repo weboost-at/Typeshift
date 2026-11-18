@@ -241,11 +241,12 @@ internal sealed record ChatLine(string Role, string Text)
             .Where(entry => !entry.IsSummary)
             .SelectMany(entry => entry.Messages)
             .Where(message => message.Role == ChatRole.User || message.Role == ChatRole.Assistant)
+            .Where(message => !message.IsBackgroundAnswer)
             .Where(message => message.Text.Length > 0)
             .Select(message => new ChatLine(message.Role.Value, message.Text));
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatContracts.cs#L15-L27' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-line' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatContracts.cs#L15-L28' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-line' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 `ChatLine` is a record of your own, as the reply is, and `From` keeps the lines a chat page shows

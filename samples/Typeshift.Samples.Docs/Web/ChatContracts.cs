@@ -21,6 +21,7 @@ internal sealed record ChatLine(string Role, string Text)
             .Where(entry => !entry.IsSummary)
             .SelectMany(entry => entry.Messages)
             .Where(message => message.Role == ChatRole.User || message.Role == ChatRole.Assistant)
+            .Where(message => !message.IsBackgroundAnswer)
             .Where(message => message.Text.Length > 0)
             .Select(message => new ChatLine(message.Role.Value, message.Text));
 }

@@ -147,7 +147,8 @@ each run reports it, and the sum below counts every token your providers reporte
 Not every message in the user's role is the user's. A
 [background sub-agent's answer](./multi-agent.md#in-the-background) joins a run as one, with the sub-agent's name as
 its `AuthorName`, and so does the note that such a sub-agent failed or was lost. `message.IsBackgroundAnswer` is true
-for those, so a chat view built from the entries shows them as the sub-agent's.
+for those, so a chat view built from the entries leaves them out, or shows them as the sub-agent's
+([What a chat page shows](#what-a-chat-page-shows)).
 
 An entry serializes itself with `Serialize()` and `ConversationEntry.Deserialize(json)`, and JSON libraries handle it as
 it is. `System.Text.Json` writes and reads that same JSON, and Newtonsoft.Json writes it as a string, so a store or an
@@ -200,6 +201,9 @@ shows:
   summary, which the entries before it hold already, and the summary itself is written for the model.
 - **The text of the user's messages and of the agents' answers**, the messages of `ChatRole.User` and
   `ChatRole.Assistant`. Tool calls, their results and the `ErrorContent` that ends a failed run hold no text.
+- **No background answer.** A [background sub-agent's answer](./multi-agent.md#in-the-background) is a message of the
+  user's role that the user never wrote, for which `message.IsBackgroundAnswer` is true. The calling agent's answer
+  after it says what the user needs of it.
 
 [Load the chat](./chat-endpoint.md#load-the-chat) shows an endpoint that returns these lines. An answer the model is
 still writing is in no entry until its model call ends, so the page follows it through the
