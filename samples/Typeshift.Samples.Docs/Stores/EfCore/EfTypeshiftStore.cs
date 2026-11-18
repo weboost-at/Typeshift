@@ -62,7 +62,7 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
 
         var rows = await db.Entries
             .Where(entry => entry.Conversation == conversation)
-            .OrderBy(entry => entry.Sequence)
+            .OrderBy(entry => entry.Id)
             .ToListAsync(ct);
 
         return [.. rows.Select(row => ConversationEntry.Deserialize(row.Json))];
@@ -78,28 +78,35 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
 
         var start = await entries
             .Where(entry => entry.IsSummary)
-            .MaxAsync(entry => (long?)entry.Sequence, ct) ?? 0;
+            .MaxAsync(entry => (long?)entry.Id, ct) ?? 0;
 
         var rows = await entries
-            .Where(entry => entry.Sequence >= start)
-            .OrderBy(entry => entry.Sequence)
+            .Where(entry => entry.Id >= start)
+            .OrderBy(entry => entry.Id)
             .ToListAsync(ct);
 
         return [.. rows.Select(row => ConversationEntry.Deserialize(row.Json))];
     }
+    // end-snippet
+
+    // begin-snippet: ef-core-append
+    public bool RefusesTakenSequences => true;
 
     public async Task AppendConversationAsync(int conversation, ConversationEntry entry, CancellationToken ct)
     {
         await using var db = await contexts.CreateDbContextAsync(ct);
 
-        db.Entries.Add(new EntryRow
-        {
-            Conversation = conversation,
-            IsSummary = entry.IsSummary,
-            Json = entry.Serialize()
-        });
+        var rows = await db.Database.ExecuteSqlAsync(
+            $"""
+            INSERT INTO "Entries" ("Conversation", "Sequence", "IsSummary", "Json")
+            VALUES ({conversation}, {entry.Sequence}, {entry.IsSummary}, {entry.Serialize()})
+            ON CONFLICT ("Conversation", "Sequence") DO NOTHING
+            """,
+            ct);
 
-        await db.SaveChangesAsync(ct);
+        // The unique key refused the number: a run of another instance of the app appended under it first
+        if (rows == 0)
+            throw new StoreConflictException($"Conversation {conversation} holds entry {entry.Sequence} already.");
     }
     // end-snippet
 

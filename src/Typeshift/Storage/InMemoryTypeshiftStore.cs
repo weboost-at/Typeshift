@@ -13,7 +13,7 @@ public sealed class InMemoryTypeshiftStore<TId> : ITypeshiftStore<TId>, IAgentSe
 
     private readonly ConcurrentDictionary<string, StoredDocument> _agentDocuments = [];
 
-    private readonly ConcurrentDictionary<TId, List<string>> _conversations = [];
+    private readonly ConcurrentDictionary<TId, Entries> _conversations = [];
 
     private readonly ConcurrentDictionary<TId, StoredDocument> _decisions = [];
 
@@ -34,6 +34,9 @@ public sealed class InMemoryTypeshiftStore<TId> : ITypeshiftStore<TId>, IAgentSe
         Save(_agentDocuments, kind, json, loadedVersion, $"The agent's {kind}");
 
     /// <inheritdoc />
+    public bool RefusesTakenSequences => true;
+
+    /// <inheritdoc />
     public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(TId conversation, CancellationToken ct)
     {
         if (!_conversations.TryGetValue(conversation, out var entries))
@@ -42,7 +45,7 @@ public sealed class InMemoryTypeshiftStore<TId> : ITypeshiftStore<TId>, IAgentSe
         lock (entries)
         {
             return Task.FromResult<IReadOnlyList<ConversationEntry>>(
-                [.. entries.Select(ConversationEntry.Deserialize)]);
+                [.. entries.Json.Select(ConversationEntry.Deserialize)]);
         }
     }
 
@@ -55,11 +58,19 @@ public sealed class InMemoryTypeshiftStore<TId> : ITypeshiftStore<TId>, IAgentSe
     /// <inheritdoc />
     public Task AppendConversationAsync(TId conversation, ConversationEntry entry, CancellationToken ct)
     {
-        var entries = _conversations.GetOrAdd(conversation, _ => []);
+        var entries = _conversations.GetOrAdd(conversation, _ => new());
 
         lock (entries)
         {
-            entries.Add(entry.Serialize());
+            // As a unique key on the conversation and the number would; an entry stored before entries were
+            // numbered has none
+            if (entry.Sequence > 0 && !entries.Sequences.Add(entry.Sequence))
+            {
+                throw new StoreConflictException(
+                    $"Conversation {conversation} holds an entry numbered {entry.Sequence} already.");
+            }
+
+            entries.Json.Add(entry.Serialize());
         }
 
         return Task.CompletedTask;
@@ -92,5 +103,13 @@ public sealed class InMemoryTypeshiftStore<TId> : ITypeshiftStore<TId>, IAgentSe
         return won
             ? Task.FromResult(saved.Version)
             : throw new StoreConflictException($"{what} was saved since version {loadedVersion}.");
+    }
+
+    // A conversation's entries as their JSON, in the order appended, and the numbers they hold
+    private sealed class Entries
+    {
+        public List<string> Json { get; } = [];
+
+        public HashSet<long> Sequences { get; } = [];
     }
 }

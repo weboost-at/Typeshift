@@ -274,10 +274,12 @@ chat.MapPost("/decisions", async Task<IResult> (
 
 ## A chat that is answering
 
-A conversation has one run at a time in a process ([One run at a time](./conversations.md#one-run-at-a-time)), so a
+A conversation has one run at a time in a container ([One run at a time](./conversations.md#one-run-at-a-time)), so a
 second run of a chat throws a `ConversationBusyException` before it stores anything. That happens to a message posted
-while an answer still streams, to a double click on send, and to a retry. A filter on the group answers it with 409
-Conflict, where ASP.NET Core would answer 500 and log an error:
+while an answer still streams, to a double click on send, and to a retry. With several instances of your app, a
+store that refuses a second run's entries throws the same exception from the run that appends second, at its first
+step after the other run's. A filter on the group answers it with 409 Conflict, where ASP.NET Core would answer 500
+and log an error:
 
 <!-- snippet: chat-busy-filter -->
 <a id='snippet-chat-busy-filter'></a>

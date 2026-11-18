@@ -9,7 +9,7 @@ namespace Typeshift;
 /// <summary>
 /// One step of a conversation, appended as it happens: the input of a run, a model response, tool results, or the end
 /// of a run. A conversation is its entries in order; a run whose entries have no ending one was interrupted, unless it
-/// is still going on, in this process or another.
+/// is still going on, in this container or another.
 /// </summary>
 /// <param name="Agent">The name of the agent the step belongs to.</param>
 /// <param name="Messages">The step's messages; none for the end of a run that answered.</param>
@@ -25,6 +25,16 @@ public sealed record ConversationEntry(string Agent, IReadOnlyList<ChatMessage> 
         Contract<AIContent>().PolymorphismOptions is { } contents
             ? [typeof(AIContent), .. contents.DerivedTypes.Select(content => content.DerivedType)]
             : null;
+
+    /// <summary>
+    /// The entry's number in its conversation: one past the highest the run that appended it had loaded or appended
+    /// before. A store that keeps a unique key on the conversation and this number refuses the entry of a run that
+    /// loaded the conversation before another run, in another container, appended under the number, and the refused
+    /// run stops (<see cref="IConversationStore{TId}.RefusesTakenSequences"/>). A number can be skipped, after an
+    /// append that failed, and numbers do not order the entries: the order they were appended in does. 0 for an
+    /// entry stored before entries were numbered.
+    /// </summary>
+    public long Sequence { get; init; }
 
     /// <summary>
     /// The model that wrote the messages, for a model response.
@@ -96,6 +106,7 @@ public sealed record ConversationEntry(string Agent, IReadOnlyList<ChatMessage> 
         StorableJson.WriteSchemaVersion(writer, SchemaVersion);
         writer.WriteString("agent", Agent);
         writer.WriteString("at", At);
+        if (Sequence > 0) writer.WriteNumber("sequence", Sequence);
         if (Model is not null) writer.WriteString("model", Model);
         if (Provider is not null) writer.WriteString("provider", Provider);
 
@@ -150,6 +161,7 @@ public sealed record ConversationEntry(string Agent, IReadOnlyList<ChatMessage> 
             }
         }
 
+        var sequence = StorableJson.Member(root, "sequence");
         var estimate = StorableJson.Member(root, "estimatedInputTokens");
         var background = StorableJson.Member(root, "backgroundCalls");
 
@@ -158,6 +170,8 @@ public sealed record ConversationEntry(string Agent, IReadOnlyList<ChatMessage> 
             messages,
             StorableJson.TryRead(StorableJson.Member(root, "at"), out DateTimeOffset at) ? at : default)
         {
+            // D50: an entry an earlier version stored has no number
+            Sequence = StorableJson.TryReadNumber(sequence, out long numbered) ? numbered : 0,
             Model = StorableJson.TryRead(StorableJson.Member(root, "model"), out string model) ? model : null,
             Provider = StorableJson.TryRead(StorableJson.Member(root, "provider"), out string named) ? named : null,
             Usage = StorableJson.Member(root, "usage") is { ValueKind: JsonValueKind.Object } usage

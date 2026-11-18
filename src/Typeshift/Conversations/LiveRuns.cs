@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Typeshift;
 
-// The conversations running in this process, their steering input and their watchers, by id and its type (D72)
+// The conversations running in this container, their steering input and their watchers, by id and its type (D72)
 internal sealed class LiveRuns(RealtimeTrackingOptions realtime, ILoggerFactory? loggers = null)
 {
     private readonly ILogger _logger = LogEvents.For(loggers);
@@ -17,7 +17,7 @@ internal sealed class LiveRuns(RealtimeTrackingOptions realtime, ILoggerFactory?
     public IReadOnlyCollection<ConversationRun> Runs =>
         [.. _runs.Values.Select(claim => claim.Run).OfType<ConversationRun>()];
 
-    // D50: one run per conversation at a time in a process. A run claims its conversation before it loads it, so no
+    // D50: one run per conversation at a time in a container. A run claims its conversation before it loads it, so no
     // run reads a conversation whose last run is still storing its end. A run that takes steering input is refused,
     // since the input goes to it. A claim that takes none is waited for: one still loading until its run began, and
     // a run that is ending until it ended, so the run a host starts with input that was not steered starts (D51)
@@ -182,7 +182,7 @@ internal sealed class LiveRuns(RealtimeTrackingOptions realtime, ILoggerFactory?
     }
 }
 
-// A conversation's place in this process, held from before its run loads it until the run ends
+// A conversation's place in this container, held from before its run loads it until the run ends
 internal sealed class RunClaim(StoreId conversation)
 {
     private readonly TaskCompletionSource _settled = new(TaskCreationOptions.RunContinuationsAsynchronously);

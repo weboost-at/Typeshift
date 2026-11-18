@@ -2,6 +2,7 @@ using Typeshift.Tests.Agents.Support;
 using Typeshift.Tests.Approval.Support;
 using Typeshift.Tests.Compaction.Support;
 using Typeshift.Tests.Conversations.Support;
+using Typeshift.Tests.Decisions.Support;
 using Typeshift.Tests.Persistence.Support;
 using Typeshift.Tests.Testing.Fakes;
 using FluentAssertions;
@@ -16,6 +17,9 @@ namespace Typeshift.Tests.Conversations;
 
 public class ConversationStoreTests : AgentTestBase
 {
+    // The containers of other instances of the app, with their scopes, disposed after the test
+    private readonly List<IAsyncDisposable> _instances = [];
+
     [Fact]
     public async Task Given_A_Summary_The_Store_Loads_It_And_The_Entries_After_It()
     {
@@ -429,6 +433,154 @@ public class ConversationStoreTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_Two_Containers_On_One_Conversation_The_Second_Writer_Is_Refused()
+    {
+        // Arrange
+        var store = new InMemoryTypeshiftStore<Guid>();
+        var hold = new ToolHold();
+        var other = new ScriptedChatClient(Ct);
+
+        ChatClient.Reply(Call(Data.Tool.CallId, "probe", ("query", Data.Tool.Query)));
+        other.Reply(Text(Data.Tool.Answer));
+
+        var held = Instance(store, ChatClient, hold).RunAsync(Data.Tool.Question, ct: Ct);
+        await hold.Running.Task.WaitAsync(Ct);
+        await Instance(store, other).RunAsync(Data.Agent.FollowUp, ct: Ct);
+
+        // Act
+        hold.Release.SetResult();
+
+        // Assert
+        await FluentActions.Awaiting(() => held).Should().ThrowAsync<ConversationBusyException>();
+    }
+
+    [Fact]
+    public async Task Given_Two_Containers_On_One_Conversation_The_Refused_Run_Stores_Nothing_After_The_Other()
+    {
+        // Arrange
+        var store = new InMemoryTypeshiftStore<Guid>();
+        var hold = new ToolHold();
+        var other = new ScriptedChatClient(Ct);
+
+        ChatClient.Reply(Call(Data.Tool.CallId, "probe", ("query", Data.Tool.Query)));
+        other.Reply(Text(Data.Tool.Answer));
+
+        var held = Instance(store, ChatClient, hold).RunAsync(Data.Tool.Question, ct: Ct);
+        await hold.Running.Task.WaitAsync(Ct);
+        await Instance(store, other).RunAsync(Data.Agent.FollowUp, ct: Ct);
+
+        // Act
+        hold.Release.SetResult();
+        await Record.ExceptionAsync(() => held);
+
+        // Assert
+        (await store.LoadConversationAsync(Data.Agent.ConversationId, Ct))
+            .Select(entry => entry.Sequence)
+            .Should()
+            .Equal(1, 2, 3, 4, 5);
+    }
+
+    [Fact]
+    public async Task Given_Another_Container_Took_The_Number_Of_A_Runs_Input_The_Run_Calls_No_Model()
+    {
+        // Arrange
+        var other = new ScriptedChatClient(Ct);
+
+        var store = new GatedEndStore
+        {
+            Holds = entry => entry.Messages is [{ Text: var text }] && text == Data.Tool.Question
+        };
+
+        other.Reply(Text(Data.Tool.Answer));
+
+        var held = Instance(store, ChatClient).RunAsync(Data.Tool.Question, ct: Ct);
+        await store.Ending.Task.WaitAsync(Ct);
+        await Instance(store, other).RunAsync(Data.Agent.FollowUp, ct: Ct);
+
+        // Act
+        store.Gate.SetResult();
+        var refused = await Record.ExceptionAsync(() => held);
+
+        // Assert
+        refused.Should().BeOfType<ConversationBusyException>();
+        ChatClient.Requests.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Given_A_Run_Whose_End_Alone_Another_Container_Took_The_Number_Of_It_Returns_Its_Answer()
+    {
+        // Arrange
+        var store = new GatedEndStore();
+        var other = new ScriptedChatClient(Ct);
+
+        ChatClient.Reply(Text(Data.Tool.Answer));
+        other.Reply(Text(Data.Agent.Reason));
+
+        var ending = Instance(store, ChatClient).RunAsync(Data.Tool.Question, ct: Ct);
+        await store.Ending.Task.WaitAsync(Ct);
+        await Instance(store, other).RunAsync(Data.Agent.FollowUp, ct: Ct);
+
+        // Act
+        store.Gate.SetResult();
+
+        // Assert
+        (await ending).Text.Should().Be(Data.Tool.Answer);
+    }
+
+    [Fact]
+    public async Task Given_A_Conversation_Stored_Before_Entries_Were_Numbered_Its_Next_Entry_Follows_Their_Count()
+    {
+        // Arrange
+        var store = SeededWithContentsOfAnotherVersion();
+        await using var provider = Provider(store, new WarningLog());
+        await using var scope = provider.CreateAsyncScope();
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync(Data.Agent.FollowUp, ct: Ct);
+
+        // Assert
+        (await store.LoadConversationAsync(Data.Agent.ConversationId, Ct))[3].Sequence.Should().Be(4);
+    }
+
+    [Fact]
+    public async Task Given_An_Earlier_Versions_Summary_After_Numbered_Entries_The_Next_Entry_Takes_A_New_Number()
+    {
+        // Arrange
+        var store = new StoredJsonStore();
+
+        string[] entries =
+        [
+            $$"""
+            {"agent":"probe_agent","at":"2026-10-11T08:00:00+00:00","sequence":1,"messages":[{"role":"user",
+              "contents":[{"$type":"text","text":"{{Data.Tool.Question}}"}]}]}
+            """,
+            """{"agent":"probe_agent","at":"2026-10-11T08:00:01+00:00","sequence":2,"endsRun":true}""",
+            $$"""
+            {"agent":"probe_agent","at":"2026-10-11T08:00:02+00:00","isSummary":true,"messages":[{"role":"user",
+              "contents":[{"$type":"text","text":"{{Data.Agent.Reason}}"}]}]}
+            """,
+            """{"agent":"probe_agent","at":"2026-10-11T08:00:03+00:00","endsRun":true}"""
+        ];
+
+        foreach (var entry in entries) store.Add(Data.Agent.ConversationId, entry);
+
+        await using var provider = Provider(store, new WarningLog());
+        await using var scope = provider.CreateAsyncScope();
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync(Data.Agent.FollowUp, ct: Ct);
+
+        // Assert
+        (await store.LoadConversationAsync(Data.Agent.ConversationId, Ct))[4].Sequence.Should().Be(5);
+    }
+
+    [Fact]
     public async Task Given_No_Store_A_Conversation_Is_Kept_In_Memory_And_Its_Next_Run_Resumes_It()
     {
         // Arrange
@@ -792,5 +944,38 @@ public class ConversationStoreTests : AgentTestBase
         services.AddSingleton(ChatClient).AddSingleton(Models).AddSingleton<ILoggerFactory>(logs);
 
         return services.BuildServiceProvider();
+    }
+
+    // Another instance of the app over the shared store: a container of its own, whose claims on a conversation the
+    // others never see, on the test's conversation. With a hold, its tool calls wait until the hold is released
+    private AgentHost<ProbeAgent> Instance(
+        ITypeshiftStore<Guid> store,
+        ScriptedChatClient client,
+        ToolHold? hold = null)
+    {
+        var services = new ServiceCollection();
+        var typeshift = services.AddTypeshift().WithStore(store).WithChatClientProvider<ScriptedChatClientProvider>();
+
+        if (hold is not null) typeshift.WithToolMiddleware<HeldToolMiddleware>();
+
+        services.AddSingleton<TimeProvider>(Time).AddSingleton(client).AddSingleton(Models);
+        services.AddSingleton(hold ?? new ToolHold());
+
+        var provider = services.BuildServiceProvider();
+        var scope = provider.CreateAsyncScope();
+
+        _instances.Add(scope);
+        _instances.Add(provider);
+
+        return scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
+            .WithConversationId(Data.Agent.ConversationId);
+    }
+
+    protected override async ValueTask DisposeCoreAsync()
+    {
+        foreach (var instance in _instances)
+        {
+            await instance.DisposeAsync();
+        }
     }
 }

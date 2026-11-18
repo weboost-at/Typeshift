@@ -744,7 +744,15 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
             LastCall = LastCall(entries)
         };
 
-        var run = new ConversationRun(conversation, agentRun, runOptions.ModelId ?? "", Store, ledger, Time, Logger);
+        var run = new ConversationRun(
+            conversation,
+            agentRun,
+            runOptions.ModelId ?? "",
+            Store,
+            ledger,
+            Time,
+            Logger,
+            conversation is null ? 0 : await LastSequenceAsync(conversation, entries, ct));
 
         runOptions.ConversationId = null;
         runOptions.AgentRun = agentRun;
@@ -796,6 +804,18 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
 
         return (run, call, runOptions, null, null);
     }
+
+    // D50: the run numbers its entries on from the highest number it loaded. A summary an earlier version wrote, with
+    // no number after it, may follow entries this version numbered, which the run did not load: their numbers come
+    // from the whole conversation, once, since the next run finds this one's numbers after the summary
+    private async Task<long> LastSequenceAsync(
+        StoreId conversation,
+        IReadOnlyList<ConversationEntry> entries,
+        CancellationToken ct) =>
+        ConversationHistory.LastSequence(
+            entries is [{ IsSummary: true, Sequence: 0 }, ..] && entries.All(entry => entry.Sequence == 0)
+                ? await Store.LoadConversationAsync(conversation, ct)
+                : entries);
 
     // The model's answer the conversation's last entry holds, when nothing follows it: no call, which would be in
     // flight, no error, and no input or summary after it

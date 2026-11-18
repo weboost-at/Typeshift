@@ -95,6 +95,7 @@ public class PersistenceTestData(Faker faker)
             ],
             faker.Date.PastOffset())
         {
+            Sequence = faker.Random.Long(1, 1000),
             Model = $"{faker.Hacker.Noun()}-model",
             Provider = $"{faker.Hacker.Noun()}-provider",
             Usage = new UsageDetails

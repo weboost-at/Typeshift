@@ -88,11 +88,12 @@ decisions: the decisions that wait, with the calls they stand for, the answers y
 `IDecisionStore<TId>` ([Keep decisions](./implementing-a-store.md#keep-decisions)). The entries hold the model's call
 and, once it ran or was rejected, its result, and never a request for approval or its answer.
 
-Each entry is a `ConversationEntry`: the name of its agent in `Agent`, its `Messages` and the time it was stored in
-`At`, plus the `Model` and `Usage` of a model response, and `EndsRun` on the entry that ends a run. A model response
-also has the `Provider` its agent ran on, as text, unless that was the default client. `IsSummary` is true
-on the entry [compaction](#compaction) appends when it summarizes, which is how your code and your store tell a summary
-apart ([Start from the last summary](./implementing-a-store.md#start-from-the-last-summary)). A model response of a run
+Each entry is a `ConversationEntry`: the name of its agent in `Agent`, its `Messages`, the time it was stored in `At`
+and its number in `Sequence`, which lets a store refuse a second run of the conversation
+([One run at a time](#one-run-at-a-time)). A model response has its `Model` and `Usage` too, and the `Provider` its
+agent ran on, as text, unless that was the default client. The entry that ends a run has `EndsRun`, and `IsSummary`
+is true on the entry [compaction](#compaction) appends when it summarizes, which is how your code and your store tell
+a summary apart ([Start from the last summary](./implementing-a-store.md#start-from-the-last-summary)). A model response of a run
 with a maximum of input tokens also has `EstimatedInputTokens`, what compaction estimated its call at.
 
 An entry serializes itself with `Serialize()` and `ConversationEntry.Deserialize(json)`, and JSON libraries handle it as
@@ -185,9 +186,10 @@ that is still going on.
 
 With one instance of your app, nothing else can be running the conversation after a restart, so such an entry means
 the run was interrupted. With several instances, or during a rolling deploy, another instance may be answering that
-chat at this moment, and resuming it would call the model and its tools a second time. There, resume only when the
-last entry's `At` is older than a limit your app chooses, or behind a lease of your own, because keeping to
-[one run at a time](#one-run-at-a-time) across processes is up to your app.
+chat at this moment. A store that refuses a second run's entries stops whichever of the two runs appends second
+([One run at a time](#one-run-at-a-time)), but a resume calls the model before it stores anything, so that call is
+paid for, and the run it stops may be the one that was answering. There, resume only when the last entry's `At` is
+older than a limit your app chooses, or behind a lease of your own.
 
 ::: warning A tool can be called twice
 A call interrupted while its tool ran is left out on resume. The model decides again and may call the tool a second
@@ -198,15 +200,29 @@ it again, and the model reads that it is not known whether the call took effect
 
 ## One run at a time
 
-Within a process, a conversation has one run at a time. Starting a second while the first goes on throws a
-`ConversationBusyException`, before the second run stores anything, so [steer](#steering) the running one or start
-again once it has ended. Its `Conversation` names the conversation, and it is an `InvalidOperationException`, so a
-`catch` of that type still catches it.
+Within one container, your app's or that of a runtime from `TypeshiftRuntime.Create`, a conversation has one run at
+a time. Starting a second while the first goes on throws a `ConversationBusyException`, before the second run stores
+anything, so [steer](#steering) the running one or start again once it has ended. Its `Conversation` names the
+conversation, and it is an `InvalidOperationException`, so a `catch` of that type still catches it.
 
 Two moments of a run take no steering input and throw no `ConversationBusyException` either: a run that starts
 while another is still loading the conversation waits until that run has begun, and a run that starts while
-another is ending, storing its end, waits until it has ended. Across processes, keeping to one run per conversation
-is up to your app.
+another is ending, storing its end, waits until it has ended.
+
+Across containers, such as two instances of your app behind a load balancer, neither knows the other's runs. There
+your store keeps the runs of a conversation apart when it refuses a second run's entries
+([Refuse a second run](./implementing-a-store.md#refuse-a-second-run)), as the store in memory and the EF Core store
+of these docs do:
+
+- Of two runs that loaded the conversation at the same point, the one that appends second stops with a
+  `ConversationBusyException` before its next model call or tool call. What it stored before stays, and its
+  `InnerException` is the store's `StoreConflictException`.
+- A tool the refused run called before it stopped has run, and its result is not stored, so the model of the other
+  run never reads it. The other run's answer is the conversation's.
+- A run whose end alone the store refused answered already and returns its answer: the other run's entries follow it.
+
+With a store that does not refuse them, the entries of the two runs interleave. Steering and live updates stay in
+their container either way ([Live updates](#live-updates)).
 
 ## Live runs
 

@@ -146,8 +146,9 @@ you ship, your app has to do these things itself:
 - Make tools with side effects safe to repeat ([Resuming](./conversations.md#resuming)).
 - Turn compaction on for agents whose conversations grow long ([Compaction](./conversations.md#compaction)).
 - Answer a message to a chat that is still answering with a status of its own, not an error
-  ([A chat that is answering](./chat-endpoint.md#a-chat-that-is-answering)). With several processes, keep each
-  conversation to one run at a time yourself ([One run at a time](./conversations.md#one-run-at-a-time)).
+  ([A chat that is answering](./chat-endpoint.md#a-chat-that-is-answering)). With several instances of your app,
+  write a store that refuses a second run's entries, or keep each conversation to one run at a time yourself
+  ([Refuse a second run](./implementing-a-store.md#refuse-a-second-run)).
 - Read API keys from your app's configuration, never from code ([A real client](./models.md#a-real-client)).
 - Where each customer brings a key, register no default client, so an agent that names no provider fails instead of
   running on your app's own key ([A key per customer](./models.md#a-key-per-customer)).

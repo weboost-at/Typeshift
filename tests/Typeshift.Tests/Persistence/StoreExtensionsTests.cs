@@ -1,3 +1,4 @@
+using Typeshift.Tests.Conversations.Support;
 using Typeshift.Tests.Persistence.Support;
 using FluentAssertions;
 
@@ -462,6 +463,58 @@ public class StoreExtensionsTests : UnitTestBase
 
         // Assert
         await verify.Should().ThrowAsync<InvalidOperationException>().WithMessage("*An entry came back changed*");
+    }
+
+    [Fact]
+    public async Task Given_A_Store_That_Never_Looks_At_The_Numbers_Of_Entries_It_Passes()
+    {
+        // Act
+        var verify = () => new StoredJsonStore().VerifyAsync(Id, OtherId, Ct);
+
+        // Assert
+        await verify.Should().NotThrowAsync();
+    }
+
+    [Fact]
+    public async Task Given_A_Store_That_Says_It_Refuses_A_Taken_Number_And_Stores_It_It_Fails_Naming_The_Key()
+    {
+        // Act
+        var verify = () => new TakenNumberStore(TakenNumber.Stored).VerifyAsync(Id, OtherId, Ct);
+
+        // Assert
+        await verify.Should().ThrowAsync<InvalidOperationException>().WithMessage("*unique key on the conversation*");
+    }
+
+    [Fact]
+    public async Task Given_A_Store_That_Keys_Numbers_Without_The_Conversation_It_Fails_Naming_The_Conversation()
+    {
+        // Act
+        var verify = () => new TakenNumberStore(TakenNumber.KeyedAlone).VerifyAsync(Id, OtherId, Ct);
+
+        // Assert
+        await verify.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*by the conversation and the entry's Sequence together*");
+    }
+
+    [Fact]
+    public async Task Given_A_Store_That_Refuses_A_Taken_Number_With_Its_Own_Exception_It_Fails_Naming_The_Conflict()
+    {
+        // Act
+        var verify = () => new TakenNumberStore(TakenNumber.DatabaseError).VerifyAsync(Id, OtherId, Ct);
+
+        // Assert
+        await verify.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*threw a InvalidOperationException: refuse it with a StoreConflictException*");
+    }
+
+    [Fact]
+    public async Task Given_A_Store_That_Stores_An_Entry_It_Refuses_It_Fails_Naming_One_Statement()
+    {
+        // Act
+        var verify = () => new TakenNumberStore(TakenNumber.StoredThenRefused).VerifyAsync(Id, OtherId, Ct);
+
+        // Assert
+        await verify.Should().ThrowAsync<InvalidOperationException>().WithMessage("*write in one statement*");
     }
 
     [Fact]

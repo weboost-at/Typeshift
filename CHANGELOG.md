@@ -133,7 +133,7 @@ All notable changes to this project are documented here. The format follows
   message to take in its place, or null to drop it. The member has a default that lets the input pass, so a
   middleware you wrote compiles as it is.
 - `ConversationBusyException` is thrown by a run that starts while another run of its conversation goes on in the
-  process, and `NothingToResumeException` by a resume of a conversation with nothing to continue. Both are
+  same container, and `NothingToResumeException` by a resume of a conversation with nothing to continue. Both are
   `InvalidOperationException`s, as these refusals were before, so a `catch` you wrote keeps working, and an
   endpoint now tells a double click on send from a mistake by type: "A chat that is answering" in the guide's page
   on chat endpoints maps the first to 409 Conflict. Their `Conversation` names the conversation.
@@ -142,6 +142,13 @@ All notable changes to this project are documented here. The format follows
   `TypeshiftOptions.StoreFailure = StoreFailure.ContinueRun` has such a run return instead, and then
   `response.ConversationIncomplete`, and `update.ConversationIncomplete` on a stream's last update, says that the
   conversation lacks a step.
+- Each conversation entry carries a number, `ConversationEntry.Sequence`, so two instances of your app no longer
+  interleave one conversation's entries: a store with a unique key on the conversation and the number refuses the
+  entry of the run that appends second, which stops with a `ConversationBusyException`. A store says that it does
+  with `RefusesTakenSequences => true`, and `VerifyAsync` then checks it. `InMemoryTypeshiftStore<TId>` refuses such
+  entries. A store that never looks at the number works as before, and entries stored before load with none, the
+  next run numbering on from their count. "Refuse a second run" in the guide's store page shows the key and the
+  insert.
 
 ### Changed
 
@@ -472,6 +479,16 @@ All notable changes to this project are documented here. The format follows
   loading them again. Write `UpdateSettingsAsync` where you wrote `ConfigureAsync`, and read `.Data` where you used
   its result. A function that returns null throws an `InvalidOperationException` that names the agent, and nothing
   is saved; before, the save failed later with a `NullReferenceException`.
+- **Breaking:** `VerifyAsync` appends entries that carry a `Sequence`, so a store that rebuilds entries from columns
+  of its own and leaves the number out fails with "An entry came back changed". Keep the entry's JSON whole, or add
+  a column for `entry.Sequence`. It also fails a store that refuses an entry under a number its conversation holds
+  with an exception other than `StoreConflictException`: put the database's duplicate-key error inside a
+  `StoreConflictException`.
+- A run whose append the store refuses with a `StoreConflictException` stops with a `ConversationBusyException`
+  that holds it, before its next model call or tool call, and stores nothing more. It logged the failure, went on
+  and failed with a `ConversationStoreException` as it ended. A store throws it for an entry under a number its
+  conversation holds, which a run in another instance of your app appended first, so an endpoint that answers a
+  busy chat with 409 Conflict answers that run the same way.
 
 ### Fixed
 

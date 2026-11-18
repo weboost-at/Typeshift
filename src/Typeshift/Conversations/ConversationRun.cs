@@ -8,7 +8,8 @@ namespace Typeshift;
 // One run, of a conversation or none: the contents it stored, by reference, since the tool loop hands the same ones on,
 // even in the copies of messages it makes; the steering input and background answers waiting for the next model
 // call, and where in the tool loop's messages that input went; the verdicts of its calls and the batch it asked or
-// carries out (D80, D81). Without a conversation it stores nothing
+// carries out (D80, D81). Without a conversation it stores nothing. It numbers its entries on from the highest number
+// it loaded (D50)
 internal sealed class ConversationRun(
     StoreId? conversation,
     AgentRun run,
@@ -16,8 +17,19 @@ internal sealed class ConversationRun(
     StoreAccess store,
     DecisionLedger ledger,
     TimeProvider time,
-    ILogger logger)
+    ILogger logger,
+    long sequence = 0)
 {
+    // D50: the number of the last entry the run appended, or tried to; one that failed is not tried again
+    private long _sequence = sequence;
+
+    // D50: why the store refused the run's entry: a run of another container appended under its number, and the
+    // conversation is that run's from there on
+    private StoreConflictException? _refused;
+
+    // D50: the run stores its end, after which a refusal ends nothing more
+    private bool _ending;
+
     // The steering input and background answers as they arrived, which the run's middleware has not seen yet
     private readonly Queue<ChatMessage> _steering = new();
 
@@ -417,13 +429,18 @@ internal sealed class ConversationRun(
     }
 
     // D46: the end of a run is an entry of its own, with what went wrong; background sub-agents still working stop,
-    // and input no model received is stored ahead of it. A run ends once
+    // and input no model received is stored ahead of it. A run ends once. D50: a run whose step the store refused
+    // stores nothing more, and one whose end alone is refused answered already: another run's entries follow it
     public async Task EndAsync(string? error)
     {
         if (_ended) return;
 
         _ended = true;
         await StopBackgroundAsync();
+
+        if (_refused is not null) return;
+
+        _ending = true;
         await CloseAsync();
 
         await AppendAsync(
@@ -479,7 +496,8 @@ internal sealed class ConversationRun(
     }
 
     // D46: storing never observes the run's token, and a store that fails is logged while the run goes on. The
-    // store's exception when it did not take the step, for the steps a decision depends on (D80)
+    // store's exception when it did not take the step, for the steps a decision depends on (D80). D50: a store that
+    // refuses the step's number stops the run, which stores nothing more
     public async Task<Exception?> AppendAsync(
         IReadOnlyList<ChatMessage> messages,
         string? model = null,
@@ -499,10 +517,14 @@ internal sealed class ConversationRun(
 
         if (Conversation is null) return null;
 
+        if (_refused is { } refused)
+            return _ending ? refused : throw ConversationBusyException.Refused(Conversation, refused);
+
         if (!_streams && !endsRun && !summary) Publish(messages);
 
         var entry = new ConversationEntry(answering ?? Agent, Writable(messages), time.GetUtcNow())
         {
+            Sequence = Interlocked.Increment(ref _sequence),
             Model = model,
             Provider = provider,
             Usage = usage,
@@ -519,6 +541,22 @@ internal sealed class ConversationRun(
         try
         {
             await store.AppendConversationAsync(Conversation, entry, CancellationToken.None);
+        }
+        catch (StoreConflictException conflict)
+        {
+            // D50: a run of another container appended under this number since this run loaded the conversation, so
+            // this one stops here, taking no more steering input, and the two never interleave
+            lock (_steering)
+            {
+                _closed = true;
+            }
+
+            _refused = conflict;
+            if (!_ending) throw ConversationBusyException.Refused(Conversation, conflict);
+
+            // The run is over, and its span keeps why its end is not stored
+            run.Activity?.AddException(conflict);
+            return conflict;
         }
         catch (Exception exception)
         {

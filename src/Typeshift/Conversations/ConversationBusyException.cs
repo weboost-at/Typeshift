@@ -1,14 +1,17 @@
 namespace Typeshift;
 
 /// <summary>
-/// Thrown when a run starts on a conversation that has a run going on in this process, which takes the input
+/// Thrown when a run starts on a conversation that has a run going on in this container, which takes the input
 /// itself: hand it over with <c>ConversationTracker.TrySteer</c>, or start the run again once that run has ended.
-/// Nothing of the refused run is stored.
+/// Nothing of the refused run is stored. Also thrown by a run whose step the store refused because a run in another
+/// container, such as another instance of your app, appended to the conversation first: that run stopped at the step,
+/// what it stored before stays, and the store's <see cref="StoreConflictException"/> is the inner exception.
 /// </summary>
 /// <param name="message">The message, naming the conversation.</param>
 /// <param name="conversation">The conversation's id.</param>
-public sealed class ConversationBusyException(string message, object conversation)
-    : InvalidOperationException(message)
+/// <param name="inner">The store's exception, for a run whose step the store refused; otherwise null.</param>
+public sealed class ConversationBusyException(string message, object conversation, Exception? inner = null)
+    : InvalidOperationException(message, inner)
 {
     /// <summary>
     /// The conversation's id, as <c>WithConversationId</c> took it; for a call on the raw path, the text of
@@ -18,7 +21,17 @@ public sealed class ConversationBusyException(string message, object conversatio
 
     internal static ConversationBusyException For(StoreId conversation) =>
         new(
-            $"A run of conversation {conversation} is going on in this process, and a conversation has one run at a "
+            $"A run of conversation {conversation} is going on in this container, and a conversation has one run at a "
             + "time: hand it the input with ConversationTracker.TrySteer, or start the run again once it has ended.",
             conversation.Value);
+
+    // D50: the store refused an entry under a number another container's run had taken
+    internal static ConversationBusyException Refused(StoreId conversation, StoreConflictException conflict) =>
+        new(
+            $"The store refused a step of this run of conversation {conversation}, because a run in another container, "
+            + "such as another instance of your app, appended to the conversation after this run loaded it, and a "
+            + "conversation has one run at a time. This run stopped there, and what it stored before stays: start "
+            + "it again once the other run has ended.",
+            conversation.Value,
+            conflict);
 }

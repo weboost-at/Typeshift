@@ -67,4 +67,24 @@ public class DecisionConcurrencyTests : DecisionTestBase
         await resume.Should().ThrowAsync<DecisionClosedException>();
         ToolCalls.Should().Equal($"close_ticket {Data.Agent.Ticket.Default}");
     }
+
+    [Fact]
+    public async Task Given_A_Started_Batch_Another_Process_Repairs_The_Process_Carrying_It_Out_Stops_As_Busy()
+    {
+        // Arrange
+        ChatClient
+            .Reply(SendRefund(Data.Tool.CallId))
+            .Reply(Text(Data.Tool.Answer));
+
+        var asked = await Held.RunAsync(Data.Tool.Question, ct: Ct);
+        var carrying = Held.AnswerAsync([DecisionAnswer.Approve(asked.Decisions[0].Id)], ct: Ct);
+        await Hold.Running.Task.WaitAsync(Ct);
+        await OtherProcess<HeldAgent>().RunAsync(Data.Agent.FollowUp, ct: Ct);
+
+        // Act
+        Hold.Release.SetResult();
+
+        // Assert
+        await FluentActions.Awaiting(() => carrying).Should().ThrowAsync<ConversationBusyException>();
+    }
 }

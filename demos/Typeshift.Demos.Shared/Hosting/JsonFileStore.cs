@@ -28,36 +28,16 @@ public sealed class JsonFileStore(string directory) : ITypeshiftStore<Guid>
 
     public async Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(Guid conversation, CancellationToken ct)
     {
-        var path = ConversationPath(conversation);
-        string[] lines;
-
         await _files.WaitAsync(ct);
 
         try
         {
-            if (!File.Exists(path)) return [];
-            lines = [.. (await File.ReadAllLinesAsync(path, ct)).Where(line => line.Length > 0)];
+            return await ReadEntriesAsync(ConversationPath(conversation), ct);
         }
         finally
         {
             _files.Release();
         }
-
-        var entries = new List<ConversationEntry>(lines.Length);
-
-        foreach (var (line, index) in lines.Select((line, index) => (line, index)))
-        {
-            try
-            {
-                entries.Add(ConversationEntry.Deserialize(line));
-            }
-            catch (JsonException) when (index == lines.Length - 1)
-            {
-                // A crash in the middle of an append cuts the last line off: that entry was never stored
-            }
-        }
-
-        return entries;
     }
 
     // A file of lines reads whole, so the entries from the last summary on are kept after the read
@@ -65,6 +45,10 @@ public sealed class JsonFileStore(string directory) : ITypeshiftStore<Guid>
         Guid conversation,
         CancellationToken ct) =>
         (await LoadConversationAsync(conversation, ct)).SinceLastSummary();
+
+    // Of two runs that loaded a conversation at the same point, the one that appends second is refused, as a unique
+    // key on the conversation and the number would refuse it
+    public bool RefusesTakenSequences => true;
 
     public async Task AppendConversationAsync(Guid conversation, ConversationEntry entry, CancellationToken ct)
     {
@@ -74,6 +58,10 @@ public sealed class JsonFileStore(string directory) : ITypeshiftStore<Guid>
 
         try
         {
+            // A demo's conversations are short, so the file is read whole to find the number
+            if (entry.Sequence > 0 && (await ReadEntriesAsync(path, ct)).Any(held => held.Sequence == entry.Sequence))
+                throw new StoreConflictException($"Conversation {conversation} holds entry {entry.Sequence} already.");
+
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             await using var file = new FileStream(
                 path,
@@ -96,6 +84,28 @@ public sealed class JsonFileStore(string directory) : ITypeshiftStore<Guid>
             ? Directory.EnumerateFiles(Path.Combine(directory, "conversations"), "*.jsonl")
                 .Select(file => Guid.Parse(Path.GetFileNameWithoutExtension(file)))
             : [];
+
+    private static async Task<List<ConversationEntry>> ReadEntriesAsync(string path, CancellationToken ct)
+    {
+        if (!File.Exists(path)) return [];
+
+        string[] lines = [.. (await File.ReadAllLinesAsync(path, ct)).Where(line => line.Length > 0)];
+        var entries = new List<ConversationEntry>(lines.Length);
+
+        foreach (var (line, index) in lines.Select((line, index) => (line, index)))
+        {
+            try
+            {
+                entries.Add(ConversationEntry.Deserialize(line));
+            }
+            catch (JsonException) when (index == lines.Length - 1)
+            {
+                // A crash in the middle of an append cuts the last line off: that entry was never stored
+            }
+        }
+
+        return entries;
+    }
 
     private async Task<StoredDocument?> LoadDocumentAsync(string path, CancellationToken ct)
     {

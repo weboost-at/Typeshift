@@ -42,6 +42,21 @@ internal static class ConversationHistory
         return [.. entries.Skip(Math.Max(start, 0))];
     }
 
+    // D50: the highest number among the entries. An entry an earlier version stored has none and counts one past the
+    // entry before it, so a conversation stored before entries were numbered goes on from the count of its entries
+    public static long LastSequence(IReadOnlyList<ConversationEntry> entries)
+    {
+        long last = 0, highest = 0;
+
+        foreach (var entry in entries)
+        {
+            last = entry.Sequence > 0 ? entry.Sequence : last + 1;
+            highest = Math.Max(highest, last);
+        }
+
+        return highest;
+    }
+
     // The message with these of its contents: itself when it keeps them all, none when it keeps nothing
     private static ChatMessage? With(ChatMessage message, List<AIContent> contents)
     {

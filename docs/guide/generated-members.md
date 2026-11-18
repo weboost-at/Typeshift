@@ -55,9 +55,10 @@ every conversation
 and no rule or mode approves the call. To avoid that, run with a conversation id, approve the call with a rule, or
 run in `Auto` mode.
 
-A run throws a `ConversationBusyException` while its conversation has a run going on in this process
+A run throws a `ConversationBusyException` while its conversation has a run going on in this container
 ([One run at a time](./conversations.md#one-run-at-a-time)), a streaming one when its updates are read, and stores
-nothing of itself then. It throws a `ConversationStoreException`, which holds its answer, as it ends when the store
+nothing of itself then. It throws one too when the store refused one of its steps because a run in another
+container appended first, and keeps what it stored before. It throws a `ConversationStoreException`, which holds its answer, as it ends when the store
 failed to append one of its steps ([When the store fails](./conversations.md#when-the-store-fails)). It throws an
 `InvalidOperationException` when no chat client or no store serves it, and when its chat client runs a tool loop of
 its own ([Wrapping a client](./models.md#wrapping-a-client)). It throws a

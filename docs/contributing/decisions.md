@@ -1166,7 +1166,13 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   than 0 of a document that is not stored must conflict, as the save of a document deleted since it was loaded. A
   store's own exception where a conflict belongs is named in the message. A conversation id with entries, or a
   settings id that holds the check's own document, fails with a message that asks for a new id and names no rule,
-  and two equal ids throw an `ArgumentException`.
+  and two equal ids throw an `ArgumentException`. Entries carry numbers as a run gives them (D50), and the other
+  conversation holds the first entry's number, which no store may refuse. Last, an entry under a number its
+  conversation holds may be stored, or refused with a `StoreConflictException` and nothing stored; any other
+  exception fails, since a run takes it for a failed save and goes on, and so does storing it in a store whose
+  `RefusesTakenSequences` is true. That flag is how a store says it refuses, the smallest way: a member of
+  `IConversationStore<TId>` with a default, which a store without the key never touches, beside the code that keeps
+  the key, where a parameter of `VerifyAsync` would put the claim in a test.
 - **Where:** `Storage/StoreExtensions.cs`.
 - **Alternatives:** `StoreCheck.CheckSettingsAsync` and `CheckConversationsAsync`, two static methods named for the
   interface rather than called on the store, which the owner found clunky and which let a store that is both pass on
@@ -1176,7 +1182,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   beside the call with two ids, where the short call passes a store that mixes customers; a second id the check
   makes itself, which no id type of the app's choosing offers; new kinds per call for agents' own documents (up to
   0.1.0-alpha.6), which left documents behind under names nobody could predict; entries with rising times, which a
-  store that orders by time passes.
+  store that orders by time passes; for the taken number, passing a store that refuses it or stores it alike, which
+  passes a store whose unique key a migration forgot.
 
 ### D42. Settings ids and conversation ids are separate; conversations grow by appending
 
@@ -1187,7 +1194,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   resumes), independent of each other; either may be left out. What a settings id stands for (a customer, a team, a
   user, a profile) is the host's choice. A conversation is keyed by its id alone: the host authorizes it before
   passing it, as any id from a request, and the guide says so. Runs append entries (D50); no locks, no second
-  read.
+  read. A store that refuses a second run's entry by its number does so in the insert itself, with a unique key, so
+  that holds there too.
 - **Alternatives:** an explicit `ownerId` on conversation runs, a third id whose authorization the host still owns;
   keying conversations by settings id, which ties two unrelated choices of the host.
 
@@ -1597,7 +1605,9 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   success: a lost end makes a finished run look interrupted and resumable, a lost answer is gone at the next load.
   `TypeshiftOptions.StoreFailure = StoreFailure.ContinueRun` lets an app have such a run return, with
   `ConversationIncomplete` set on the response (and on a stream's last update), and the run's span is an error
-  either way. The response that asks your app and its decision must be stored whatever the option says, since a
+  either way. A `StoreConflictException` from an append is no failed save: a run of another container appended
+  under the entry's number, and the run stops as busy (D50). The response that asks your app and its decision must
+  be stored whatever the option says, since a
   decision without its call could not be carried out (D81): that run throws the store's exception at once. The
   agent's name goes on `AuthorName`, never into `AdditionalProperties`.
 - **Details:** the end of a run is an entry of its own (`EndsRun`), with an `ErrorContent` when the run failed, was
@@ -1631,30 +1641,62 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 
 ### D50. A conversation is stored step by step and resumes after a crash
 
-- **Status:** approved.
+- **Status:** approved; one run across containers by the entries' numbers: owner, with the audit of November 2026.
 - **Context:** the first draft stored a run when it ended, so a run that died after an hour of work lost all of it.
+  Later, one run per conversation held in a container only, and two instances of an app over one store, the usual
+  deployment behind a load balancer, ran one conversation at once: their entries interleaved, and before D80 a
+  retried answer ran its call in each. The owner chose "providing a sequence/version to the store method", for "two
+  instances of the same application without immediate synchronization of a single conversation".
 - **Decision:** a conversation is a log of `ConversationEntry`s: a run's input, each model response (with model,
-  provider and usage), each tool result, compaction summaries; the run's last entry has `EndsRun`. Checkpoints append each step
-  the moment it exists, tool results before the next model call. A run without an ending entry was interrupted:
-  `ResumeAsync()` (and `ResumeStreamingAsync`) on the conversation's host continues it without new input, leaving
-  out a call that was in flight; a new run on the conversation also starts from its steps. A conversation whose last
-  entry holds the model's answer, with no call and nothing after it, lost only its end: resuming it stores the end
-  and returns that answer, since a model called again would answer a second time. Resuming also carries
-  out a batch of decisions your app answered, and while decisions are still open it calls no model and returns them
-  (D80, D81). One run per conversation at a time in a
-  process, claimed before the run loads the conversation, so no run reads it while another still stores its end. A run
-  that finds the conversation claimed by a run still loading it waits until that run began or let go, and one that
-  finds a run ending, which takes no steering input any more (D51), waits until it ended or handed the conversation
-  on. One that finds a run going on that takes steering input throws a `ConversationBusyException`, since that run
-  takes the input. Across processes it is the host's to ensure. Resuming a conversation whose last run ended and
-  that waits for nothing throws a `NothingToResumeException`. Both derive from `InvalidOperationException`, so an
-  endpoint tells a busy chat from a mistake by type and a `catch` written before them keeps working.
+  provider and usage), each tool result, compaction summaries; the run's last entry has `EndsRun`. Checkpoints append
+  each step the moment it exists, tool results before the next model call. A run without an ending entry was
+  interrupted: `ResumeAsync()` (and `ResumeStreamingAsync`) on the conversation's host continues it without new
+  input, leaving out a call that was in flight; a new run on the conversation also starts from its steps. A
+  conversation whose last entry holds the model's answer, with no call and nothing after it, lost only its end:
+  resuming it stores the end and returns that answer, since a model called again would answer a second time.
+  Resuming also carries out a batch of decisions your app answered, and while decisions are still open it calls no
+  model and returns them (D80, D81). Resuming a conversation whose last run ended and that waits for nothing throws
+  a `NothingToResumeException`. One run per conversation at a time in a container, a service provider, an app's or
+  that of a runtime from `TypeshiftRuntime.Create`, so two runtimes in one process are two. A run claims its
+  conversation there before it loads it, so no run reads it while another still stores its end. A run that finds
+  the conversation claimed by a run still loading it waits until that run began or let go, and one that finds a run
+  ending, which takes no steering input any more (D51), waits until it ended or handed the conversation on. One that
+  finds a run going on that takes steering input throws a `ConversationBusyException`, since that run takes the
+  input. Across containers, a store may refuse a second run's entries by their numbers (details). Both exceptions
+  derive from `InvalidOperationException`, so an endpoint tells a busy chat from a mistake by type and a `catch`
+  written before them keeps working.
+- **Details:** across containers, each entry carries a `Sequence`. A run numbers its first entry one past the
+  highest number it loaded, an entry stored before entries had numbers counting one past the entry before it, and
+  takes the next number for each append it tries, so a failed append leaves a gap and never a number used twice. A
+  store may refuse an entry whose number its conversation holds, with a unique key on the conversation and the
+  number, by throwing `StoreConflictException`. The run that appended second then stops with a
+  `ConversationBusyException` that holds the store's exception, before its next model call or tool call; it stores
+  nothing more and keeps what it stored. Busy fits what its caller can do: the other run holds the conversation, so
+  the caller starts again once that run ended, as for a run busy in its container, and a 409 handler that exists
+  for one serves both. The failed-save path of D46 would let the run go on, interleaving, or return under
+  `StoreFailure.ContinueRun`. A refusal of what a run stores as it ends, its end or the input no model received,
+  ends nothing more: the run answered already, and the other run's entries follow it. A store says that it refuses
+  with `IConversationStore<TId>.RefusesTakenSequences`, which only `VerifyAsync` reads (D58); a store that does not
+  refuse keeps working and interleaves as before. Older entries have no number and load as 0. A run that loads from a
+  summary without a number, with no number after it, numbers from the whole conversation, once, since numbered
+  entries may come before that summary when an earlier version of the app wrote it during a deploy or after a
+  rollback. The numbers and the decisions document (D80) work together: the document makes answering and starting
+  a batch happen once, with or without numbers, and the numbers keep the history in order around it. A batch one
+  container carries out and another finds started and repairs (D81) gets the results of whichever appends first,
+  and the other run stops.
 - **Alternatives:** one entry per run, rewritten at each step (a whole-run write per model call); re-running the
   interrupted tool call, unsafe for side effects; a `RunAsync` with a null input in place of `ResumeAsync`; for the
   run that finds the conversation still loading, a claim that queues steering input for the run it becomes, which
   makes `TrySteer` true earlier and is open for later; one host call that steers or runs, since two calls are never
-  atomic for the app, which is API of its own.
-- **Where:** `Conversations/`, the checkpoint layer of D29.
+  atomic for the app, which is API of its own. Across containers: leaving one run to the app (up to 0.1.0-alpha.6),
+  which gave it nothing to keep runs apart with short of a lock around every run, streaming included;
+  `AppendConversationAsync(conversation, entry, expectedLast)`, as a save takes a version, which breaks every store;
+  a lease or a heartbeat in the store, a method every store implements, open for steering and live updates across
+  containers; a refused run that loads again and goes on, which interleaves with a run still going on; numbering
+  from the last loaded entry instead of the highest, where a number skipped after a failed append and taken by
+  another run left every later run of the conversation refused.
+- **Where:** `Conversations/`, the checkpoint layer of D29, `Conversations/ConversationRun.cs` (the numbers and the
+  refusal), `Conversations/ConversationChatClient.cs` (where a run's numbers start), `Storage/IConversationStore.cs`.
 
 ### D51. Steering a run going on
 

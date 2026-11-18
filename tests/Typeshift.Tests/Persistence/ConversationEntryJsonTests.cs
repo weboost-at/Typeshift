@@ -116,6 +116,39 @@ public class ConversationEntryJsonTests : UnitTestBase
     }
 
     [Fact]
+    public void Given_An_Entry_Stored_Before_Entries_Were_Numbered_It_Reads_With_No_Number()
+    {
+        // Arrange
+        const string json =
+            """
+            {"agent":"support_agent","at":"2026-11-14T09:00:00+00:00","model":"gpt-5-mini",
+            "usage":{"inputTokenCount":2000,"outputTokenCount":12},"endsRun":true,
+            "messages":[{"authorName":"support_agent","role":"assistant",
+            "contents":[{"$type":"text","text":"Done."}]}]}
+            """;
+
+        // Act
+        var entry = ConversationEntry.Deserialize(json);
+
+        // Assert
+        entry.Sequence.Should().Be(0);
+        entry.Serialize().Should().Be(json.ReplaceLineEndings(""));
+    }
+
+    [Fact]
+    public void Given_A_Numbered_Entry_Its_Json_Names_No_Schema_Version_An_Earlier_Version_Refuses()
+    {
+        // Arrange
+        var entry = Data.Persistence.Entry;
+
+        // Act
+        var json = entry.Serialize();
+
+        // Assert
+        json.Should().NotContain("$schemaVersion");
+    }
+
+    [Fact]
     public void Given_An_Entry_Without_A_Provider_Its_Json_Has_No_Member_For_It()
     {
         // Arrange

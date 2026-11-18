@@ -447,7 +447,8 @@ public static class StoreExtensions
     }
 
     // Appends runs and compaction summaries to a conversation and loads them back, whole and from the last summary
-    // on, as runs do, beside another conversation that must load as it was
+    // on, as runs do, beside another conversation that must load as it was and holds the same number. Last, a second
+    // run's entry under a number the conversation holds, which a store that says it refuses one must refuse (D50)
     private static async Task VerifyConversationsAsync<TId>(
         IConversationStore<TId> store,
         TId conversation,
@@ -474,14 +475,15 @@ public static class StoreExtensions
             RunEnd(6)
         ];
 
-        ConversationEntry[] elsewhere = [Entry(0, ChatRole.User)];
-        HashSet<string> appended = [.. entries.Concat(elsewhere).Select(entry => entry.Serialize())];
+        ConversationEntry[] elsewhere = [Entry(0, ChatRole.User) with { Sequence = entries[0].Sequence }];
+        var second = Entry(7, ChatRole.User) with { Sequence = entries[^1].Sequence };
+        HashSet<string> appended = [.. entries.Concat([.. elsewhere, second]).Select(entry => entry.Serialize())];
 
         const string order =
             "LoadConversationAsync did not return the entries in the order appended, oldest first: order them by a "
             + "number the store assigns as it appends, never by their times, which tie and run backwards.";
 
-        await store.AppendConversationAsync(other, elsewhere[0], ct);
+        await AppendToAsync(other, elsewhere[0]);
 
         if ((await store.LoadConversationAsync(conversation, ct)).Count > 0)
         {
@@ -512,11 +514,56 @@ public static class StoreExtensions
             "LoadConversationSinceCompactionAsync started a conversation at another conversation's summary: look for "
             + "the last summary of the conversation it is given.");
 
+        try
+        {
+            await store.AppendConversationAsync(conversation, second, ct);
+        }
+        catch (StoreConflictException)
+        {
+            EnsureSame(
+                await store.LoadConversationAsync(conversation, ct),
+                entries,
+                "An append the store refused changed the conversation: check the number and write in one statement.");
+
+            return;
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            throw Broken(
+                $"An append under a number its conversation holds threw a {exception.GetType().Name}: refuse it with a "
+                + "StoreConflictException, with the database's exception inside, so that the second run stops.",
+                exception);
+        }
+
+        if (store.RefusesTakenSequences)
+        {
+            throw Broken(
+                "The store says it refuses an entry under a number its conversation holds, and stored one: keep a "
+                + "unique key on the conversation and the entry's Sequence, and throw a StoreConflictException when it "
+                + "refuses an entry.");
+        }
+
         async Task AppendAsync(ConversationEntry[] steps)
         {
             foreach (var entry in steps)
             {
-                await store.AppendConversationAsync(conversation, entry, ct);
+                await AppendToAsync(conversation, entry);
+            }
+        }
+
+        // A number another conversation holds is no reason to refuse an entry
+        async Task AppendToAsync(TId id, ConversationEntry entry)
+        {
+            try
+            {
+                await store.AppendConversationAsync(id, entry, ct);
+            }
+            catch (StoreConflictException exception)
+            {
+                throw Broken(
+                    "An append threw a StoreConflictException for a number its conversation does not hold: key the "
+                    + "numbers by the conversation and the entry's Sequence together.",
+                    exception);
             }
         }
 
@@ -533,9 +580,12 @@ public static class StoreExtensions
     }
 
     // Fixed times, so the check reads no clock, that neither rise nor fall with the order appended and tie, as the
-    // times of real entries can: a store that orders by them fails
+    // times of real entries can: a store that orders by them fails. Each step is numbered as a run numbers it
     private static ConversationEntry Entry(int step, ChatRole role) =>
-        new(Agent, [new ChatMessage(role, $"Step {step}.")], DateTimeOffset.UnixEpoch.AddSeconds(step * 2 % 3));
+        new(Agent, [new ChatMessage(role, $"Step {step}.")], DateTimeOffset.UnixEpoch.AddSeconds(step * 2 % 3))
+        {
+            Sequence = step
+        };
 
     private static ConversationEntry RunEnd(int step) =>
         Entry(step, ChatRole.Assistant) with

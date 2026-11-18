@@ -730,8 +730,8 @@ internal static class AgentEmitter
     private const string Busy = "global::Typeshift.ConversationBusyException";
 
     private const string Going =
-        "A run of the host's conversation is going on in this process. A streaming run throws it when its updates "
-        + "are read.";
+        "A run of the host's conversation is going on in this container, or the store refused a step of this run "
+        + "because a run in another container appended first. A streaming run throws it when its updates are read.";
 
     // D46: what a run throws, by default, when the store failed to append one of its steps
     private const string NotStored = "global::Typeshift.ConversationStoreException";
@@ -820,8 +820,8 @@ internal static class AgentEmitter
             Docs.WriteException(
                 writer,
                 Busy,
-                "A run of the host's conversation is going on in this process. The answers are recorded: continue "
-                + "with <c>ResumeAsync</c> once that run has ended.");
+                "A run of the host's conversation is going on in this container, or one in another container "
+                + "appended first. The answers are recorded: continue with <c>ResumeAsync</c> once it has ended.");
             Docs.WriteException(writer, NotStored, Lacking);
             Docs.WriteException(
                 writer,
