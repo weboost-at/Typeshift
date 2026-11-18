@@ -346,6 +346,10 @@ All notable changes to this project are documented here. The format follows
   `WithModel`, `WithStore`, `WithChatClientProvider`, `WithOptions` and `NewConversationIds`. The summaries of
   these host members, of `Agent`, `Toolset`, `AgentHost<TAgent>`, `AddTypeshift()` and `TypeshiftRuntime.Create`,
   and of the interfaces an app implements end with a link to their section of the guide.
+- The guide's approval rule, `ShellGuard` in "Approval rules", fails closed in auto mode: there it rejects every
+  shell command that is not one of a few whole commands it names, and in the other modes it abstains, so your app
+  asks. It rejected commands that contain one of five words and let the rest run in auto mode, so `rm -r -f /` or
+  `su''do id` ran unasked. A rule you copied from it guards auto mode only once it names what it allows.
 
 ### Fixed
 

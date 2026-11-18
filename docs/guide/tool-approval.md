@@ -72,7 +72,7 @@ var approvals = answer.Decisions.OfType<ApprovalDecision>().ToList();
 foreach (var approval in approvals)
     Console.WriteLine($"Approve {approval.Tool}({approval.Arguments})?");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Approval.cs#L14-L22' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-run' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Approval.cs#L15-L23' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-run' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 If the model called other tools in the same response, those calls wait too, even when they need no approval, and run
@@ -99,7 +99,7 @@ host with the same conversation id:
 ```cs
 var resumed = await chat.AnswerAsync([.. approvals.Select(approval => approval.Approve())]);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Approval.cs#L24-L26' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-resume' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Approval.cs#L25-L27' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-resume' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 `AnswerAsync` records the answers. Once no decision of the conversation is left open, it carries them out and
@@ -150,7 +150,7 @@ you, or when the user leaves the chat:
 ```cs
 var cancelled = await chat.CancelDecisionsAsync();
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Approval.cs#L71-L73' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-cancel' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Approval.cs#L72-L74' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-cancel' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 None of the calls runs. The conversation's next run tells the model that the request was withdrawn, whether it
@@ -180,7 +180,7 @@ catch (DecisionClosedException closed)
         Console.WriteLine($"The decision {decision} is closed: {reason}.");
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Approval.cs#L32-L42' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-closed' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Approval.cs#L33-L43' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-closed' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 One closed answer rejects the whole call: the other answers passed with it are not recorded either. Answer again
@@ -210,7 +210,7 @@ var asked = again.Decisions.OfType<ApprovalDecision>().Single();
 
 await chat.AnswerAsync([asked.ApproveForConversation()]);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Approval.cs#L44-L49' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-for-conversation' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Approval.cs#L45-L50' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-for-conversation' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 `GetDecisionsAsync()` lists the conversation's standing approvals, each with its tool and the time it took effect:
@@ -223,7 +223,7 @@ var decisions = await chat.GetDecisionsAsync();
 foreach (var standing in decisions.Standing)
     Console.WriteLine($"{standing.Tool} runs without asking since {standing.GrantedAt:t}.");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Approval.cs#L54-L59' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-standing' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Approval.cs#L55-L60' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-standing' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 `RevokeStandingApprovalAsync(tool)` withdraws one, and the tool asks again:
@@ -233,7 +233,7 @@ foreach (var standing in decisions.Standing)
 ```cs
 await chat.RevokeStandingApprovalAsync("close_ticket");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Approval.cs#L64-L66' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-revoke' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Approval.cs#L65-L67' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-revoke' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 For an [MCP server's](./mcp.md) tool, pass the server as well, as `Standing` lists it:
@@ -269,31 +269,36 @@ abstains on the rest. Register it with `WithApprovalRule<T>()`, and Typeshift re
 services.AddTypeshift()
     .WithApprovalRule<ShellGuard>();
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L72-L75' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-rule-registration' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L73-L76' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-rule-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Every rule sees every call that requires approval, with the arguments the model sent, so it decides on exactly the
 call that runs. A rule never sees a call of a tool without `RequiresApproval()`: guard those with
-[tool middleware](./middleware.md#wrap-every-tool-call). This rule rejects the shell commands it never allows:
+[tool middleware](./middleware.md#wrap-every-tool-call). This rule fails closed where nobody is asked: in auto mode it
+rejects every shell command that is not one of a few whole commands it names, and in the other modes it abstains, so
+your app asks:
 
 <!-- snippet: approval-rule -->
 <a id='snippet-approval-rule'></a>
 ```cs
 internal sealed class ShellGuard : IToolApprovalRule
 {
-    private static readonly string[] Never = ["sudo", "rm -rf", "curl", "wget", "ssh"];
+    // Whole commands: one that only starts with or contains one of them is another command
+    private static readonly string[] Allowed = ["dotnet build", "dotnet test", "git status", "git diff"];
 
+    // In auto mode nobody is asked, so a command the rule cannot name is rejected; elsewhere your app decides.
     // A provider sends each argument as a JsonElement, whose ToString() is the string itself
     public ValueTask<RuleVerdict> DecideAsync(FunctionCallContent call, AgentRun run, CancellationToken ct) =>
         ValueTask.FromResult(call is { Name: "run_command", Arguments: { } arguments }
-            && arguments.TryGetValue("command", out var value)
-            && value?.ToString() is { } command
-            && Never.Any(command.Contains)
-                ? RuleVerdict.Reject("This command is never allowed here.")
+            && run.Mode == AgentMode.Auto
+            && !(arguments.TryGetValue("command", out var value)
+                && value?.ToString() is { } command
+                && Allowed.Contains(command))
+                ? RuleVerdict.Reject($"In auto mode only these commands run: {string.Join(", ", Allowed)}.")
                 : RuleVerdict.Abstain);
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/ShellGuard.cs#L5-L19' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-rule' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/ShellGuard.cs#L5-L22' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-rule' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 A rule answers with a `RuleVerdict`:
@@ -307,9 +312,12 @@ A rule answers with a `RuleVerdict`:
 A call a rule approves or rejects never becomes a decision: nothing is stored for it, and the run goes on in the
 same round.
 
-::: danger Approve only what you can read in full
-A command that looks harmless may run code the model wrote. That is why the rule above only rejects and leaves the
-rest to your app.
+::: danger A list of forbidden words is no guard
+`rm -r -f /` passes a check for `rm -rf`, and `su''do id` passes one for `sudo`. Compare the whole command with the
+ones you allow, and reject or ask about the rest, or ask a classifier. A command you allow still runs what your
+workspace holds: `dotnet test` runs the tests as the model last changed them, and git runs the commands a
+repository's config names. That is why the rule above approves nothing and, outside auto mode, leaves every command to
+your app.
 :::
 
 ## The three modes
@@ -428,9 +436,9 @@ In auto mode, tools that require approval run without asking your app. Rules sti
 rule that rejects it wins.
 
 ::: danger In auto mode, only your rules stop a call that requires approval
-Guard auto mode with [approval rules](#approval-rules), for example a guard that never lets `sudo` through, or a
-classifier that asks a model. A tool without `RequiresApproval()` asks nobody in any mode, and no rule sees its
-calls.
+Guard auto mode with [approval rules](#approval-rules) that name what may run and reject the rest, as the rule above
+does, or with a classifier that asks a model. A tool without `RequiresApproval()` asks nobody in any mode, and no rule
+sees its calls.
 :::
 
 ## Asking the user

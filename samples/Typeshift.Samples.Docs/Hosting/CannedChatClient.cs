@@ -6,9 +6,9 @@ namespace Typeshift.Samples.Hosting;
 
 // Stands in for a provider's client, so the guide's scenarios run without a network. It answers as a model would in
 // each scenario: a plan in plan mode, a call of close_ticket when asked to close a ticket, questions to the user when
-// asked to open one, a call of a sub-agent it is offered, a handoff to billing about a charge, of find_companies for
-// the city it is given, JSON when the run asks for it, otherwise one fixed answer; once a tool answered, it answers in
-// text, listing the companies find_companies found
+// asked to open one, a call of run_command when asked to run a command, a call of a sub-agent it is offered, a
+// handoff to billing about a charge, of find_companies for the city it is given, JSON when the run asks for it,
+// otherwise one fixed answer; once a tool answered, it answers in text, listing the companies find_companies found
 internal sealed class CannedChatClient : IChatClient
 {
     public const string Answer = "Your refund was approved and reaches your account within five days.";
@@ -74,6 +74,8 @@ internal sealed class CannedChatClient : IChatClient
                 Call("close_ticket", ("number", 1234), ("reason", "The refund was paid.")),
             (false, _) when offers.Contains("ask_user") && input.StartsWith("Open a ticket") =>
                 Call("ask_user", ("questions", Questions)),
+            (false, _) when offers.Contains("run_command") && input.StartsWith("Run ") =>
+                Call("run_command", ("command", input["Run ".Length..])),
             (false, _) when offers.Contains("research_agent") =>
                 Call("research_agent", ("input", "Vienna")),
             (false, _) when offers.Contains("handoff_to_billing_agent") && input.Contains("charged") =>

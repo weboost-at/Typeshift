@@ -25,7 +25,7 @@ services.AddTypeshift()
 
 services.AddDbContextFactory<TypeshiftDb>(options => options.UseSqlite("Data Source=typeshift.db"));
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L42-L47' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-registration' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L43-L48' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 `WithStore<T>()` registers your class as each store interface it implements, of any id type. An
@@ -80,7 +80,7 @@ swaps your app's database store for one in memory registers it this way:
 services.AddTypeshift()
     .WithStore<InMemoryTypeshiftStore<int>>(replace: true);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L52-L55' title='Snippet source file'>snippet source</a> | <a href='#snippet-store-replace' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L53-L56' title='Snippet source file'>snippet source</a> | <a href='#snippet-store-replace' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ### Plan for one instance

@@ -27,6 +27,7 @@ internal static class Registration
 
         services.AddTypeshift()
             .WithMcpToolProvider<CannedMcpToolProvider>();
+        ShowApprovalRule(services);
         services.AddDbContextFactory<TypeshiftDb>(options => options.UseSqlite($"Data Source={database}"));
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<ITicketClient, InMemoryTicketClient>();
