@@ -370,11 +370,12 @@ while (!tracker.TrySteer(conversationId, input))
 
 A run holds at most 32 inputs, or 262,144 characters of their text, that its model has not received yet. Input
 beyond that makes `TrySteer` throw a `ConversationBusyException`, which leaves the loop above, so an endpoint
-answers it as it answers any chat that is busy ([A chat that is answering](./chat-endpoint.md#a-chat-that-is-answering)).
-The model takes what waits with its next call, and the run takes input again from then on. Without the bound, a client that posts input faster than the model answers would grow
-that call, and the stored conversation, without end. A message your app steers must not carry the mark of a
-[background answer](./multi-agent.md#in-the-background), which only a run gives: `TrySteer` throws an
-`ArgumentException` for one, since such an answer passes your run middleware unseen.
+answers it as it answers any chat that is busy
+([A chat that is answering](./chat-endpoint.md#a-chat-that-is-answering)). The model takes what waits with its next
+call, and the run takes input again from then on. Without the bound, a client that posts input faster than the
+model answers would grow that call, and the stored conversation, without end. A message your app steers must not
+carry the mark of a [background answer](./multi-agent.md#in-the-background), which only a run gives: `TrySteer`
+throws an `ArgumentException` for one, since such an answer passes your run middleware unseen.
 
 To stop a run, cancel its token. It is stored up to where it stopped.
 

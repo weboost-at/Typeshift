@@ -242,9 +242,16 @@ return await Demo.RunAsync(async () =>
         {
             await foreach (var line in Demo.LinesUntilAsync(input.Reader, running.Token))
             {
-                Console.Error.WriteLine(tracker.TrySteer(conversationId, line)
-                    ? $"  [steered] {line}"
-                    : $"  [not steered, the run is ending] {line}");
+                try
+                {
+                    Console.Error.WriteLine(tracker.TrySteer(conversationId, line)
+                        ? $"  [steered] {line}"
+                        : $"  [not steered, the run is ending] {line}");
+                }
+                catch (ConversationBusyException)
+                {
+                    Console.Error.WriteLine($"  [not steered, the run holds as much input as it takes] {line}");
+                }
             }
         });
 
