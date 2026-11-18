@@ -10,7 +10,7 @@
     // The frontmatter title is metadata; every page still starts with its own H1
     "MD025": { "front_matter_title": "" },
     "MD041": false,
-    // The same heading may recur under different parents, "Registering" say
+    // The same heading may recur under different parents, such as "Registering"
     "MD024": { "siblings_only": true },
     "MD003": { "style": "atx" },
     "MD004": { "style": "dash" },
