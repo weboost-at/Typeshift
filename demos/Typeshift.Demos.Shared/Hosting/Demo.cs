@@ -1,3 +1,5 @@
+using System.ClientModel;
+using Anthropic.Exceptions;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using Typeshift.Demos.Providers;
@@ -12,7 +14,35 @@ public static class Demo
 {
     public static string DataDirectory => Path.Combine(Directory.GetCurrentDirectory(), ".typeshift");
 
-    public static ProviderCatalog Catalog() => new(Path.Combine(AppContext.BaseDirectory, "providers.json"));
+    // The providers live beside the store, so a provider added at runtime outlasts a rebuild and every demo reads the
+    // same ones; the first run copies the bundled file there
+    public static ProviderCatalog Catalog()
+    {
+        var path = Path.Combine(DataDirectory, "providers.json");
+
+        if (!File.Exists(path))
+        {
+            Directory.CreateDirectory(DataDirectory);
+            File.Copy(Path.Combine(AppContext.BaseDirectory, "providers.json"), path);
+        }
+
+        return new ProviderCatalog(path);
+    }
+
+    // Runs a demo, and says in one line what its setup lacks: a key, a server, an argument. Anything else is a bug and
+    // keeps its stack trace
+    public static async Task<int> RunAsync(Func<Task<int>> demo)
+    {
+        try
+        {
+            return await demo();
+        }
+        catch (Exception exception) when (Explain(exception) is { } reason)
+        {
+            Console.Error.WriteLine(reason);
+            return 1;
+        }
+    }
 
     // FRICTION: this library cannot call AddTypeshift() for its hosts, since only the generator of the calling project
     // intercepts the call (D1), so each demo calls it next to this and names the provider itself. The store is
@@ -125,9 +155,21 @@ public static class Demo
         string.Join(", ", arguments.EnumerateObject().Select(argument =>
             $"{argument.Name}: {Shorten(argument.Value.ToString())}"));
 
-    private static string Shorten(string text)
+    // The text on one line, cut at the length
+    public static string Shorten(string text, int length = 100)
     {
         var line = text.ReplaceLineEndings(" ");
-        return line.Length <= 100 ? line : line[..100] + "…";
+        return line.Length <= length ? line : line[..length] + "…";
     }
+
+    private static string? Explain(Exception exception) =>
+        exception switch
+        {
+            DemoException failed => failed.Message,
+            HttpRequestException unreachable => $"The provider could not be reached: {unreachable.Message}",
+            ClientResultException { Status: > 0 } refused => $"The provider refused the call: {Shorten(refused.Message)}",
+            AnthropicApiException refused => $"Anthropic refused the call: {Shorten(refused.Message)}",
+            { InnerException: { } inner } => Explain(inner),
+            _ => null
+        };
 }

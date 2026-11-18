@@ -12,8 +12,9 @@ and once a day.
 | [Support](./Typeshift.Demos.Support/README.md) | A support desk of four agents: handoffs, a sub-agent, an MCP server, a context provider, middleware, settings per customer, typed output. |
 
 `Typeshift.Demos.Shared` holds what every host writes: the provider catalog and routing (`providers.json`), a JSON
-file store, a scripted model, and a console listener for the spans.
+file store, a scripted model, and a console listener for the spans. A key or a server a mode needs and does not find
+ends the demo with one line that says what is missing.
 
-The demos keep conversations and settings under `.typeshift/` in the current directory. Delete that folder after
-updating to a Typeshift version whose store format changed, such as 0.1.0-alpha.5: the demos read older files as
-empty conversations.
+The demos keep conversations, settings and the providers under `.typeshift/` in the current directory. Delete that
+folder after updating to a Typeshift version whose store format changed, such as 0.1.0-alpha.5: the demos read older
+files as empty conversations.

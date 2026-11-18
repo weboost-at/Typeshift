@@ -1,3 +1,5 @@
+using Typeshift.Demos.Hosting;
+
 namespace Typeshift.Demos.Providers;
 
 /// <summary>
@@ -13,7 +15,7 @@ public readonly record struct ModelRef(string Provider, string Model)
     public static ModelRef Parse(string name) =>
         name.IndexOf('/') is var slash and > 0 && slash < name.Length - 1
             ? new ModelRef(name[..slash], name[(slash + 1)..])
-            : throw new ArgumentException($"'{name}' is not a provider/model name.", nameof(name));
+            : throw new DemoException($"'{name}' is no provider/model name, such as lmstudio/qwen/qwen3.8-27b.");
 
     public override string ToString() => $"{Provider}/{Model}";
 }

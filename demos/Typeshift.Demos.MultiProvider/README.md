@@ -19,4 +19,9 @@ dotnet run --project demos/Typeshift.Demos.MultiProvider -- --list lmstudio
 dotnet run --project demos/Typeshift.Demos.MultiProvider -- --add groq openai https://api.groq.com/openai/v1 '${GROQ_API_KEY}'
 ```
 
+The first run of any demo copies the bundled `providers.json` to `.typeshift/providers.json` in the current directory,
+and every demo reads and `--add` writes that copy, so an added provider outlasts a rebuild. Delete it to start again
+from the bundled file. A key written as `${VARIABLE}` is read from the environment when a run needs it, and a
+variable that is not set ends the demo with one line that names it.
+
 The `CLUNKY n` comments in the code mark where the current library makes this harder than it should be.

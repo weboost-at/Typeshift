@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using Typeshift.Demos.Hosting;
 
 namespace Typeshift.Demos.Providers;
 
@@ -37,7 +38,7 @@ public sealed partial class ProviderCatalog
 
     public ProviderDefinition this[string name] =>
         Providers.FirstOrDefault(provider => provider.Name == name)
-        ?? throw new InvalidOperationException($"No provider '{name}' is defined; add it to {_path}.");
+        ?? throw new DemoException($"No provider '{name}' is defined; add it to {_path}.");
 
     public void Add(ProviderDefinition provider) =>
         Save(_file with { Providers = [.. Providers.Where(known => known.Name != provider.Name), provider] });
@@ -54,14 +55,20 @@ public sealed partial class ProviderCatalog
         // A base address keeps its last segment only with a trailing slash
         var endpoint = (definition.Endpoint ?? "https://api.openai.com/v1").TrimEnd('/') + "/";
         using var http = new HttpClient { BaseAddress = new Uri(endpoint) };
-        http.DefaultRequestHeaders.Authorization = new("Bearer", Expand(definition.ApiKey));
+        http.DefaultRequestHeaders.Authorization = new("Bearer", Key(definition));
 
         var models = await http.GetFromJsonAsync<ModelList>("models", Json, ct);
         return [.. (models?.Data ?? []).Select(model => model.Id).Order()];
     }
 
-    public static string Expand(string? value) =>
-        value is null ? "" : Variable().Replace(value, match => Environment.GetEnvironmentVariable(match.Groups[1].Value) ?? "");
+    // The key with each ${VAR} read from the environment; a variable that is not set is named, never sent empty
+    public static string Key(ProviderDefinition provider) =>
+        provider.ApiKey is not { } key ? "" : Variable().Replace(key, match => Read(provider, match.Groups[1].Value));
+
+    private static string Read(ProviderDefinition provider, string variable) =>
+        Environment.GetEnvironmentVariable(variable) is { Length: > 0 } value
+            ? value
+            : throw new DemoException($"The provider '{provider.Name}' needs {variable}: set it in the environment.");
 
     private void Save(ProviderFile file)
     {
