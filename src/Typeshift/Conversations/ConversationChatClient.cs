@@ -288,8 +288,6 @@ internal sealed class ConversationChatClient(
         {
             try
             {
-                run.Publisher?.Flush();
-
                 // D46: nothing for a run that stored its end or handed the conversation on. A run that failed or
                 // was cancelled ends with the exception's message, streaming or not, and a stream left early with a
                 // text of its own
