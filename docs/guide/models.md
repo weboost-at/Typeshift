@@ -19,7 +19,7 @@ With one provider, register one client. It is the default client, which serves e
 ```cs
 services.AddChatClient(openAi);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L24-L26' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-client' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L25-L27' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-client' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 An agent then names its model alone, as `WithModel("gpt-5-mini")` does, or no model at all. Without a model the run
@@ -35,7 +35,7 @@ With several providers, register one client per provider, with the provider's na
 services.AddKeyedChatClient("openai", openAi);
 services.AddKeyedChatClient("anthropic", anthropic);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L16-L19' title='Snippet source file'>snippet source</a> | <a href='#snippet-keyed-chat-clients' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L17-L20' title='Snippet source file'>snippet source</a> | <a href='#snippet-keyed-chat-clients' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 `AddKeyedChatClient` comes with Microsoft.Extensions.AI. Its key is the provider your agents name in
@@ -109,7 +109,7 @@ var openAi = new OpenAIClient(apiKey)
 
 services.AddKeyedChatClient("openai", openAi);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L31-L37' title='Snippet source file'>snippet source</a> | <a href='#snippet-openai-client' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L32-L38' title='Snippet source file'>snippet source</a> | <a href='#snippet-openai-client' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 - Typeshift names the model in every request as `ChatOptions.ModelId`, so this one client serves every OpenAI model
@@ -156,7 +156,7 @@ var local = new OpenAIClient(new ApiKeyCredential("none"), options)
 
 services.AddKeyedChatClient("local", local);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L42-L53' title='Snippet source file'>snippet source</a> | <a href='#snippet-local-chat-client' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L43-L54' title='Snippet source file'>snippet source</a> | <a href='#snippet-local-chat-client' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Another provider works the same way, through the `IChatClient` its package offers. A fake client for tests reads the
@@ -198,7 +198,7 @@ foreach (var provider in configuration.GetSection("Providers").GetChildren())
     services.AddKeyedChatClient(provider.Key, client);
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L58-L73' title='Snippet source file'>snippet source</a> | <a href='#snippet-providers-from-configuration' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L59-L74' title='Snippet source file'>snippet source</a> | <a href='#snippet-providers-from-configuration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 - The entry's name, such as `openai`, is the provider your agents name in `WithModel` and your users pick in their
@@ -251,7 +251,7 @@ Register it on the chain, in place of a provider for your app's own keys:
 services.AddTypeshift()
     .WithChatClientProvider<TenantChatClientProvider>();
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L78-L81' title='Snippet source file'>snippet source</a> | <a href='#snippet-tenant-chat-client-provider-registration' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L79-L82' title='Snippet source file'>snippet source</a> | <a href='#snippet-tenant-chat-client-provider-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 - `ICurrentCustomer` and `ITenantKeys` stand for services of your app: who the request is for, and where you keep the
@@ -281,7 +281,7 @@ var openAi = new OpenAIClient(apiKey)
 services.AddKeyedChatClient("openai", openAi)
     .UseLogging();
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L86-L93' title='Snippet source file'>snippet source</a> | <a href='#snippet-wrapped-chat-client' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L87-L94' title='Snippet source file'>snippet source</a> | <a href='#snippet-wrapped-chat-client' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Wrap what concerns a single request, such as logging or a policy of your own written as a `DelegatingChatClient`
@@ -321,8 +321,51 @@ var openAi = new OpenAIClient(new ApiKeyCredential(apiKey), options)
 
 services.AddKeyedChatClient("openai", openAi);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L98-L109' title='Snippet source file'>snippet source</a> | <a href='#snippet-client-retries' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L112-L123' title='Snippet source file'>snippet source</a> | <a href='#snippet-client-retries' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
+
+### Options of a provider's own
+
+Some request options belong to one provider's API, such as whether OpenAI stores the completion, and
+`ChatOptions` has no member for them. Microsoft.Extensions.AI's `RawRepresentationFactory` hands the provider's
+client an options object of its own to start the request from. For every agent a client serves, set it where you
+register the client, with `ConfigureOptions`:
+
+<!-- snippet: client-request-options -->
+<a id='snippet-client-request-options'></a>
+```cs
+var openAi = new OpenAIClient(apiKey)
+    .GetChatClient("gpt-5-mini")
+    .AsIChatClient();
+
+services.AddKeyedChatClient("openai", openAi)
+    .ConfigureOptions(options =>
+        options.RawRepresentationFactory = _ => new ChatCompletionOptions { StoredOutputEnabled = false });
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L99-L107' title='Snippet source file'>snippet source</a> | <a href='#snippet-client-request-options' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+For one agent, set it in a [run middleware](./middleware.md), which sees the run's options before its model calls:
+
+<!-- snippet: agent-request-options -->
+<a id='snippet-agent-request-options'></a>
+```cs
+internal sealed class UnstoredBilling : IRunMiddleware
+{
+    public Task InvokeAsync(AgentRun run, Func<Task> next, CancellationToken ct)
+    {
+        if (run.Agent is BillingAgent)
+            run.Options.RawRepresentationFactory = _ => new ChatCompletionOptions { StoredOutputEnabled = false };
+
+        return next();
+    }
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/UnstoredBilling.cs#L6-L17' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent-request-options' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+An agent's `WithChatOptions()` has no call for it: the factory is a function that runs, and an agent's chain only
+records values ([How Typeshift reads your code](./how-typeshift-reads-your-code.md)).
 
 ## The provider id type
 
@@ -470,7 +513,7 @@ var settings = new CodingAgent.Settings
     SummaryModel = "gpt-5-mini"
 };
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L114-L120' title='Snippet source file'>snippet source</a> | <a href='#snippet-summary-provider' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L128-L134' title='Snippet source file'>snippet source</a> | <a href='#snippet-summary-provider' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 | Named | The summary runs on |

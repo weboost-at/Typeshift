@@ -252,6 +252,8 @@ rewrite.
 | new | Compaction clears the oldest read results, then summarizes the oldest turns, by calibrated estimate (D32) | `CompactionTests` |
 | new | Clearing leaves a result no longer than its placeholder, and asks the model to call the tool again only for a read-only tool (D32, D52) | `CompactionTests.Given_Results_Shorter_Than_The_Placeholder_They_Stay`, `..._Given_A_Cleared_Result_Of_A_Tool_Not_Read_Only_The_Placeholder_Does_Not_Ask_To_Call_Again`, `..._Given_Input_Over_The_Maximum_The_Oldest_Tool_Results_Are_Cleared_And_Their_Calls_Kept` |
 | new | The summary runs on the run's provider and model unless the agent or the settings name others (D77) | `CompactionTests.Given_No_Summary_Model_The_Runs_Model_Summarizes`, `..._Given_Clearing_Is_Not_Enough_The_Oldest_Turns_Are_Summarized`, `..._Given_A_Summary_Provider_It_Serves_The_Summary_Model` |
+| new | Summary instructions of the agent's own reach the summary model, and blank ones fail the run that resolves them, naming them (D32) | `CompactionTests.Given_Summary_Instructions_Of_The_Agents_Own_The_Summary_Model_Receives_Them`, `AgentRunTests.Given_Run_Settings_With_Blank_Summary_Instructions_The_Run_Throws_Naming_Them` |
+| new | Every chat option of Microsoft.Extensions.AI is set by a call of `ChatOptionsBuilder` or left out for a reason the guide states, so a release that adds one fails a test | `ChatOptionsBuilderTests` |
 | new | A summary call that fails does not end the run: the run's own model writes the summary when another was named, then the call goes out cleared and without one; each failure is a warning and an exception on the run's span, and a cancelled run ends cancelled (D32, D77) | `CompactionTests.Given_A_Summary_Model_That_Fails_The_Runs_Own_Model_Summarizes`, `..._Given_A_Summary_That_Fails_On_Every_Model_The_Call_Goes_Out_Cleared`, `..._Given_No_Summary_Model_A_Summary_That_Fails_Is_Asked_For_Once`, `..._Given_A_Run_Cancelled_While_Its_Summary_Is_Written_The_Run_Ends_Cancelled`, `..._Given_A_Summary_Model_That_Fails_A_Warning_Names_It_And_What_Happens_Instead`, `TelemetryTests.Given_A_Summary_Model_That_Fails_The_Runs_Span_Records_The_Exception_And_No_Error` |
 | new | A summary is stored, and later runs start from it (D32) | `CompactionTests.Given_A_Summary_Later_Runs_Start_From_It` |
 | new | The summary model reads each call's arguments and the start of its result, cut to 2,000 characters, also of a result the run cleared (D32) | `SummaryTranscriptTests` |
@@ -387,8 +389,13 @@ rewrite.
   those of the agents it may call or hand off to. A sub-agent whose provider nothing serves fails each call of it,
   logged as an error, while the calling run goes on, and a handoff to such an agent fails the run when it happens.
 - **No fallback, no model catalog.** A failed model call ends the run: Typeshift moves to no other model or
-  provider. It keeps no list of a provider's models, so a model a settings page stores is checked for being a name
-  at all (D28) and no further.
+  provider, and `RetryAsync` continues the run on what its settings name. It keeps no list of a provider's models,
+  so a model a settings page stores is checked for being a name at all (D28) and no further.
+- **No effective settings for a settings page.** `LoadSettingsAsync` returns what is stored, so a form shows empty
+  fields where the agent's code or a record's default applies, and `ResolveOptionsAsync` returns the chat options
+  without the tools' settings. A generated `ResolveSettingsAsync()` that fills every member of `Settings` from the
+  layers below a run would close it; it needs the provider in its typed form and each tool's overrides made from
+  its resolved settings, which no generated member writes yet.
 - **Declarations of constructors that never run.** The generator reads the declarations of every constructor of an
   agent, while the module creates it with the parameterless one, which runs only the constructors it chains to with
   `this(...)`. Only the provider id type follows that chain (D77); a pick or a toolset use in another constructor

@@ -786,6 +786,10 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   run of their id. A save checks the layer over no values but its own (`AgentRuns.SaveSettingsAsync`). Checked over
   the agent's code, it would refuse a target that the agent's own stored settings, the layer between, make valid;
   what goes wrong only between two layers is the resolving run's to report.
+- **The summary's instructions:** `WithSummaryInstructions(text)` and `RunOptions.SummaryInstructions` replace the
+  summary model's English instructions, a value in the one chain, configurable as the summary model is. A strategy
+  of the app's own for the summary was rejected above; a text is none. The summary's prefix, which the run's own
+  model reads, stays Typeshift's.
 - **Where:** `Compaction/`, `Conversations/ConversationEntry.cs` for the stored estimate,
   `Conversations/ConversationRun.cs` for what a pass added, `Approval/ModeChatClient.cs` for the shared limit,
   `Agents/RunOptions.cs` and `Hosting/ResolvedChatOptions.cs` for the ranges.

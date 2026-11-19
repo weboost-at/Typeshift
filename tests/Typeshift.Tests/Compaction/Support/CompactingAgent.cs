@@ -53,7 +53,8 @@ public partial class CompactingAgent : Agent
         WithRunOptions()
             .Configurable(r => r.MaxInputTokens)
             .Configurable(r => r.TargetInputTokens)
-            .Configurable(r => r.SummaryModel);
+            .Configurable(r => r.SummaryModel)
+            .Configurable(r => r.SummaryInstructions);
 
         UseToolset<ReadingToolset>();
 

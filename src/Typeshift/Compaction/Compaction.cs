@@ -265,7 +265,7 @@ internal sealed class Compaction(ReportedCall? last)
         {
             try
             {
-                return await SummarizeAsync(turns, provider, model, run, ct);
+                return await SummarizeAsync(turns, provider, model, options.RunOptions.SummaryInstructions, run, ct);
             }
             catch (Exception exception) when (!ct.IsCancellationRequested)
             {
@@ -290,6 +290,7 @@ internal sealed class Compaction(ReportedCall? last)
         List<ChatMessage> turns,
         ProviderId? provider,
         string? model,
+        string? instructions,
         AgentRun run,
         CancellationToken ct)
     {
@@ -300,7 +301,10 @@ internal sealed class Compaction(ReportedCall? last)
         using var client = instrumented.Instrument(provided, model);
 
         var response = await client.GetResponseAsync(
-            [new ChatMessage(ChatRole.System, SummaryInstructions), new ChatMessage(ChatRole.User, Transcript(turns))],
+            [
+                new ChatMessage(ChatRole.System, instructions ?? SummaryInstructions),
+                new ChatMessage(ChatRole.User, Transcript(turns))
+            ],
             new ChatOptions { ModelId = model },
             ct);
 

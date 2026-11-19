@@ -227,6 +227,26 @@ public class CompactionTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_Summary_Instructions_Of_The_Agents_Own_The_Summary_Model_Receives_Them()
+    {
+        // Arrange
+        var settings = new CompactingAgent.Settings { MaxInputTokens = 1_000, SummaryInstructions = Data.Agent.Reason };
+
+        ChatClient
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(Text(Data.Agent.Steering))
+            .Reply(Text(Data.Tool.Answer));
+
+        await RunAsync(new string('x', Page), settings);
+
+        // Act
+        await RunAsync(Data.Agent.FollowUp, settings);
+
+        // Assert
+        ChatClient.Requests[1][0].Text.Should().Be(Data.Agent.Reason);
+    }
+
+    [Fact]
     public async Task Given_No_Summary_Model_The_Runs_Model_Summarizes()
     {
         // Arrange

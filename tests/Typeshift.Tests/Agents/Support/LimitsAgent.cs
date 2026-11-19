@@ -21,7 +21,8 @@ public partial class LimitsAgent : Agent
             .Configurable(r => r.MaxConsecutiveToolErrors)
             .Configurable(r => r.MaxInputTokens)
             .Configurable(r => r.TargetInputTokens)
-            .Configurable(r => r.SummaryModel);
+            .Configurable(r => r.SummaryModel)
+            .Configurable(r => r.SummaryInstructions);
     }
 
     public LimitsAgent(int iterations, int errors, int maximum, int target) =>

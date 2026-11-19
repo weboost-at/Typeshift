@@ -488,6 +488,16 @@ public class AgentRunTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_Run_Settings_With_Blank_Summary_Instructions_The_Run_Throws_Naming_Them()
+    {
+        // Act
+        var run = () => Host<LimitsAgent>().RunAsync(Data.Tool.Question, new() { SummaryInstructions = " " }, Ct);
+
+        // Assert
+        await run.Should().ThrowAsync<InvalidOperationException>().WithMessage("*SummaryInstructions ' '*");
+    }
+
+    [Fact]
     public void Given_A_Blank_Summary_Model_The_Agent_Fails_To_Declare()
     {
         // Act

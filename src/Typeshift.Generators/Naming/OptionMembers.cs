@@ -66,6 +66,7 @@ internal static class OptionMembers
         new("ConcurrentToolCalls", "ConcurrentToolCalls", "bool?", "{0}", Flag),
         new("MaxInputTokens", "MaxInputTokens", "int?", "{0}", Integer),
         new("TargetInputTokens", "TargetInputTokens", "int?", "{0}", Integer),
-        new("SummaryModel", "SummaryModel", "string?", "{0}", Text, Provider: "SummaryProvider")
+        new("SummaryModel", "SummaryModel", "string?", "{0}", Text, Provider: "SummaryProvider"),
+        new("SummaryInstructions", "SummaryInstructions", "string?", "{0}", Text)
     ];
 }

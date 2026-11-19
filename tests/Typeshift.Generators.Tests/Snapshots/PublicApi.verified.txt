@@ -616,6 +616,7 @@ public int? Typeshift.RunOptions.MaxInputTokens { get; init; }
 public int Typeshift.RunOptions.MaxToolIterations { get; init; }
 public Typeshift.AgentMode Typeshift.RunOptions.Mode { get; init; }
 public Typeshift.RunOptions.RunOptions()
+public string? Typeshift.RunOptions.SummaryInstructions { get; init; }
 public string? Typeshift.RunOptions.SummaryModel { get; init; }
 public int? Typeshift.RunOptions.TargetInputTokens { get; init; }
 public override string Typeshift.RunOptions.ToString()
@@ -628,6 +629,7 @@ public Typeshift.RunOptionsBuilder Typeshift.RunOptionsBuilder.WithMaxConsecutiv
 public Typeshift.RunOptionsBuilder Typeshift.RunOptionsBuilder.WithMaxInputTokens(int tokens)
 public Typeshift.RunOptionsBuilder Typeshift.RunOptionsBuilder.WithMaxToolIterations(int iterations)
 public Typeshift.RunOptionsBuilder Typeshift.RunOptionsBuilder.WithMode(Typeshift.AgentMode mode)
+public Typeshift.RunOptionsBuilder Typeshift.RunOptionsBuilder.WithSummaryInstructions(string instructions)
 public Typeshift.RunOptionsBuilder Typeshift.RunOptionsBuilder.WithSummaryModel(string model)
 public Typeshift.RunOptionsBuilder Typeshift.RunOptionsBuilder.WithTargetInputTokens(int tokens)
 public sealed record Typeshift.StandingApproval : System.IEquatable<Typeshift.StandingApproval>

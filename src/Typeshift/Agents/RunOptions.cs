@@ -76,6 +76,20 @@ public sealed class RunOptionsBuilder
         return Set(options => options with { SummaryModel = model });
     }
 
+    /// <summary>
+    /// The instructions the summary model receives, in place of Typeshift's, which ask in English for the task, the
+    /// decisions and why, the facts learned, the files and names touched, and the work left. Write your own for an
+    /// app in another language or another domain; the model's history follows as one message after them.
+    /// </summary>
+    /// <param name="instructions">The instructions.</param>
+    /// <returns>The same chain.</returns>
+    /// <exception cref="ArgumentException"><paramref name="instructions"/> is null or white space.</exception>
+    public RunOptionsBuilder WithSummaryInstructions(string instructions)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(instructions);
+        return Set(options => options with { SummaryInstructions = instructions });
+    }
+
     // D5: the generator reads the pick; at runtime the call declares nothing
     /// <summary>
     /// Lets a run option change at runtime. The lambda never runs.
@@ -143,6 +157,11 @@ public sealed record RunOptions
     /// </summary>
     public string? SummaryModel { get; init; }
 
+    /// <summary>
+    /// The instructions the summary model receives; null for Typeshift's.
+    /// </summary>
+    public string? SummaryInstructions { get; init; }
+
     // D32: the first value no run can go with, and what it must do instead; null when every value holds
     internal (string Option, object Value, string Must)? GetInvalid() =>
         this switch
@@ -156,6 +175,8 @@ public sealed record RunOptions
                 (nameof(TargetInputTokens), target, $"be below {nameof(MaxInputTokens)}, {max}"),
             { SummaryModel: { } model } when string.IsNullOrWhiteSpace(model) =>
                 (nameof(SummaryModel), $"'{model}'", "name a model"),
+            { SummaryInstructions: { } instructions } when string.IsNullOrWhiteSpace(instructions) =>
+                (nameof(SummaryInstructions), $"'{instructions}'", "hold instructions"),
             _ => null
         };
 }

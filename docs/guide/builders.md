@@ -119,6 +119,11 @@ the client receives, so the provider's default applies:
 | `WithReadOnlyTools(params AITool[] tools)` | Adds tools of no toolset to `Tools` as `WithTools` does, and marks them as reading only, so [plan mode](./tool-approval.md#plan-mode) offers them. The provider receives each tool as it was given | None | No |
 | `WithAdditionalProperty<TValue>(string key, TValue value)` | A provider-specific option in `AdditionalProperties` | None | No |
 
+Five members of `ChatOptions` have no call. `Instructions` comes from the agent's `WithInstructions`. A run sets
+`ConversationId` and `ContinuationToken` itself, and takes the response a model call returns, so it does not set
+`AllowBackgroundResponses` either. `RawRepresentationFactory` is set on the client or in a run middleware
+([Options of a provider's own](./models.md#options-of-a-provider-s-own)).
+
 ## RunOptionsBuilder
 
 `WithRunOptions()` sets how a run goes: its mode, the limits of its tool loop and when its history is compacted. Every
@@ -136,6 +141,7 @@ mode without the pick ([Setting the mode](./tool-approval.md#setting-the-mode)).
 | `WithMaxInputTokens(int tokens)` | off | Above 0 | Turns [compaction](./conversations.md#compaction) on at this many input tokens. |
 | `WithTargetInputTokens(int tokens)` | half the maximum | Above 0 and below the maximum | Sets how far compaction shrinks the history. |
 | `WithSummaryModel(string model)` | the run's model | Not blank | Sets the model that summarizes the oldest turns when clearing old tool results does not shrink the history enough, served by the run's provider. Made configurable, it also adds `SummaryProvider` to `Settings` ([the summary model](./models.md#the-summary-model)). |
+| `WithSummaryInstructions(string instructions)` | Typeshift's, in English | Not blank | Sets the instructions the summary model receives, for an app in another language or domain ([Compaction](./conversations.md#compaction)). |
 
 No run can go with a value outside its range, so Typeshift refuses one wherever it enters, and each message names the
 option:

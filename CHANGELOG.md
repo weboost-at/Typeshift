@@ -219,6 +219,9 @@ All notable changes to this project are documented here. The format follows
   run failed at the provider, was cancelled or was left, from its stored steps, so the model receives the user's
   message once and the conversation stores it once. Before, running again with the same input stored it twice, and
   `ResumeAsync` refused a conversation whose last run ended.
+- `WithRunOptions().WithSummaryInstructions(text)` replaces the English instructions of compaction's summary model,
+  for an app in another language or domain, and `Configurable(r => r.SummaryInstructions)` puts them into the
+  agent's `Settings`. Before, the instructions were a constant nothing could change.
 - Each run ends its watchers' feed with an update whose `update.EndsRun` is true, after its other updates: with the
   finish reason of its last model call, or the error a failed run's end stores. A handoff ends once, after the
   answer of the agent handed to. Before, `WatchAsync` gave no sign that a run ended, so a watcher waiting for one
