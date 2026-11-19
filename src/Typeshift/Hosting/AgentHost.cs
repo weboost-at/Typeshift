@@ -587,6 +587,112 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     public StreamingRun<TResult> ResumeStreamingAsync<TResult>(CancellationToken ct = default) =>
         RunStreamingCoreAsync<TResult>(null, null, ct);
 
+    // D50: the input of a run that failed is stored, so a retry sends it once more without storing it again
+    /// <summary>
+    /// Continues the host's conversation, from <c>WithConversationId</c>, as
+    /// <see cref="ResumeAsync(CancellationToken)"/> does, and also when its last run failed, was cancelled or stopped,
+    /// as on a provider's error or a timeout: from that run's stored steps, so the model receives the user's message
+    /// once. The agent's generated <c>RetryAsync</c> also takes the run's <c>Settings</c>.
+    /// More in the guide:
+    /// <see href="https://weboost-at.github.io/Typeshift/guide/conversations#retrying-a-failed-run">Retrying a
+    /// failed run</see>.
+    /// </summary>
+    /// <param name="ct">Cancels the run.</param>
+    /// <returns>The response.</returns>
+    /// <exception cref="NothingToResumeException">
+    /// The conversation has nothing to retry: its last run answered or waits for your app, and no decision your app
+    /// answered or withdrew waits.
+    /// </exception>
+    /// <exception cref="ConversationBusyException">
+    /// A run of the host's conversation is going on in this container, or the store refused a step of this run
+    /// because a run in another container appended first.
+    /// </exception>
+    /// <exception cref="ConversationStoreException">
+    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    /// The host has no conversation, the agent's chat client runs a tool loop of its own, or something the run needs
+    /// is not registered.
+    /// </exception>
+    /// <exception cref="System.Text.Json.JsonException">
+    /// The stored settings were written under a newer schema version than this code's.
+    /// </exception>
+    public Task<ChatResponse> RetryAsync(CancellationToken ct = default) => RunCoreAsync(null, null, ct, retries: true);
+
+    /// <summary>
+    /// Continues the host's conversation as <see cref="RetryAsync(CancellationToken)"/> does, streaming the updates.
+    /// </summary>
+    /// <param name="ct">Cancels the run.</param>
+    /// <returns>The run, which streams its updates and then holds its response.</returns>
+    /// <exception cref="NothingToResumeException">
+    /// The conversation has nothing to retry, when the updates are read.
+    /// </exception>
+    /// <exception cref="ConversationBusyException">
+    /// A run of the host's conversation is going on in this container, or the store refused a step of this run
+    /// because a run in another container appended first. A stream throws it when its updates are read.
+    /// </exception>
+    /// <exception cref="ConversationStoreException">
+    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    /// The host has no conversation, the agent's chat client runs a tool loop of its own, or something the run needs
+    /// is not registered.
+    /// </exception>
+    public StreamingRun RetryStreamingAsync(CancellationToken ct = default) =>
+        RunStreamingCoreAsync(null, null, ct, retries: true);
+
+    /// <summary>
+    /// Continues the host's conversation as <see cref="RetryAsync(CancellationToken)"/> does, asking the model for
+    /// JSON of <typeparamref name="TResult"/>'s schema, as the typed run that failed did.
+    /// </summary>
+    /// <typeparam name="TResult">The result's type.</typeparam>
+    /// <param name="ct">Cancels the run.</param>
+    /// <returns>The response, with the result; while decisions are open, one that lists them and has none.</returns>
+    /// <exception cref="NothingToResumeException">
+    /// The conversation has nothing to retry: its last run answered or waits for your app, and no decision your app
+    /// answered or withdrew waits.
+    /// </exception>
+    /// <exception cref="ConversationBusyException">
+    /// A run of the host's conversation is going on in this container, or the store refused a step of this run
+    /// because a run in another container appended first.
+    /// </exception>
+    /// <exception cref="ConversationStoreException">
+    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    /// The host has no conversation, the agent's chat client runs a tool loop of its own, or something the run needs
+    /// is not registered.
+    /// </exception>
+    /// <exception cref="System.Text.Json.JsonException">
+    /// The stored settings were written under a newer schema version than this code's.
+    /// </exception>
+    public Task<ChatResponse<TResult>> RetryAsync<TResult>(CancellationToken ct = default) =>
+        RunCoreAsync<TResult>(null, null, ct, retries: true);
+
+    /// <summary>
+    /// Continues the host's conversation as <see cref="RetryAsync{TResult}(CancellationToken)"/> does, streaming the
+    /// updates. Once they are read to the end, its <c>Response</c> holds the result.
+    /// </summary>
+    /// <typeparam name="TResult">The result's type.</typeparam>
+    /// <param name="ct">Cancels the run.</param>
+    /// <returns>The run, which streams its updates and then holds the result.</returns>
+    /// <exception cref="NothingToResumeException">
+    /// The conversation has nothing to retry, when the updates are read.
+    /// </exception>
+    /// <exception cref="ConversationBusyException">
+    /// A run of the host's conversation is going on in this container, or the store refused a step of this run
+    /// because a run in another container appended first. A stream throws it when its updates are read.
+    /// </exception>
+    /// <exception cref="ConversationStoreException">
+    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    /// The host has no conversation, the agent's chat client runs a tool loop of its own, or something the run needs
+    /// is not registered.
+    /// </exception>
+    public StreamingRun<TResult> RetryStreamingAsync<TResult>(CancellationToken ct = default) =>
+        RunStreamingCoreAsync<TResult>(null, null, ct, retries: true);
+
     /// <summary>
     /// Resolves the options of a run, for the raw path:
     /// <see cref="CreateChatClientAsync(ChatOptions, CancellationToken)"/>, then the client. The options carry the
@@ -947,25 +1053,30 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     }
 
     // A run without input resumes the conversation's interrupted run (D50)
-    internal Task<ChatResponse> RunCoreAsync(ChatMessage? input, object? settings, CancellationToken ct) =>
-        RunAsync(input is null ? [] : [input], OwnRun(Conversation(input)), settings, ct);
+    internal Task<ChatResponse> RunCoreAsync(
+        ChatMessage? input,
+        object? settings,
+        CancellationToken ct,
+        bool retries = false) =>
+        RunAsync(input is null ? [] : [input], OwnRun(Conversation(input), retries: retries), settings, ct);
 
     // A resume needs a conversation
     private StoreId? Conversation(ChatMessage? input) => input is null ? ResumedConversation : _conversationId;
 
     // A run the host's own members start is handed nothing but the host's ids
-    private RunHandover OwnRun(StoreId? conversation, ChatResponseFormat? format = null) =>
-        new(_settingsId, conversation, Claim: null, format);
+    private RunHandover OwnRun(StoreId? conversation, ChatResponseFormat? format = null, bool retries = false) =>
+        new(_settingsId, conversation, Claim: null, format, Retries: retries);
 
     internal async Task<ChatResponse<TResult>> RunCoreAsync<TResult>(
         ChatMessage? input,
         object? settings,
-        CancellationToken ct)
+        CancellationToken ct,
+        bool retries = false)
     {
         var result = _services.GetRequiredService<ToolJson>().GetResultFormat<TResult>();
         var response = await RunAsync(
             input is null ? [] : [input],
-            OwnRun(Conversation(input), result.Format),
+            OwnRun(Conversation(input), result.Format, retries),
             settings,
             ct);
 
@@ -977,11 +1088,14 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     internal StreamingRun<TResult> RunStreamingCoreAsync<TResult>(
         ChatMessage? input,
         object? settings,
-        CancellationToken ct)
+        CancellationToken ct,
+        bool retries = false)
     {
         var result = _services.GetRequiredService<ToolJson>().GetResultFormat<TResult>();
+        var handover = OwnRun(Conversation(input), result.Format, retries);
+
         return new StreamingRun<TResult>(
-            RunStreamingAsync(input is null ? [] : [input], OwnRun(Conversation(input), result.Format), settings, ct),
+            RunStreamingAsync(input is null ? [] : [input], handover, settings, ct),
             result.SerializerOptions);
     }
 
@@ -1039,8 +1153,15 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
         }
     }
 
-    internal StreamingRun RunStreamingCoreAsync(ChatMessage? input, object? settings, CancellationToken ct) =>
-        new(RunStreamingAsync(input is null ? [] : [input], OwnRun(Conversation(input)), settings, ct));
+    internal StreamingRun RunStreamingCoreAsync(
+        ChatMessage? input,
+        object? settings,
+        CancellationToken ct,
+        bool retries = false)
+    {
+        var handover = OwnRun(Conversation(input), retries: retries);
+        return new(RunStreamingAsync(input is null ? [] : [input], handover, settings, ct));
+    }
 
     internal StoreAccess Store => _services.GetRequiredService<StoreAccess>();
 
@@ -1180,6 +1301,7 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
         options.Handoffs = handover.Handoffs;
         options.Entries = handover.Entries;
         options.HostRun = true;
+        options.Retries = handover.Retries;
 
         if (handover.Format is { } format)
         {

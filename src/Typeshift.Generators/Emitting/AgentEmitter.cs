@@ -709,6 +709,36 @@ internal static class AgentEmitter
                 $", streaming the updates and {Asking}");
             writer.Line();
 
+            WriteRetry(writer, "RetryAsync", $"{Task}<{response}>", "The response.", "RetryAsync", settings);
+            writer.Line();
+            WriteRetry(
+                writer,
+                "RetryStreamingAsync",
+                UntypedRun,
+                "The run, which streams its updates and then holds its response.",
+                "RetryStreamingAsync",
+                settings,
+                ", streaming the updates");
+            writer.Line();
+            WriteRetry(
+                writer,
+                "RetryAsync<TResult>",
+                typedAnswer,
+                "The response, with the result; while decisions are open, one that lists them and has none.",
+                $"RetryAsync<{typed}>",
+                settings,
+                $", {Asking}, as the typed run that failed did");
+            writer.Line();
+            WriteRetry(
+                writer,
+                "RetryStreamingAsync<TResult>",
+                StreamingRun,
+                Run,
+                $"RetryStreamingAsync<{typed}>",
+                settings,
+                $", streaming the updates and {Asking}");
+            writer.Line();
+
             Docs.WriteSummary(
                 writer,
                 "Resolves the options of a run, for the raw path: <c>CreateChatClientAsync</c>, then the client. The "
@@ -888,6 +918,47 @@ internal static class AgentEmitter
             "global::Typeshift.NothingToResumeException",
             "The conversation has nothing to continue: its last run ended, and no decision your app answered or "
             + "withdrew waits.");
+        Docs.WriteException(writer, Busy, Going);
+        Docs.WriteException(writer, NotStored, Lacking);
+        Docs.WriteException(
+            writer,
+            InvalidOperation,
+            $"The host has no conversation, {OwnLoop}, or {MissingRegistration}.");
+        WriteNewerSettings(writer);
+        writer.Lines(
+            $"""
+            public {returns} {name}({settings}? settings = null, {CancellationToken} ct = default) =>
+                {Runs}.{call}(host, settings, ct);
+            """);
+    }
+
+    // D50: a resume that also continues a run that failed, without storing its input again
+    private static void WriteRetry(
+        SourceWriter writer,
+        string name,
+        string returns,
+        string returnsDoc,
+        string call,
+        string settings,
+        string how = "")
+    {
+        Docs.WriteSummary(
+            writer,
+            "Continues the host's conversation as <c>ResumeAsync</c> does, and also when its last run failed, was "
+            + $"cancelled or stopped, as on a provider's error: from that run's stored steps{how}, so the model "
+            + "receives the user's message once."
+            + Docs.Guide("conversations#retrying-a-failed-run", "Retrying a failed run"));
+        if (name.EndsWith("<TResult>", StringComparison.Ordinal))
+            Docs.WriteTypeParam(writer, "TResult", "The result's type.");
+
+        Docs.WriteParam(writer, "settings", "What the run changes over the stored settings; null for nothing.");
+        Docs.WriteParam(writer, "ct", "Cancels the run.");
+        Docs.WriteReturns(writer, returnsDoc);
+        Docs.WriteException(
+            writer,
+            "global::Typeshift.NothingToResumeException",
+            "The conversation has nothing to retry: its last run answered or waits for your app, and no decision "
+            + "your app answered or withdrew waits.");
         Docs.WriteException(writer, Busy, Going);
         Docs.WriteException(writer, NotStored, Lacking);
         Docs.WriteException(

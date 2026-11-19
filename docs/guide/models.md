@@ -516,9 +516,9 @@ What your code sees depends on whether the run fails before or after it stores i
   entries as they were, and before the run's `invoke_agent` span starts. The run has loaded the conversation by
   then, and saved a mode its own settings name ([How a run works](./how-a-run-works.md#the-steps)). Run the agent
   again once you fix the cause.
-- A run that fails later has stored its input already ([What is stored](./conversations.md#what-is-stored)), so a
-  retry with the same input puts it into the conversation twice. `ResumeAsync` refuses such a conversation, because
-  its last run ended.
+- A run that fails later has stored its input already ([What is stored](./conversations.md#what-is-stored)), so
+  running the agent again with the same input puts it into the conversation twice. `RetryAsync` continues the run
+  that failed from its stored steps instead ([Retrying a failed run](./conversations.md#retrying-a-failed-run)).
 - The OpenAI client throws a `ClientResultException`, from `System.ClientModel`, with the HTTP status in `Status`. A
   timeout that outlasts the retries throws an `AggregateException` instead.
 - A streaming run throws each of these from the loop over its updates.

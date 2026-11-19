@@ -1,4 +1,4 @@
-StampVersion = 17
+StampVersion = 18
 protected virtual Typeshift.Generated.AgentDeclaration Typeshift.Agent.Declaration { get; }
 public abstract class Typeshift.Generated.AgentDeclaration
 public abstract string? Typeshift.Generated.AgentDeclaration.Description { get; }
@@ -21,6 +21,10 @@ public static System.Threading.Tasks.Task<Microsoft.Extensions.AI.ChatResponse<T
 public static System.Threading.Tasks.Task<Microsoft.Extensions.AI.ChatResponse> Typeshift.Generated.AgentRuns.ResumeAsync<TAgent>(Typeshift.AgentHost<TAgent> host, object? settings, System.Threading.CancellationToken ct) where TAgent : Typeshift.Agent
 public static Typeshift.StreamingRun<TResult> Typeshift.Generated.AgentRuns.ResumeStreamingAsync<TAgent, TResult>(Typeshift.AgentHost<TAgent> host, object? settings, System.Threading.CancellationToken ct) where TAgent : Typeshift.Agent
 public static Typeshift.StreamingRun Typeshift.Generated.AgentRuns.ResumeStreamingAsync<TAgent>(Typeshift.AgentHost<TAgent> host, object? settings, System.Threading.CancellationToken ct) where TAgent : Typeshift.Agent
+public static System.Threading.Tasks.Task<Microsoft.Extensions.AI.ChatResponse<TResult>> Typeshift.Generated.AgentRuns.RetryAsync<TAgent, TResult>(Typeshift.AgentHost<TAgent> host, object? settings, System.Threading.CancellationToken ct) where TAgent : Typeshift.Agent
+public static System.Threading.Tasks.Task<Microsoft.Extensions.AI.ChatResponse> Typeshift.Generated.AgentRuns.RetryAsync<TAgent>(Typeshift.AgentHost<TAgent> host, object? settings, System.Threading.CancellationToken ct) where TAgent : Typeshift.Agent
+public static Typeshift.StreamingRun<TResult> Typeshift.Generated.AgentRuns.RetryStreamingAsync<TAgent, TResult>(Typeshift.AgentHost<TAgent> host, object? settings, System.Threading.CancellationToken ct) where TAgent : Typeshift.Agent
+public static Typeshift.StreamingRun Typeshift.Generated.AgentRuns.RetryStreamingAsync<TAgent>(Typeshift.AgentHost<TAgent> host, object? settings, System.Threading.CancellationToken ct) where TAgent : Typeshift.Agent
 public static System.Threading.Tasks.Task<Microsoft.Extensions.AI.ChatResponse<TResult>> Typeshift.Generated.AgentRuns.RunAsync<TAgent, TResult>(Typeshift.AgentHost<TAgent> host, Microsoft.Extensions.AI.ChatMessage input, object? settings, System.Threading.CancellationToken ct) where TAgent : Typeshift.Agent
 public static System.Threading.Tasks.Task<Microsoft.Extensions.AI.ChatResponse> Typeshift.Generated.AgentRuns.RunAsync<TAgent>(Typeshift.AgentHost<TAgent> host, Microsoft.Extensions.AI.ChatMessage input, object? settings, System.Threading.CancellationToken ct) where TAgent : Typeshift.Agent
 public static Typeshift.StreamingRun<TResult> Typeshift.Generated.AgentRuns.RunStreamingAsync<TAgent, TResult>(Typeshift.AgentHost<TAgent> host, Microsoft.Extensions.AI.ChatMessage input, object? settings, System.Threading.CancellationToken ct) where TAgent : Typeshift.Agent

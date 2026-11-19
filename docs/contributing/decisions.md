@@ -1847,7 +1847,17 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   resuming it stores the end and returns that answer, since a model called again would answer a second time.
   Resuming also carries out a batch of decisions your app answered, and while decisions are still open it calls no
   model and returns them (D80, D81). Resuming a conversation whose last run ended and that waits for nothing throws
-  a `NothingToResumeException`. One run per conversation at a time in a container, a service provider, an app's or
+  a `NothingToResumeException`.
+- **Retrying a run that failed:** a run that fails at the model call has stored its input, and its end holds the
+  error (D46), which the model never reads, so running again with the input put it into the conversation twice.
+  `RetryAsync` and its streaming and typed twins continue what a resume continues, and also a conversation whose
+  last ending entry holds an `ErrorContent`: a failed, cancelled or abandoned run. The run takes no input and
+  stores none, the agent that answers in this one's place retries too, and a conversation whose last run answered
+  or waits throws a `NothingToResumeException` with a message of its own. `ResumeAsync` keeps refusing an ended
+  run, since a retry is a choice the app makes, after an error it saw, and a resume one it makes after a crash. A
+  model fallback (choosing another provider for the retry) is not built, and a retry does not need one: settings
+  for the retry may name another model.
+- **One run at a time:** one run per conversation at a time in a container, a service provider, an app's or
   that of a runtime from `TypeshiftRuntime.Create`, so two runtimes in one process are two. A run claims its
   conversation there before it loads it, so no run reads it while another still stores its end. A run that finds
   the conversation claimed by a run still loading it waits until that run began or let go, and one that finds a run
@@ -1876,7 +1886,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   container carries out and another finds started and repairs (D81) gets the results of whichever appends first,
   and the other run stops.
 - **Alternatives:** one entry per run, rewritten at each step (a whole-run write per model call); re-running the
-  interrupted tool call, unsafe for side effects; a `RunAsync` with a null input in place of `ResumeAsync`; for the
+  interrupted tool call, unsafe for side effects; a `RunAsync` with a null input in place of `ResumeAsync`; a
+  `ResumeAsync` that continues a failed run too, where a test pins the refusal; for the
   run that finds the conversation still loading, a claim that queues steering input for the run it becomes, which
   makes `TrySteer` true earlier and is open for later; one host call that steers or runs, since two calls are never
   atomic for the app, which is API of its own. Across containers: leaving one run to the app (up to 0.1.0-alpha.6),

@@ -1,6 +1,7 @@
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using Typeshift.Samples.Agents;
+using Typeshift.Samples.Hosting;
 
 namespace Typeshift.Samples.Scenarios;
 
@@ -75,6 +76,25 @@ internal static class Conversations
         // end-snippet
 
         if (resumed.Text.Length == 0) throw new InvalidOperationException("Expected the resumed run to answer.");
+
+        var refunds = support.WithSettingsId(settingsId).WithConversationId(17);
+        var message = CannedChatClient.Unavailable;
+
+        // begin-snippet: retry
+        try
+        {
+            await refunds.RunAsync(message);
+        }
+        catch (HttpRequestException)
+        {
+            // The conversation holds the message already, and the retry sends it once more
+            await refunds.RetryAsync();
+        }
+        // end-snippet
+
+        var stored = (await refunds.LoadConversationAsync()).SelectMany(entry => entry.Messages);
+        if (stored.Count(sent => sent.Role == ChatRole.User) != 1)
+            throw new InvalidOperationException("Expected the retried message in the conversation once.");
     }
 
     // Watches until the run ends, as a page that waits for one answer would

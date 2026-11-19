@@ -9,11 +9,16 @@ namespace Typeshift.Samples.Hosting;
 // "Run" a command or "Show the screenshot" of a ticket, two order lookups in one response, questions to the user
 // before it opens a ticket, a call of a sub-agent it is offered, a handoff to billing about a charge, of
 // find_companies for the city it is given, JSON when the run asks for it, otherwise one fixed answer; once a tool
-// answered, it answers in text, listing the companies find_companies found. Like a provider's client, it stops at a
-// cancelled token
+// answered, it answers in text, listing the companies find_companies found. It fails the first call of one input, as
+// a provider that is down does. Like a provider's client, it stops at a cancelled token
 internal sealed class CannedChatClient : IChatClient
 {
     public const string Answer = "Your refund was approved and reaches your account within five days.";
+
+    // An input the client fails once, with the HTTP error of a provider that is down, and answers after
+    public const string Unavailable = "Is the provider up?";
+
+    private int _failed;
 
     // What a model asks before it opens a ticket: one choice, and one question the user answers in their own words
     private static readonly JsonElement Questions = JsonElement.Parse(
@@ -65,8 +70,11 @@ internal sealed class CannedChatClient : IChatClient
     {
     }
 
-    private static ChatMessage Respond(IReadOnlyList<ChatMessage> messages, ChatOptions? options)
+    private ChatMessage Respond(IReadOnlyList<ChatMessage> messages, ChatOptions? options)
     {
+        if (messages.LastOrDefault()?.Text == Unavailable && Interlocked.Exchange(ref _failed, 1) == 0)
+            throw new HttpRequestException("Service unavailable.", null, System.Net.HttpStatusCode.ServiceUnavailable);
+
         var offers = (options?.Tools ?? []).Select(tool => tool.Name).ToHashSet();
         var answered = messages.Count > 0 && messages[^1].Role == ChatRole.Tool;
         var input = messages.LastOrDefault(message => message.Role == ChatRole.User)?.Text ?? "";

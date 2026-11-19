@@ -32,6 +32,10 @@ internal sealed class ResolvedChatOptions : ChatOptions
     // conversations in ChatOptions.ConversationId instead
     public bool HostRun { get; set; }
 
+    // D50: a run without input that also continues a run that failed, was cancelled or stopped, whose input the
+    // conversation holds already
+    public bool Retries { get; set; }
+
     public AgentRun? AgentRun { get; set; }
 
     public ConversationRun? ConversationRun { get; set; }
@@ -138,6 +142,7 @@ internal sealed class ResolvedChatOptions : ChatOptions
             Layers = Layers,
             Conversation = Conversation,
             HostRun = HostRun,
+            Retries = Retries,
             AgentRun = AgentRun,
             ConversationRun = ConversationRun,
             Caller = Caller,

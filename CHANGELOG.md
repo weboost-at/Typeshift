@@ -215,6 +215,10 @@ All notable changes to this project are documented here. The format follows
 - A watcher that joins while a run goes on first receives what the run published that the store does not hold yet,
   such as the answer the model is writing, merged. Before, a page that opened during an answer showed it from the
   middle, since the store holds a response once its model call ends.
+- `RetryAsync()` on an agent's host, with `RetryStreamingAsync` and typed forms, continues a conversation whose last
+  run failed at the provider, was cancelled or was left, from its stored steps, so the model receives the user's
+  message once and the conversation stores it once. Before, running again with the same input stored it twice, and
+  `ResumeAsync` refused a conversation whose last run ended.
 - Each run ends its watchers' feed with an update whose `update.EndsRun` is true, after its other updates: with the
   finish reason of its last model call, or the error a failed run's end stores. A handoff ends once, after the
   answer of the agent handed to. Before, `WatchAsync` gave no sign that a run ended, so a watcher waiting for one

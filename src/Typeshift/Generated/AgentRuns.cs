@@ -300,6 +300,98 @@ public static class AgentRuns
         host.RunStreamingCoreAsync<TResult>(null, settings, ct);
 
     /// <summary>
+    /// Continues the host's conversation as a resume does, and also when its last run failed, was cancelled or
+    /// stopped, from that run's stored steps.
+    /// </summary>
+    /// <typeparam name="TAgent">The agent.</typeparam>
+    /// <param name="host">The host, with the run's services and ids.</param>
+    /// <param name="settings">The run's settings, over the stored ones.</param>
+    /// <param name="ct">Cancels the run.</param>
+    /// <returns>The response.</returns>
+    /// <exception cref="InvalidOperationException">The host has no conversation.</exception>
+    /// <exception cref="NothingToResumeException">The conversation has nothing to retry.</exception>
+    /// <exception cref="ConversationBusyException">
+    /// A run of the host's conversation is going on, or the store refused the run because another container extends
+    /// the conversation.
+    /// </exception>
+    /// <exception cref="ConversationStoreException">The store failed to append a step of the run.</exception>
+    public static Task<ChatResponse> RetryAsync<TAgent>(
+        AgentHost<TAgent> host,
+        object? settings,
+        CancellationToken ct)
+        where TAgent : Agent =>
+        host.RunCoreAsync(null, settings, ct, retries: true);
+
+    /// <summary>
+    /// Continues the host's conversation as a retry does, streaming the updates.
+    /// </summary>
+    /// <typeparam name="TAgent">The agent.</typeparam>
+    /// <param name="host">The host, with the run's services and ids.</param>
+    /// <param name="settings">The run's settings, over the stored ones.</param>
+    /// <param name="ct">Cancels the run.</param>
+    /// <returns>The run, which streams its updates and then holds its response.</returns>
+    /// <exception cref="InvalidOperationException">The host has no conversation.</exception>
+    /// <exception cref="NothingToResumeException">The conversation has nothing to retry.</exception>
+    /// <exception cref="ConversationBusyException">
+    /// A run of the host's conversation is going on, or the store refused the run because another container extends
+    /// the conversation.
+    /// </exception>
+    /// <exception cref="ConversationStoreException">The store failed to append a step of the run.</exception>
+    public static StreamingRun RetryStreamingAsync<TAgent>(
+        AgentHost<TAgent> host,
+        object? settings,
+        CancellationToken ct)
+        where TAgent : Agent =>
+        host.RunStreamingCoreAsync(null, settings, ct, retries: true);
+
+    /// <summary>
+    /// Continues the host's conversation as a retry does, asking for JSON of <typeparamref name="TResult"/>'s schema.
+    /// </summary>
+    /// <typeparam name="TAgent">The agent.</typeparam>
+    /// <typeparam name="TResult">The result.</typeparam>
+    /// <param name="host">The host, with the run's services and ids.</param>
+    /// <param name="settings">The run's settings, over the stored ones.</param>
+    /// <param name="ct">Cancels the run.</param>
+    /// <returns>The response, with the result.</returns>
+    /// <exception cref="InvalidOperationException">The host has no conversation.</exception>
+    /// <exception cref="NothingToResumeException">The conversation has nothing to retry.</exception>
+    /// <exception cref="ConversationBusyException">
+    /// A run of the host's conversation is going on, or the store refused the run because another container extends
+    /// the conversation.
+    /// </exception>
+    /// <exception cref="ConversationStoreException">The store failed to append a step of the run.</exception>
+    public static Task<ChatResponse<TResult>> RetryAsync<TAgent, TResult>(
+        AgentHost<TAgent> host,
+        object? settings,
+        CancellationToken ct)
+        where TAgent : Agent =>
+        host.RunCoreAsync<TResult>(null, settings, ct, retries: true);
+
+    /// <summary>
+    /// Continues the host's conversation as a retry does, streaming the updates and asking for JSON of
+    /// <typeparamref name="TResult"/>'s schema.
+    /// </summary>
+    /// <typeparam name="TAgent">The agent.</typeparam>
+    /// <typeparam name="TResult">The result.</typeparam>
+    /// <param name="host">The host, with the run's services and ids.</param>
+    /// <param name="settings">The run's settings, over the stored ones.</param>
+    /// <param name="ct">Cancels the run.</param>
+    /// <returns>The run, which streams its updates and then holds the result.</returns>
+    /// <exception cref="InvalidOperationException">The host has no conversation.</exception>
+    /// <exception cref="NothingToResumeException">The conversation has nothing to retry.</exception>
+    /// <exception cref="ConversationBusyException">
+    /// A run of the host's conversation is going on, or the store refused the run because another container extends
+    /// the conversation.
+    /// </exception>
+    /// <exception cref="ConversationStoreException">The store failed to append a step of the run.</exception>
+    public static StreamingRun<TResult> RetryStreamingAsync<TAgent, TResult>(
+        AgentHost<TAgent> host,
+        object? settings,
+        CancellationToken ct)
+        where TAgent : Agent =>
+        host.RunStreamingCoreAsync<TResult>(null, settings, ct, retries: true);
+
+    /// <summary>
     /// Resolves the options of a run: the agent's code, its stored settings, the run's settings, then its tools.
     /// </summary>
     /// <typeparam name="TAgent">The agent.</typeparam>

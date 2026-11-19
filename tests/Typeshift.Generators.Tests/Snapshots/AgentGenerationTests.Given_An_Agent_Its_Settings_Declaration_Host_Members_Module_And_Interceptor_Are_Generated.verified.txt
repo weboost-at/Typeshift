@@ -641,6 +641,148 @@ public static class Tshost_4Demo12SupportAgent
             global::Typeshift.Generated.AgentRuns.ResumeStreamingAsync<global::Demo.SupportAgent, TResult>(host, settings, ct);
 
         /// <summary>
+        /// Continues the host's conversation as <c>ResumeAsync</c> does, and also when its last run failed, was
+        /// cancelled or stopped, as on a provider's error: from that run's stored steps, so the model receives the
+        /// user's message once. More in the guide:
+        /// <see href="https://weboost-at.github.io/Typeshift/guide/conversations#retrying-a-failed-run">Retrying a
+        /// failed run</see>.
+        /// </summary>
+        /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
+        /// <param name="ct">Cancels the run.</param>
+        /// <returns>The response.</returns>
+        /// <exception cref="global::Typeshift.NothingToResumeException">
+        /// The conversation has nothing to retry: its last run answered or waits for your app, and no decision your app
+        /// answered or withdrew waits.
+        /// </exception>
+        /// <exception cref="global::Typeshift.ConversationBusyException">
+        /// A run of the host's conversation is going on in this container, or the store refused a step of this run
+        /// because a run in another container appended first. A streaming run throws it when its updates are read.
+        /// </exception>
+        /// <exception cref="global::Typeshift.ConversationStoreException">
+        /// The store failed to append a step of the run, which then fails as it ends, unless
+        /// <c>TypeshiftOptions.StoreFailure</c> lets it continue. The exception holds what the run answered.
+        /// </exception>
+        /// <exception cref="global::System.InvalidOperationException">
+        /// The host has no conversation, the agent's chat client runs a tool loop of its own, or something the run
+        /// needs is not registered: a chat client for the provider the run names or, when it names none, a default
+        /// client; a store for the type of one of the host's ids; or an <c>IMcpToolProvider</c> for the agent's MCP
+        /// servers.
+        /// </exception>
+        /// <exception cref="global::System.Text.Json.JsonException">
+        /// The stored settings were written under a newer schema version than this code's.
+        /// </exception>
+        public global::System.Threading.Tasks.Task<global::Microsoft.Extensions.AI.ChatResponse> RetryAsync(global::Demo.SupportAgent.Settings? settings = null, global::System.Threading.CancellationToken ct = default) =>
+            global::Typeshift.Generated.AgentRuns.RetryAsync(host, settings, ct);
+
+        /// <summary>
+        /// Continues the host's conversation as <c>ResumeAsync</c> does, and also when its last run failed, was
+        /// cancelled or stopped, as on a provider's error: from that run's stored steps, streaming the updates, so the
+        /// model receives the user's message once. More in the guide:
+        /// <see href="https://weboost-at.github.io/Typeshift/guide/conversations#retrying-a-failed-run">Retrying a
+        /// failed run</see>.
+        /// </summary>
+        /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
+        /// <param name="ct">Cancels the run.</param>
+        /// <returns>The run, which streams its updates and then holds its response.</returns>
+        /// <exception cref="global::Typeshift.NothingToResumeException">
+        /// The conversation has nothing to retry: its last run answered or waits for your app, and no decision your app
+        /// answered or withdrew waits.
+        /// </exception>
+        /// <exception cref="global::Typeshift.ConversationBusyException">
+        /// A run of the host's conversation is going on in this container, or the store refused a step of this run
+        /// because a run in another container appended first. A streaming run throws it when its updates are read.
+        /// </exception>
+        /// <exception cref="global::Typeshift.ConversationStoreException">
+        /// The store failed to append a step of the run, which then fails as it ends, unless
+        /// <c>TypeshiftOptions.StoreFailure</c> lets it continue. The exception holds what the run answered.
+        /// </exception>
+        /// <exception cref="global::System.InvalidOperationException">
+        /// The host has no conversation, the agent's chat client runs a tool loop of its own, or something the run
+        /// needs is not registered: a chat client for the provider the run names or, when it names none, a default
+        /// client; a store for the type of one of the host's ids; or an <c>IMcpToolProvider</c> for the agent's MCP
+        /// servers.
+        /// </exception>
+        /// <exception cref="global::System.Text.Json.JsonException">
+        /// The stored settings were written under a newer schema version than this code's.
+        /// </exception>
+        public global::Typeshift.StreamingRun RetryStreamingAsync(global::Demo.SupportAgent.Settings? settings = null, global::System.Threading.CancellationToken ct = default) =>
+            global::Typeshift.Generated.AgentRuns.RetryStreamingAsync(host, settings, ct);
+
+        /// <summary>
+        /// Continues the host's conversation as <c>ResumeAsync</c> does, and also when its last run failed, was
+        /// cancelled or stopped, as on a provider's error: from that run's stored steps, asking the model for JSON of
+        /// <typeparamref name="TResult"/>'s schema, as the typed run that failed did, so the model receives the user's
+        /// message once. More in the guide:
+        /// <see href="https://weboost-at.github.io/Typeshift/guide/conversations#retrying-a-failed-run">Retrying a
+        /// failed run</see>.
+        /// </summary>
+        /// <typeparam name="TResult">The result's type.</typeparam>
+        /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
+        /// <param name="ct">Cancels the run.</param>
+        /// <returns>
+        /// The response, with the result; while decisions are open, one that lists them and has none.
+        /// </returns>
+        /// <exception cref="global::Typeshift.NothingToResumeException">
+        /// The conversation has nothing to retry: its last run answered or waits for your app, and no decision your app
+        /// answered or withdrew waits.
+        /// </exception>
+        /// <exception cref="global::Typeshift.ConversationBusyException">
+        /// A run of the host's conversation is going on in this container, or the store refused a step of this run
+        /// because a run in another container appended first. A streaming run throws it when its updates are read.
+        /// </exception>
+        /// <exception cref="global::Typeshift.ConversationStoreException">
+        /// The store failed to append a step of the run, which then fails as it ends, unless
+        /// <c>TypeshiftOptions.StoreFailure</c> lets it continue. The exception holds what the run answered.
+        /// </exception>
+        /// <exception cref="global::System.InvalidOperationException">
+        /// The host has no conversation, the agent's chat client runs a tool loop of its own, or something the run
+        /// needs is not registered: a chat client for the provider the run names or, when it names none, a default
+        /// client; a store for the type of one of the host's ids; or an <c>IMcpToolProvider</c> for the agent's MCP
+        /// servers.
+        /// </exception>
+        /// <exception cref="global::System.Text.Json.JsonException">
+        /// The stored settings were written under a newer schema version than this code's.
+        /// </exception>
+        public global::System.Threading.Tasks.Task<global::Microsoft.Extensions.AI.ChatResponse<TResult>> RetryAsync<TResult>(global::Demo.SupportAgent.Settings? settings = null, global::System.Threading.CancellationToken ct = default) =>
+            global::Typeshift.Generated.AgentRuns.RetryAsync<global::Demo.SupportAgent, TResult>(host, settings, ct);
+
+        /// <summary>
+        /// Continues the host's conversation as <c>ResumeAsync</c> does, and also when its last run failed, was
+        /// cancelled or stopped, as on a provider's error: from that run's stored steps, streaming the updates and
+        /// asking the model for JSON of <typeparamref name="TResult"/>'s schema, so the model receives the user's
+        /// message once. More in the guide:
+        /// <see href="https://weboost-at.github.io/Typeshift/guide/conversations#retrying-a-failed-run">Retrying a
+        /// failed run</see>.
+        /// </summary>
+        /// <typeparam name="TResult">The result's type.</typeparam>
+        /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
+        /// <param name="ct">Cancels the run.</param>
+        /// <returns>The run, which streams its updates and then holds the result.</returns>
+        /// <exception cref="global::Typeshift.NothingToResumeException">
+        /// The conversation has nothing to retry: its last run answered or waits for your app, and no decision your app
+        /// answered or withdrew waits.
+        /// </exception>
+        /// <exception cref="global::Typeshift.ConversationBusyException">
+        /// A run of the host's conversation is going on in this container, or the store refused a step of this run
+        /// because a run in another container appended first. A streaming run throws it when its updates are read.
+        /// </exception>
+        /// <exception cref="global::Typeshift.ConversationStoreException">
+        /// The store failed to append a step of the run, which then fails as it ends, unless
+        /// <c>TypeshiftOptions.StoreFailure</c> lets it continue. The exception holds what the run answered.
+        /// </exception>
+        /// <exception cref="global::System.InvalidOperationException">
+        /// The host has no conversation, the agent's chat client runs a tool loop of its own, or something the run
+        /// needs is not registered: a chat client for the provider the run names or, when it names none, a default
+        /// client; a store for the type of one of the host's ids; or an <c>IMcpToolProvider</c> for the agent's MCP
+        /// servers.
+        /// </exception>
+        /// <exception cref="global::System.Text.Json.JsonException">
+        /// The stored settings were written under a newer schema version than this code's.
+        /// </exception>
+        public global::Typeshift.StreamingRun<TResult> RetryStreamingAsync<TResult>(global::Demo.SupportAgent.Settings? settings = null, global::System.Threading.CancellationToken ct = default) =>
+            global::Typeshift.Generated.AgentRuns.RetryStreamingAsync<global::Demo.SupportAgent, TResult>(host, settings, ct);
+
+        /// <summary>
         /// Resolves the options of a run, for the raw path: <c>CreateChatClientAsync</c>, then the client. The options
         /// carry the host's conversation; on a host without one, <c>ChatOptions.ConversationId</c> names a conversation
         /// under a <see cref="string"/> id. More in the guide:
@@ -1096,7 +1238,7 @@ namespace System.Runtime.CompilerServices
 #nullable enable
 #pragma warning disable CS0612, CS0618
 
-[assembly: global::Typeshift.Generated.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule), 17)]
+[assembly: global::Typeshift.Generated.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule), 18)]
 
 namespace Typeshift.Generated;
 

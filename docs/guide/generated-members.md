@@ -39,6 +39,10 @@ In these signatures, `Settings` is the agent's [generated `Settings` record](#se
 | `ResumeStreamingAsync(Settings? settings = null)` | `StreamingRun` |
 | `ResumeAsync<TResult>(Settings? settings = null)` | `Task<ChatResponse<TResult>>` |
 | `ResumeStreamingAsync<TResult>(Settings? settings = null)` | `StreamingRun<TResult>` |
+| `RetryAsync(Settings? settings = null)` | `Task<ChatResponse>` |
+| `RetryStreamingAsync(Settings? settings = null)` | `StreamingRun` |
+| `RetryAsync<TResult>(Settings? settings = null)` | `Task<ChatResponse<TResult>>` |
+| `RetryStreamingAsync<TResult>(Settings? settings = null)` | `StreamingRun<TResult>` |
 | `AnswerAsync(IReadOnlyList<DecisionAnswer> answers, Settings? settings = null)` | `Task<ChatResponse>` |
 | `AnswerAsync<TResult>(IReadOnlyList<DecisionAnswer> answers, Settings? settings = null)` | `Task<ChatResponse<TResult>>` |
 | `AnswerStreamingAsync(IReadOnlyList<DecisionAnswer> answers, Settings? settings = null)` | `StreamingRun` |
@@ -106,6 +110,13 @@ are still open, they call no model and return them. They throw a `NothingToResum
 has nothing to continue, an `InvalidOperationException` when the host has no conversation id, and what `RunAsync`
 throws. `ResumeAsync<TResult>` and `ResumeStreamingAsync<TResult>` ask for `TResult` again, so a typed run that a
 crash cut off resumes typed.
+
+### `RetryAsync` and `RetryStreamingAsync`
+
+Both continue what a resume continues, and also a conversation whose last run failed, was cancelled or stopped, from
+that run's stored steps, so the model receives the user's message once
+([Retrying a failed run](./conversations.md#retrying-a-failed-run)). They throw a `NothingToResumeException` when the
+last run answered or waits for your app, and what a resume throws.
 
 ### `AnswerAsync` and `AnswerStreamingAsync`
 

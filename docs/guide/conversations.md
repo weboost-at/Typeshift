@@ -19,7 +19,7 @@ var chat = support.WithConversationId(conversationId);
 await chat.RunAsync("Where is my refund?");
 await chat.RunAsync("When will it arrive?");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L15-L21' title='Snippet source file'>snippet source</a> | <a href='#snippet-conversation' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L16-L22' title='Snippet source file'>snippet source</a> | <a href='#snippet-conversation' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 `chat` is the host with conversation 7 ([Ids of your own types](./settings-and-stores.md#ids-of-your-own-types)). The
@@ -163,7 +163,7 @@ var entries = await support.WithConversationId(conversationId).LoadConversationA
 
 Console.WriteLine($"{entries.Count} entries, {entries.Sum(entry => entry.Usage?.TotalTokenCount)} tokens");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L23-L27' title='Snippet source file'>snippet source</a> | <a href='#snippet-load-conversation' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L24-L28' title='Snippet source file'>snippet source</a> | <a href='#snippet-load-conversation' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Runs that fail or stop early are stored too:
@@ -236,7 +236,7 @@ its last stored step, without new input:
 ```cs
 var resumed = await support.WithSettingsId(settingsId).WithConversationId(interrupted).ResumeAsync();
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L73-L75' title='Snippet source file'>snippet source</a> | <a href='#snippet-resume' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L74-L76' title='Snippet source file'>snippet source</a> | <a href='#snippet-resume' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 `ResumeStreamingAsync` does the same and streams the continuation, as `RunStreamingAsync` streams a run.
@@ -273,6 +273,36 @@ time, so make tools with side effects safe to repeat. A call your app approved i
 it again, and the model reads that it is not known whether the call took effect.
 :::
 
+## Retrying a failed run
+
+A run that fails at the model call, on a provider's error, a rate limit or a timeout, has stored the user's message
+already, and its end holds the error ([What is stored](#what-is-stored)). Running the agent again with the same input
+would put the message into the conversation twice, and `ResumeAsync` refuses a conversation whose last run ended.
+`RetryAsync` continues it from that run's stored steps instead, so the model receives the message once:
+
+<!-- snippet: retry -->
+<a id='snippet-retry'></a>
+```cs
+try
+{
+    await refunds.RunAsync(message);
+}
+catch (HttpRequestException)
+{
+    // The conversation holds the message already, and the retry sends it once more
+    await refunds.RetryAsync();
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L83-L93' title='Snippet source file'>snippet source</a> | <a href='#snippet-retry' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+- `RetryAsync` continues what `ResumeAsync` continues too: an interrupted run, or decisions your app answered. On top,
+  it continues a run that failed, was cancelled, or whose stream its reader left.
+- It throws a `NothingToResumeException` when the conversation's last run answered or waits for your app, which a
+  "Retry" button that is pressed twice meets.
+- `RetryStreamingAsync`, `RetryAsync<TResult>` and `RetryStreamingAsync<TResult>` stream, or ask for `TResult` again,
+  as the resumes do. A tool call the failed run left running is left out, as on [resume](#resuming).
+
 ## One run at a time
 
 Within one container, your app's or that of a runtime from `TypeshiftRuntime.Create`, a conversation has one run at
@@ -307,7 +337,7 @@ var tracker = provider.GetRequiredService<ConversationTracker<int>>();
 foreach (var run in tracker.Runs)
     Console.WriteLine($"{run.Agent} is answering conversation {run.Conversation} on {run.Model}");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L31-L36' title='Snippet source file'>snippet source</a> | <a href='#snippet-live-sessions' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L32-L37' title='Snippet source file'>snippet source</a> | <a href='#snippet-live-sessions' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 `WatchRunsAsync` tells a UI when that list changes, so a list of running conversations needs no polling. It yields the
@@ -320,7 +350,7 @@ Cancelling ends the loop with an `OperationCanceledException`, so catch it where
 await foreach (var run in tracker.WatchRunsAsync(ct))
     Console.WriteLine($"Conversation {run.Conversation} is {(run.Ended ? "idle" : "running")}");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L97-L100' title='Snippet source file'>snippet source</a> | <a href='#snippet-watch-runs' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L117-L120' title='Snippet source file'>snippet source</a> | <a href='#snippet-watch-runs' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ::: warning The tracker lists every customer's runs
@@ -370,7 +400,7 @@ while (!tracker.TrySteer(conversationId, input))
     }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L50-L65' title='Snippet source file'>snippet source</a> | <a href='#snippet-steering' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L51-L66' title='Snippet source file'>snippet source</a> | <a href='#snippet-steering' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 A run holds at most 32 inputs, or 262,144 characters of their text, that its model has not received yet. Input
@@ -403,7 +433,7 @@ await foreach (var update in tracker.WatchAsync(conversationId, ct))
     if (update.EndsRun) break;
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L83-L90' title='Snippet source file'>snippet source</a> | <a href='#snippet-watch-conversation' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L103-L110' title='Snippet source file'>snippet source</a> | <a href='#snippet-watch-conversation' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 A watcher receives what the runs write from the moment it subscribes: the model's updates, the tool calls and their

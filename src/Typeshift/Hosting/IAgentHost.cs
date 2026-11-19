@@ -87,6 +87,18 @@ public interface IAgentHost : IAsyncDisposable, IDisposable
     /// <inheritdoc cref="AgentHost{TAgent}.ResumeStreamingAsync{TResult}(CancellationToken)"/>
     StreamingRun<TResult> ResumeStreamingAsync<TResult>(CancellationToken ct = default);
 
+    /// <inheritdoc cref="AgentHost{TAgent}.RetryAsync(CancellationToken)"/>
+    Task<ChatResponse> RetryAsync(CancellationToken ct = default);
+
+    /// <inheritdoc cref="AgentHost{TAgent}.RetryStreamingAsync(CancellationToken)"/>
+    StreamingRun RetryStreamingAsync(CancellationToken ct = default);
+
+    /// <inheritdoc cref="AgentHost{TAgent}.RetryAsync{TResult}(CancellationToken)"/>
+    Task<ChatResponse<TResult>> RetryAsync<TResult>(CancellationToken ct = default);
+
+    /// <inheritdoc cref="AgentHost{TAgent}.RetryStreamingAsync{TResult}(CancellationToken)"/>
+    StreamingRun<TResult> RetryStreamingAsync<TResult>(CancellationToken ct = default);
+
     /// <inheritdoc cref="AgentHost{TAgent}.ResolveOptionsAsync(CancellationToken)"/>
     Task<ChatOptions> ResolveOptionsAsync(CancellationToken ct = default);
 
@@ -127,7 +139,8 @@ public interface IAgentHost : IAsyncDisposable, IDisposable
 // the conversation takes it in place of claiming the conversation itself (D34, D50), and counts on from the
 // handoffs the run made before it. A run passed on to the agent that answers is handed the entries loaded for it
 // too, so the conversation is loaded once. A sub-agent's run has its caller, whose mode and standing approvals it
-// takes, and no conversation (D33)
+// takes, and no conversation (D33). A retry continues a run that failed, too, and the agent that answers in this
+// one's place retries (D50)
 internal sealed record RunHandover(
     StoreId? SettingsId,
     StoreId? Conversation,
@@ -135,4 +148,5 @@ internal sealed record RunHandover(
     ChatResponseFormat? Format,
     int Handoffs = 0,
     IReadOnlyList<ConversationEntry>? Entries = null,
-    AgentRun? Caller = null);
+    AgentRun? Caller = null,
+    bool Retries = false);

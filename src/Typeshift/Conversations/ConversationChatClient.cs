@@ -560,7 +560,8 @@ internal sealed class ConversationChatClient(
             options.Claim,
             options.ResultFormat,
             options.Handoffs,
-            options.Entries);
+            options.Entries,
+            Retries: options.Retries);
 
         return new RunStart(agent, services, Ledger).TakeAsync(
             handover,
@@ -713,13 +714,17 @@ internal sealed class ConversationChatClient(
         var legacy = document.Mode is null ? entries.LastOrDefault(entry => entry.Mode is not null)?.Mode : null;
         var ledger = new DecisionLedger(Store, Time, legacy);
 
-        // D50: a run without input continues the conversation's interrupted run, or carries out what your app answered
+        // D50: a run without input continues the conversation's interrupted run, or carries out what your app
+        // answered. A retry continues a run that failed, was cancelled or stopped too, whose end holds its error
         if (conversation is not null
             && !hasInput
             && document.Batch is null
-            && (entries.Count == 0 || entries[^1].EndsRun))
+            && (entries.Count == 0 || entries[^1].EndsRun)
+            && !(options.Retries && Failed(entries)))
         {
-            throw NothingToResumeException.For(conversation);
+            throw options.Retries
+                ? NothingToResumeException.ForRetry(conversation)
+                : NothingToResumeException.For(conversation);
         }
 
         // D80: the batch the run finds is settled before its first model call, so no model call and no compaction
@@ -857,6 +862,10 @@ internal sealed class ConversationChatClient(
             : null;
 
     private static bool IsStep(AIContent content) => content is FunctionCallContent or ErrorContent;
+
+    // D46: a run that failed, was cancelled or stopped stores its end with the error
+    private static bool Failed(IReadOnlyList<ConversationEntry> entries) =>
+        entries is [.., { EndsRun: true, Messages: var end }] && end.Contents().Any(content => content is ErrorContent);
 
     private static bool IsApprovalContent(AIContent content) => content is InputRequestContent or InputResponseContent;
 

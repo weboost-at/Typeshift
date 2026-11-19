@@ -593,6 +593,122 @@ public class ConversationRunTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Run_That_Failed_At_The_Provider_Retrying_Sends_The_Input_Once()
+    {
+        // Arrange
+        ChatClient
+            .Reply(new HttpRequestException(Data.Agent.Reason))
+            .Reply(Text(Data.Tool.Answer));
+
+        var host = Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId);
+        await Record.ExceptionAsync(() => host.RunAsync(Data.Tool.Question, ct: Ct));
+
+        // Act
+        await host.RetryAsync(ct: Ct);
+
+        // Assert
+        ChatClient.Requests[1].Where(message => message.Text == Data.Tool.Question).Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task Given_A_Run_That_Failed_At_The_Provider_Retrying_Answers()
+    {
+        // Arrange
+        ChatClient
+            .Reply(new HttpRequestException(Data.Agent.Reason))
+            .Reply(Text(Data.Tool.Answer));
+
+        var host = Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId);
+        await Record.ExceptionAsync(() => host.RunAsync(Data.Tool.Question, ct: Ct));
+
+        // Act
+        var response = await host.RetryAsync(ct: Ct);
+
+        // Assert
+        response.Text.Should().Be(Data.Tool.Answer);
+    }
+
+    [Fact]
+    public async Task Given_A_Run_That_Failed_At_The_Provider_Retrying_Stores_No_Input_Again()
+    {
+        // Arrange
+        ChatClient
+            .Reply(new HttpRequestException(Data.Agent.Reason))
+            .Reply(Text(Data.Tool.Answer));
+
+        var host = Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId);
+        await Record.ExceptionAsync(() => host.RunAsync(Data.Tool.Question, ct: Ct));
+
+        // Act
+        await host.RetryAsync(ct: Ct);
+        var entries = await host.LoadConversationAsync(Ct);
+
+        // Assert
+        entries.SelectMany(entry => entry.Messages).Where(message => message.Role == ChatRole.User)
+            .Should()
+            .ContainSingle();
+    }
+
+    [Fact]
+    public async Task Given_A_Run_That_Failed_At_The_Provider_A_Streaming_Retry_Answers()
+    {
+        // Arrange
+        ChatClient
+            .Reply(new HttpRequestException(Data.Agent.Reason))
+            .Reply(Text(Data.Tool.Answer));
+
+        var host = Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId);
+        await Record.ExceptionAsync(() => host.RunStreamingAsync(Data.Tool.Question, ct: Ct).ToListAsync(Ct).AsTask());
+
+        // Act
+        var updates = await host.RetryStreamingAsync(ct: Ct).ToListAsync(Ct);
+
+        // Assert
+        updates.ToChatResponse().Text.Should().Be(Data.Tool.Answer);
+    }
+
+    [Fact]
+    public async Task Given_A_Cancelled_Run_Retrying_Continues_It()
+    {
+        // Arrange
+        var gate = new TaskCompletionSource();
+
+        ChatClient
+            .Reply(gate, Text(Data.Agent.Reason))
+            .Reply(Text(Data.Tool.Answer));
+
+        var host = Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId);
+        using var cancelling = CancellationTokenSource.CreateLinkedTokenSource(Ct);
+
+        var run = host.RunAsync(Data.Tool.Question, ct: cancelling.Token);
+        await ChatClient.Requested.WaitAsync(Ct);
+        await cancelling.CancelAsync();
+        await Record.ExceptionAsync(() => run);
+
+        // Act
+        var response = await host.RetryAsync(ct: Ct);
+
+        // Assert
+        response.Text.Should().Be(Data.Tool.Answer);
+    }
+
+    [Fact]
+    public async Task Given_A_Conversation_Whose_Last_Run_Answered_Retrying_Throws()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        var host = Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId);
+        await host.RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Act
+        var retry = () => host.RetryAsync(ct: Ct);
+
+        // Assert
+        await retry.Should().ThrowAsync<NothingToResumeException>().WithMessage("*has no failed run to retry*");
+    }
+
+    [Fact]
     public async Task Given_A_Conversation_Whose_Last_Run_Ended_Resuming_Fails()
     {
         // Arrange
