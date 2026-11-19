@@ -19,8 +19,8 @@ the playbook. That is meant to be enough; if you had to dig for something, add i
 | Audit the docs for drift and rule breaks | "Docs" below | `.claude/skills/review-docs` |
 | A release | `docs/contributing/releasing.md` | none: prepare its steps 1 to 5 (the changelog section, the API comparison, the demos, the generator's measurements), a person pushes the tag |
 
-- **What is built, what is open.** `docs/contributing/status.md` lists the slices of the rewrite, the test of each
-  behavior and the known gaps.
+- **What is built, what is open.** `docs/contributing/status.md` lists the slices of the rewrite, the test classes of
+  each area and the known gaps.
 - **Why is the code like this?** `docs/contributing/decisions.md` (D1, D2, ...) records each non-obvious choice, the
   alternatives that lost, and where it lives. A comment `// D25: ...` in code points at one. Read the entry before
   you change such code; to change the decision, edit the entry in the same commit, or add a new one and move the old
@@ -192,7 +192,7 @@ style; the essentials:
 | New or changed diagnostic | `diagnostics.md` row and section with its failing example, a region of `DiagnosticSources.cs` (guard tests check both), the guide page that states the rule |
 | New exception a user can meet, or a changed message | Its row in `docs/guide/diagnostics.md#errors-at-run-time`, quoting the words the message always holds (`RunTimeErrorTests` checks them), the `<exception>` tag of each public member that throws it, the guide page that explains it |
 | New or changed generated member | `generated-members.md` for a member your app calls or reads, `contributing/architecture.md#the-generator-and-the-analyzer` for what an emitter writes, the generator snapshots, a line in `CHANGELOG.md`, the demos built |
-| Bug fix | A regression test named for the rule the bug broke, in the class of its subject; a line under Fixed in `CHANGELOG.md`, what happens now and what went wrong; in `contributing/status.md`, its entry under "Known gaps" removed when it has one, and the test in the behavior table |
+| Bug fix | A regression test named for the rule the bug broke, in the class of its subject; a line under Fixed in `CHANGELOG.md`, what happens now and what went wrong; in `contributing/status.md`, its entry under "Known gaps" removed when it has one, and its test class in its area row, when it is new |
 | Change of what a store must do, or of a document it keeps | The rules `VerifyAsync` checks (`Storage/StoreExtensions.cs`, D58); both built-in stores, `InMemoryTypeshiftStore` and `FileAgentSettingsStore`; the docs' store in `samples/Typeshift.Samples.Docs/Stores/EfCore` and the demos' in `demos/Typeshift.Demos.Shared/Hosting/JsonFileStore.cs`; `implementing-a-store.md`; the `SchemaVersion` of a document whose JSON changes, such as `ConversationEntry` or `DecisionDocument` (D40); a line under Changed in `CHANGELOG.md` |
 | Dependency bump | `Directory.Packages.props`, never Roslyn (D8); the consumer sample's own `Directory.Packages.props` in `samples/Typeshift.Samples.PackageConsumer`, which repeats the version of Microsoft.Extensions.DependencyInjection. A new Microsoft.Extensions.AI can change the schema of a tool (`ToolSchemaTests`) and the public API snapshot. The demos built; a line under Changed in `CHANGELOG.md` when a dependency of the package moves |
 | Changed default or limit | The reference table, then every page and XML doc that states it: grep `docs/` and `src/` for the old value |

@@ -15,7 +15,7 @@
 //   - in AGENTS.md, the playbooks and the contributing pages: every repository path in backticks exists, and every
 //     `page.md#anchor` reaches a heading or anchor of that page
 //   - every guide page is the canonical page of a row of the fact map in AGENTS.md
-//   - every test docs/contributing/status.md names is a test under tests/
+//   - every test class docs/contributing/status.md names is one under tests/, and every one under tests/ is named
 //   - every link from the XML docs to the docs site, in src/ and in the generator's snapshots, reaches a page and,
 //     with a #fragment, a heading or anchor on it
 
@@ -482,36 +482,28 @@ for (const file of documented) {
   })
 }
 
-// status.md names a test as `Class.Method`, as `..._Method` for another test of the class before it, or by its class
-const tests = new Map()
-
-for (const file of find(join(root, 'tests'), name => name.endsWith('.cs'))) {
-  const code = readFileSync(file, 'utf8')
-  const methods = [...code.matchAll(/\bpublic\s+(?:async\s+)?[\w<>[\],.? ]+\s(\w+)\(/g)].map(match => match[1])
-
-  for (const [, type] of code.matchAll(/\bclass\s+(\w+)/g))
-    tests.set(type, new Set([...(tests.get(type) ?? []), ...methods]))
-}
+// status.md names every test class in the row of its area. A test class is a file under tests/ that holds a [Fact]
+// or a [Theory], named after its class as the test conventions require
+const testClasses = new Map(
+  find(join(root, 'tests'), name => name.endsWith('.cs'))
+    .filter(file => /^\s*\[(?:Fact|Theory)\b/m.test(textOf(file)))
+    .map(file => [basename(file, '.cs'), file]))
 
 const status = join(docs, 'contributing/status.md')
 const coverage = parsed.get(status) ?? { lines: [], fenced: [], offset: 0 }
+const named = new Set()
 
 coverage.lines.forEach((row, index) => {
   if (coverage.fenced[index] || !row.startsWith('|')) return
-  let type = null
 
-  for (const [, text] of row.matchAll(/`([^`]+)`/g)) {
-    const named = text.match(/^(\w+Tests)(?:\.(\w+))?$/)
-    const method = named ? named[2] : text.match(/^\.\.\._(\w+)$/)?.[1]
-    if (named) type = named[1]
-    if (!named && !method) continue
-
-    if (!tests.has(type))
-      fail(status, index + coverage.offset + 1, `\`${text}\` names no test class under tests/`)
-    else if (method && !tests.get(type).has(method))
-      fail(status, index + coverage.offset + 1, `\`${text}\` names no test: ${type} has no ${method}`)
+  for (const [, type] of row.matchAll(/`(\w+Tests)\b[^`]*`/g)) {
+    named.add(type)
+    testClasses.has(type) || fail(status, index + coverage.offset + 1, `\`${type}\` names no test class under tests/`)
   }
 })
+
+for (const [type, file] of testClasses)
+  named.has(type) || fail(status, 0, `${type} (${relative(root, file)}) is in no row: add it to the row of its area`)
 
 for (const error of errors) console.error(`  ${error}`)
 

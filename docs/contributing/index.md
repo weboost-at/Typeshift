@@ -52,7 +52,7 @@ fix.
 |---|---|
 | [Architecture](./architecture.md) | You change how the generator reads code, what it writes, or how a run resolves. |
 | [Decisions](./decisions.md) | Something looks odd. The entry says why it is so and what lost. |
-| [Status](./status.md) | You look for open work, known gaps, or which test covers a behavior. |
+| [Status](./status.md) | You look for open work, known gaps, or the test classes of an area. |
 | [Releasing](./releasing.md) | You publish a version to NuGet. |
 | [Writing the docs](./writing.md) | You change a guide page or the code it shows, or review a page. |
 

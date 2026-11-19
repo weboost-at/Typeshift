@@ -25,8 +25,8 @@ description: Add or change public behavior of the Typeshift runtime library (src
    `IChatClient` in `Testing/Fakes`, `HostTestBase` for anything that needs services, `AgentTestBase` for runs
    through `AddTypeshift()` and an `AgentHost<T>`, data from the catalog. A behavior across assemblies uses the
    toolsets of `tests/Typeshift.Tests.Toolsets`.
-5. **Status.** Add the behavior and its test to the table in `docs/contributing/status.md`; a known limit goes under
-   "Known gaps", never into a TODO.
+5. **Status.** A new test class goes into the row of its area in `docs/contributing/status.md`; a known limit goes
+   under "Known gaps", never into a TODO.
 6. **Public API.** Any added, removed or changed public member fails `PublicApiSurfaceTests` and writes
    `tests/Typeshift.Generators.Tests/Snapshots/PublicApi.received.txt`. Read its difference to `PublicApi.verified.txt`:
    every line must be a change you meant. Then accept it with

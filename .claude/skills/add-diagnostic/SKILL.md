@@ -66,8 +66,7 @@ configuring a tool the agent does not offer need no diagnostic, because no gener
    Then run `npm run docs:snippets`, which writes the example into the section. Run it again whenever
    `DiagnosticSources.cs` gains a line above a region, since the links under the examples name their lines. A
    mistake that no C# of one file shows, a build property or a referenced assembly for example, has no region: add
-   its ID to `WithoutExample` in `DiagnosticCatalogTests`. Last, give the rule a row of the behavior table in
-   `docs/contributing/status.md`, with the tests of the ID.
+   its ID to `WithoutExample` in `DiagnosticCatalogTests`.
 6. **The repository's own code.** A sample, a test project or a demo that makes the mistake now fails its build,
    with a warning too, since warnings are errors. Fix that code, or, in a test file that sets the mistake up on
    purpose, disable the ID with `#pragma warning disable TSHxxx // <reason>` and add the ID to the list of such

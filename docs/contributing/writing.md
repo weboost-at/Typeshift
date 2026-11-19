@@ -261,7 +261,7 @@ The docs rules check what a machine can:
 - every repository path and every anchor of a docs page that `AGENTS.md`, the playbooks and the contributing pages
   name in backticks exists;
 - every guide page is the canonical page of a row of the fact map in `AGENTS.md`;
-- every test that [Status](./status.md) names exists;
+- every test class that [Status](./status.md) names exists, and every test class is named in a row of it;
 - every link from the XML docs to this site reaches its page and its anchor: those in `src/`, which an editor shows
   in a tooltip, and those the generator writes, as its snapshots hold them.
 
