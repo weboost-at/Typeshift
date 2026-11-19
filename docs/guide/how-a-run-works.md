@@ -104,13 +104,11 @@ text without white space ([Results](./toolsets.md#results)).
 
 ## Where your code runs
 
-Typeshift awaits with `ConfigureAwait(false)`, so where its own code waits, a run never comes back to your app's
-synchronization context, such as a UI thread's. Once a run waited for your store, for example, it goes on on the
-thread pool, and your tools, middleware, context providers and store are called without the context.
-Microsoft.Extensions.AI's tool loop does come back to a context it finds, so a run that reaches the model before it
-waited, as one on the [store in memory](./implementing-a-store.md#which-store-serves-a-call) does, can still call
-your tools on the UI thread it started on. Await a run there rather than block on it with `.Result`, which holds the
-thread such a run comes back to.
+A run never comes back to your app's synchronization context, such as a UI thread's in a WPF, WinForms, MAUI or
+Blazor app. Typeshift calls your tools, middleware, context providers and store without it, so an `await` in your
+code goes on on the thread pool. The code that started the run still comes back to its own context once the run
+answers, so a UI updates from there as usual. A tool or middleware that changes the UI itself posts to it, for
+example with `Dispatcher.InvokeAsync`.
 
 ## Related
 

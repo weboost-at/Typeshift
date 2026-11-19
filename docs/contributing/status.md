@@ -427,12 +427,6 @@ rewrite.
   client of an API with hosted MCP. Other clients, such as OpenAI's Chat Completions client and Anthropic's default
   adapter, drop it without an error, and Typeshift neither logs nor throws. The guide warns about it; a check
   against the client that serves the run would need a decision next to D35.
-- **A caller's context before a run waits.** Typeshift's awaits leave the caller's synchronization context (D85),
-  but the tool loop and `OpenTelemetryChatClient` of Microsoft.Extensions.AI 10.10 await without
-  `ConfigureAwait(false)`. A run that reaches them before Typeshift waited, as one on the store in memory does, posts
-  to a UI thread about once per streamed update, and its tools and store calls run there. Clearing the context
-  while a run calls its pipeline, where a run starts and where a stream resumes, would close the gap; done in
-  `StreamingRun` alone, it left a streamed run of 102 updates without a post. It needs a decision next to D85.
 
 ## Related
 

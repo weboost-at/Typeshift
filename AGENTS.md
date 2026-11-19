@@ -305,7 +305,9 @@ The code must read as if the owner wrote it: terse, intention-revealing, comment
   the few intended uses carry `#pragma warning disable RS0030` and their reason. Only an app names
   `TimeProvider.System`, which here means a sample or a demo.
 - Library and generated awaits use `ConfigureAwait(false)`, `await foreach` and `await using` included (D85); CA2007
-  enforces it for `src/Typeshift`, and an emitter that writes an await writes it so.
+  enforces it for `src/Typeshift`, and an emitter that writes an await writes it so. A public async member that runs
+  the app's code or Microsoft.Extensions.AI's calls `SynchronizationContexts.Leave()` first, and a stream after each
+  update it hands on.
 - `shortcut: <the limit>, <when to upgrade>` comments mark a known limit; list them with `ponytail-debt` and carry
   them into `status.md` by hand.
 - No reflection over user types on generated paths, no static mutable state, JSON through `JsonTypeInfo` only.

@@ -438,11 +438,15 @@ public static class AgentRuns
         AgentHost<TAgent> host,
         CancellationToken ct)
         where TAgent : Agent
-        where TSettings : class, IStorable<TSettings>, new() =>
-        (host.SettingsId is { } id
-            ? await host.Store.LoadAsync<TSettings>(id, ct).ConfigureAwait(false)
-            : await host.Store.LoadAgentSettingsAsync<TSettings>(ct).ConfigureAwait(false))
-        ?? new Stored<TSettings>(new TSettings(), 0);
+        where TSettings : class, IStorable<TSettings>, new()
+    {
+        SynchronizationContexts.Leave();
+
+        return (host.SettingsId is { } id
+                ? await host.Store.LoadAsync<TSettings>(id, ct).ConfigureAwait(false)
+                : await host.Store.LoadAgentSettingsAsync<TSettings>(ct).ConfigureAwait(false))
+            ?? new Stored<TSettings>(new TSettings(), 0);
+    }
 
     /// <summary>
     /// Saves the agent's own settings, or those under the id the host was given, if the stored version is still the one
@@ -469,10 +473,23 @@ public static class AgentRuns
         where TSettings : class, IStorable<TSettings>
     {
         EnsureRuns(host.Agent, settings);
+        return SaveAsync(host, settings, loadedVersion, ct);
+    }
 
-        return host.SettingsId is { } id
-            ? host.Store.SaveAsync(id, settings, loadedVersion, ct)
-            : host.Store.SaveAgentSettingsAsync(settings, loadedVersion, ct);
+    private static async Task<long> SaveAsync<TAgent, TSettings>(
+        AgentHost<TAgent> host,
+        TSettings settings,
+        long loadedVersion,
+        CancellationToken ct)
+        where TAgent : Agent
+        where TSettings : class, IStorable<TSettings>
+    {
+        SynchronizationContexts.Leave();
+
+        return await (host.SettingsId is { } id
+                ? host.Store.SaveAsync(id, settings, loadedVersion, ct)
+                : host.Store.SaveAgentSettingsAsync(settings, loadedVersion, ct))
+            .ConfigureAwait(false);
     }
 
     // D28, D32: a dry run of the layer over no values but its own, so it refuses what the settings themselves set
@@ -517,6 +534,8 @@ public static class AgentRuns
         where TAgent : Agent
         where TSettings : class, IStorable<TSettings>, new()
     {
+        SynchronizationContexts.Leave();
+
         // D41: each conflict means another save won, so the loop ends once no other save comes between
         for (var attempt = 1; ; attempt++)
         {

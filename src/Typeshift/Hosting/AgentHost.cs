@@ -742,11 +742,16 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// <exception cref="InvalidOperationException">
     /// The host has no conversation, or stores are registered and none keeps conversations under its id's type.
     /// </exception>
-    public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(CancellationToken ct = default) =>
-        (_conversationId
+    public async Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(CancellationToken ct = default)
+    {
+        SynchronizationContexts.Leave();
+
+        var conversation = _conversationId
             ?? throw new InvalidOperationException(
-                "A conversation's history needs a conversation: load it on a host from WithConversationId(id)."))
-        .LoadConversationAsync(Store, ct);
+                "A conversation's history needs a conversation: load it on a host from WithConversationId(id).");
+
+        return await conversation.LoadConversationAsync(Store, ct).ConfigureAwait(false);
+    }
 
     /// <summary>
     /// Loads what the host's conversation, from <c>WithConversationId</c>, waits for: the decisions your app has not
@@ -756,8 +761,11 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// <param name="ct">Cancels the load.</param>
     /// <returns>The decisions; none open for a conversation that never asked.</returns>
     /// <exception cref="InvalidOperationException">The host has no conversation.</exception>
-    public async Task<ConversationDecisions> GetDecisionsAsync(CancellationToken ct = default) =>
-        (await Ledger.LoadAsync(DecidedConversation, ct).ConfigureAwait(false)).ToDecisions();
+    public async Task<ConversationDecisions> GetDecisionsAsync(CancellationToken ct = default)
+    {
+        SynchronizationContexts.Leave();
+        return (await Ledger.LoadAsync(DecidedConversation, ct).ConfigureAwait(false)).ToDecisions();
+    }
 
     /// <summary>
     /// Records your app's answers to decisions of the host's conversation, by their ids, and starts no run:
@@ -783,6 +791,7 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     {
         ArgumentNullException.ThrowIfNull(answers);
 
+        SynchronizationContexts.Leave();
         return (await Ledger.RecordAsync(DecidedConversation, answers, ct).ConfigureAwait(false)).ToDecisions();
     }
 
@@ -796,8 +805,11 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// <returns>The conversation's decisions after the withdrawal, none of them open.</returns>
     /// <exception cref="StoreConflictException">Other saves came first ten times in a row.</exception>
     /// <exception cref="InvalidOperationException">The host has no conversation.</exception>
-    public async Task<ConversationDecisions> CancelDecisionsAsync(CancellationToken ct = default) =>
-        (await Ledger.CancelAsync(DecidedConversation, ct).ConfigureAwait(false)).ToDecisions();
+    public async Task<ConversationDecisions> CancelDecisionsAsync(CancellationToken ct = default)
+    {
+        SynchronizationContexts.Leave();
+        return (await Ledger.CancelAsync(DecidedConversation, ct).ConfigureAwait(false)).ToDecisions();
+    }
 
     /// <summary>
     /// Switches the mode of the host's conversation, from <c>WithConversationId</c>. Its next run is in
@@ -812,8 +824,11 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// <exception cref="InvalidOperationException">
     /// The host has no conversation, or stores are registered and none keeps the decisions of its id type.
     /// </exception>
-    public async Task SetModeAsync(AgentMode mode, CancellationToken ct = default) =>
+    public async Task SetModeAsync(AgentMode mode, CancellationToken ct = default)
+    {
+        SynchronizationContexts.Leave();
         await Ledger.SetModeAsync(DecidedConversation, mode, ct).ConfigureAwait(false);
+    }
 
     /// <summary>
     /// Withdraws a standing approval of the host's conversation, from <c>WithConversationId</c>: a tool your app
@@ -834,6 +849,7 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     {
         ArgumentNullException.ThrowIfNull(tool);
 
+        SynchronizationContexts.Leave();
         await Ledger.RevokeAsync(DecidedConversation, tool, server, ct).ConfigureAwait(false);
     }
 
@@ -886,6 +902,8 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     public async Task<IChatClient> CreateChatClientAsync(ChatOptions options, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(options);
+
+        SynchronizationContexts.Leave();
 
         // D26: the client keeps the options, which hold the agent's provider, run options and settings
         if (options is not ResolvedChatOptions resolved)
@@ -997,6 +1015,7 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
         object? settings,
         CancellationToken ct)
     {
+        SynchronizationContexts.Leave();
         var declaration = Agent.GeneratedDeclaration;
         var loads = new[]
         {
@@ -1190,6 +1209,7 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
         object? settings,
         CancellationToken ct)
     {
+        SynchronizationContexts.Leave();
         var (taken, answering) = await Start.TakeAsync(handover, NamedMode(settings), ct).ConfigureAwait(false);
 
         try

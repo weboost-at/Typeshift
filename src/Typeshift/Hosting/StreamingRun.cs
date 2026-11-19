@@ -42,12 +42,22 @@ public class StreamingRun : IAsyncEnumerable<ChatResponseUpdate>
         if (Interlocked.Exchange(ref _read, 1) == 1)
             throw new InvalidOperationException("A streaming run streams its updates once; start a new run instead.");
 
+        SynchronizationContexts.Leave();
         List<ChatResponseUpdate> updates = [];
 
         await foreach (var update in _updates.WithCancellation(cancellationToken).ConfigureAwait(false))
         {
             updates.Add(update);
-            yield return update;
+
+            // D85: the caller asks for the next update, or leaves and so stops the run, from its own context
+            try
+            {
+                yield return update;
+            }
+            finally
+            {
+                SynchronizationContexts.Leave();
+            }
         }
 
         _response = updates.ToChatResponse();

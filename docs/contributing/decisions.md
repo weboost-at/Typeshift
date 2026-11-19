@@ -686,29 +686,37 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   copies of those steps had drifted apart in what a failed run stores and in what a watcher receives.
 - **Where:** `AgentHost.cs`, `Conversations/ConversationChatClient.cs` (the run's steps).
 
-### D85. Library and generated awaits leave the caller's context
+### D85. A run leaves the caller's synchronization context
 
 - **Status:** owner.
 - **Context:** one await of the library configured how it resumes, and the code the generator writes awaited a tool
   plainly. A WPF, WinForms, MAUI or Blazor app that ran an agent from its UI thread had nearly every continuation of
-  the run come back to that thread: a streamed run of 102 updates posted to its context hundreds of times, and the
-  store appended there.
+  the run come back to that thread: a streamed run of 102 updates posted to its context hundreds of times, the store
+  appended there, and blocking on a run there deadlocked. Configuring Typeshift's own awaits was not enough:
+  Microsoft.Extensions.AI 10.10's tool loop and `OpenTelemetryChatClient`, which every run passes through (D29), await
+  without `ConfigureAwait(false)`, and so does most of an app's code. A run that reached them before it waited, as
+  one on the store in memory does, still posted 80 to 120 times for those 102 updates, and its tools and appends ran
+  on the UI thread.
 - **Decision:** every await in `src/Typeshift`, `await foreach` and `await using` included, and every await the
   generator writes uses `ConfigureAwait(false)`. CA2007 is an error for `src/Typeshift` (`.editorconfig`), and
-  `ToolsetEmitter` writes a tool's await so, which a consumer that turns CA2007 on never sees reported. The await
-  with `ConfigureAwaitOptions.SuppressThrowing` in `RunMiddlewareChatClient` leaves out `ContinueOnCapturedContext`,
-  which is the same as `false`. Once a run waits in Typeshift's code, for its store for example, it goes on on the
-  thread pool, and the tools, middleware, context providers and store calls after it run without the context
-  (`SynchronizationContextTests`).
-- **Limit:** the tool loop and `OpenTelemetryChatClient` of Microsoft.Extensions.AI 10.10, which every run passes
-  through (D29), await without `ConfigureAwait(false)`. A run that reaches them before it waited, as one on the store
-  in memory does, has them capture the caller's context, and the code they call from then on runs on it. Measured
-  with the counting context of the tests, such a streamed run of 102 updates posted 80 to 120 times, and 700 to 820
-  before this decision.
+  `ToolsetEmitter` writes a tool's await so. The await with `ConfigureAwaitOptions.SuppressThrowing` in
+  `RunMiddlewareChatClient` leaves out `ContinueOnCapturedContext`, which is the same as `false`. On top, each public
+  member that runs the app's code or Microsoft.Extensions.AI's clears the current synchronization context for its own
+  steps (`SynchronizationContexts.Leave`): a run and the raw path's client, each step of a stream as the caller asks
+  for the next update or leaves it, the settings members, the decisions members, `LoadConversationAsync`,
+  `CreateChatClientAsync` and a store's `VerifyAsync`. An async method calls it first, and its builder puts the
+  caller's context back when the method returns to its caller, so the caller's own awaits still come back to it.
+  Nothing moves to another thread, and the execution context, with `Activity.Current` and every `AsyncLocal`, flows
+  as before. A run posts nothing to the caller's context, and the tools, middleware, context providers, providers
+  and store it calls see none (`SynchronizationContextTests`).
 - **Alternatives:** keeping the caller's context on purpose and saying so, which leaves every update of a stream
-  crossing a UI thread several times and blocking on a run there a deadlock; configuring only the awaits on hot
-  paths, without an analyzer, which drifts with every change.
-- **Where:** `.editorconfig`, `src/Typeshift`, `Emitting/ToolsetEmitter.cs` (`WriteInvoke`).
+  crossing a UI thread several times and blocking on a run there a deadlock; `ConfigureAwait(false)` alone, which
+  holds only once a run waited in Typeshift's code and leaves the run on the store in memory on the UI thread; a hop
+  to the thread pool where a run starts, a thread switch per run and per update that clearing the context avoids;
+  configuring only the awaits on hot paths, without an analyzer, which drifts with every change.
+- **Where:** `.editorconfig`, `src/Typeshift`, `Hosting/SynchronizationContexts.cs` and its callers,
+  `Hosting/StreamingRun.cs`, `Conversations/ConversationChatClient.cs` (the raw path),
+  `Emitting/ToolsetEmitter.cs` (`WriteInvoke`).
 
 ### D30. Middleware: one interface around runs, one around tool calls
 

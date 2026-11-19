@@ -6,13 +6,9 @@ namespace Typeshift.Tests.Hosting.Support;
 // A run starts on it and is awaited as by a caller that leaves the context itself, so each post is one the run made
 public sealed class CallerContext : SynchronizationContext
 {
-    private readonly TaskCompletionSource _waiting = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private int _posts;
 
     public int Posts => Volatile.Read(ref _posts);
-
-    // Completes once the run's first step returned to the caller, so the run waits for what its step awaited
-    public Task Waiting => _waiting.Task;
 
     public override void Post(SendOrPostCallback d, object? state)
     {
@@ -29,35 +25,34 @@ public sealed class CallerContext : SynchronizationContext
         Task.Run(async () =>
         {
             SetSynchronizationContext(this);
-            var updates = run().ConfigureAwait(false).GetAsyncEnumerator();
             var count = 0;
 
-            try
+            await foreach (var _ in run().ConfigureAwait(false))
             {
-                var next = updates.MoveNextAsync();
-                _waiting.TrySetResult();
-
-                while (await next)
-                {
-                    count++;
-                    next = updates.MoveNextAsync();
-                }
-            }
-            finally
-            {
-                await updates.DisposeAsync();
+                count++;
             }
 
             return count;
+        });
+
+    // Reads as a caller that stays on this context does, so it asks for each update from here, and leaves the stream
+    // after the count of updates
+    public Task StayAndReadAsync(Func<IAsyncEnumerable<ChatResponseUpdate>> run, int count) =>
+        Task.Run(async () =>
+        {
+            SetSynchronizationContext(this);
+            var read = 0;
+
+            await foreach (var _ in run())
+            {
+                if (++read == count) break;
+            }
         });
 
     public Task<T> RunAsync<T>(Func<Task<T>> run) =>
         Task.Run(async () =>
         {
             SetSynchronizationContext(this);
-            var running = run();
-            _waiting.TrySetResult();
-
-            return await running.ConfigureAwait(false);
+            return await run().ConfigureAwait(false);
         });
 }

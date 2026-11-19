@@ -166,6 +166,8 @@ public static class StoreExtensions
                 + "ids apart.");
         }
 
+        SynchronizationContexts.Leave();
+
         if (settings is not null)
             await VerifySettingsAsync(settings, settingsIds.Id, settingsIds.Other, ct).ConfigureAwait(false);
 
@@ -341,6 +343,8 @@ public static class StoreExtensions
         Func<string, string, long, Task<long>> save,
         DocumentKeys keys)
     {
+        SynchronizationContexts.Leave();
+
         const string firstJson = """{"step":1}""";
         const string secondJson = """{"step":2}""";
         const string otherJson = """{"other":true}""";

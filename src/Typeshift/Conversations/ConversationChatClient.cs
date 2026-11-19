@@ -34,6 +34,7 @@ internal sealed class ConversationChatClient(
         ChatOptions? options = null,
         CancellationToken cancellationToken = default)
     {
+        SynchronizationContexts.Leave();
         var resolved = WithNewConversation(messages, created.ForCall(options));
         using var activity = Telemetry.StartRun(agent, resolved, InnerClient);
 
@@ -67,6 +68,7 @@ internal sealed class ConversationChatClient(
         ChatOptions? options = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
+        SynchronizationContexts.Leave();
         var resolved = WithNewConversation(messages, created.ForCall(options));
         using var activity = Telemetry.StartRun(agent, resolved, InnerClient);
         var usage = new UsageDetails();
@@ -107,7 +109,15 @@ internal sealed class ConversationChatClient(
                 }
 
                 // A run that continues says so after its last update, in one of its own
-                yield return ChatResponses.IncompleteUpdate();
+                try
+                {
+                    yield return ChatResponses.IncompleteUpdate();
+                }
+                finally
+                {
+                    SynchronizationContexts.Leave();
+                }
+
                 continue;
             }
 
@@ -123,7 +133,16 @@ internal sealed class ConversationChatClient(
             var named = conversation is null ? update : Named(update, conversation);
 
             handed.Add(named);
-            yield return named;
+
+            // D85: the caller asks for the next update, or leaves and so stops the run, from its own context
+            try
+            {
+                yield return named;
+            }
+            finally
+            {
+                SynchronizationContexts.Leave();
+            }
         }
 
         Telemetry.Answered(activity, usage);
