@@ -239,7 +239,8 @@ foreach (var toolset in runtime.Toolsets)
 
 - An `AgentInfo` holds the agent's type, its name, its kind and its description. The kind is the one its stored
   settings go by, from `WithStorageKind("...")` or else the class name. No two agents share a kind, while two may
-  share a name.
+  share a name. Its `SwitchableTools` names the tools a customer's settings may
+  [switch off](./defining-agents.md#switching-a-tool-off), for a settings page that shows a switch for each.
 - A `ToolsetInfo` holds the toolset's type, the display name its `WithDisplayName(...)` gives and its tools. Each
   `ToolInfo` holds a tool's name and description, and whether it is read-only or requires approval, as the generator
   read them from the toolset.

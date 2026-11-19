@@ -209,7 +209,8 @@ All notable changes to this project are documented here. The format follows
   could not put a toolset's tool behind approval, though `UseMcpServer(...).RequiresApproval()` could for a server.
 - `UseToolset<T>().Configurable(t => t.X)` lets stored settings or a run switch the tool off: the agent's `Settings`
   gain `bool? XEnabled`, and `WithSettingsId(customer).UpdateSettingsAsync(s => s with { SearchTicketsEnabled =
-  false })` leaves `search_tickets` out of that customer's runs only. Only the tools an agent picks get a switch.
+  false })` leaves `search_tickets` out of that customer's runs only. Only the tools an agent picks get a switch,
+  and `runtime.Agents` lists them in `AgentInfo.SwitchableTools`.
 - TSH043 reports a `RequiresApproval(t => t.X)` or `Configurable(t => t.X)` on a use that excludes the tool or
   includes others only, which would have no effect.
 - A watcher that joins while a run goes on first receives what the run published that the store does not hold yet,

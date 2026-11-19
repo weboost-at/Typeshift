@@ -32,7 +32,10 @@ internal sealed class RuntimeCatalog
             .. _agents.Select(registration =>
             {
                 var agent = registration.Agent(services);
-                return new AgentInfo(registration.Type, agent.Name, registration.Kind, agent.Description);
+                return new AgentInfo(registration.Type, agent.Name, registration.Kind, agent.Description)
+                {
+                    SwitchableTools = agent.GeneratedDeclaration.SwitchableTools
+                };
             })
         ];
 

@@ -165,6 +165,8 @@ partial class DeskAgent
 
         public override string? Description => null;
 
+        public override global::System.Collections.Generic.IReadOnlyList<string> SwitchableTools => ["search_tickets", "note_ticket"];
+
         protected override global::Typeshift.RunOptions ApplySettings(
             global::Microsoft.Extensions.AI.ChatOptions options,
             global::Typeshift.RunOptions run,
@@ -379,6 +381,8 @@ partial class ReaderAgent
 
         public override string? Description => null;
 
+        public override global::System.Collections.Generic.IReadOnlyList<string> SwitchableTools => ["search_tickets"];
+
         protected override global::Typeshift.RunOptions ApplySettings(
             global::Microsoft.Extensions.AI.ChatOptions options,
             global::Typeshift.RunOptions run,
@@ -583,6 +587,8 @@ partial class TriageAgent
         public override string Name => "triage_agent";
 
         public override string? Description => null;
+
+        public override global::System.Collections.Generic.IReadOnlyList<string> SwitchableTools => ["note_ticket"];
 
         protected override global::Typeshift.RunOptions ApplySettings(
             global::Microsoft.Extensions.AI.ChatOptions options,

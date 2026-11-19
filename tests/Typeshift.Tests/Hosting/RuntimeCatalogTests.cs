@@ -27,6 +27,16 @@ public class RuntimeCatalogTests : AgentTestBase
     }
 
     [Fact]
+    public void Given_An_Agent_Whose_Use_Lets_Settings_Switch_A_Tool_Off_The_Runtime_Lists_The_Tool()
+    {
+        // Act
+        var agent = Runtime.Agents.Single(agent => agent.Type == typeof(SwitchingAgent));
+
+        // Assert
+        agent.SwitchableTools.Should().Equal("probe");
+    }
+
+    [Fact]
     public void Given_An_Agent_With_A_Storage_Kind_The_Runtime_Lists_It_Under_That_Kind()
     {
         // Act

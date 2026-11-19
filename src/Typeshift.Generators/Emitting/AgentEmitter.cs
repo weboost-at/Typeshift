@@ -394,6 +394,19 @@ internal static class AgentEmitter
             var description = agent.Description is { } text ? Names.Literal(text) : "null";
             writer.Line($"public override string? Description => {description};");
             writer.Line();
+
+            // D84: the catalog lists the tools settings may switch off
+            var switchable = output.Tools.Where(offered => offered.Switchable).ToList();
+
+            if (switchable.Count > 0)
+            {
+                var names = string.Join(", ", switchable.Select(offered => Names.Literal(offered.Tool.Name)));
+
+                writer.Line(
+                    "public override global::System.Collections.Generic.IReadOnlyList<string> SwitchableTools => "
+                    + $"[{names}];");
+                writer.Line();
+            }
             WriteApplySettings(writer, agent);
             writer.Line();
             WriteCreateTools(writer, output, configured);

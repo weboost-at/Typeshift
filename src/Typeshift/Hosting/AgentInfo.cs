@@ -17,4 +17,12 @@ namespace Typeshift;
 /// <param name="Description">
 /// What the agent does: its <c>WithDescription</c>, or the summary of its XML docs; null when it has none.
 /// </param>
-public sealed record AgentInfo(Type Type, string Name, string Kind, string? Description);
+public sealed record AgentInfo(Type Type, string Name, string Kind, string? Description)
+{
+    /// <summary>
+    /// The tools of the agent a customer's settings may switch off, by name, each one a use's
+    /// <c>Configurable(t => t.X)</c> picked; empty when the agent offers every tool in every run. A settings page shows
+    /// a switch for each.
+    /// </summary>
+    public IReadOnlyList<string> SwitchableTools { get; init; } = [];
+}

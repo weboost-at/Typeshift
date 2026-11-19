@@ -23,6 +23,12 @@ public abstract class AgentDeclaration
     /// </summary>
     public abstract string? Description { get; }
 
+    // D84: what the runtime's catalog lists of the tools settings may switch off
+    /// <summary>
+    /// The tools the agent's <c>Settings</c> may switch off, by name, in the order the agent offers them.
+    /// </summary>
+    public virtual IReadOnlyList<string> SwitchableTools => [];
+
     internal abstract RunOptions ApplySettings(ChatOptions options, RunOptions run, object settings);
 
     internal abstract IEnumerable<AITool> CreateTools(Agent agent, IReadOnlyList<object> layers, ToolJson json);

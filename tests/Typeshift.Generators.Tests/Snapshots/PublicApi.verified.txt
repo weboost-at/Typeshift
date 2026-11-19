@@ -80,6 +80,7 @@ public override bool Typeshift.AgentInfo.Equals(object? obj)
 public override int Typeshift.AgentInfo.GetHashCode()
 public string Typeshift.AgentInfo.Kind { get; init; }
 public string Typeshift.AgentInfo.Name { get; init; }
+public System.Collections.Generic.IReadOnlyList<string> Typeshift.AgentInfo.SwitchableTools { get; init; }
 public override string Typeshift.AgentInfo.ToString()
 public System.Type Typeshift.AgentInfo.Type { get; init; }
 public static bool Typeshift.AgentInfo.operator !=(Typeshift.AgentInfo? left, Typeshift.AgentInfo? right)
@@ -284,6 +285,7 @@ public static Typeshift.AgentRun Typeshift.FunctionInvocationContextExtensions.g
 public abstract class Typeshift.Generated.AgentDeclaration
 public abstract string? Typeshift.Generated.AgentDeclaration.Description { get; }
 public abstract string Typeshift.Generated.AgentDeclaration.Name { get; }
+public virtual System.Collections.Generic.IReadOnlyList<string> Typeshift.Generated.AgentDeclaration.SwitchableTools { get; }
 public abstract class Typeshift.Generated.AgentDeclaration<TAgent, TSettings> : Typeshift.Generated.AgentDeclaration where TAgent : Typeshift.Agent where TSettings : class, Typeshift.IStorable<TSettings>
 protected Typeshift.Generated.AgentDeclaration<TAgent, TSettings>.AgentDeclaration()
 protected abstract Typeshift.RunOptions Typeshift.Generated.AgentDeclaration<TAgent, TSettings>.ApplySettings(Microsoft.Extensions.AI.ChatOptions options, Typeshift.RunOptions run, TSettings settings)

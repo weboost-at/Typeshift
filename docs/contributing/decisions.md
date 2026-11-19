@@ -550,6 +550,9 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   agent's approval tools and TSH024 and TSH037 see it, also from a referencing project; the stamps' shape is
   unchanged. A mark on a tool the use does not offer, because it excludes it or includes others only, is TSH043. A
   switch's member yields to every other member of the record, as a tool's overrides do (D6), with a `Tool` suffix.
+  The runtime's catalog (D83) lists an agent's switchable tools in `AgentInfo.SwitchableTools`, which the generated
+  declaration overrides, so a settings page needs no list of its own; a toolset's `ToolInfo` has none, since a use
+  makes a tool switchable, not its toolset.
 - **Alternatives:** step 1 alone, the default without the owner, which leaves the per-customer tool set to a
   middleware by name; `ReadOnly(t => t.X)` on a use, which would let an agent offer a toolset's tool in plan mode
   that its author did not mark, so an agent may make a tool stricter, never looser; a switch on every tool, which
