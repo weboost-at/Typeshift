@@ -101,6 +101,7 @@ public sealed class JsonFileStore(string directory) : ITypeshiftStore<Guid>
             catch (JsonException) when (index == lines.Length - 1)
             {
                 // A crash in the middle of an append cuts the last line off: that entry was never stored
+                break;
             }
         }
 

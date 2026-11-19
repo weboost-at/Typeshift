@@ -61,6 +61,7 @@ internal static class Conversations
             catch (ConversationBusyException)
             {
                 // A run of the conversation began in between and takes the input now
+                continue;
             }
         }
         // end-snippet

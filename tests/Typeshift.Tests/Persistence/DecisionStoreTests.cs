@@ -93,3 +93,5 @@ public class DecisionStoreTests : UnitTestBase
             .WithMessage("No IDecisionStore<Guid> is registered*WithStore<T>()*");
     }
 }
+
+#pragma warning restore TSH036

@@ -1096,3 +1096,5 @@ public class ConversationStoreTests : AgentTestBase
         }
     }
 }
+
+#pragma warning restore TSH036
