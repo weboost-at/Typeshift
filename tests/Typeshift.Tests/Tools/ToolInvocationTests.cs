@@ -117,7 +117,7 @@ public class ToolInvocationTests : HostTestBase
     {
         // Arrange
         ChatClient
-            .Reply(Call(Data.Tool.CallId, "picture", ("caption", Data.Tool.Query)))
+            .Reply(Call(Data.Tool.CallId, ContentToolset.ToolNames.Picture, ("caption", Data.Tool.Query)))
             .Reply(Text(Data.Tool.Answer));
 
         var options = new ChatOptions { Tools = [ContentToolset.CreatePicture(Json)] };
@@ -147,7 +147,7 @@ public class ToolInvocationTests : HostTestBase
     {
         // Arrange
         ChatClient
-            .Reply(Call(Data.Tool.CallId, "annotate", ("caption", Data.Tool.Query)))
+            .Reply(Call(Data.Tool.CallId, ContentToolset.ToolNames.Annotate, ("caption", Data.Tool.Query)))
             .Reply(Text(Data.Tool.Answer));
 
         var options = new ChatOptions { Tools = [ContentToolset.CreateAnnotate(Json)] };

@@ -225,7 +225,7 @@ await support.WithSettingsId(42).UpdateSettingsAsync(settings => settings with
     SearchTickets = settings.SearchTickets with { Limit = 20 }
 });
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/AgentSettings.cs#L13-L21' title='Snippet source file'>snippet source</a> | <a href='#snippet-configure-settings' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/AgentSettings.cs#L14-L22' title='Snippet source file'>snippet source</a> | <a href='#snippet-configure-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 It returns the settings it saved with their new version, which a later `SaveSettingsAsync` takes without loading
@@ -252,7 +252,7 @@ catch (StoreConflictException)
     stored = await host.LoadSettingsAsync();
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/AgentSettings.cs#L23-L35' title='Snippet source file'>snippet source</a> | <a href='#snippet-load-and-save-settings' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/AgentSettings.cs#L24-L36' title='Snippet source file'>snippet source</a> | <a href='#snippet-load-and-save-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Saving `Instructions = null` removes the stored instructions, so runs with this settings id use the agent's own

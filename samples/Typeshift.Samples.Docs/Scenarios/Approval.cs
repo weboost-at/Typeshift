@@ -79,7 +79,7 @@ internal static class Approval
         var review = scope.ServiceProvider.GetRequiredService<AgentHost<ReviewDeskAgent>>().WithConversationId(10);
         var escalation = await review.RunAsync("Escalate ticket 1234");
 
-        if (escalation.Decisions is not [ApprovalDecision { Tool: "escalate_ticket" }])
+        if (escalation.Decisions is not [ApprovalDecision { Tool: TicketEscalationToolset.ToolNames.EscalateTicket }])
             throw new InvalidOperationException("Expected the use to make the escalation ask the app.");
 
         await GuardAsync(scope.ServiceProvider);

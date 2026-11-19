@@ -135,7 +135,7 @@ public class ModeTests : ApprovalTestBase
         // Assert
         ChatClient.Options[0]!.Tools!.Select(tool => tool.Name)
             .Should()
-            .Equal("read_ticket", "web_search", "exit_plan_mode");
+            .Equal(GuardedToolset.ToolNames.ReadTicket, "web_search", BuiltInTools.ExitPlanMode);
     }
 
     [Fact]

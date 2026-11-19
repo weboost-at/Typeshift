@@ -476,7 +476,7 @@ await support.WithSettingsId(42).UpdateSettingsAsync(settings => settings with
     SearchTickets = settings.SearchTickets with { Limit = 20 }
 });
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/AgentSettings.cs#L13-L21' title='Snippet source file'>snippet source</a> | <a href='#snippet-configure-settings' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/AgentSettings.cs#L14-L22' title='Snippet source file'>snippet source</a> | <a href='#snippet-configure-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 A provider in settings picks among the clients your app registered, and with a key per customer, whose key pays for

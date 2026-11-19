@@ -184,7 +184,7 @@ Switch it off under a customer's settings id, as the agent's other settings are 
 ```cs
 await review.WithSettingsId(42).UpdateSettingsAsync(settings => settings with { SearchTicketsEnabled = false });
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/AgentSettings.cs#L59-L61' title='Snippet source file'>snippet source</a> | <a href='#snippet-switch-tool-off' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/AgentSettings.cs#L60-L62' title='Snippet source file'>snippet source</a> | <a href='#snippet-switch-tool-off' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 That customer's runs no longer offer `search_tickets`, and those of every other customer still do. To switch a tool

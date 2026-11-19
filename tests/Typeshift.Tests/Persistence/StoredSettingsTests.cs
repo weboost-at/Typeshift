@@ -5,6 +5,7 @@ using Typeshift.Tests.Hosting.Support;
 using Typeshift.Tests.Persistence.Support;
 using Typeshift.Tests.Testing.Fakes;
 using Typeshift.Tests.Tools.Support;
+using Typeshift.Tests.Toolsets;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -381,7 +382,7 @@ public class StoredSettingsTests : AgentTestBase
         await customer.RunAsync(Data.Tool.Question, ct: Ct);
 
         // Assert
-        ChatClient.Options[0]!.Tools!.Select(tool => tool.Name).Should().Equal("count_companies");
+        ChatClient.Options[0]!.Tools!.Select(tool => tool.Name).Should().Equal(CompanyToolset.ToolNames.CountCompanies);
     }
 
     [Fact]
@@ -397,7 +398,9 @@ public class StoredSettingsTests : AgentTestBase
         await Host<SwitchingAgent>().WithSettingsId(Data.Persistence.OtherId).RunAsync(Data.Tool.Question, ct: Ct);
 
         // Assert
-        ChatClient.Options[0]!.Tools!.Select(tool => tool.Name).Should().Equal("probe", "count_companies");
+        ChatClient.Options[0]!.Tools!.Select(tool => tool.Name)
+            .Should()
+            .Equal(ProbeToolset.ToolNames.Probe, CompanyToolset.ToolNames.CountCompanies);
     }
 
     [Fact]
@@ -413,6 +416,6 @@ public class StoredSettingsTests : AgentTestBase
         await customer.RunAsync(Data.Tool.Question, settings: new() { ProbeEnabled = true }, ct: Ct);
 
         // Assert
-        ChatClient.Options[0]!.Tools!.Select(tool => tool.Name).Should().Contain("probe");
+        ChatClient.Options[0]!.Tools!.Select(tool => tool.Name).Should().Contain(ProbeToolset.ToolNames.Probe);
     }
 }

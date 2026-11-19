@@ -440,7 +440,7 @@ public class ConversationStoreTests : AgentTestBase
         var host = Host<ContentAgent>().WithConversationId(Data.Agent.ConversationId);
 
         ChatClient
-            .Reply(Call(Data.Tool.CallId, "picture", ("caption", Data.Tool.Query)))
+            .Reply(Call(Data.Tool.CallId, ContentToolset.ToolNames.Picture, ("caption", Data.Tool.Query)))
             .Reply(Text(Data.Tool.Answer))
             .Reply(Text(Data.Agent.Reason));
 

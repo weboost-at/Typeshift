@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Typeshift.Samples.Agents;
+using Typeshift.Samples.Tickets;
 
 namespace Typeshift.Samples.Scenarios;
 
@@ -63,8 +64,8 @@ internal static class AgentSettings
         var switchedOff = await review.WithSettingsId(42).ResolveOptionsAsync();
         var otherCustomer = await review.WithSettingsId(43).ResolveOptionsAsync();
 
-        if (switchedOff.Tools!.Any(tool => tool.Name == "search_tickets")
-            || !otherCustomer.Tools!.Any(tool => tool.Name == "search_tickets"))
+        if (switchedOff.Tools!.Any(tool => tool.Name == TicketToolset.ToolNames.SearchTickets)
+            || !otherCustomer.Tools!.Any(tool => tool.Name == TicketToolset.ToolNames.SearchTickets))
             throw new InvalidOperationException("Expected the search switched off for customer 42 only.");
 
         // The EF Core store keeps agents' own settings too, so a host without a settings id saves them there

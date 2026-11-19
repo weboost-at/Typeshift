@@ -33,7 +33,7 @@ public class RuntimeCatalogTests : AgentTestBase
         var agent = Runtime.Agents.Single(agent => agent.Type == typeof(SwitchingAgent));
 
         // Assert
-        agent.SwitchableTools.Should().Equal("probe");
+        agent.SwitchableTools.Should().Equal(ProbeToolset.ToolNames.Probe);
     }
 
     [Fact]

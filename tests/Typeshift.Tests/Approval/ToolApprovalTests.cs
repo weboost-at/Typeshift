@@ -774,7 +774,10 @@ public class ToolApprovalTests : ApprovalTestBase
         var asked = await Marking.RunAsync(Data.Tool.Question, ct: Ct);
 
         // Assert
-        asked.Decisions.OfType<ApprovalDecision>().Select(decision => decision.Tool).Should().Equal("note");
+        asked.Decisions.OfType<ApprovalDecision>()
+            .Select(decision => decision.Tool)
+            .Should()
+            .Equal(GuardedToolset.ToolNames.Note);
     }
 
     [Fact]
