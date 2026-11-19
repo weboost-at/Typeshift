@@ -238,9 +238,13 @@ await foreach (var update in support.WithSettingsId(settingsId).RunStreamingAsyn
 
 Anyone [watching the conversation](./conversations.md#live-updates) sees the updates too.
 
-The stream is the run: a `StreamingRun`, which calls the model as you read it, so you read it once. A second read
-throws an `InvalidOperationException` instead of running the agent again. Once the updates are read to their end,
-`Response` holds what they make, the decisions the run waits for included, as `RunAsync` would have returned it.
+The stream is the run: a `StreamingRun`, which calls the model as you read it, so you read it once.
+
+| Member | Does |
+|---|---|
+| `await foreach`, through `GetAsyncEnumerator(ct)` | Runs the agent and yields its updates, with the tool calls running between them. A second read throws an `InvalidOperationException` instead of running the agent again. |
+| `Response` | Holds what the updates make once they are read to their end, the decisions the run waits for included, as `RunAsync` would have returned it. Before that, or when the run failed, was cancelled or was left early, it throws an `InvalidOperationException`. |
+| `Response` of a `StreamingRun<TResult>` | Holds the same as a `ChatResponse<TResult>`, whose `Result` is the typed answer ([Structured output](#structured-output)). |
 
 ## Testing an agent
 

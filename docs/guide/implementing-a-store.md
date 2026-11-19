@@ -200,8 +200,9 @@ internal sealed class MinimalStore : ITypeshiftStore<int>, IAgentSettingsStore
   ([Save with a version](#save-with-a-version)).
 - An entry is kept as the JSON of `entry.Serialize()`, in the order runs append it, and read back with
   `ConversationEntry.Deserialize`.
-- `LoadConversationSinceCompactionAsync` loads the whole conversation and returns what `SinceLastSummary()` keeps of
-  it: the last summary and the entries after it, or every entry of a conversation that has no summary.
+- `LoadConversationSinceCompactionAsync` loads the whole conversation and returns what `SinceLastSummary()`, an
+  extension of `ConversationEntries`, keeps of it: the last summary and the entries after it, or every entry of a
+  conversation that has no summary.
 - `IAgentSettingsStore` keeps [each agent's own settings](./settings-and-stores.md#agent-settings), in a dictionary of
   their own. Leave it out when your app keeps settings only under ids.
 - It passes [`VerifyAsync`](#check-your-store), as the docs sample checks. It does not refuse a second run's entries,

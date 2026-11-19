@@ -110,6 +110,16 @@ services.AddTypeshift()
 - Runs that start together call the function at the same time, so make it thread-safe, and have it return an id no
   conversation has on every call.
 
+`WithOptions` sets these options of `TypeshiftOptions`, for every run of your app:
+
+| Option | Default | Does |
+|---|---|---|
+| `PersistAllConversations` | off | Stores a conversation, under a new id, for each run with input and without a conversation id. |
+| `NewConversationIds(create)` | `Guid`s of version 7 | Gives the new conversations ids of your conversation store's type. |
+| `StoreFailure` | `FailRun` | Fails a run whose store could not append a step, or with `ContinueRun` returns its answer marked as incomplete ([When the store fails](#when-the-store-fails)). |
+| `LiveUpdates.PublishInterval` | 100 ms | Sets how often merged text, reasoning and usage updates go out to watchers ([Live updates](#live-updates)). |
+| `LiveUpdates.MaxPendingUpdates` | 256 | Sets how far a watcher may fall behind before it loses the oldest updates. |
+
 ::: danger Check the caller before you use a conversation id
 Typeshift resumes whichever conversation it is given, so deciding who may see one is your app's job. Check the caller
 against your own record of the conversation, as you would for any other id from a request.
@@ -352,6 +362,25 @@ await foreach (var run in tracker.WatchRunsAsync(ct))
 ```
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L117-L120' title='Snippet source file'>snippet source</a> | <a href='#snippet-watch-runs' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
+
+The tracker's members, each for the conversations under ids of `TId` in this container:
+
+| Member | Does |
+|---|---|
+| `Runs` | Lists the runs going on, each a `LiveRun<TId>`. |
+| `WatchRunsAsync(ct)` | Yields the runs going on, then each run as it starts and as it ends, until `ct` is cancelled. |
+| `WatchAsync(conversation, ct)` | Yields the updates of the conversation's runs as they happen ([Live updates](#live-updates)). |
+| `TrySteer(conversation, input)` | Hands text or a user's `ChatMessage` to the run going on, and returns false when no run takes it ([Steering](#steering)). |
+
+Each `LiveRun<TId>` is a record of one run:
+
+| Member | Holds |
+|---|---|
+| `Conversation` | The conversation's id. |
+| `Agent` | The name of the agent that answers. |
+| `Model` | The model it answers with. |
+| `StartedAt` | When the run started. |
+| `Ended` | Whether the run has ended, which only `WatchRunsAsync` reports. |
 
 ::: warning The tracker lists every customer's runs
 `Runs` and `WatchRunsAsync` hold every run under ids of the tracker's type, whoever started it. Keep only the

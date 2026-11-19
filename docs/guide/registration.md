@@ -208,6 +208,17 @@ so disposing it does nothing. A request injects the host itself, from the reques
 not among them, since each lives in a scope, such as the one a host has. An agent's host is not among them either:
 resolving `AgentHost<TAgent>` there throws, so take it with `runtime.CreateHost<TAgent>()`.
 
+The runtime's members:
+
+| Member | Does |
+|---|---|
+| `TypeshiftRuntime.Create(client, configure)` | Creates a runtime without a container. `client` serves the runs that name no provider, and `configure` takes the rest of the chain. |
+| `CreateHost<TAgent>()` | Creates the host of an agent: a unit of work with scoped services of its own, which you dispose. |
+| `CreateHost(Type agent)`, `CreateHost(string kind)` | Creates the host of an agent by its type or its kind, as an `IAgentHost` ([The catalog](#the-catalog)). |
+| `Agents`, `Toolsets` | Lists the agents and toolsets of your project and the projects it references ([The catalog](#the-catalog)). |
+| `Services` | The root services, for singletons such as a `ConversationTracker<TId>`. |
+| `DisposeAsync()`, `Dispose()` | Disposes the singletons of a runtime from `Create`. Your container owns the runtime `AddTypeshift()` registers, so disposing that one does nothing. |
+
 ::: warning Dispose every host the runtime gives you
 `runtime.CreateHost<TAgent>()` creates a scope for the host. The services the chain registers as scoped, such as the
 `WithChatClientProvider<T>()` provider, approval rules, middleware and the MCP tool provider, and the scoped services

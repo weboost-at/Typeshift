@@ -143,6 +143,10 @@ mode without the pick ([Setting the mode](./tool-approval.md#setting-the-mode)).
 | `WithSummaryModel(string model)` | the run's model | Not blank | Sets the model that summarizes the oldest turns when clearing old tool results does not shrink the history enough, served by the run's provider. Made configurable, it also adds `SummaryProvider` to `Settings` ([the summary model](./models.md#the-summary-model)). |
 | `WithSummaryInstructions(string instructions)` | Typeshift's, in English | Not blank | Sets the instructions the summary model receives, for an app in another language or domain ([Compaction](./conversations.md#compaction)). |
 
+The run options resolve into a `RunOptions` record, with a property for each call named without `With`, such as
+`MaxToolIterations`: the property a `Configurable(r => r.X)` pick names, and the one run middleware reads in
+`run.RunOptions` ([Middleware](./middleware.md#wrap-every-run)).
+
 No run can go with a value outside its range, so Typeshift refuses one wherever it enters, and each message names the
 option:
 
