@@ -3,6 +3,8 @@
 //
 //   - frontmatter: a title and a one-sentence description on every page but the home page
 //   - one H1, the first heading, the same as the title; a `## Related` section last, which names pages by their titles
+//   - in the guide, a link to a whole page whose label reads as a name carries the page's title, and a target is
+//     linked once under a heading
 //   - every page in the sidebar; every sidebar and nav link a page and, with a #fragment, a heading or anchor on it
 //   - every fence has a language; C# only between the markers mdsnippets writes, in README.md and PACKAGE.md too
 //   - no page has a name mdsnippets skips, and no `snippet:` line stands as the tool should have found it
@@ -364,6 +366,38 @@ for (const file of pages) {
   })
 }
 
+// Two rules of the guide's links. A link to a whole page whose label reads as a name, starting with a capital that
+// is no acronym's such as MCP, calls the page by its title, so a reader who looks for it in the sidebar finds it.
+// Under one heading a target is linked once, at its first mention. Tables and Related link once per row and are left
+// to their own rules; a label that holds code, or a link split across lines, is not read
+for (const file of pages.filter(page => dirname(page) === join(docs, 'guide'))) {
+  const { lines, fenced, generated, offset } = parsed.get(file)
+  let heading = null
+  let linked = new Set()
+
+  lines.forEach((line, index) => {
+    if (fenced[index] || generated[index]) return
+
+    if (/^#{1,6} /.test(line)) {
+      heading = line.trim()
+      linked = new Set()
+      return
+    }
+
+    if (heading === '## Related' || line.startsWith('|')) return
+
+    for (const [, label, href] of line.replace(/`[^`]*`/g, '\u0001').matchAll(/\[([^\]]+)\]\(([^)\s]+)\)/g)) {
+      if (linked.has(href))
+        fail(file, index + offset + 1, `"${href}" is linked already under ${heading}: link a target once a section`)
+      linked.add(href)
+
+      const title = !href.includes('#') && parsed.get(follow(file, href)?.path)?.frontmatter?.title
+      if (title && /^[A-Z]/.test(label) && !/^[A-Z]{2,}\b/.test(label) && !label.includes('\u0001') && label !== title)
+        fail(file, index + offset + 1, `a link to a whole page calls it by its title: "${title}", not "${label}"`)
+    }
+  })
+}
+
 // Sidebar coverage, and where the sidebar and the nav lead
 const config = readFileSync(join(docs, '.vitepress/config.mts'), 'utf8')
 const menu = new Set([...config.matchAll(/link: '(\/[^']*)'/g)].map(match => match[1]))
@@ -478,7 +512,8 @@ const withdrawnEnd = entries.findIndex((line, index) => index > withdrawnAt && l
 const decided = new Set(entries.flatMap(line => line.match(/^### (D\d+)\. /)?.[1] ?? []))
 const withdrawn = new Set(
   entries.slice(withdrawnAt, withdrawnEnd).flatMap(line => line.match(/^\| (D\d+) \|/)?.[1] ?? []))
-const templates = find(join(docs, 'contributing/templates'), name => name.endsWith('.md')).map(file => [file, read(file)])
+const templates = find(join(docs, 'contributing/templates'), name => name.endsWith('.md'))
+  .map(file => [file, read(file)])
 
 for (const [file, { lines, fenced, offset }] of [...contributing, ...templates]) {
   if (file === decisions) continue

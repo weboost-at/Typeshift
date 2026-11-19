@@ -96,10 +96,9 @@ names, it names from another file than the one you wrote it in. That is why a to
 ([TSH001](./diagnostics.md#tsh001)), so the generated file can add members to them, and why they cannot be nested as
 `private` ([TSH016](./diagnostics.md#tsh016)).
 
-It is also why C#'s `file` types do not work here, since only their own file can name them. A toolset or an agent
-cannot be a `file` class ([TSH016](./diagnostics.md#tsh016)), a tool's method cannot belong to one
-([TSH003](./diagnostics.md#tsh003)), and a settings record cannot be one
-([TSH006](./diagnostics.md#tsh006)). Use `internal` for what should stay inside your project.
+It is also why C#'s `file` types do not work here, since only their own file can name them. A toolset or an agent cannot
+be a `file` class (TSH016), a tool's method cannot belong to one ([TSH003](./diagnostics.md#tsh003)), and a settings
+record cannot be one ([TSH006](./diagnostics.md#tsh006)). Use `internal` for what should stay inside your project.
 
 ## Mistakes the build catches
 

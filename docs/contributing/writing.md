@@ -148,6 +148,8 @@ diagnostics. They also beat a list of bullets that each start with a bold call n
 ### Links
 
 - Link the first mention of another page's topic in a section, and not again in that section.
+- A link that names a whole page calls it by its title, `[Running an agent](../guide/running-agents.md)`, so the
+  reader finds the name in the sidebar. A term links a page in its own words: `[settings](./tool-settings.md)`.
 - Link pages relatively, with the extension: `[tool settings](./tool-settings.md)`, or `./page.md#section`.
 - Link a diagnostic by its ID: `[TSH007](./diagnostics.md#tsh007)`.
 - Link repository files with their full GitHub URL, because VitePress fails on links that leave `docs/`.
@@ -245,6 +247,8 @@ The docs rules check what a machine can:
 
 - every page has a title and a description, and its H1 matches the title;
 - every page ends with `## Related`, and an entry that links a whole page calls it by its title;
+- in the guide, a link to a whole page whose label starts with a capital, other than an acronym's, calls the page by
+  its title, and no link target repeats under one heading, outside tables and `## Related`;
 - every page is in the sidebar, and every sidebar and nav link reaches its page and its anchor;
 - every code block has a language, and C# appears only where mdsnippets wrote it, in `README.md` and
   `src/Typeshift/PACKAGE.md` too;

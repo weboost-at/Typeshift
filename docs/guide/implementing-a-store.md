@@ -251,8 +251,8 @@ second run's entries and says so ([Refuse a second run](#refuse-a-second-run)).
 
 The database on this page has a table for settings, keyed by id and kind together
 ([Key settings by id and kind](#key-settings-by-id-and-kind)), one for conversations, keyed by a number the database
-assigns and with a unique key on each entry's own number ([Refuse a second run](#refuse-a-second-run)), one for
-decisions, keyed by the conversation, and one for agents' own settings, keyed by the kind alone:
+assigns and with a unique key on each entry's own number, one for decisions, keyed by the conversation, and one for
+agents' own settings, keyed by the kind alone:
 
 <!-- snippet: ef-core-db -->
 <a id='snippet-ef-core-db'></a>

@@ -358,7 +358,7 @@ A library that takes an `IChatClient` calls it without options, or with `ChatOpt
 - A call without options runs with the options the client was created from.
 - A call with options of its own changes only the conversation id, the response format and the tools it adds. The
   agent's instructions, model, provider, run options and tools stay, so put what else changes per run, such as the
-  temperature, into the [run settings](#run-settings) you create the client with.
+  temperature, into the run settings you create the client with.
 - A call with options resolved for another provider or model throws an `InvalidOperationException`, since the client
   serves the provider and model it was created for. Create a client from those options instead.
 

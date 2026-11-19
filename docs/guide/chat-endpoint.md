@@ -205,8 +205,7 @@ internal sealed class ConversationHub(ConversationTracker<int> tracker, IChats c
   subscription or the connection drops, which ends the loop.
 - A page that opens a chat shows its stored history first ([Load the chat](#load-the-chat)) and then watches. A
   watch begins with what the run going on published that the store does not hold yet, so an answer that was
-  streaming when the page opened shows from its start
-  ([Live updates](./conversations.md#live-updates)).
+  streaming when the page opened shows from its start.
 
 Your app registers SignalR with its services and maps the hub next to the chat endpoints:
 

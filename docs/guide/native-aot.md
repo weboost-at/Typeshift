@@ -80,13 +80,13 @@ own `[JsonConverter(typeof(JsonStringEnumConverter<TEnum>))]` needs none.
 Strings, `char`, `bool`, `short`, `int`, `long` and their unsigned forms, `float`, `double`, `decimal`, `DateTime`,
 `DateTimeOffset`, `TimeSpan`, `IEnumerable<string>` and the JSON element, document and node types need no context.
 In a project that publishes with Native AOT or trimmed, or that sets `IsAotCompatible` or `IsTrimmable`, the analyzer
-reports [TSH027](./diagnostics.md#tsh027) for every other tool type that no context lists.
+reports TSH027 for every other tool type that no context lists.
 
 Some of the types that need an entry look as plain as the ones above:
 
 - each nullable value type, such as `int?` or `bool?`, although `int` and `bool` need none. A nullable reference
   type, such as `string?`, counts as its type;
-- each enum, in a context that [writes enums as their names](./diagnostics.md#tsh033);
+- each enum, in a context that writes enums as their names;
 - each array and list, such as `string[]` or `List<string>`;
 - `byte`, `Guid` and `DateOnly`.
 
