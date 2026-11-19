@@ -124,9 +124,9 @@ that no row names, and on a name that is no test class.
   into one message, and `Result` reads the first of them, where `RunAsync<T>` reads the last.
 - **Unions in settings.** A configurable member cannot be a union (TSH012), since the generator writes no stored
   form for one.
-- **The file store's save on the caller's thread.** A save creates the folder, opens the lock file and its own
-  file, flushes to the disk and moves the file on the thread that called it, so a desktop app's UI thread waits for
-  the disk. Moving that work to the thread pool waits for the decision on how the library awaits.
+- **The file store's save on the caller's thread.** Until its first wait, a save creates the folder and opens the
+  lock file on the thread that called it, so a desktop app's UI thread waits for the disk. D85 leaves the caller's
+  context without a hop to the thread pool; a hop for the file store alone would move this work off that thread.
 - **What TSH032 does not compare.** The analyzer compares its reading of a declaration with the generated code by
   the stamps, which hold the tools and an agent's name, kind and whether it is described (D2). A schema version, a
   provider type, a chat option or the text of a description that names another generator's output is in no stamp,
