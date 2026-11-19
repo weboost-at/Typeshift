@@ -21,10 +21,11 @@ the playbook. That is meant to be enough; if you had to dig for something, add i
 
 - **What is built, what is open.** `docs/contributing/status.md` lists the slices of the rewrite, the test classes of
   each area and the known gaps.
-- **Why is the code like this?** `docs/contributing/decisions.md` (D1, D2, ...) records each non-obvious choice, the
-  alternatives that lost, and where it lives. A comment `// D25: ...` in code points at one. Read the entry before
-  you change such code; to change the decision, edit the entry in the same commit, or add a new one and move the old
-  to the withdrawn table.
+- **Why is the code like this?** `docs/contributing/decisions.md` (D1, D2, ...) records each non-obvious choice and
+  where it lives, most of them with the alternatives that lost, and its index lists them by ID. A comment
+  `// D25: ...` in code points at one. Read the entry before you change such code; to change the decision, edit the
+  entry in the same commit, or add a new one and move the old to the withdrawn table. A new entry's heading ends
+  with its anchor, `{#d61}` for D61, and the index gets its row.
 - **How do users see it?** The guide in `docs/guide/`, published at <https://weboost-at.github.io/Typeshift/>.
 
 ## Traps
@@ -225,7 +226,7 @@ These fail the build when the repository's own rules slip, so a rule never depen
 | `Repository/PublicApiSurfaceTests.The_Public_Surface_Matches_Its_Snapshot` (generator tests) | Every change of the public API is a reviewed diff of `Snapshots/PublicApi.verified.txt`. |
 | `Repository/PublicApiSurfaceTests.The_Surface_Generated_Code_Binds_To_Changes_Only_With_The_Stamp_Version` (generator tests) | `Typeshift.Generated`, `IStorable<TSelf>` and `Agent.Declaration`, kept in `Snapshots/GeneratedContract.verified.txt`, change only together with `KnownTypes.StampVersion` (D7). |
 | `Repository/SourceConventionTests.Parser_And_Emitter_Do_Not_Import_Each_Other` (generator tests) | No file of the generator's `Parsing/` names the namespace of `Emitting/`, and none of `Emitting/` that of `Parsing/`; `Naming/`, which holds the names both use (`KnownTypes`, `Names`, `OptionMembers`), names neither. |
-| `Repository/DecisionCitationTests` (generator tests) | Every decision a comment cites, wherever it stands in the comment, is in force: in the code, the project and build files, the workflows and the hooks. Markdown cites in prose, which this test does not read. |
+| `Repository/DecisionCitationTests` (generator tests) | Every decision a comment cites, wherever it stands in the comment, is in force: in the code, the project and build files, the workflows and the hooks. Markdown cites in prose, which this test does not read. Every entry has its anchor `{#dNN}` and its row in the index, with its title, its section and whether it is in force. |
 | `Repository/SourceConventionTests` (generator tests) | The code style rules a check can decide, read from the syntax tree of `src`, `samples`, `tests`, `tools` and `demos`: no comparison with `null` by `==`, `!=` or `ReferenceEquals`, no `this` parameter, no `TODO`, `FIXME` or `HACK` in a comment and no `NotImplementedException`, no clock in the code the generator writes, every line within 120 columns, no decision number and no trailing "say" in XML docs. |
 | RS0030 as an error (`BannedSymbols.txt`, `Directory.Build.props`) | No code of `src`, `samples`, `tests`, `tools` and `demos` reads or waits on the real clock, whatever its spelling, generated code included. `BannedSymbols.Library.txt` adds `TimeProvider.System` for `src` and `tests`. |
 | The build: `EnforceCodeStyleInBuild` with the warnings of `.editorconfig` | In `src`, `tests`, `tools` and `demos`: file-scoped namespaces (IDE0161), `var` (IDE0007), expression bodies for members of one line (IDE0021 to IDE0027), a `switch` expression for a `switch` statement (IDE0066), a pattern for `as` with a null check (IDE0019), collection expressions (IDE0300 to IDE0306), and the layout `dotnet format whitespace` writes (IDE0055). A sample holds all but the last and the expression body of a method. |

@@ -6,7 +6,8 @@ description: Add or change public behavior of the Typeshift runtime library (src
 # Add a runtime feature
 
 1. **Decide.** Read the decisions the feature touches in `docs/contributing/decisions.md`. A new choice gets an entry
-   (context, decision, alternatives, where); code that only makes sense with it cites it as `// Dnn: ...`.
+   (context, decision, alternatives, where), whose heading ends with its anchor `{#dNN}`, and a row of the index;
+   code that only makes sense with it cites it as `// Dnn: ...`.
 2. **Code.** Public types live in the `Typeshift` namespace, what only generated code calls in `Typeshift.Generated`,
    hidden from editors (D10). Every public member has XML docs with each `param`, `typeparam` and `returns`, and an
    `<exception>` for each exception its code throws (`PublicApiDocumentationTests`). A new exception type is named

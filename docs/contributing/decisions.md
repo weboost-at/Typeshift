@@ -1,11 +1,12 @@
 ---
 title: Decisions
-description: "Why the code is shaped the way it is: each non-obvious choice, the alternatives that lost, and where it lives."
+description: "Why the code is shaped the way it is: each non-obvious choice, where it lives and, for most, the alternatives that lost."
 ---
 
 # Decisions
 
-Why the code is shaped the way it is. Each entry gives the decision, the alternatives that lost and where it lives.
+Why the code is shaped the way it is. Each entry gives the decision and where it lives, and most entries also the
+alternatives that lost. The entries stand by topic, and the [index](#index) lists them by ID.
 
 Code cites an entry as `// D25: ...`, so IDs never change. Read the entry before you change the code it names. To change
 the decision, edit the entry in the same commit, or add a new one and move the old to the [withdrawn](#withdrawn) table.
@@ -19,9 +20,105 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 | brief | The rewrite's brief decided it. |
 | carried (v0 Dn) | It carries v0's decision `Dn` over, as it was or with the changes named. |
 
+An entry carried from v0 keeps its reasons in v0's log, which the history holds:
+`git show cd26ef8:docs/contributing/decisions.md` prints it, with each decision's context and the alternatives
+that lost.
+
+## Index
+
+The table lists every entry by its ID, with the section that holds it and whether it is still in force.
+
+| ID | Decision | Section | State |
+|---|---|---|---|
+| D1 | [`AddTypeshift()` exists only as an intercepted call](#d1) | Registration and the generator | In force |
+| D2 | [An analyzer reports the diagnostics; the generator only writes code](#d2) | Registration and the generator | In force |
+| D3 | [Discovery stays attribute-free, narrowed by syntax](#d3) | Registration and the generator | In force |
+| D4 | [Every declaration shape the generator cannot read is diagnosed](#d4) | Registration and the generator | In force |
+| D5 | [Settings and chat-option picks are typed lambdas that never run](#d5) | Registration and the generator | In force |
+| D6 | [The generated names](#d6) | Registration and the generator | In force |
+| D7 | [Stamps carry the generated names and a version](#d7) | Registration and the generator | In force |
+| D8 | [The generator targets Roslyn 5](#d8) | Registration and the generator | In force |
+| D9 | [Every project that declares toolsets or agents references the package](#d9) | Registration and the generator | In force |
+| D10 | [The hidden public surface generated code calls](#d10) | Registration and the generator | In force |
+| D11 | [The id type is an MSBuild property](#d11) | Registration and the generator | Withdrawn |
+| D12 | [Typed host members are generated extension blocks](#d12) | Registration and the generator | In force |
+| D13 | [Tool names derive from the method](#d13) | Declarations | In force |
+| D14 | [Descriptions come from XML docs](#d14) | Declarations | In force |
+| D15 | [Tools receive services through `IServiceProvider`](#d15) | Declarations | In force |
+| D16 | [A tool receives its settings as a parameter](#d16) | Declarations | In force |
+| D17 | [One flat chain per declaration](#d17) | Declarations | In force |
+| D18 | [Configurable members are an allow list unless `WithConfigurableSettings` says otherwise](#d18) | Declarations | In force |
+| D19 | [Configurable types widen to what the generator can serialize](#d19) | Declarations | In force |
+| D20 | [`Configure{Tool}()` stays](#d20) | Declarations | In force |
+| D21 | [Instructions come from a virtual method](#d21) | Declarations | In force |
+| D22 | [Agent names are optional and derive from the class](#d22) | Declarations | In force |
+| D23 | [No agent inheritance, no composition block in v1](#d23) | Declarations | In force |
+| D24 | [Tool approval uses Microsoft.Extensions.AI's contents, with standing approvals and rules](#d24) | Declarations | Withdrawn |
+| D25 | [A run uses the services of the scope its host was resolved from](#d25) | Runtime | In force |
+| D26 | [Runs return Microsoft.Extensions.AI's types](#d26) | Runtime | In force |
+| D27 | [Four settings layers](#d27) | Runtime | In force |
+| D28 | [The model is a configurable option like any other](#d28) | Runtime | In force |
+| D29 | [The chat client pipeline](#d29) | Runtime | In force |
+| D30 | [Middleware: one interface around runs, one around tool calls](#d30) | Runtime | In force |
+| D31 | [Context providers](#d31) | Runtime | In force |
+| D32 | [Run options, with compaction inside the tool loop](#d32) | Runtime | In force |
+| D33 | [Sub-agents, in the foreground or the background](#d33) | Runtime | In force |
+| D34 | [Handoff continues with the agent handed to](#d34) | Runtime | In force |
+| D35 | [MCP servers through a host provider](#d35) | Runtime | In force |
+| D36 | [OpenTelemetry is always on](#d36) | Runtime | In force |
+| D37 | [No built-in toolsets](#d37) | Runtime | In force |
+| D38 | [A store of documents and a store of conversations](#d38) | Storage | In force |
+| D39 | [Kinds are stable names](#d39) | Storage | In force |
+| D40 | [A schema version per document](#d40) | Storage | In force |
+| D41 | [Optimistic concurrency](#d41) | Storage | In force |
+| D42 | [Settings ids and conversation ids are separate; conversations grow by appending](#d42) | Storage | In force |
+| D43 | [The store is the persistence switch](#d43) | Storage | In force |
+| D44 | [Settings records serialize themselves](#d44) | Storage | In force |
+| D45 | [Tool JSON: contexts from the modules, reflection where the app keeps it](#d45) | Storage | In force |
+| D46 | [Tracking, carried and fixed](#d46) | Conversations | In force |
+| D47 | [Live updates are a feed per conversation](#d47) | Conversations | In force |
+| D48 | [Carried as they were](#d48) | Repository | In force |
+| D49 | [Diagnostics are numbered afresh](#d49) | Repository | In force |
+| D50 | [A conversation is stored step by step and resumes after a crash](#d50) | Conversations | In force |
+| D51 | [Steering a run going on](#d51) | Conversations | In force |
+| D52 | [Plan and auto modes are built in](#d52) | Conversations | In force |
+| D53 | [A failed tool call tells the model what was written for it](#d53) | Runtime | In force |
+| D54 | [Runs starting and ending are a feed too](#d54) | Conversations | In force |
+| D55 | [The types tools take describe themselves with their XML docs](#d55) | Declarations | In force |
+| D56 | [A model is a provider and a model, one interface serves both](#d56) | Runtime | Withdrawn |
+| D57 | [An agent may declare tools of its own](#d57) | Declarations | In force |
+| D58 | [A store's own tests check it against the contract](#d58) | Storage | In force |
+| D59 | [A call id the conversation holds already is renamed](#d59) | Conversations | In force |
+| D60 | [An answer to a closed request throws; steering that the run answers closes its requests](#d60) | Conversations | Withdrawn |
+| D61 | [The package targets .NET 11 only](#d61) | Registration and the generator | In force |
+| D62 | [Union types in tools and typed runs](#d62) | Storage | In force |
+| D63 | [The default client serves only a run that names no provider](#d63) | Runtime | In force |
+| D64 | [A typed run can stream](#d64) | Storage | In force |
+| D65 | [A sub-agent can answer in a type](#d65) | Runtime | In force |
+| D66 | [Each agent has settings of its own, under no id](#d66) | Storage | In force |
+| D67 | [A store of agents' own settings in files](#d67) | Storage | In force |
+| D68 | [The package turns XML docs on](#d68) | Storage | In force |
+| D69 | [Without a store, everything is kept in memory](#d69) | Storage | In force |
+| D70 | [Instructions that never change are one call](#d70) | Storage | In force |
+| D71 | [Every conversation store implements the load from the last summary](#d71) | Storage | In force |
+| D72 | [Ids are given in code, and their types pick the stores](#d72) | Storage | In force |
+| D73 | [Every conversation can be kept](#d73) | Storage | In force |
+| D74 | [Live updates are on by default](#d74) | Storage | In force |
+| D75 | [An app without a container creates a TypeshiftRuntime](#d75) | Storage | In force |
+| D76 | [The runtime is the root, and its hosts are units of work](#d76) | Storage | In force |
+| D77 | [Each agent's providers are of the type its WithModel names](#d77) | Runtime | In force |
+| D78 | [Stored contents follow Microsoft.Extensions.AI's content contract](#d78) | Storage | In force |
+| D79 | [Decisions have a store of their own, and a setup that would lose them throws](#d79) | Storage | In force |
+| D80 | [Decisions are records in a document per conversation](#d80) | Conversations | In force |
+| D81 | [The tool loop never pauses: a gate below it decides each call, and a replay carries the answers out](#d81) | Conversations | In force |
+| D82 | [Questions to the user are a built-in tool an agent declares](#d82) | Conversations | In force |
+| D83 | [The runtime lists its agents and toolsets and hosts an agent by its kind](#d83) | Storage | In force |
+| D84 | [An agent's use of a toolset may require approval for a tool and let settings switch one off](#d84) | Runtime | In force |
+| D85 | [A run leaves the caller's synchronization context](#d85) | Runtime | In force |
+
 ## Registration and the generator
 
-### D1. `AddTypeshift()` exists only as an intercepted call
+### D1. `AddTypeshift()` exists only as an intercepted call {#d1}
 
 - **Status:** carried (v0 D1).
 - **Decision:** the library's `AddTypeshift()` throws, saying what to check; the generator intercepts every call in a
@@ -32,7 +129,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Alternatives:** a generated method per assembly, ambiguous (CS0121) wherever `InternalsVisibleTo` reaches.
 - **Where:** `DependencyInjection/`, `Emitting/InterceptorEmitter.cs`.
 
-### D2. An analyzer reports the diagnostics; the generator only writes code
+### D2. An analyzer reports the diagnostics; the generator only writes code {#d2}
 
 - **Status:** approved.
 - **Context:** v0 reported TSH diagnostics without syntax trees, so `#pragma` and `.editorconfig` could not reach
@@ -60,7 +157,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   with v0's plumbing.
 - **Where:** `src/Typeshift.Generators/Analysis/`.
 
-### D3. Discovery stays attribute-free, narrowed by syntax
+### D3. Discovery stays attribute-free, narrowed by syntax {#d3}
 
 - **Status:** owner.
 - **Context:** v0 re-bound every class with a base list on each edit (about 170 ms per keystroke for 50 toolsets).
@@ -89,7 +186,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   file and needs the compilation, which the predicate exists to avoid.
 - **Where:** `Parsing/Discovery.cs`.
 
-### D4. Every declaration shape the generator cannot read is diagnosed
+### D4. Every declaration shape the generator cannot read is diagnosed {#d4}
 
 - **Status:** approved.
 - **Context:** v0 ran the declaration chains at runtime too, and read the tool picks from syntax at compile time, so a
@@ -103,14 +200,14 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   `Delegate` and fail only through a diagnostic.
 - **Where:** `Parsing/AgentParser.cs`, `Analysis/`.
 
-### D5. Settings and chat-option picks are typed lambdas that never run
+### D5. Settings and chat-option picks are typed lambdas that never run {#d5}
 
 - **Status:** carried (v0 D5), typed.
 - **Decision:** `Configurable<TMember>(Func<TSettings, TMember>)`: no `object`. The generator reads the picks; the
   configurable set exists once, in the generated records.
 - **Where:** `Toolset.cs`, `Agent.cs`, `Parsing/ConstructorChains.cs`.
 
-### D6. The generated names
+### D6. The generated names {#d6}
 
 - **Status:** carried (v0 D2), extended.
 - **Decision:** per toolset a `{Tool}Overrides` record per tool with configurable settings, a nested `ToolNames`
@@ -146,7 +243,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Where:** `Naming/Names.cs`, `Emitting/AgentEmitter.cs`, `Emitting/ToolsetEmitter.cs`,
   `Emitting/ModuleEmitter.cs`, `Emitting/StorageEmitter.cs`.
 
-### D7. Stamps carry the generated names and a version
+### D7. Stamps carry the generated names and a version {#d7}
 
 - **Status:** approved.
 - **Context:** v0's stamps carried tool names only, so an agent rebuilt `{Tool}Overrides` names with its own
@@ -162,13 +259,13 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Where:** `Generated/Stamps.cs`, `Naming/KnownTypes.cs`, `Emitting/ModuleEmitter.cs`, `Parsing/ReferenceReader.cs`,
   `Repository/PublicApiSurfaceTests` (generator tests).
 
-### D8. The generator targets Roslyn 5
+### D8. The generator targets Roslyn 5 {#d8}
 
 - **Status:** approved.
 - **Decision:** consumers need C# 14 for the extension blocks anyway, so the generator uses Roslyn 5 APIs, and v0's
   4.14 pin and its trap are gone.
 
-### D61. The package targets .NET 11 only
+### D61. The package targets .NET 11 only {#d61}
 
 - **Status:** approved.
 - **Context:** .NET 11 shipped with C# 15's union types, and the owner asked for .NET 11 support, unions first.
@@ -183,7 +280,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   12 brings an LTS release again; `net10.0` only, referencing System.Text.Json 11 from NuGet, which moves every .NET 10
   app onto it.
 
-### D9. Every project that declares toolsets or agents references the package
+### D9. Every project that declares toolsets or agents references the package {#d9}
 
 - **Status:** carried (v0 D9). TSH020 catches a reference without it.
 - **Context:** v0 carried the rule without its reason. SDK 11.0.100 passes a package's analyzers and its
@@ -198,7 +295,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   since the docs would promise what NuGet documents otherwise.
 - **Where:** `docs/guide/registration.md`, `src/Typeshift/PACKAGE.md`.
 
-### D10. The hidden public surface generated code calls
+### D10. The hidden public surface generated code calls {#d10}
 
 - **Status:** carried (v0 D35).
 - **Decision:** what only generated code calls is public and `[EditorBrowsable(Never)]`, in `Typeshift.Generated`.
@@ -209,21 +306,12 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   The version is the package's, without the commit a build appends, read once per process, so it keeps the
   generator's outputs cached.
 
-### D11. The id type is an MSBuild property
+### D11. The id type is an MSBuild property {#d11}
 
-- **Status:** owner; superseded by D72, which gives ids in code.
-- **Was:** `<TypeshiftIdType>int</TypeshiftIdType>`, set once in `Directory.Build.props` and `Guid` by default, typed
-  every settings and conversation id of the build. The generator wrote `global using` aliases over it
-  (`ITypeshiftStore`, `ISettingsStore`, `IConversationStore`, `InMemoryTypeshiftStore`, `ConversationTracker`,
-  `LiveRun`), gave the host members `settingsId` and `conversationId` parameters of it, closed the core services over
-  it (`AddCoreServices<TId, TProviderId>`) and stamped it on each module. A reference built with another id type was
-  TSH021, one the build could not find TSH029, and one less accessible than a public agent TSH006.
-- **Now:** a host's ids come from `WithSettingsId` and `WithConversationId`, each typed by its call (D72). The
-  provider id type stayed an MSBuild property, with its alias (D56), until D77 took it from each agent's `WithModel`.
-- **Alternatives:** `AddTypeshift().WithIdType<int>()`, known only in the registering project, with generic run
-  members checked at runtime; a generated interface per project, ambiguous under `InternalsVisibleTo`.
+- **Status:** owner; superseded by D72. `<TypeshiftIdType>` typed every settings and conversation id of the build;
+  now each `WithSettingsId` and `WithConversationId` types the ids of its own call.
 
-### D12. Typed host members are generated extension blocks
+### D12. Typed host members are generated extension blocks {#d12}
 
 - **Status:** carried (v0 D4).
 - **Decision:** `extension(AgentHost<TAgent> host)` per agent, in the agent's assembly, with `RunAsync`, `RunAsync<T>`,
@@ -268,7 +356,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 
 ## Declarations
 
-### D13. Tool names derive from the method
+### D13. Tool names derive from the method {#d13}
 
 - **Status:** owner.
 - **Decision:** `SearchTickets` is `search_tickets`; an `Async` suffix is dropped, so `CloseTicketAsync` is
@@ -285,7 +373,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   on a `ToolList<T>` no code can create, and are no constants a pattern takes.
 - **Where:** `Parsing/ToolsetParser.cs`, `Emitting/ToolsetEmitter.cs`, `Toolsets/BuiltInTools.cs`.
 
-### D14. Descriptions come from XML docs
+### D14. Descriptions come from XML docs {#d14}
 
 - **Status:** carried (v0), `WithDescription` overrides; parameters the model never sees need no `<param>` (D2's
   suppressor). An agent's summary describes it as a method's describes its tool, at the owner's request.
@@ -298,7 +386,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Alternatives:** a warning that the attribute is ignored, which keeps one source and still loses the parameter's
   description; a line in the guide alone.
 
-### D55. The types tools take describe themselves with their XML docs
+### D55. The types tools take describe themselves with their XML docs {#d55}
 
 - **Status:** owner.
 - **Context:** a `<param>` doc described a parameter, but nothing described the properties of the record it took,
@@ -325,7 +413,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   generator reading the docs itself, a second copy of Weboost.SchemaAnnotations; finding a class the project marked,
   one more line of setup per project.
 
-### D15. Tools receive services through `IServiceProvider`
+### D15. Tools receive services through `IServiceProvider` {#d15}
 
 - **Status:** owner.
 - **Context:** the brief asked to investigate injecting resolved services as parameters.
@@ -336,14 +424,14 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Alternatives:** `[FromServices]` parameters (one attribute); inference by type (interfaces are services), leaky
   for collection interfaces and concrete services such as a `DbContext`.
 
-### D16. A tool receives its settings as a parameter
+### D16. A tool receives its settings as a parameter {#d16}
 
 - **Status:** carried (v0 D40). The settings, `IServiceProvider`, `CancellationToken` and `AIFunctionArguments` are
   bound by type, nullable or not, and left out of the schema; a parameter JSON cannot fill, such as `ref`, `out` or
   `dynamic`, is TSH004. A record parameter named `settings`, or of a type another tool of the class names as its
   settings, on a tool whose chain names none is a warning (TSH038): the model would see and set every member.
 
-### D17. One flat chain per declaration
+### D17. One flat chain per declaration {#d17}
 
 - **Status:** carried (v0 D41), brief. No builder inside a lambda anywhere: toolsets, agents,
   registration. Metadata goes through `With...` calls, capabilities through `Use...` calls. A tool's chain takes its
@@ -351,11 +439,11 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   builders offer `WithName`, `WithDescription`, `RequiresApproval` and `ReadOnly` too, and `RequiresApproval()` after
   `WithSettings<T>()` is no compiler error that reads as a rule.
 
-### D18. Configurable members are an allow list unless `WithConfigurableSettings` says otherwise
+### D18. Configurable members are an allow list unless `WithConfigurableSettings` says otherwise {#d18}
 
 - **Status:** carried (v0 D43).
 
-### D19. Configurable types widen to what the generator can serialize
+### D19. Configurable types widen to what the generator can serialize {#d19}
 
 - **Status:** owner.
 - **Decision:** besides v0's scalars, enums and string lists: `DateOnly`, `TimeOnly`, `Uri`, records, record structs
@@ -382,7 +470,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   as a member of the wrong type does (D44).
 - **Where:** `Parsing/Storage.cs`, `Emitting/StorageEmitter.cs`, `Generated/StorableJson.cs`.
 
-### D20. `Configure{Tool}()` stays
+### D20. `Configure{Tool}()` stays {#d20}
 
 - **Status:** carried (v0 D30), brief.
 - **Decision:** a generated private method per offered tool with settings, returning a builder with a `With...` per
@@ -390,7 +478,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   generated builder per tool and adds a step. A `Configure{Tool}()` the agent declares itself replaces the
   generated one.
 
-### D21. Instructions come from a virtual method
+### D21. Instructions come from a virtual method {#d21}
 
 - **Status:** carried (v0 D42), changed.
 - **Decision:** `GetInstructions(IServiceProvider services)` returns the agent's instructions, and Typeshift calls it
@@ -402,20 +490,20 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   agent overrides decides which runs; a context of the run's ids and input, whose input a resume and the raw path
   lack and steering changes within a run, while a context provider sees each pass's messages.
 
-### D22. Agent names are optional and derive from the class
+### D22. Agent names are optional and derive from the class {#d22}
 
 - **Status:** carried (v0 D31), changed.
 - **Decision:** without `WithName`, an agent goes by its class name in snake_case, like a tool, so it can be a tool or
   a handoff target. Names need not be unique; nothing is stored by name (D39).
 
-### D23. No agent inheritance, no composition block in v1
+### D23. No agent inheritance, no composition block in v1 {#d23}
 
 - **Status:** owner.
 - **Decision:** agents and toolsets derive from `Agent` and `Toolset` directly (TSH017). Shared declarations come
   from static methods and constants. A preset class folded into agents (`UsePreset<T>()`) was considered and
   deferred.
 
-### D57. An agent may declare tools of its own
+### D57. An agent may declare tools of its own {#d57}
 
 - **Status:** owner.
 - **Context:** a tool only one agent needed still took a toolset class of its own and a `UseToolset<T>()`.
@@ -439,7 +527,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   across the host like toolsets' tools, which made two agents' one-off tools clash; unique per agent alone, which lets a
   standing approval reach another agent's tool of the same name.
 
-### D24. Tool approval uses Microsoft.Extensions.AI's contents, with standing approvals and rules
+### D24. Tool approval uses Microsoft.Extensions.AI's contents, with standing approvals and rules {#d24}
 
 - **Status:** approved; superseded by D80, which makes what a run asks a stored record, and D81, which moves the
   pause below the tool loop.
@@ -457,7 +545,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 
 ## Runtime
 
-### D25. A run uses the services of the scope its host was resolved from
+### D25. A run uses the services of the scope its host was resolved from {#d25}
 
 - **Status:** owner.
 - **Context:** v0 gave each tool call a fresh scope of the root container, so request-scoped services (the current
@@ -483,7 +571,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   services with all the others in production.
 - **Where:** `AgentHost.cs`.
 
-### D26. Runs return Microsoft.Extensions.AI's types
+### D26. Runs return Microsoft.Extensions.AI's types {#d26}
 
 - **Status:** owner.
 - **Decision:** `RunAsync` returns `ChatResponse`, `RunAsync<T>` `ChatResponse<T>`, `RunStreamingAsync`
@@ -511,13 +599,13 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   options over the client's, which lets a library's model or temperature pass the agent's settings by; a client
   resolved for each call's provider, which is the larger change of resolving the client at the model call.
 
-### D27. Four settings layers
+### D27. Four settings layers {#d27}
 
 - **Status:** brief. Code defaults, the agent's code, its stored `Settings`, the run. Stored tool
   defaults (`ToolDefaults`) are gone, so resolving a run's settings is one document. The stored layer holds the
   agent's own settings and, over them, those under the settings id (D66).
 
-### D28. The model is a configurable option like any other
+### D28. The model is a configurable option like any other {#d28}
 
 - **Status:** owner; changes v0 D34.
 - **Decision:** `Configurable(o => o.ModelId)` puts `Model`, and its `Provider` (D77), into the agent's `Settings`,
@@ -531,7 +619,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Alternatives:** `Model` in every `Settings` (v0, the brief's first sketch), which lets a settings form a
   customer edits pick any model the provider knows.
 
-### D84. An agent's use of a toolset may require approval for a tool and let settings switch one off
+### D84. An agent's use of a toolset may require approval for a tool and let settings switch one off {#d84}
 
 - **Status:** from the audit of November 2026; the owner's line for the phase took the recommended option, both
   steps. In force until the owner decides otherwise.
@@ -560,18 +648,12 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Where:** `Agents/ToolsetUse.cs`, `Parsing/AgentParser.cs` (`ReadUse`), `Parsing/Catalog.cs`,
   `Emitting/AgentEmitter.cs` (`SwitchMember`, `WriteCreateTools`), `Models/AgentModel.cs` (`ToolsetUseModel`).
 
-### D56. A model is a provider and a model, one interface serves both
+### D56. A model is a provider and a model, one interface serves both {#d56}
 
-- **Status:** owner; superseded by D77, which types providers per agent.
-- **Was:** `WithModel(provider, model)` and `IChatClientProvider<TProviderId>`, as D77 keeps them, with one provider
-  id type for the build: the MSBuild property `TypeshiftProviderIdType`, `string` by default, with a generated
-  `IChatClientProvider` alias. The interceptor closed the core services over it (`AddCoreServices<TProviderId>`, which
-  registered `ChatClients<TProviderId>`), and module stamps carried it. A provider of another type at `WithModel` or
-  `WithChatClientProvider<T>()` was TSH030, a type the build could not find or settings could not store TSH029, and a
-  reference with agents built with another type TSH021.
-- **Now:** each agent's providers are of the type its `WithModel` names (D77).
+- **Status:** owner; superseded by D77. The MSBuild property `TypeshiftProviderIdType` typed the providers of the
+  whole build; now each agent's providers are of the type its `WithModel` names.
 
-### D77. Each agent's providers are of the type its WithModel names
+### D77. Each agent's providers are of the type its WithModel names {#d77}
 
 - **Status:** owner; supersedes D56.
 - **Context:** a model was one string the host's provider read, so a host with several providers invented composite
@@ -621,7 +703,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   up by its value's runtime type, which needs `MakeGenericType` and misses a provider whose runtime type differs from
   its declared one.
 
-### D63. The default client serves only a run that names no provider
+### D63. The default client serves only a run that names no provider {#d63}
 
 - **Status:** owner; rewritten. It read "a registered chat client serves a run no `IChatClientProvider` serves",
   and let the client registered for every agent answer a run whose provider nothing served.
@@ -659,7 +741,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   Microsoft.Extensions.AI's registration already does; a built-in provider keyed by a registry of Typeshift's, a
   second place to register clients.
 
-### D29. The chat client pipeline
+### D29. The chat client pipeline {#d29}
 
 - **Status:** approved.
 - **Decision:** outermost first: conversation tracking (resume, run boundaries, settling the decisions that wait,
@@ -686,7 +768,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   copies of those steps had drifted apart in what a failed run stores and in what a watcher receives.
 - **Where:** `AgentHost.cs`, `Conversations/ConversationChatClient.cs` (the run's steps).
 
-### D85. A run leaves the caller's synchronization context
+### D85. A run leaves the caller's synchronization context {#d85}
 
 - **Status:** owner.
 - **Context:** one await of the library configured how it resumes, and the code the generator writes awaited a tool
@@ -718,7 +800,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   `Hosting/StreamingRun.cs`, `Conversations/ConversationChatClient.cs` (the raw path),
   `Emitting/ToolsetEmitter.cs` (`WriteInvoke`).
 
-### D30. Middleware: one interface around runs, one around tool calls
+### D30. Middleware: one interface around runs, one around tool calls {#d30}
 
 - **Status:** owner.
 - **Decision:** `IRunMiddleware.InvokeAsync(run, next, ct)` serves streaming and non-streaming runs alike: it may
@@ -755,7 +837,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   call inside a tool loop (D51); and leaving the check to the app, before it calls `TrySteer`, a second place for
   every guardrail.
 
-### D31. Context providers
+### D31. Context providers {#d31}
 
 - **Status:** approved.
 - **Decision:** `UseContext<T>()`; `IContextProvider.GetContextAsync(run, ct)` returns an `AgentContext` of
@@ -767,7 +849,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   and leaked what it held once per pass. No after-run hook: run middleware covers it.
 - **Where:** `Context/`.
 
-### D32. Run options, with compaction inside the tool loop
+### D32. Run options, with compaction inside the tool loop {#d32}
 
 - **Status:** owner.
 - **Context:** the first draft compacted only when a conversation resumed, so one long run outgrew its context, and
@@ -836,7 +918,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   which layer named the model. For what a pass added: leaving every message the conversation never stores out of the
   summary, which loses the turns whose messages run middleware replaced.
 
-### D33. Sub-agents, in the foreground or the background
+### D33. Sub-agents, in the foreground or the background {#d33}
 
 - **Status:** owner.
 - **Decision:** `UseAgent<T>()` offers a tool named like the agent, with its description and one `input` string. A
@@ -876,7 +958,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   (start, wait, results, continue, clear), where one tool and an injected answer do the job; storing each sub-agent
   run as a conversation of its own, which needs ids the library may not create.
 
-### D34. Handoff continues with the agent handed to
+### D34. Handoff continues with the agent handed to {#d34}
 
 - **Status:** owner.
 - **Decision:** `UseHandoff<T>()` adds a declaration-only tool `handoff_to_{name}`. Calling it ends the current
@@ -913,7 +995,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Where:** `Conversations/ConversationChatClient.cs`, `Conversations/RunStart.cs`, `Conversations/LiveRuns.cs`,
   `Hosting/IAgentHost.cs` (`RunHandover`), `Hosting/AgentHost.cs`.
 
-### D65. A sub-agent can answer in a type
+### D65. A sub-agent can answer in a type {#d65}
 
 - **Status:** owner.
 - **Context:** the owner asked whether a sub-agent's answer can be held to a JSON type.
@@ -928,7 +1010,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Alternatives:** the sub-agent's text passed on unchecked, which leaves the calling model to find out what went
   wrong; a schema on the tool's result, which no provider reads.
 
-### D35. MCP servers through a host provider
+### D35. MCP servers through a host provider {#d35}
 
 - **Status:** approved.
 - **Decision:** `UseMcpServer(name)` with `.RequiresApproval()`; the host's `IMcpToolProvider` returns the server's
@@ -947,7 +1029,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   literals itself, and `ReservedToolNameTests` compares them with the runtime's.
 - **Where:** `Mcp/Mcp.cs`, `Hosting/AgentHost.cs`, `Hosting/OfferedTools.cs`, `Parsing/ToolNames.cs`.
 
-### D36. OpenTelemetry is always on
+### D36. OpenTelemetry is always on {#d36}
 
 - **Status:** approved.
 - **Decision:** source and meter `Typeshift`, GenAI conventions (`invoke_agent`, `chat`, `execute_tool`, operation
@@ -1002,7 +1084,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Where:** `Telemetry/Telemetry.cs`, `Telemetry/InstrumentedClients.cs`, `Telemetry/LogEvents.cs`,
   `Conversations/ConversationChatClient.cs` (`GetStreamingResponseAsync`).
 
-### D37. No built-in toolsets
+### D37. No built-in toolsets {#d37}
 
 - **Status:** owner.
 - **Decision:** the library ships no tools of its own. An app declares the file, shell, web or to-do tools it needs
@@ -1015,7 +1097,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Alternatives:** keeping them in the library; a `Typeshift.Toolsets` package in this repository, built like any
   plugin, which then needed TSH021 to accept a toolset-only package built with another provider id type.
 
-### D53. A failed tool call tells the model what was written for it
+### D53. A failed tool call tells the model what was written for it {#d53}
 
 - **Status:** owner.
 - **Context:** Microsoft.Extensions.AI's tool loop hides why a call failed unless `IncludeDetailedErrors` is on, so
@@ -1055,7 +1137,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 
 ## Storage
 
-### D38. A store of documents and a store of conversations
+### D38. A store of documents and a store of conversations {#d38}
 
 - **Status:** approved; split at the owner's request.
 - **Decision:** `ISettingsStore<TId>`: `LoadAsync` and `SaveAsync` of documents as JSON, keyed by id and kind, with a
@@ -1103,7 +1185,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   `IAgentSettingsStore` off `InMemoryTypeshiftStore<TId>` into a store of its own, a third type where the two
   built-in stores can compose.
 
-### D66. Each agent has settings of its own, under no id
+### D66. Each agent has settings of its own, under no id {#d66}
 
 - **Status:** owner.
 - **Context:** the owner asked for "a configurable, storable agent settings record for a single agent", stored "keyed
@@ -1135,7 +1217,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   on a host without a settings id, or an option that makes them throw, which the owner turned down, since who may
   change the defaults is the app's to decide.
 
-### D67. A store of agents' own settings in files
+### D67. A store of agents' own settings in files {#d67}
 
 - **Status:** owner.
 - **Context:** the owner asked for first-party support of simple setups; an app with one agent and no database
@@ -1185,7 +1267,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   extension method in `Microsoft.Extensions.DependencyInjection` (up to 0.1.0-alpha.6), which a file around
   `TypeshiftRuntime.Create` with a `using` of Typeshift alone did not find (CS1061).
 
-### D68. The package turns XML docs on
+### D68. The package turns XML docs on {#d68}
 
 - **Status:** owner.
 - **Context:** the owner asked for less ceremony and sane defaults, and a project without
@@ -1219,7 +1301,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   that turned docs on in its project file; a test for an empty property in the targets, where the SDK has already
   set it to `false`; the XML file in the output folder, which every app that references the project would publish.
 
-### D70. Instructions that never change are one call
+### D70. Instructions that never change are one call {#d70}
 
 - **Status:** owner.
 - **Context:** the owner asked for less ceremony. Constant instructions took an override of `GetInstructions()`, three
@@ -1233,7 +1315,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   between `ChatOptions` and the override; reading them from the agent's XML docs, which already describe it to other
   agents (D14).
 
-### D71. Every conversation store implements the load from the last summary
+### D71. Every conversation store implements the load from the last summary {#d71}
 
 - **Status:** owner.
 - **Context:** the owner asked that the code, not only the docs, lead a store's author to the load runs call. It had a
@@ -1249,7 +1331,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   any agent compact" a compilation cannot always answer for agents of other projects; only the docs, which the owner
   found not enough; dropping `LoadConversationAsync` instead, which a chat UI needs for the whole history.
 
-### D39. Kinds are stable names
+### D39. Kinds are stable names {#d39}
 
 - **Status:** owner.
 - **Decision:** `IStorable.Kind`: for an agent's `Settings` its `WithStorageKind("...")` if it has one, or else its
@@ -1258,7 +1340,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   kind that is empty or blank is TSH039, since a store keeps the settings under it.
 - **Alternatives:** the agent's name, which would need unique names (out of scope); the full type name (v0).
 
-### D40. A schema version per document
+### D40. A schema version per document {#d40}
 
 - **Status:** owner.
 - **Decision:** `IStorable.SchemaVersion`, 1 for `Settings` until `WithSchemaVersion(n)` raises it. The JSON carries it
@@ -1275,7 +1357,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   the JSON (up to 0.1.0-alpha.4), a column every store kept; no schema version at all, which would read settings a newer
   release wrote after a rollback.
 
-### D41. Optimistic concurrency
+### D41. Optimistic concurrency {#d41}
 
 - **Status:** owner.
 - **Decision:** `SaveAsync` takes the version the caller loaded as `loadedVersion`, 0 for none, and throws
@@ -1294,7 +1376,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   plain word for the schema while store authors handle the store's number in every call; `version` for the parameter,
   which reads as the version to write; `expectedVersion`, which the owner found unclear.
 
-### D58. A store's own tests check it against the contract
+### D58. A store's own tests check it against the contract {#d58}
 
 - **Status:** owner; the second id, the entries' times and the save of a document that is not stored came with the
   audit of November 2026.
@@ -1343,7 +1425,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   store that orders by time passes; for the taken number, passing a store that refuses it or stores it alike, which
   passes a store whose unique key a migration forgot.
 
-### D42. Settings ids and conversation ids are separate; conversations grow by appending
+### D42. Settings ids and conversation ids are separate; conversations grow by appending {#d42}
 
 - **Status:** owner.
 - **Context:** the first draft keyed conversations by the run's `id`, its settings id, as their owner. The owner
@@ -1357,14 +1439,14 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Alternatives:** an explicit `ownerId` on conversation runs, a third id whose authorization the host still owns;
   keying conversations by settings id, which ties two unrelated choices of the host.
 
-### D43. The store is the persistence switch
+### D43. The store is the persistence switch {#d43}
 
 - **Status:** carried (v0 D26), changed by D69. Once a store is registered, everything that loads or saves through a
   store interface none of the registered stores implements throws, naming `WithStore<T>()` and the interface (D38).
   Without any store, D69 keeps everything in memory. A load of decisions is the exception: without a store of them it
   answers "none", and only a write throws (D79).
 
-### D69. Without a store, everything is kept in memory
+### D69. Without a store, everything is kept in memory {#d69}
 
 - **Status:** owner.
 - **Context:** the owner asked for sane defaults, "for stock users to have a working library at their hands from the
@@ -1395,7 +1477,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   conversations itself in memory, under a warning that no store was registered; resolving a scoped store from the
   run's scope, which gives up the one instance that D25 and the store guide plan for, a second way to write a store.
 
-### D79. Decisions have a store of their own, and a setup that would lose them throws
+### D79. Decisions have a store of their own, and a setup that would lose them throws {#d79}
 
 - **Status:** owner.
 - **Context:** what a run asks your app (an approval, a plan) becomes a record with a state, in one document per
@@ -1423,7 +1505,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   decisions beside a registered conversation store, which loses what a run asked on every restart while the
   conversation stays.
 
-### D72. Ids are given in code, and their types pick the stores
+### D72. Ids are given in code, and their types pick the stores {#d72}
 
 - **Status:** owner.
 - **Context:** the owner asked that the id type move from the build into code and become "more granular": settings
@@ -1476,7 +1558,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   copies that own none of the scope, the first design, under which that line disposed a copy that owned nothing and
   leaked the scope, with every scoped service its runs resolved, without a word.
 
-### D73. Every conversation can be kept
+### D73. Every conversation can be kept {#d73}
 
 - **Status:** owner.
 - **Context:** the owner asked for an option, "if enabled by the user in the global settings", that "automatically
@@ -1514,7 +1596,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   AOT warns about; ids from the store, which would add a method every store must implement; naming the new conversation
   only in a header or a property bag, which a typed run's response would hide.
 
-### D74. Live updates are on by default
+### D74. Live updates are on by default {#d74}
 
 - **Status:** owner.
 - **Context:** the owner asked to "ship with sane defaults, for stock users to have a working library at their hands
@@ -1534,7 +1616,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Alternatives:** keeping it opt-in, which the owner turned down; a switch to turn it off, which nothing needs yet;
   an `[Obsolete]` `WithRealtimeTracking` that sets `LiveUpdates`, which the release that breaks the rest did not need.
 
-### D75. An app without a container creates a TypeshiftRuntime
+### D75. An app without a container creates a TypeshiftRuntime {#d75}
 
 - **Status:** owner.
 - **Context:** the owner asked for less ceremony, "Wolverine-style", and chose `TypeshiftRuntime.Create`, first named
@@ -1566,7 +1648,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   a runtime from `Create` without a logger and its tools without services; `WithLoggerFactory(factory)` alone, which
   leaves the tools' services out.
 
-### D76. The runtime is the root, and its hosts are units of work
+### D76. The runtime is the root, and its hosts are units of work {#d76}
 
 - **Status:** owner.
 - **Context:** D75's first design gave the app one scope for its lifetime, so every run shared its scoped services,
@@ -1601,7 +1683,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   down; one scope for the runtime's lifetime, D75's first design, whose scoped services, such as the chat client
   provider and what tools resolve, every run shared, concurrent ones included.
 
-### D83. The runtime lists its agents and toolsets and hosts an agent by its kind
+### D83. The runtime lists its agents and toolsets and hosts an agent by its kind {#d83}
 
 - **Status:** owner, under the standing rule that a choice in line with the library's aim, typed agents and tools
   nothing has to be kept in step with by hand, needs no separate answer. Of the two options for
@@ -1631,7 +1713,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   offers, its own included, which needs the descriptions that stamps of referenced toolsets do not carry; removing
   `WithDisplayName` until a picker exists, which the guide's first toolset shows.
 
-### D44. Settings records serialize themselves
+### D44. Settings records serialize themselves {#d44}
 
 - **Status:** carried (v0 D27), extended; the strict read of a request came with the audit of November 2026, in the
   breaking changes the owner allowed before the next release.
@@ -1670,14 +1752,15 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Where:** `Emitting/StorageEmitter.cs`, `Generated/StorableJson.cs`, `Generated/IJsonStorable.cs`,
   `Generated/StorableJsonConverter.cs`.
 
-### D78. Stored contents follow Microsoft.Extensions.AI's content contract
+### D78. Stored contents follow Microsoft.Extensions.AI's content contract {#d78}
 
 - **Status:** from the audit of November 2026; in force until the owner decides otherwise.
 - **Context:** an entry's messages are written and read through `AIJsonUtilities.DefaultOptions`, a closed
   polymorphic contract. A response with one content of a type outside it, such as a provider client's own, failed
-  the append of its whole step, which D46 logs and passes over, so the answer was missing from the conversation.
-  One stored `$type` the installed version cannot read, after a package upgrade or downgrade, made every load of
-  the conversation throw, for runs and for the app's own reads.
+  the append of its whole step, which D46 then logged and passed over, so the answer was missing from the
+  conversation; a failed append now fails the run as it ends. One stored `$type` the installed version cannot read,
+  after a package upgrade or downgrade, made every load of the conversation throw, for runs and for the app's own
+  reads.
 - **Decision:** the JSON of an entry's messages is Microsoft.Extensions.AI's, and what that contract cannot carry is
   left out, so it costs one content and neither the step nor the conversation. A run stores a step without the
   contents whose type the contract does not write and logs a warning that names the type, once per type and run.
@@ -1694,7 +1777,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   then receive; dropping the whole message, which loses the text beside the content; serving an app's own content
   types from its JSON contexts, a later step once an app needs it.
 
-### D45. Tool JSON: contexts from the modules, reflection where the app keeps it
+### D45. Tool JSON: contexts from the modules, reflection where the app keeps it {#d45}
 
 - **Status:** approved.
 - **Decision:** modules register the `JsonSerializerContext`s that list their tools' types (v0 D44). Where the app
@@ -1759,7 +1842,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Alternatives:** an option on `WithOptions` that keeps the element, one more thing to explain where every shipped
   client passes text on as it is; leaving the indentation and saying so in the guide.
 
-### D62. Union types in tools and typed runs
+### D62. Union types in tools and typed runs {#d62}
 
 - **Status:** approved.
 - **Context:** .NET 11 serializes a C# 15 union as its case, with no discriminator. Three things kept unions from
@@ -1790,7 +1873,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   everywhere, which fails a model that sends `"5"` for a number; leaving the typed run's schema to
   Microsoft.Extensions.AI, which neither types the cases nor holds an object union under `data`.
 
-### D64. A typed run can stream
+### D64. A typed run can stream {#d64}
 
 - **Status:** owner.
 - **Context:** the owner asked for a strongly typed answer from a streaming run.
@@ -1813,7 +1896,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 
 ## Conversations
 
-### D46. Tracking, carried and fixed
+### D46. Tracking, carried and fixed {#d46}
 
 - **Status:** carried (v0 D18), with the audit's fixes.
 - **Decision:** tracking wraps the tool loop and marks where a run begins and ends; checkpoints inside it store
@@ -1845,7 +1928,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   step that was not stored, which stops a run whose tools may have acted already and leaves the app without the
   answer it paid for. A failed save was not a failed run until the owner chose loud failures over quiet ones.
 
-### D47. Live updates are a feed per conversation
+### D47. Live updates are a feed per conversation {#d47}
 
 - **Status:** approved.
 - **Decision:** runs publish their updates from the start (D74), and `TypeshiftOptions.LiveUpdates` tunes them;
@@ -1869,7 +1952,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Alternatives, for the late watcher:** a replay of the whole run, which the store holds already; keeping the
   updates only while someone watches, which leaves nothing for the one who joins.
 
-### D50. A conversation is stored step by step and resumes after a crash
+### D50. A conversation is stored step by step and resumes after a crash {#d50}
 
 - **Status:** approved; one run across containers by the entries' numbers: owner, with the audit of November 2026.
 - **Context:** the first draft stored a run when it ended, so a run that died after an hour of work lost all of it.
@@ -1939,7 +2022,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Where:** `Conversations/`, the checkpoint layer of D29, `Conversations/ConversationRun.cs` (the numbers and the
   refusal), `Conversations/ConversationChatClient.cs` (where a run's numbers start), `Storage/IConversationStore.cs`.
 
-### D51. Steering a run going on
+### D51. Steering a run going on {#d51}
 
 - **Status:** owner.
 - **Decision:** `ConversationTracker.TrySteer(conversation, input)` hands input to the run of the conversation going
@@ -1967,7 +2050,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Alternatives:** a steering queue in the store, which works across processes but reads the store before every
   model call; queuing input for after the run, which is just the next run.
 
-### D52. Plan and auto modes are built in
+### D52. Plan and auto modes are built in {#d52}
 
 - **Status:** owner.
 - **Decision:** `AgentMode` `Default`, `Plan`, `Auto`, a run option (`WithMode`, configurable like any run option).
@@ -2009,7 +2092,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   that is never a stored setting, both left open; a wrapper that marks a tool of no toolset as reading only, which
   hides a hosted tool from the client that sends it.
 
-### D54. Runs starting and ending are a feed too
+### D54. Runs starting and ending are a feed too {#d54}
 
 - **Status:** owner.
 - **Context:** a list of running conversations, or a dot on each, had to poll `Runs` every second.
@@ -2028,7 +2111,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Alternatives:** C# events, where a slow or throwing handler runs inside the run; a separate change record, which
   needs one more id-type alias.
 
-### D59. A call id the conversation holds already is renamed
+### D59. A call id the conversation holds already is renamed {#d59}
 
 - **Status:** approved.
 - **Context:** some providers, such as local servers with an OpenAI-compatible API, number their tool calls per
@@ -2052,7 +2135,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   ids Typeshift makes up for every call, which hides the provider's ids even where they are unique; translating back
   to the provider's id on the way down, which a provider that numbers per response would then see twice.
 
-### D60. An answer to a closed request throws; steering that the run answers closes its requests
+### D60. An answer to a closed request throws; steering that the run answers closes its requests {#d60}
 
 - **Status:** owner; superseded by D80, which stores whether a decision is open, and D81, which expires what waits.
 - **Was:** a request was open while the conversation's last run left it without an answer, until the agent answered
@@ -2064,7 +2147,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   (`Answered`, `Expired` or `Unknown`), and records nothing (D80). New input, or steering input the run takes after
   it asked, expires the batch, and the model reads a result for each of its calls (D81).
 
-### D80. Decisions are records in a document per conversation
+### D80. Decisions are records in a document per conversation {#d80}
 
 - **Status:** owner.
 - **Context:** the owner asked for "a proper decision system ... like a proper user Q&A tool". What a run asked your
@@ -2109,7 +2192,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   or an exception, which one button per prompt and two tabs cannot give; timeouts, which need a timer the library
   does not run, where `AskedAt` lets your app withdraw what is old.
 
-### D81. The tool loop never pauses: a gate below it decides each call, and a replay carries the answers out
+### D81. The tool loop never pauses: a gate below it decides each call, and a replay carries the answers out {#d81}
 
 - **Status:** owner.
 - **Context:** `FunctionInvokingChatClient` pauses a run itself when a tool is an `ApprovalRequiredAIFunction`. It
@@ -2170,7 +2253,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   the call (up to 0.1.0-alpha.6), after the model was paid and earlier tools ran; rejecting the call with a reason
   the model reads, as a sub-agent's is, which hides a setup that cannot work behind answers that go on.
 
-### D82. Questions to the user are a built-in tool an agent declares
+### D82. Questions to the user are a built-in tool an agent declares {#d82}
 
 - **Status:** owner.
 - **Context:** the owner asked for the decision system to cover "user input, kind of like the Claude Q&A tool
@@ -2207,7 +2290,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 
 ## Repository
 
-### D48. Carried as they were
+### D48. Carried as they were {#d48}
 
 - Sealing (v0 D19), CS1591 off in tests only (v0 D20), samples use a scripted client (v0 D21), package metadata
   (v0 D22), releases by tag through trusted publishing (v0 D37), the Typeshift name (v0 D38), the package README
@@ -2217,7 +2300,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   a framework folder they would count as an asset for every framework, and a project on .NET 10 would restore the
   package (D61).
 
-### D49. Diagnostics are numbered afresh
+### D49. Diagnostics are numbered afresh {#d49}
 
 - **Decision:** the rewrite started the catalog again at TSH001, since none of v0's IDs had shipped. A number is
   taken once any tag shipped it, a prerelease included: no other diagnostic ever gets it, and a diagnostic that goes
