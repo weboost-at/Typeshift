@@ -895,6 +895,61 @@ public class AgentRunTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_Options_Resolved_For_Another_Model_The_Raw_Client_Refuses_Them()
+    {
+        // Arrange
+        var host = Host<ProbeAgent>();
+        var options = await host.ResolveOptionsAsync(ct: Ct);
+        var other = await host.ResolveOptionsAsync(settings: new() { Model = Data.Agent.Model }, ct: Ct);
+        using var client = await host.CreateChatClientAsync(options, Ct);
+
+        // Act
+        var call = () => client.GetResponseAsync(Data.Tool.Question, other, Ct);
+
+        // Assert
+        await call.Should().ThrowAsync<InvalidOperationException>().WithMessage(
+            $"This chat client serves '{ProbeAgent.Model}' of '{ProbeAgent.ModelProvider}', and the call's options "
+            + $"were resolved for '{Data.Agent.Model}' of '{ProbeAgent.ModelProvider}': create a client from these "
+            + "options with CreateChatClientAsync.");
+    }
+
+    [Fact]
+    public async Task Given_The_Raw_Client_Called_With_A_Response_Format_Of_The_Callers_Own_The_Model_Receives_It()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        var host = Host<ProbeAgent>();
+        var options = await host.ResolveOptionsAsync(ct: Ct);
+        var format = new ChatOptions { ResponseFormat = ChatResponseFormat.Json };
+        using var client = await host.CreateChatClientAsync(options, Ct);
+
+        // Act
+        await client.GetResponseAsync(Data.Tool.Question, format, Ct);
+
+        // Assert
+        ChatClient.Assert.Request(0).Options!.ResponseFormat.Should().BeSameAs(ChatResponseFormat.Json);
+    }
+
+    [Fact]
+    public async Task Given_The_Raw_Client_Called_With_A_Tool_Of_The_Callers_Own_The_Model_Is_Offered_It_Too()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        var host = Host<ProbeAgent>();
+        var options = await host.ResolveOptionsAsync(ct: Ct);
+        var added = new ChatOptions { Tools = [AIFunctionFactory.Create(() => Data.Tool.Answer, "lookup")] };
+        using var client = await host.CreateChatClientAsync(options, Ct);
+
+        // Act
+        await client.GetResponseAsync(Data.Tool.Question, added, Ct);
+
+        // Assert
+        ChatClient.Assert.Request(0).Tools.Should().Contain(["probe", "lookup"]);
+    }
+
+    [Fact]
     public async Task Given_Options_Resolved_With_Another_Error_Limit_The_Created_Client_Runs_With_It()
     {
         // Arrange
