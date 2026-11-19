@@ -303,6 +303,8 @@ A wrapper sits in the provider's place, so it receives a tool result that is a J
 JSON without white space ([Results](./toolsets.md#results)). The same holds for a client of your own that stands in
 for a provider, such as a fake in your tests: where it reads a result, it parses that text.
 
+### Retries
+
 Leave retries to the client library, which knows which of its errors are worth another try. The OpenAI client retries
 timeouts, rate limits and server errors three times by default, and its `RetryPolicy` sets how many times.
 `ClientRetryPolicy` is in the `System.ClientModel.Primitives` namespace:
