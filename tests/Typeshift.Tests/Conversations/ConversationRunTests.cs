@@ -1405,6 +1405,37 @@ public class ConversationRunTests : AgentTestBase
         watch.Current.Contents.Should().ContainSingle(content => content is TextContent);
     }
 
+    [Fact]
+    public async Task Given_A_Watcher_That_Joins_Late_The_Next_Text_Reaches_It_At_Once()
+    {
+        // Arrange
+        var gate = new TaskCompletionSource();
+        ChatClient.Reply(Text("a"), Text("b"), gate, Text("c"), Text("d"));
+
+        await using var run = Host<ProbeAgent>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunStreamingAsync(Data.Tool.Question, ct: Ct)
+            .GetAsyncEnumerator(Ct);
+
+        await run.MoveNextAsync();
+        await run.MoveNextAsync();
+
+        using var watching = CancellationTokenSource.CreateLinkedTokenSource(Ct);
+        await using var watch = Tracker.WatchAsync(Data.Agent.ConversationId, watching.Token).GetAsyncEnumerator(Ct);
+        await watch.MoveNextAsync();
+
+        // Act
+        gate.SetResult();
+
+        while (await run.MoveNextAsync())
+        {
+        }
+
+        // Assert
+        (await watch.MoveNextAsync()).Should().BeTrue();
+        watch.Current.Text.Should().Be("c");
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
