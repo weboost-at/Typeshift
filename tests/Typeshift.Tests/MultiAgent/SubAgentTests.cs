@@ -236,7 +236,7 @@ public class SubAgentTests : MultiAgentTestBase
         var running = Host<BackgroundLeadAgent>().RunAsync(Data.Tool.Question, ct: Ct);
         await ChatClient.RequestedAsync(2);
         gate.SetResult();
-        var response = await running;
+        var response = await running.WaitAsync(Ct);
 
         // Assert
         ChatClient.Requests[2][^1].Text.Should().EndWith(Data.Agent.Reason);
@@ -263,7 +263,7 @@ public class SubAgentTests : MultiAgentTestBase
 
         await ChatClient.RequestedAsync(2);
         gate.SetResult();
-        await running;
+        await running.WaitAsync(Ct);
 
         // Assert
         var entries = await EntriesAsync(Data.Agent.ConversationId);
@@ -288,7 +288,7 @@ public class SubAgentTests : MultiAgentTestBase
         var running = Host<BackgroundLeadAgent>().RunAsync(Data.Tool.Question, ct: Ct);
         await ChatClient.RequestedAsync(2);
         gate.SetResult();
-        await running;
+        await running.WaitAsync(Ct);
 
         // Assert
         ChatClient.Requests[2][^1].Text.Should().StartWith(
@@ -314,7 +314,7 @@ public class SubAgentTests : MultiAgentTestBase
 
         // Act
         gate.SetResult();
-        await running;
+        await running.WaitAsync(Ct);
 
         // Assert
         ChatClient.Requests[2][^1].Text.Should().EndWith(Data.Agent.Reason);
@@ -356,7 +356,7 @@ public class SubAgentTests : MultiAgentTestBase
 
         // Act
         failing.SetResult();
-        await running;
+        await running.WaitAsync(Ct);
 
         // Assert
         ChatClient.Assert.Request(2).Texts[^1].Should().Be($"The background agent helper_agent failed. {Undisclosed}");
@@ -380,7 +380,7 @@ public class SubAgentTests : MultiAgentTestBase
         var running = chat.RunAsync(Data.Tool.Question, ct: Ct);
         await ChatClient.RequestedAsync(2);
         gate.SetResult();
-        await running;
+        await running.WaitAsync(Ct);
 
         // Act
         await chat.RunAsync(Data.Agent.FollowUp, ct: Ct);
@@ -485,7 +485,7 @@ public class SubAgentTests : MultiAgentTestBase
 
         // Act
         handingOff.SetResult();
-        await running;
+        await running.WaitAsync(Ct);
 
         // Assert
         _ends.Should().ContainInOrder("helper_agent", "back_agent");
@@ -506,7 +506,7 @@ public class SubAgentTests : MultiAgentTestBase
 
         // Act
         handingOff.SetResult();
-        var response = await running;
+        var response = await running.WaitAsync(Ct);
 
         // Assert
         response.Messages[^1].AuthorName.Should().Be("back_agent");
@@ -538,7 +538,7 @@ public class SubAgentTests : MultiAgentTestBase
 
         // Act
         helper.SetResult();
-        await running;
+        await running.WaitAsync(Ct);
         var sent = ChatClient.Requests[3].Select(message => message.Text).ToList();
 
         // Assert
@@ -568,7 +568,7 @@ public class SubAgentTests : MultiAgentTestBase
 
         await ChatClient.RequestedAsync(3);
         gate.SetResult();
-        await running;
+        await running.WaitAsync(Ct);
         var summary = (await EntriesAsync(Data.Agent.ConversationId)).Single(entry => entry.IsSummary);
 
         // Assert
@@ -626,7 +626,7 @@ public class SubAgentTests : MultiAgentTestBase
 
         await ChatClient.RequestedAsync(2);
         gate.SetResult();
-        var asked = await running;
+        var asked = await running.WaitAsync(Ct);
 
         // Act
         await Host<GuardedBackgroundLeadAgent>().WithConversationId(Data.Agent.ConversationId).AnswerAsync(
