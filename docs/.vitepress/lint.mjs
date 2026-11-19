@@ -5,7 +5,8 @@
 //   - one H1, the first heading, the same as the title; a `## Related` section last, which names pages by their titles
 //   - in the guide, a link to a whole page whose label reads as a name carries the page's title, and a target is
 //     linked once under a heading
-//   - every page in the sidebar; every sidebar and nav link a page and, with a #fragment, a heading or anchor on it
+//   - every page in the sidebar; every sidebar and nav link a page and, with a #fragment, a heading or anchor on it,
+//     placed after its page's own entry
 //   - every fence has a language; C# only between the markers mdsnippets writes, in README.md and PACKAGE.md too
 //   - no page has a name mdsnippets skips, and no `snippet:` line stands as the tool should have found it
 //   - every callout has a title
@@ -400,9 +401,18 @@ for (const file of pages.filter(page => dirname(page) === join(docs, 'guide'))) 
 
 // Sidebar coverage, and where the sidebar and the nav lead
 const config = readFileSync(join(docs, '.vitepress/config.mts'), 'utf8')
-const menu = new Set([...config.matchAll(/link: '(\/[^']*)'/g)].map(match => match[1]))
+const ordered = [...config.matchAll(/link: '(\/[^']*)'/g)].map(match => match[1])
+const menu = new Set(ordered)
 const sidebar = new Set([...menu].map(link => link.split('#')[0]))
 const routes = new Map(pages.map(file => [routeOf(file), file]))
+
+// VitePress takes a page's first sidebar link for its previous and next links, so the entry of a section comes after
+// the entry of its page
+ordered.forEach((link, index) => {
+  const [route, fragment] = link.split('#')
+  if (fragment && routes.has(route) && !ordered.slice(0, index).includes(route))
+    errors.push(`docs/.vitepress/config.mts: the entry '${link}' comes before '${route}', which moves the pager`)
+})
 
 for (const [route, file] of routes)
   if (route !== '/' && !sidebar.has(route)) fail(file, 0, `not in the sidebar: add { text, link: '${route}' }`)

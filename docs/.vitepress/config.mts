@@ -25,6 +25,8 @@ const base = process.env.DOCS_BASE ?? '/Typeshift/'
 // explain the pages before them, and the reference.
 // The Introduction has no `collapsed` key, so it is always open; the others start collapsed, and VitePress opens one
 // when it holds the current page.
+// A section a reader looks for has an entry of its own, after its page's entry: VitePress takes a page's first link
+// for the previous and next links, so an entry before it would move the pager.
 // docs/.vitepress/lint.mjs fails on a page the sidebar leaves out.
 const sidebar = {
   '/guide/': [
@@ -34,7 +36,8 @@ const sidebar = {
         { text: 'What is Typeshift?', link: '/guide/what-is-typeshift' },
         { text: 'Getting started', link: '/guide/getting-started' },
         { text: 'Using an agent in your app', link: '/guide/using-an-agent' },
-        { text: 'Registration', link: '/guide/registration' }
+        { text: 'Registration', link: '/guide/registration' },
+        { text: 'The runtime', link: '/guide/registration#the-runtime' }
       ]
     },
     {
@@ -56,8 +59,12 @@ const sidebar = {
         { text: 'Running an agent', link: '/guide/running-agents' },
         { text: 'Testing an agent', link: '/guide/running-agents#testing-an-agent' },
         { text: 'Conversations', link: '/guide/conversations' },
+        { text: 'Running on several instances', link: '/guide/conversations#running-on-several-instances' },
+        { text: 'Compaction', link: '/guide/conversations#compaction' },
         { text: 'Approval and modes', link: '/guide/tool-approval' },
+        { text: 'Plan and auto modes', link: '/guide/tool-approval#the-three-modes' },
         { text: 'Middleware and context', link: '/guide/middleware' },
+        { text: 'Context providers', link: '/guide/middleware#context-providers' },
         { text: 'Serving a chat endpoint', link: '/guide/chat-endpoint' }
       ]
     },
@@ -113,6 +120,12 @@ const sidebar = {
     }
   ]
 }
+
+// llms.txt lists each page once, so the entries for a section of a page stay out of it
+const pagesOf = items =>
+  items
+    .filter(item => !item.link?.includes('#'))
+    .map(item => (item.items ? { ...item, items: pagesOf(item.items) } : item))
 
 export default withMermaid(
   defineConfig({
@@ -214,7 +227,7 @@ export default withMermaid(
         llmstxt({
           domain: site,
           description: `${description}. ${describes}`,
-          sidebar: { '/guide/': sidebar['/guide/'] },
+          sidebar: { '/guide/': pagesOf(sidebar['/guide/']) },
           ignoreFiles: ['contributing/**']
         })
       ]

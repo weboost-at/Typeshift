@@ -234,6 +234,11 @@ The link under a snippet names the lines of its region, so a line added above a 
 Before you add one, check whether the topic fits as a section of an existing page. Fewer, fuller pages are easier
 to find than many thin ones.
 
+A section a reader looks for in the sidebar, such as context providers, gets an entry of its own with its anchor:
+`{ text: 'Context providers', link: '/guide/middleware#context-providers' }`. Place it after its page's entry,
+because VitePress takes a page's first sidebar link for the previous and next links at the foot of the page, and an
+entry placed earlier would move them.
+
 ## The checks
 
 | Command | Fails on |
@@ -249,7 +254,8 @@ The docs rules check what a machine can:
 - every page ends with `## Related`, and an entry that links a whole page calls it by its title;
 - in the guide, a link to a whole page whose label starts with a capital, other than an acronym's, calls the page by
   its title, and no link target repeats under one heading, outside tables and `## Related`;
-- every page is in the sidebar, and every sidebar and nav link reaches its page and its anchor;
+- every page is in the sidebar, every sidebar and nav link reaches its page and its anchor, and the entry of a
+  section comes after its page's entry;
 - every code block has a language, and C# appears only where mdsnippets wrote it, in `README.md` and
   `src/Typeshift/PACKAGE.md` too;
 - no page has a name mdsnippets skips, and no `snippet:` line is left as the tool should have found it;
