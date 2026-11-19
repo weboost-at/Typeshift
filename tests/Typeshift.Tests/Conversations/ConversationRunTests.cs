@@ -1556,6 +1556,28 @@ public class ConversationRunTests : AgentTestBase
         watch.Current.Contents.Should().ContainSingle(content => content is FunctionCallContent);
     }
 
+    [Fact]
+    public async Task Given_Text_Within_The_Interval_A_Watcher_Receives_It_Ahead_Of_An_Image_Streamed_After_It()
+    {
+        // Arrange
+        var image = new ChatResponseUpdate(ChatRole.Assistant, [new DataContent(new byte[] { 1, 2, 3 }, "image/png")]);
+        ChatClient.Reply(Text("a"), Text("b"), image, Text(Data.Tool.Answer));
+
+        using var watching = CancellationTokenSource.CreateLinkedTokenSource(Ct);
+        await using var watch = Tracker.WatchAsync(Data.Agent.ConversationId, watching.Token).GetAsyncEnumerator(Ct);
+        var first = watch.MoveNextAsync();
+
+        // Act
+        await RunAsync(Data.Tool.Question, streaming: true, Ct);
+
+        // Assert
+        (await first).Should().BeTrue();
+        (await watch.MoveNextAsync()).Should().BeTrue();
+        watch.Current.Text.Should().Be("b");
+        (await watch.MoveNextAsync()).Should().BeTrue();
+        watch.Current.Contents.Should().ContainSingle(content => content is DataContent);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
