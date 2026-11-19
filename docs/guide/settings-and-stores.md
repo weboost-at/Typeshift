@@ -365,7 +365,9 @@ What is stored is the record's JSON: camelCase, with the tools nested under `"to
 }
 ```
 
-An agent whose `WithSchemaVersion(n)` raised its schema version above 1 also writes `"$schemaVersion": n` first. A
+A tool that settings may [switch off](./defining-agents.md#switching-a-tool-off) keeps its switch beside the
+options, as `"searchTicketsEnabled": false`, and only while a layer sets it. An agent whose `WithSchemaVersion(n)`
+raised its schema version above 1 also writes `"$schemaVersion": n` first. A
 document without that member counts as version 1, which is why a version below 1 does not build
 ([TSH039](./diagnostics.md#tsh039)). When a configurable member is itself a record or a class, a stored value
 replaces the whole object, so members missing from its stored JSON take that type's defaults, not the values of the

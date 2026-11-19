@@ -143,7 +143,8 @@ A tool's settings resolve through four [settings layers](./settings-and-stores.m
 code defaults, the agent's [`Configure{Tool}()`](./defining-agents.md#tool-settings), the
 [stored settings](./settings-and-stores.md#agent-settings) and the [run's settings](./running-agents.md#run-settings).
 The last two set values through the overrides, so they can change only the configurable members. The agent's
-`Configure{Tool}()` can set every settable member.
+`Configure{Tool}()` can set every settable member. Whether the agent offers a tool at all can change through the
+same layers when the agent [lets settings switch it off](./defining-agents.md#switching-a-tool-off).
 
 ## Related
 

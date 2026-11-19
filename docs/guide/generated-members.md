@@ -335,6 +335,7 @@ internal partial class SupportAgent : Agent
 | `WithChatOptions().Configurable(o => o.X)` | `X`, nullable: `float? Temperature`, `string? Instructions`. |
 | `WithRunOptions().Configurable(r => r.X)` | `X`, nullable: `AgentMode? Mode`, `int? MaxToolIterations`. |
 | `UseToolset<T>()` offering a tool with `{Tool}Overrides` | `{Tool}`, its overrides, never null. A name taken by an option or by one of the record's own members, such as `Kind`, gets a `Tool` suffix. |
+| `UseToolset<T>().Configurable(t => t.X)` | `bool? XEnabled`: false leaves the tool out of the run ([Switching a tool off](./defining-agents.md#switching-a-tool-off)). A name another member takes gets a `Tool` suffix before `Enabled`. |
 
 The option members and the members of each tool's overrides are nullable, and null keeps the layer below
 ([Settings layering](./settings-and-stores.md#settings-layering)).

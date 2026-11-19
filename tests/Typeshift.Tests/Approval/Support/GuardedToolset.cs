@@ -98,3 +98,15 @@ public partial class ResearchingAgent : Agent
             .Exclude(t => t.CloseTicket);
     }
 }
+
+// Makes the toolset's note ask your app, which the toolset leaves to run unasked
+public partial class MarkingAgent : Agent
+{
+    public MarkingAgent()
+    {
+        WithChatOptions().WithModel("scripted", "guarded-model");
+
+        UseToolset<GuardedToolset>()
+            .RequiresApproval(t => t.Note);
+    }
+}

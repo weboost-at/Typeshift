@@ -62,7 +62,8 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         Descriptors.UnusableValue,
         Descriptors.NotIntercepted,
         Descriptors.DroppedHostCopy,
-        Descriptors.DisposedHostThatLivesOn
+        Descriptors.DisposedHostThatLivesOn,
+        Descriptors.MarkOnToolNotOffered
     ];
 
     public override void Initialize(AnalysisContext context)

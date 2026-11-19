@@ -3903,4 +3903,111 @@ public static class DiagnosticSources
             public static string Place(Order order) => order.Sku;
         }
         """;
+
+    public const string MarkOnAnExcludedTool =
+        """
+        using Typeshift;
+
+        internal partial class TicketToolset : Toolset
+        {
+            public TicketToolset()
+            {
+                AddTool(Find).WithDescription("Finds a ticket.");
+                AddTool(Close).WithDescription("Closes a ticket.");
+            }
+
+            public static string Find(string query) => query;
+
+            public static void Close(int number)
+            {
+            }
+        }
+
+        // begin-snippet: tsh043
+        internal partial class DeskAgent : Agent
+        {
+            public DeskAgent()
+            {
+                UseToolset<TicketToolset>()
+                    .Exclude(t => t.Close)
+                    .RequiresApproval(t => t.Close);
+            }
+        }
+        // end-snippet
+        """;
+
+    public const string SwitchOfAToolNotIncluded =
+        """
+        using Typeshift;
+
+        internal partial class TicketToolset : Toolset
+        {
+            public TicketToolset()
+            {
+                AddTool(Find).WithDescription("Finds a ticket.");
+                AddTool(Close).WithDescription("Closes a ticket.");
+            }
+
+            public static string Find(string query) => query;
+
+            public static void Close(int number)
+            {
+            }
+        }
+
+        internal partial class DeskAgent : Agent
+        {
+            public DeskAgent() => UseToolset<TicketToolset>().Include(t => t.Find).Configurable(t => t.Close);
+        }
+        """;
+
+    public const string MarkThatIsNoPick =
+        """
+        using System;
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+        }
+
+        internal partial class EchoAgent : Agent
+        {
+            public EchoAgent() => UseToolset<EchoToolset>().RequiresApproval(Pick);
+
+            private static ToolName Pick(ToolList<EchoToolset> tools) => tools.Echo;
+        }
+        """;
+
+    // D84: a use that requires approval makes the sub-agent one that asks
+    public const string SubAgentWhoseUseRequiresApproval =
+        """
+        using Typeshift;
+
+        internal partial class TicketToolset : Toolset
+        {
+            public TicketToolset() => AddTool(Close).WithDescription("Closes a ticket.");
+
+            public static void Close(int number)
+            {
+            }
+        }
+
+        internal partial class HelpAgent : Agent
+        {
+            public HelpAgent()
+            {
+                WithDescription("Helps.");
+
+                UseToolset<TicketToolset>().RequiresApproval(t => t.Close);
+            }
+        }
+
+        internal partial class LeadAgent : Agent
+        {
+            public LeadAgent() => UseAgent<HelpAgent>();
+        }
+        """;
 }

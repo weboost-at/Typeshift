@@ -3089,4 +3089,55 @@ public class DiagnosticTests : GeneratorTestBase
         // Assert
         run.Assert.GeneratesValidCode();
     }
+
+    [Fact]
+    public void Given_A_Mark_On_A_Tool_The_Use_Excludes_TSH043_Is_Reported_On_The_Pick()
+    {
+        // Act
+        var run = Run(DiagnosticSources.MarkOnAnExcludedTool);
+
+        // Assert
+        run.Assert.Reports(
+            "TSH043",
+            DiagnosticSeverity.Error,
+            "t => t.Close",
+            message: "RequiresApproval(t => t.Close) names a tool this use of 'TicketToolset' does not offer, since "
+                + "the use excludes it: offer the tool, or remove the RequiresApproval");
+    }
+
+    [Fact]
+    public void Given_A_Switch_Of_A_Tool_The_Use_Does_Not_Include_TSH043_Is_Reported_On_The_Pick()
+    {
+        // Act
+        var run = Run(DiagnosticSources.SwitchOfAToolNotIncluded);
+
+        // Assert
+        run.Assert.Reports("TSH043", DiagnosticSeverity.Error, "t => t.Close")
+            .GetMessage()
+            .Should()
+            .Contain("Configurable(t => t.Close)");
+    }
+
+    [Fact]
+    public void Given_A_Mark_That_Is_No_Pick_TSH015_Is_Reported_On_It()
+    {
+        // Act
+        var run = Run(DiagnosticSources.MarkThatIsNoPick);
+
+        // Assert
+        run.Assert.Reports("TSH015", DiagnosticSeverity.Error, "Pick");
+    }
+
+    [Fact]
+    public void Given_A_Sub_Agent_Whose_Use_Requires_Approval_TSH024_Is_Reported_On_The_Use()
+    {
+        // Act
+        var run = Run(DiagnosticSources.SubAgentWhoseUseRequiresApproval);
+
+        // Assert
+        run.Assert.Reports("TSH024", DiagnosticSeverity.Warning, "UseAgent<HelpAgent>")
+            .GetMessage()
+            .Should()
+            .Contain("close");
+    }
 }

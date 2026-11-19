@@ -362,13 +362,14 @@ internal static class AgentParser
 
         var picks = new List<string>();
         var excludes = false;
+        var marks = new List<(string Method, string Picked, SyntaxNode Argument)>();
 
         // D4: the tool list's properties are the generator's own output, so the picks are read from syntax
         foreach (var pick in ConstructorChains.GetChain(call).Select(link => (InvocationExpressionSyntax)link.Syntax))
         {
             var argument = pick.ArgumentList.Arguments.FirstOrDefault()?.Expression;
             var method = ((MemberAccessExpressionSyntax)pick.Expression).Name;
-            excludes = method.Identifier.ValueText == "Exclude";
+            var called = method.Identifier.ValueText;
 
             // A pick still being typed has no argument yet
             if (argument is null || GetPickedName(argument) is not { } picked)
@@ -376,6 +377,15 @@ internal static class AgentParser
                 reporter.Report(Descriptors.UnreadableChain, (SyntaxNode?)argument ?? method, "tool pick");
                 return null;
             }
+
+            // D84: a tool the use makes ask your app, or lets settings switch off, among those it offers
+            if (called is "RequiresApproval" or "Configurable")
+            {
+                marks.Add((called, picked, argument));
+                continue;
+            }
+
+            excludes = called == "Exclude";
 
             if (picks.Contains(picked))
             {
@@ -386,6 +396,28 @@ internal static class AgentParser
             picks.Add(picked);
         }
 
+        var approvals = new List<string>();
+        var switches = new List<string>();
+
+        foreach (var (method, picked, argument) in marks)
+        {
+            if (!Offers(excludes, picks, picked))
+            {
+                reporter.Report(
+                    Descriptors.MarkOnToolNotOffered,
+                    argument,
+                    method,
+                    picked,
+                    toolset.Name,
+                    excludes ? "excludes it" : "includes others only");
+
+                continue;
+            }
+
+            var marked = method == "RequiresApproval" ? approvals : switches;
+            if (!marked.Contains(picked)) marked.Add(picked);
+        }
+
         // D6: the agent's Settings record names the overrides of what it offers; the stamps on the toolset say which
         // tools have overrides, and the generator leaves out those the record cannot name
         var hidden = agent.IsEffectivelyPublic() && !toolset.IsEffectivelyPublic();
@@ -393,7 +425,12 @@ internal static class AgentParser
         if (hidden && ReferenceReader.GetOverridden(toolset).Any(property => Offers(excludes, picks, property)))
             reporter.Report(Descriptors.SettingsLessAccessible, name, toolset.Name, agent.Name);
 
-        return new ToolsetUseModel(type, excludes, picks.ToEquatableArray());
+        return new ToolsetUseModel(
+            type,
+            excludes,
+            picks.ToEquatableArray(),
+            approvals.ToEquatableArray(),
+            switches.ToEquatableArray());
     }
 
     // D77: the agent's provider id type, from the WithModel that runs last, string without one. Settings that store

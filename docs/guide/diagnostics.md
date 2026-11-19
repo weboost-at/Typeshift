@@ -53,6 +53,7 @@ app runs throws an exception instead, and [Errors at run time](#errors-at-run-ti
 | [TSH040](#tsh040) | Error | Call the generator cannot intercept | While you type |
 | [TSH041](#tsh041) | Error | Copy of a host is dropped | While you type |
 | [TSH042](#tsh042) | Warning | Copy of a host that lives on is disposed | While you type |
+| [TSH043](#tsh043) | Error | Use marks a tool it does not offer | While you type |
 
 The last column says when an editor shows a diagnostic. "On build" marks a check that compares classes or
 projects: an editor runs it for a build or for an analysis of the whole solution, so its squiggle appears after you
@@ -1231,6 +1232,31 @@ internal sealed class TicketFollowUp(TypeshiftRuntime runtime)
 Take the copy without `using`, and dispose the host where its work ends. The analyzer reports nothing for
 `await using var chat = runtime.CreateHost<SupportAgent>().WithConversationId(ticket);`, whose host nothing else holds,
 nor for a copy disposed in the block that declares its host, where both end together.
+
+## TSH043
+
+**Use marks a tool it does not offer.** `RequiresApproval(t => t.X)` and `Configurable(t => t.X)` on a
+`UseToolset<T>()` act on a tool the use offers. A use that excludes the tool, or includes other tools only, never
+offers it, so the mark would do nothing:
+
+<!-- snippet: tsh043 -->
+<a id='snippet-tsh043'></a>
+```cs
+internal partial class DeskAgent : Agent
+{
+    public DeskAgent()
+    {
+        UseToolset<TicketToolset>()
+            .Exclude(t => t.Close)
+            .RequiresApproval(t => t.Close);
+    }
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L3926-L3936' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh043' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+Remove the `Exclude`, include the tool, or remove the mark. To make a tool ask your app, it has to be offered
+([Requiring approval](./tool-approval.md#requiring-approval)).
 
 ## Errors at run time
 

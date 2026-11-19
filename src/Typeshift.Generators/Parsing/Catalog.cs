@@ -55,7 +55,15 @@ internal static class Catalog
             {
                 if (offered.Any(other => Names.Clashes(other.Tool.Name, tool.Name))) continue;
 
-                offered.Add(new OfferedTool(toolset.Type, hidden ? tool with { Overrides = null } : tool));
+                // D84: a tool the use makes ask counts as one that requires approval, for the stamp and TSH024 too
+                var asks = use.Approvals.Contains(tool.Property);
+                var summary = hidden ? tool with { Overrides = null } : tool;
+
+                offered.Add(new OfferedTool(
+                    toolset.Type,
+                    asks ? summary with { RequiresApproval = true } : summary,
+                    AsksFirst: asks && !tool.RequiresApproval,
+                    Switchable: use.Switches.Contains(tool.Property)));
             }
         }
 

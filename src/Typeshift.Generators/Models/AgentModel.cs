@@ -22,5 +22,11 @@ internal sealed record AgentModel(
     EquatableArray<string> Configures,
     EquatableArray<string> ExperimentalIds);
 
-// Picks are tool list property names, in source order; with none, the use offers every tool
-internal sealed record ToolsetUseModel(string Toolset, bool Excludes, EquatableArray<string> Picks);
+// Picks are tool list property names, in source order; with none, the use offers every tool. Approvals are the tools
+// the use makes ask your app, Switches those settings may switch off, each by its property name too
+internal sealed record ToolsetUseModel(
+    string Toolset,
+    bool Excludes,
+    EquatableArray<string> Picks,
+    EquatableArray<string> Approvals,
+    EquatableArray<string> Switches);

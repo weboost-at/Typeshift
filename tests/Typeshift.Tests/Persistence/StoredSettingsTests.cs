@@ -367,4 +367,52 @@ public class StoredSettingsTests : AgentTestBase
 
         return Host<VendorAgent>().WithSettingsId(Data.Persistence.SettingsId);
     }
+
+    [Fact]
+    public async Task Given_A_Tool_Switched_Off_Under_A_Settings_Id_The_Model_Is_Not_Offered_It()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        var customer = Host<SwitchingAgent>().WithSettingsId(Data.Persistence.SettingsId);
+        await customer.UpdateSettingsAsync(settings => settings with { ProbeEnabled = false }, Ct);
+
+        // Act
+        await customer.RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        ChatClient.Options[0]!.Tools!.Select(tool => tool.Name).Should().Equal("count_companies");
+    }
+
+    [Fact]
+    public async Task Given_A_Tool_Switched_Off_Under_Another_Settings_Id_The_Model_Is_Offered_It()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        var other = Host<SwitchingAgent>().WithSettingsId(Data.Persistence.SettingsId);
+        await other.UpdateSettingsAsync(settings => settings with { ProbeEnabled = false }, Ct);
+
+        // Act
+        await Host<SwitchingAgent>().WithSettingsId(Data.Persistence.OtherId).RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        ChatClient.Options[0]!.Tools!.Select(tool => tool.Name).Should().Equal("probe", "count_companies");
+    }
+
+    [Fact]
+    public async Task Given_A_Run_That_Switches_On_A_Tool_Its_Stored_Settings_Switch_Off_The_Model_Is_Offered_It()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        var customer = Host<SwitchingAgent>().WithSettingsId(Data.Persistence.SettingsId);
+        await customer.UpdateSettingsAsync(settings => settings with { ProbeEnabled = false }, Ct);
+
+        // Act
+        await customer.RunAsync(Data.Tool.Question, settings: new() { ProbeEnabled = true }, ct: Ct);
+
+        // Assert
+        ChatClient.Options[0]!.Tools!.Select(tool => tool.Name).Should().Contain("probe");
+    }
 }

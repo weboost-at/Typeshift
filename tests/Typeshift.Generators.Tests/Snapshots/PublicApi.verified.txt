@@ -692,9 +692,13 @@ public class Typeshift.ToolException : System.Exception
 public Typeshift.ToolException.ToolException(string message)
 public Typeshift.ToolException.ToolException(string message, System.Exception innerException)
 public sealed class Typeshift.ToolExclusion<TToolset> where TToolset : Typeshift.Toolset
+public Typeshift.ToolExclusion<TToolset> Typeshift.ToolExclusion<TToolset>.Configurable(System.Func<Typeshift.ToolList<TToolset>, Typeshift.ToolName> tool)
 public Typeshift.ToolExclusion<TToolset> Typeshift.ToolExclusion<TToolset>.Exclude(System.Func<Typeshift.ToolList<TToolset>, Typeshift.ToolName> tool)
+public Typeshift.ToolExclusion<TToolset> Typeshift.ToolExclusion<TToolset>.RequiresApproval(System.Func<Typeshift.ToolList<TToolset>, Typeshift.ToolName> tool)
 public sealed class Typeshift.ToolInclusion<TToolset> where TToolset : Typeshift.Toolset
+public Typeshift.ToolInclusion<TToolset> Typeshift.ToolInclusion<TToolset>.Configurable(System.Func<Typeshift.ToolList<TToolset>, Typeshift.ToolName> tool)
 public Typeshift.ToolInclusion<TToolset> Typeshift.ToolInclusion<TToolset>.Include(System.Func<Typeshift.ToolList<TToolset>, Typeshift.ToolName> tool)
+public Typeshift.ToolInclusion<TToolset> Typeshift.ToolInclusion<TToolset>.RequiresApproval(System.Func<Typeshift.ToolList<TToolset>, Typeshift.ToolName> tool)
 public sealed record Typeshift.ToolInfo : System.IEquatable<Typeshift.ToolInfo>
 public void Typeshift.ToolInfo.Deconstruct(out string Name, out string? Description, out bool IsReadOnly, out bool RequiresApproval)
 public string? Typeshift.ToolInfo.Description { get; init; }
@@ -737,8 +741,10 @@ public System.Type Typeshift.ToolsetInfo.Type { get; init; }
 public static bool Typeshift.ToolsetInfo.operator !=(Typeshift.ToolsetInfo? left, Typeshift.ToolsetInfo? right)
 public static bool Typeshift.ToolsetInfo.operator ==(Typeshift.ToolsetInfo? left, Typeshift.ToolsetInfo? right)
 public sealed class Typeshift.ToolsetUse<TToolset> where TToolset : Typeshift.Toolset
+public Typeshift.ToolsetUse<TToolset> Typeshift.ToolsetUse<TToolset>.Configurable(System.Func<Typeshift.ToolList<TToolset>, Typeshift.ToolName> tool)
 public Typeshift.ToolExclusion<TToolset> Typeshift.ToolsetUse<TToolset>.Exclude(System.Func<Typeshift.ToolList<TToolset>, Typeshift.ToolName> tool)
 public Typeshift.ToolInclusion<TToolset> Typeshift.ToolsetUse<TToolset>.Include(System.Func<Typeshift.ToolList<TToolset>, Typeshift.ToolName> tool)
+public Typeshift.ToolsetUse<TToolset> Typeshift.ToolsetUse<TToolset>.RequiresApproval(System.Func<Typeshift.ToolList<TToolset>, Typeshift.ToolName> tool)
 public sealed class Typeshift.TypeshiftBuilder
 public Microsoft.Extensions.DependencyInjection.IServiceCollection Typeshift.TypeshiftBuilder.Services { get; }
 public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithApprovalRule<TRule>() where TRule : class, Typeshift.IToolApprovalRule

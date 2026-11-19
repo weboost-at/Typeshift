@@ -152,6 +152,45 @@ of another toolset is not on that list, so picking it does not compile. Use each
 ([TSH025](./diagnostics.md#tsh025)). A toolset from another project needs the Typeshift package in that project
 ([TSH019](./diagnostics.md#tsh019)).
 
+The same use can make a tool [ask your app first](./tool-approval.md#requiring-approval) with
+`RequiresApproval(t => t.X)`, in this agent only.
+
+## Switching a tool off
+
+`Configurable(t => t.X)` on a use lets stored settings or a run switch the tool off, so one customer's runs offer
+it and another's do not:
+
+<!-- snippet: switchable-tool -->
+<a id='snippet-switchable-tool'></a>
+```cs
+UseToolset<TicketToolset>()
+    .Include(t => t.SearchTickets)
+    .Include(t => t.GetTicket)
+    .Configurable(t => t.SearchTickets);
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/ReviewDeskAgent.cs#L20-L25' title='Snippet source file'>snippet source</a> | <a href='#snippet-switchable-tool' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+- The agent's `Settings` gain `bool? SearchTicketsEnabled`, named after the tool. False leaves the tool out of the
+  run, and null keeps the [layer below](./settings-and-stores.md#settings-layering). With every layer null, the tool
+  is offered.
+- Only the tools you pick get a switch, as only the options you pick are configurable. The pick names a tool the use
+  offers ([TSH043](./diagnostics.md#tsh043)).
+
+Switch it off under a customer's settings id, as the agent's other settings are stored:
+
+<!-- snippet: switch-tool-off -->
+<a id='snippet-switch-tool-off'></a>
+```cs
+await review.WithSettingsId(42).UpdateSettingsAsync(settings => settings with { SearchTicketsEnabled = false });
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/AgentSettings.cs#L59-L61' title='Snippet source file'>snippet source</a> | <a href='#snippet-switch-tool-off' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+That customer's runs no longer offer `search_tickets`, and those of every other customer still do. To switch a tool
+off for every customer unless their settings switch it on, store false in the
+[agent's own settings](./settings-and-stores.md#an-agent-s-own-settings).
+
 ## Add a tool of the agent's own
 
 A tool that only one agent needs can live in the agent itself, without a toolset of its own. Declare it with `AddTool`
@@ -289,9 +328,10 @@ defaults, as `ConfigureSearchTickets().WithLimit(5)` does above.
 ## The generated settings
 
 Every agent gets a nested `Settings` record, here `SupportAgent.Settings`, holding exactly what may change at
-runtime: the chat and run options you marked configurable, and the
-[overrides](./tool-settings.md#the-generated-overrides) of each offered tool that has configurable settings. A value
-you leave null keeps the [layer below](./settings-and-stores.md#settings-layering).
+runtime: the chat and run options you marked configurable, the
+[overrides](./tool-settings.md#the-generated-overrides) of each offered tool that has configurable settings, and the
+switch of each tool a use [lets settings switch off](#switching-a-tool-off). A value you leave null keeps the
+[layer below](./settings-and-stores.md#settings-layering).
 [Generated members](./generated-members.md#settings) lists the record's members and the declaration each comes from.
 
 Store the record [under a settings id](./settings-and-stores.md#settings-under-an-id-such-as-per-customer), pass it

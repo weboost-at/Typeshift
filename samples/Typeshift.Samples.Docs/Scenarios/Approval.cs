@@ -76,6 +76,12 @@ internal static class Approval
 
         if (cancelled.Open.Count > 0) throw new InvalidOperationException("Expected nothing left to answer.");
 
+        var review = scope.ServiceProvider.GetRequiredService<AgentHost<ReviewDeskAgent>>().WithConversationId(10);
+        var escalation = await review.RunAsync("Escalate ticket 1234");
+
+        if (escalation.Decisions is not [ApprovalDecision { Tool: "escalate_ticket" }])
+            throw new InvalidOperationException("Expected the use to make the escalation ask the app.");
+
         await GuardAsync(scope.ServiceProvider);
     }
 

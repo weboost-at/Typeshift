@@ -46,3 +46,4 @@ TSH039 | Typeshift | Error | Declared value cannot be used
 TSH040 | Typeshift | Error | Call the generator cannot intercept
 TSH041 | Typeshift | Error | Copy of a host is dropped
 TSH042 | Typeshift | Warning | Copy of a host that lives on is disposed
+TSH043 | Typeshift | Error | Use marks a tool it does not offer

@@ -19,7 +19,7 @@ internal static class OptionMembers
 
     private static readonly StorageModel Text = new(StorageKind.Scalar, "string") { IsReference = true };
 
-    private static readonly StorageModel Flag = new(StorageKind.Scalar, "bool");
+    public static readonly StorageModel Flag = new(StorageKind.Scalar, "bool");
 
     private static readonly StorageModel Single = new(StorageKind.Number, "float");
 

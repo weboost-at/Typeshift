@@ -531,6 +531,32 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Alternatives:** `Model` in every `Settings` (v0, the brief's first sketch), which lets a settings form a
   customer edits pick any model the provider knows.
 
+### D84. An agent's use of a toolset may require approval for a tool and let settings switch one off
+
+- **Status:** from the audit of November 2026; the owner's line for the phase took the recommended option, both
+  steps. In force until the owner decides otherwise.
+- **Context:** which tools an agent offered was fixed in code. No setting switched a tool off for one customer,
+  "web search on for this customer, off for that one", and an agent could not put a toolset's tool behind approval,
+  though `UseMcpServer(...).RequiresApproval()` could for a server's. A run middleware that edits
+  `run.Options.Tools` by name did both, unseen by the analyzer and the stamps.
+- **Decision:** `UseToolset<T>()`, and the `Include` and `Exclude` uses after it, take
+  `RequiresApproval(t => t.X)` and `Configurable(t => t.X)`, picks read from syntax as `Include` is (D4, D5).
+  `RequiresApproval` makes the agent wrap the tool in `ApprovalRequiredAIFunction` when its toolset does not, so
+  its calls are decisions like any (D80, D81), in this agent only. `Configurable` follows D18's allow list and D28's
+  configurable options for a whole tool: the agent's `Settings` gain `bool? {Tool}Enabled`, stored as a member of
+  the JSON beside the options, and a layer that sets it to false leaves the tool out of the run's tools, which
+  `CreateTools` builds. Null keeps the layer below, and with every layer null the tool is offered.
+- **As built:** `Catalog.Resolve` gives a tool the use marks `RequiresApproval`, so the module stamps it among the
+  agent's approval tools and TSH024 and TSH037 see it, also from a referencing project; the stamps' shape is
+  unchanged. A mark on a tool the use does not offer, because it excludes it or includes others only, is TSH043. A
+  switch's member yields to every other member of the record, as a tool's overrides do (D6), with a `Tool` suffix.
+- **Alternatives:** step 1 alone, the default without the owner, which leaves the per-customer tool set to a
+  middleware by name; `ReadOnly(t => t.X)` on a use, which would let an agent offer a toolset's tool in plan mode
+  that its author did not mark, so an agent may make a tool stricter, never looser; a switch on every tool, which
+  would put every tool of every agent into its `Settings` and a settings form.
+- **Where:** `Agents/ToolsetUse.cs`, `Parsing/AgentParser.cs` (`ReadUse`), `Parsing/Catalog.cs`,
+  `Emitting/AgentEmitter.cs` (`SwitchMember`, `WriteCreateTools`), `Models/AgentModel.cs` (`ToolsetUseModel`).
+
 ### D56. A model is a provider and a model, one interface serves both
 
 - **Status:** owner; superseded by D77, which types providers per agent.

@@ -245,6 +245,12 @@ internal static class Descriptors
         "This using disposes '{0}' with its copy, and a host from runtime.CreateHost<T>() runs no more once it is: "
         + "take the copy without using, and dispose '{0}' where its work ends");
 
+    public static readonly DiagnosticDescriptor MarkOnToolNotOffered = Error(
+        "TSH043",
+        "Use marks a tool it does not offer",
+        "{0}(t => t.{1}) names a tool this use of '{2}' does not offer, since the use {3}: offer the tool, or "
+        + "remove the {0}");
+
     private static DiagnosticDescriptor Error(string id, string title, string message, params string[] tags) =>
         Create(id, title, message, DiagnosticSeverity.Error, tags);
 

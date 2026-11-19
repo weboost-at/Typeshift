@@ -137,6 +137,16 @@ public partial class AgentGenerationTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_Uses_That_Require_Approval_And_Switch_Tools_The_Agents_Wrap_And_Switch_Them()
+    {
+        // Act
+        var run = Run(ShapeSources.UseMarks);
+
+        // Assert
+        Snapshot.Verify(run.Result, ["Demo.DeskAgent.g.cs", "Demo.TriageAgent.g.cs", "Demo.ReaderAgent.g.cs"]);
+    }
+
+    [Fact]
     public void Given_Tools_Of_The_Agents_Own_They_Are_Generated_In_It_And_Offered_After_The_Toolsets()
     {
         // Act

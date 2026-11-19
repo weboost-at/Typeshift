@@ -204,6 +204,14 @@ All notable changes to this project are documented here. The format follows
   or from a `Task<T>` or `ValueTask<T>`, hands the model the content as it is, and the stored conversation reads it
   back as content for later runs. Such a result needs no JSON metadata under Native AOT. Before, the generated tool
   serialized it to JSON, so the model read an image as base64 text and paid for its tokens.
+- `UseToolset<T>().RequiresApproval(t => t.X)` makes the calls of a toolset's tool wait for your app's approval in
+  this agent only, as the toolset's own `RequiresApproval()` does, and sub-agents' TSH024 sees it. Before, an agent
+  could not put a toolset's tool behind approval, though `UseMcpServer(...).RequiresApproval()` could for a server.
+- `UseToolset<T>().Configurable(t => t.X)` lets stored settings or a run switch the tool off: the agent's `Settings`
+  gain `bool? XEnabled`, and `WithSettingsId(customer).UpdateSettingsAsync(s => s with { SearchTicketsEnabled =
+  false })` leaves `search_tickets` out of that customer's runs only. Only the tools an agent picks get a switch.
+- TSH043 reports a `RequiresApproval(t => t.X)` or `Configurable(t => t.X)` on a use that excludes the tool or
+  includes others only, which would have no effect.
 
 ### Changed
 

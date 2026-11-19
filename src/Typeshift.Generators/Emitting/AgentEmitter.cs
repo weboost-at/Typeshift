@@ -178,6 +178,34 @@ internal static class AgentEmitter
         return Names.Identifier(name);
     }
 
+    // D84: a tool's switch is named after it, and yields to every other member of the record, as a tool's member does
+    private static string SwitchMember(AgentOutput output, ToolSummary tool)
+    {
+        var agent = output.Agent;
+
+        HashSet<string> taken =
+        [
+            .. RecordMembers,
+            .. Picked(agent.ChatOptions, OptionMembers.Chat).SelectMany(Members),
+            .. Picked(agent.RunOptions, OptionMembers.Run).SelectMany(Members),
+            .. output.Tools
+                .Where(offered => offered.Tool.Overrides is not null)
+                .Select(offered => SettingsMember(output, offered.Tool)),
+            .. output.Tools
+                .Where(offered => offered.Switchable && offered.Tool.Name != tool.Name)
+                .Select(offered => Names.ToPascalCase(offered.Tool.Name) + "Enabled")
+        ];
+
+        var name = Names.ToPascalCase(tool.Name);
+
+        while (taken.Contains(name + "Enabled"))
+        {
+            name += "Tool";
+        }
+
+        return Names.Identifier(name + "Enabled");
+    }
+
     private static void WriteSettings(SourceWriter writer, AgentOutput output)
     {
         var agent = output.Agent;
@@ -185,6 +213,7 @@ internal static class AgentEmitter
         var chat = Picked(agent.ChatOptions, OptionMembers.Chat).ToList();
         var run = Picked(agent.RunOptions, OptionMembers.Run).ToList();
         var tools = output.Tools.Select(offered => offered.Tool).Where(tool => tool.Overrides is not null).ToList();
+        var switches = output.Tools.Where(offered => offered.Switchable).Select(offered => offered.Tool).ToList();
 
         // D6: a public agent's Settings cannot name a less accessible provider id type, the agent's own (TSH006, D77)
         var providerAccess = agent.Type.Accessibility == "public" && !providerId.IsPublic
@@ -248,6 +277,14 @@ internal static class AgentEmitter
                     $"public {tool.Overrides} {SettingsMember(output, tool)} {{ get; init; }} = new();"));
             }
 
+            foreach (var tool in switches)
+            {
+                members.Add((
+                    $"Whether runs offer the <c>{tool.Name}</c> tool: false leaves it out. Null keeps the layer below, "
+                    + "and while every layer is null the tool is offered.",
+                    $"public bool? {SwitchMember(output, tool)} {{ get; init; }}"));
+            }
+
             foreach (var (summary, declaration) in members)
             {
                 Docs.WriteSummary(writer, summary);
@@ -275,7 +312,10 @@ internal static class AgentEmitter
                 .SelectMany(option => Members(option).Select(member => (
                     member,
                     Names.JsonName(member),
-                    member == option.Setting ? option.Storage : providerId.Storage)));
+                    member == option.Setting ? option.Storage : providerId.Storage)))
+                .Concat(switches
+                    .Select(tool => SwitchMember(output, tool))
+                    .Select(member => (member, Names.JsonName(member), OptionMembers.Flag)));
 
             StorageEmitter.WriteRecordJson(
                 writer,
@@ -469,6 +509,22 @@ internal static class AgentEmitter
                 writer.Line();
             }
 
+            // D84: a tool settings may switch off is offered unless the last layer that names it says false
+            foreach (var offered in output.Tools.Where(offered => offered.Switchable))
+            {
+                var local = Offered(offered.Tool);
+
+                writer.Line($"var {local} = true;");
+                writer.Line();
+
+                using (writer.Block("foreach (var layer in layers)"))
+                {
+                    writer.Line($"{local} = layer.{SwitchMember(output, offered.Tool)} ?? {local};");
+                }
+
+                writer.Line();
+            }
+
             if (output.Tools.Count == 0)
             {
                 writer.Line("return [];");
@@ -479,16 +535,28 @@ internal static class AgentEmitter
 
             using (writer.Block(open: "[", close: "];"))
             {
-                writer.List(
-                [
-                    .. output.Tools.Select(offered =>
-                        offered.Tool.Settings is null
-                            ? $"{offered.Owner}.{offered.Tool.Factory}(json)"
-                            : $"{offered.Owner}.{offered.Tool.Factory}({Local(offered.Tool)}, json)")
-                ]);
+                writer.List([.. output.Tools.Select(Created)]);
             }
         }
     }
+
+    // A tool as the agent offers it: wrapped when the agent's use requires approval for it, and left out when it is
+    // switched off (D84)
+    private static string Created(OfferedTool offered)
+    {
+        var tool = offered.Tool;
+        var created = tool.Settings is null
+            ? $"{offered.Owner}.{tool.Factory}(json)"
+            : $"{offered.Owner}.{tool.Factory}({Local(tool)}, json)";
+
+        if (offered.AsksFirst) created = $"new global::Microsoft.Extensions.AI.ApprovalRequiredAIFunction({created})";
+
+        return offered.Switchable
+            ? $".. ({Offered(tool)} ? new global::Microsoft.Extensions.AI.AITool[] {{ {created} }} : [])"
+            : created;
+    }
+
+    private static string Offered(ToolSummary tool) => $"{Field(tool).TrimStart('@')}Offered";
 
     // What Configure{Tool}() sets, kept per agent instance; the builders write it
     private static void WriteConfigured(SourceWriter writer, IReadOnlyList<OfferedTool> configured)

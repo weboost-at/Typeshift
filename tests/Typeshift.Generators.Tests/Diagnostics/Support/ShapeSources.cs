@@ -290,6 +290,82 @@ public static class ShapeSources
         }
         """;
 
+    // D84: uses that require approval for a tool and let settings switch one off, beside an include and an exclude
+    public const string UseMarks =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        public record SearchSettings
+        {
+            public int Limit { get; init; } = 10;
+        }
+
+        public partial class TicketToolset : Toolset
+        {
+            public TicketToolset()
+            {
+                AddTool(SearchTickets)
+                    .WithDescription("Searches tickets.")
+                    .WithSettings<SearchSettings>()
+                    .Configurable(s => s.Limit);
+
+                AddTool(CloseTicket).WithDescription("Closes a ticket.").RequiresApproval();
+                AddTool(NoteTicket).WithDescription("Notes on a ticket.");
+                AddTool(SearchTicketsEnabled)
+                    .WithDescription("Says whether search is on.")
+                    .WithSettings<SearchSettings>()
+                    .Configurable(s => s.Limit);
+            }
+
+            public static string SearchTickets(string query, SearchSettings settings) => query;
+
+            public static void CloseTicket(int number)
+            {
+            }
+
+            public static void NoteTicket(int number, string text)
+            {
+            }
+
+            public static bool SearchTicketsEnabled(SearchSettings settings) => settings.Limit > 0;
+        }
+
+        public partial class DeskAgent : Agent
+        {
+            public DeskAgent()
+            {
+                UseToolset<TicketToolset>()
+                    .RequiresApproval(t => t.NoteTicket)
+                    .RequiresApproval(t => t.CloseTicket)
+                    .Configurable(t => t.SearchTickets)
+                    .Configurable(t => t.NoteTicket);
+            }
+        }
+
+        public partial class TriageAgent : Agent
+        {
+            public TriageAgent()
+            {
+                UseToolset<TicketToolset>()
+                    .Exclude(t => t.CloseTicket)
+                    .Configurable(t => t.NoteTicket)
+                    .RequiresApproval(t => t.NoteTicket);
+            }
+        }
+
+        public partial class ReaderAgent : Agent
+        {
+            public ReaderAgent()
+            {
+                UseToolset<TicketToolset>()
+                    .Include(t => t.SearchTickets)
+                    .Configurable(t => t.SearchTickets);
+            }
+        }
+        """;
+
     // D45: content reaches the model as it is: one, a sequence, awaited or not, and none
     public const string ContentTools =
         """

@@ -763,4 +763,49 @@ public class ToolApprovalTests : ApprovalTestBase
 
         return services.BuildServiceProvider();
     }
+
+    [Fact]
+    public async Task Given_A_Toolsets_Tool_Marked_On_The_Use_It_Asks()
+    {
+        // Arrange
+        ChatClient.Reply(Note(Data.Tool.CallId, Data.Tool.Query));
+
+        // Act
+        var asked = await Marking.RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        asked.Decisions.OfType<ApprovalDecision>().Select(decision => decision.Tool).Should().Equal("note");
+    }
+
+    [Fact]
+    public async Task Given_A_Toolsets_Tool_Marked_On_The_Use_Its_Call_Waits_For_The_Answer()
+    {
+        // Arrange
+        ChatClient.Reply(Note(Data.Tool.CallId, Data.Tool.Query));
+
+        // Act
+        await Marking.RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        ToolCalls.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Given_A_Toolsets_Tool_Marked_On_The_Use_An_Approval_Runs_It()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Note(Data.Tool.CallId, Data.Tool.Query))
+            .Reply(Text(Data.Tool.Answer));
+
+        var asked = await Marking.RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Act
+        await Marking.AnswerAsync([asked.Decisions.OfType<ApprovalDecision>().Single().Approve()], ct: Ct);
+
+        // Assert
+        ToolCalls.Should().Equal($"note {Data.Tool.Query}");
+    }
+
+    private AgentHost<MarkingAgent> Marking => Host<MarkingAgent>().WithConversationId(Data.Agent.ConversationId);
 }

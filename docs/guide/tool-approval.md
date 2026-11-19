@@ -51,6 +51,21 @@ AddTool(CloseTicketAsync)
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Tickets/TicketToolset.cs#L24-L27' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-tool' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
+An agent can require approval for a tool its toolset runs unasked, such as a toolset from a package you cannot
+change. `RequiresApproval(t => t.X)` on the agent's `UseToolset<T>()` marks the tool in that agent only:
+
+<!-- snippet: use-requires-approval -->
+<a id='snippet-use-requires-approval'></a>
+```cs
+UseToolset<TicketEscalationToolset>()
+    .RequiresApproval(t => t.EscalateTicket);
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/ReviewDeskAgent.cs#L15-L18' title='Snippet source file'>snippet source</a> | <a href='#snippet-use-requires-approval' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+The pick names a tool the use offers. A pick of a tool the use excludes, or does not include, has no effect and
+does not build ([TSH043](./diagnostics.md#tsh043)).
+
 `UseMcpServer(...).RequiresApproval()` does the same for every tool of an [MCP server](./mcp.md). A tool that a
 [context provider](./middleware.md#context-providers) adds needs approval when you wrap it in
 `ApprovalRequiredAIFunction`.
