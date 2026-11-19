@@ -420,8 +420,11 @@ public static class AgentRuns
         AgentHost<TAgent> host,
         object? settings,
         CancellationToken ct)
-        where TAgent : Agent =>
-        await host.CreateChatClientAsync(await host.ResolveOptionsCoreAsync(host.SettingsId, settings, ct), ct);
+        where TAgent : Agent
+    {
+        var options = await host.ResolveOptionsCoreAsync(host.SettingsId, settings, ct).ConfigureAwait(false);
+        return await host.CreateChatClientAsync(options, ct).ConfigureAwait(false);
+    }
 
     /// <summary>
     /// Loads the agent's own settings, which every run applies, or those under the id the host was given.
@@ -437,8 +440,8 @@ public static class AgentRuns
         where TAgent : Agent
         where TSettings : class, IStorable<TSettings>, new() =>
         (host.SettingsId is { } id
-            ? await host.Store.LoadAsync<TSettings>(id, ct)
-            : await host.Store.LoadAgentSettingsAsync<TSettings>(ct))
+            ? await host.Store.LoadAsync<TSettings>(id, ct).ConfigureAwait(false)
+            : await host.Store.LoadAgentSettingsAsync<TSettings>(ct).ConfigureAwait(false))
         ?? new Stored<TSettings>(new TSettings(), 0);
 
     /// <summary>
@@ -517,7 +520,7 @@ public static class AgentRuns
         // D41: each conflict means another save won, so the loop ends once no other save comes between
         for (var attempt = 1; ; attempt++)
         {
-            var stored = await LoadSettingsAsync<TAgent, TSettings>(host, ct);
+            var stored = await LoadSettingsAsync<TAgent, TSettings>(host, ct).ConfigureAwait(false);
 
             // A null would fail the save with an exception that names neither the agent nor the function
             var updated = update(stored.Data)
@@ -527,7 +530,8 @@ public static class AgentRuns
 
             try
             {
-                return new Stored<TSettings>(updated, await SaveSettingsAsync(host, updated, stored.Version, ct));
+                var version = await SaveSettingsAsync(host, updated, stored.Version, ct).ConfigureAwait(false);
+                return new Stored<TSettings>(updated, version);
             }
             catch (StoreConflictException) when (attempt < MaxUpdateAttempts)
             {

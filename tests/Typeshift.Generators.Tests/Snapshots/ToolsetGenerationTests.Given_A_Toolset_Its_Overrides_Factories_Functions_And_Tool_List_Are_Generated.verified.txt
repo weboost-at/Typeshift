@@ -208,7 +208,7 @@ partial class TicketToolset
                 GetArgument<string?>(arguments, "author"),
                 settings,
                 services,
-                ct));
+                ct).ConfigureAwait(false));
     }
 
     /// <summary>
@@ -300,7 +300,7 @@ partial class TicketToolset
             global::System.IServiceProvider services,
             global::System.Threading.CancellationToken ct)
         {
-            await global::Demo.TicketToolset.Forget(arguments);
+            await global::Demo.TicketToolset.Forget(arguments).ConfigureAwait(false);
             return null;
         }
     }

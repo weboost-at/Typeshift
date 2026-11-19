@@ -44,7 +44,7 @@ public class StreamingRun : IAsyncEnumerable<ChatResponseUpdate>
 
         List<ChatResponseUpdate> updates = [];
 
-        await foreach (var update in _updates.WithCancellation(cancellationToken))
+        await foreach (var update in _updates.WithCancellation(cancellationToken).ConfigureAwait(false))
         {
             updates.Add(update);
             yield return update;

@@ -15,7 +15,8 @@ internal static class ChatClients
         ProviderId? provider,
         string? model,
         CancellationToken ct) =>
-        GetRegistered(services, what, provider, model) ?? await provider!.GetChatClientAsync(services, model!, ct);
+        GetRegistered(services, what, provider, model)
+        ?? await provider!.GetChatClientAsync(services, model!, ct).ConfigureAwait(false);
 
     // D32: a summary's client is asked for when the history is compacted, and whether anything serves it is known
     // when the run starts

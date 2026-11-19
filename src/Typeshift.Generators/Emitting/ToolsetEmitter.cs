@@ -318,13 +318,15 @@ internal static class ToolsetEmitter
         using (writer.Indent())
         {
             if (kind == ReturnKind.Value) WriteCall(writer, "new(GetResult(", call, arguments, ")));");
-            if (kind == ReturnKind.AwaitableValue) WriteCall(writer, "GetResult(await ", call, arguments, "));");
+
+            if (kind == ReturnKind.AwaitableValue)
+                WriteCall(writer, "GetResult(await ", call, arguments, ").ConfigureAwait(false));");
 
             // D45: content goes to the model as it is, never through JSON
             if (kind == ReturnKind.Content) WriteCall(writer, "new(GetContentResult(", call, arguments, ")));");
 
             if (kind == ReturnKind.AwaitableContent)
-                WriteCall(writer, "GetContentResult(await ", call, arguments, "));");
+                WriteCall(writer, "GetContentResult(await ", call, arguments, ").ConfigureAwait(false));");
 
             // D45: the model takes one result per call, so a stream reaches it as the list of its items, which the
             // library reads: generated code that named an async LINQ type would be ambiguous in a consumer that
@@ -334,11 +336,13 @@ internal static class ToolsetEmitter
 
         if (isExpression) return;
 
+        var awaited = kind == ReturnKind.Awaitable;
+
         using (writer.Block())
         {
-            WriteCall(writer, kind == ReturnKind.Awaitable ? "await " : "", call, arguments, ");");
+            WriteCall(writer, awaited ? "await " : "", call, arguments, awaited ? ").ConfigureAwait(false);" : ");");
             if (arguments.Count > 1) writer.Line();
-            writer.Line(kind == ReturnKind.Awaitable ? "return null;" : "return default;");
+            writer.Line(awaited ? "return null;" : "return default;");
         }
     }
 

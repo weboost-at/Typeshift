@@ -33,7 +33,7 @@ internal sealed class LiveRuns(LiveUpdateOptions realtime, ILoggerFactory? logge
 
             if (run is { IsEnding: false }) throw ConversationBusyException.For(conversation);
 
-            await (run is null ? held.Settled : held.Ended).WaitAsync(ct);
+            await (run is null ? held.Settled : held.Ended).WaitAsync(ct).ConfigureAwait(false);
         }
 
         return claim;
@@ -127,7 +127,7 @@ internal sealed class LiveRuns(LiveUpdateOptions realtime, ILoggerFactory? logge
 
         try
         {
-            await foreach (var update in feed.Reader.ReadAllAsync(ct))
+            await foreach (var update in feed.Reader.ReadAllAsync(ct).ConfigureAwait(false))
             {
                 yield return update;
             }
@@ -186,7 +186,7 @@ internal sealed class LiveRuns(LiveUpdateOptions realtime, ILoggerFactory? logge
                 yield return (run, false);
             }
 
-            await foreach (var change in feed.Reader.ReadAllAsync(ct))
+            await foreach (var change in feed.Reader.ReadAllAsync(ct).ConfigureAwait(false))
             {
                 if (!listed.Remove(change.Run) || change.Ended) yield return change;
             }

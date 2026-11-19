@@ -102,6 +102,16 @@ text without white space ([Results](./toolsets.md#results)).
 | Approval rule | Each call that requires approval, with the arguments the model sent | Approve it, reject it with a reason for the model, or abstain |
 | Tool middleware | Each tool call: the function, its arguments, the messages so far | Answer in place of the tool, or end the tool loop |
 
+## Where your code runs
+
+Typeshift awaits with `ConfigureAwait(false)`, so where its own code waits, a run never comes back to your app's
+synchronization context, such as a UI thread's. Once a run waited for your store, for example, it goes on on the
+thread pool, and your tools, middleware, context providers and store are called without the context.
+Microsoft.Extensions.AI's tool loop does come back to a context it finds, so a run that reaches the model before it
+waited, as one on the [store in memory](./implementing-a-store.md#which-store-serves-a-call) does, can still call
+your tools on the UI thread it started on. Await a run there rather than block on it with `.Result`, which holds the
+thread such a run comes back to.
+
 ## Related
 
 - [Running an agent](./running-agents.md): the calls that start a run, and the raw path.

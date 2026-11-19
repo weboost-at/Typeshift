@@ -42,15 +42,18 @@ internal sealed class SubAgentFunction(AgentUse use, Agent agent) : AIFunction
         // D33: what the sub-agent spent, its own sub-agents' included, counts as the caller's, whatever its answer
         async Task<ChatResponse> RunAsync(CancellationToken token)
         {
-            var response = await host.RunAsync([input], handover, token);
+            var response = await host.RunAsync([input], handover, token).ConfigureAwait(false);
             caller.AddUsage(response.Usage);
 
             return response;
         }
 
-        if (!use.Background) return Answer(await RunAsync(ct), json);
+        if (!use.Background) return Answer(await RunAsync(ct).ConfigureAwait(false), json);
 
-        run.StartBackground(Name, context.CallContent.CallId, async stop => Text(Answer(await RunAsync(stop), json)));
+        run.StartBackground(
+            Name,
+            context.CallContent.CallId,
+            async stop => Text(Answer(await RunAsync(stop).ConfigureAwait(false), json)));
 
         return $"{Name} works in the background; its answer arrives as a message once it is done.";
     }

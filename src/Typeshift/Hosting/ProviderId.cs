@@ -39,6 +39,9 @@ internal sealed record ProviderId<TProviderId>(TProviderId Id) : ProviderId wher
         IServiceProvider services,
         string model,
         CancellationToken ct) =>
-        await services.GetRequiredService<IChatClientProvider<TProviderId>>().GetChatClientAsync(Id, model, ct)
+        await services
+            .GetRequiredService<IChatClientProvider<TProviderId>>()
+            .GetChatClientAsync(Id, model, ct)
+            .ConfigureAwait(false)
         ?? throw new InvalidOperationException($"The {Contract} returned no client for '{model}' of '{Id}'.");
 }

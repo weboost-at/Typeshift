@@ -22,10 +22,11 @@ internal sealed class DecisionChatClient(IChatClient inner) : DelegatingChatClie
 
         if (resolved.ConversationRun!.TakeReplay() is { } replay) return replay;
 
-        var response = await base.GetResponseAsync(messages, options, cancellationToken);
+        var response = await base.GetResponseAsync(messages, options, cancellationToken).ConfigureAwait(false);
         var calls = response.Messages.Contents().OfType<FunctionCallContent>().ToList();
 
-        if (await DecideAsync(calls, resolved, cancellationToken) is { } answered) response.Messages.Add(answered);
+        if (await DecideAsync(calls, resolved, cancellationToken).ConfigureAwait(false) is { } answered)
+            response.Messages.Add(answered);
 
         return response;
     }
@@ -50,8 +51,9 @@ internal sealed class DecisionChatClient(IChatClient inner) : DelegatingChatClie
         // The tool loop reads the calls of each update as it arrives, so the updates from the first call on wait
         // until the stream ended and the gate decided, as the loop itself holds them back
         var held = new List<ChatResponseUpdate>();
+        var answer = base.GetStreamingResponseAsync(messages, options, cancellationToken);
 
-        await foreach (var update in base.GetStreamingResponseAsync(messages, options, cancellationToken))
+        await foreach (var update in answer.ConfigureAwait(false))
         {
             if (held.Count == 0 && !update.Contents.Any(content => content is FunctionCallContent))
             {
@@ -63,7 +65,7 @@ internal sealed class DecisionChatClient(IChatClient inner) : DelegatingChatClie
         }
 
         var calls = held.SelectMany(update => update.Contents).OfType<FunctionCallContent>().ToList();
-        var answered = await DecideAsync(calls, resolved, cancellationToken);
+        var answered = await DecideAsync(calls, resolved, cancellationToken).ConfigureAwait(false);
 
         foreach (var update in held)
         {
@@ -87,7 +89,7 @@ internal sealed class DecisionChatClient(IChatClient inner) : DelegatingChatClie
         foreach (var call in calls.Where(call => !call.InformationalOnly))
         {
             var tool = options.Tools?.FirstOrDefault(tool => tool.Name == call.Name);
-            var (ask, rejected) = await DecideAsync(call, tool, options, ct);
+            var (ask, rejected) = await DecideAsync(call, tool, options, ct).ConfigureAwait(false);
 
             if (rejected is not null) run.Decide(call.CallId, CallVerdict.AnswerWith(rejected));
             else if (ask is null && tool?.GetService<GatedFunction>() is not null) run.Decide(call.CallId, default);
@@ -123,7 +125,7 @@ internal sealed class DecisionChatClient(IChatClient inner) : DelegatingChatClie
                     })
             ]);
 
-        await run.OpenAsync(batch);
+        await run.OpenAsync(batch).ConfigureAwait(false);
 
         foreach (var (call, _, _, _) in decided)
         {
@@ -169,7 +171,7 @@ internal sealed class DecisionChatClient(IChatClient inner) : DelegatingChatClie
 
         foreach (var rule in run.Services.GetServices<IToolApprovalRule>())
         {
-            var verdict = await rule.DecideAsync(call, run, ct);
+            var verdict = await rule.DecideAsync(call, run, ct).ConfigureAwait(false);
             verdicts.Add(verdict);
 
             // A rule that abstains leaves no trace; one that decides is why a call ran unasked or did not run

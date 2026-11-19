@@ -494,7 +494,8 @@ public class ToolsetGenerationTests : GeneratorTestBase
         run.Source("Demo.CameraToolset.g.cs")
             .Should()
             .Contain(
-                "GetContentResult(await global::Demo.CameraToolset.ScanAsync(GetArgument<int>(arguments, \"page\")));");
+                "GetContentResult(await global::Demo.CameraToolset.ScanAsync(GetArgument<int>(arguments, \"page\"))"
+                + ".ConfigureAwait(false));");
     }
 
     [Fact]

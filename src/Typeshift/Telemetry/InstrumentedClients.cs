@@ -67,7 +67,7 @@ internal sealed class InstrumentedClients : IDisposable
             CancellationToken cancellationToken = default)
         {
             call.Value = client;
-            return await base.GetResponseAsync(AsSent(messages), options, cancellationToken);
+            return await base.GetResponseAsync(AsSent(messages), options, cancellationToken).ConfigureAwait(false);
         }
 
         public override async IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
@@ -76,8 +76,9 @@ internal sealed class InstrumentedClients : IDisposable
             [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             call.Value = client;
+            var answer = base.GetStreamingResponseAsync(AsSent(messages), options, cancellationToken);
 
-            await foreach (var update in base.GetStreamingResponseAsync(AsSent(messages), options, cancellationToken))
+            await foreach (var update in answer.ConfigureAwait(false))
             {
                 yield return update;
             }

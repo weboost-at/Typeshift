@@ -41,8 +41,9 @@ internal sealed class ConversationChatClient(
         {
             ChatResponse? response = null;
             Exception? notStored = null;
+            var parts = RunAsync(messages, resolved, activity, streaming: false, cancellationToken);
 
-            await foreach (var part in RunAsync(messages, resolved, activity, streaming: false, cancellationToken))
+            await foreach (var part in parts.ConfigureAwait(false))
             {
                 if (part.NotStored is { } failure) notStored = failure;
                 else response = part.JoinedTo(response);
@@ -75,7 +76,8 @@ internal sealed class ConversationChatClient(
         var handed = new List<ChatResponseUpdate>();
 
         await using var parts = RunAsync(messages, resolved, activity, streaming: true, cancellationToken)
-            .GetAsyncEnumerator(cancellationToken);
+            .ConfigureAwait(false)
+            .GetAsyncEnumerator();
 
         while (true)
         {
@@ -189,13 +191,13 @@ internal sealed class ConversationChatClient(
         bool streaming,
         [EnumeratorCancellation] CancellationToken ct)
     {
-        var (taken, answering) = await TakeAsync(options, ct);
+        var (taken, answering) = await TakeAsync(options, ct).ConfigureAwait(false);
 
         if (answering is not null)
         {
             try
             {
-                await foreach (var part in RunOn(answering, messages, taken, streaming, ct))
+                await foreach (var part in RunOn(answering, messages, taken, streaming, ct).ConfigureAwait(false))
                 {
                     yield return part;
                 }
@@ -208,7 +210,8 @@ internal sealed class ConversationChatClient(
             yield break;
         }
 
-        var (run, call, runOptions, waiting, answered) = await BeginAsync(messages, options, taken, activity, ct);
+        var (run, call, runOptions, waiting, answered) = await BeginAsync(messages, options, taken, activity, ct)
+            .ConfigureAwait(false);
 
         if (waiting is not null)
         {
@@ -239,7 +242,9 @@ internal sealed class ConversationChatClient(
         {
             run.PublishTo(CreatePublisher(run), streaming);
 
-            await using var parts = PassesAsync(run, call, runOptions, streaming, ct).GetAsyncEnumerator(ct);
+            await using var parts = PassesAsync(run, call, runOptions, streaming, ct)
+                .ConfigureAwait(false)
+                .GetAsyncEnumerator();
 
             while (true)
             {
@@ -269,7 +274,7 @@ internal sealed class ConversationChatClient(
                 // D46: nothing for a run that stored its end or handed the conversation on. A run that failed or
                 // was cancelled ends with the exception's message, streaming or not, and a stream left early with a
                 // text of its own
-                await run.EndAsync(failure ?? Stopped);
+                await run.EndAsync(failure ?? Stopped).ConfigureAwait(false);
             }
             finally
             {
@@ -299,7 +304,7 @@ internal sealed class ConversationChatClient(
             {
                 updates.Clear();
 
-                await foreach (var update in base.GetStreamingResponseAsync(call, options, ct))
+                await foreach (var update in base.GetStreamingResponseAsync(call, options, ct).ConfigureAwait(false))
                 {
                     updates.Add(update);
                     run.Publisher?.Add(update);
@@ -312,7 +317,7 @@ internal sealed class ConversationChatClient(
             }
             else
             {
-                var response = await base.GetResponseAsync(call, options, ct);
+                var response = await base.GetResponseAsync(call, options, ct).ConfigureAwait(false);
 
                 last = response.Messages;
                 yield return new(Response: response);
@@ -320,10 +325,10 @@ internal sealed class ConversationChatClient(
 
             // D47: the pass's text reaches watchers whole before the run waits, goes on or hands off
             run.Publisher?.Flush();
-            await run.StoreResultsAsync(last);
+            await run.StoreResultsAsync(last).ConfigureAwait(false);
 
             var handoff = HandoffIn(last) is { } handing
-                ? await HandOffAsync(run, options, last, handing)
+                ? await HandOffAsync(run, options, last, handing).ConfigureAwait(false)
                 : null;
 
             if (handoff is { Target: { } target, Handed: { } handed })
@@ -335,7 +340,7 @@ internal sealed class ConversationChatClient(
 
                     if (Spent(run, options, streaming) is { } spent) yield return spent;
 
-                    await foreach (var part in RunOn(target, [], handed, streaming, ct))
+                    await foreach (var part in RunOn(target, [], handed, streaming, ct).ConfigureAwait(false))
                     {
                         yield return part;
                     }
@@ -351,7 +356,9 @@ internal sealed class ConversationChatClient(
             // D34: a handoff the run had none left for is answered, and its own agent goes on at once
             if (handoff is not null) yield return Made(run, handoff.Result, streaming);
 
-            if (!GoesFurther(options, ref calls) || (handoff is null && !await run.GoesOnAsync(ct))) break;
+            if (!GoesFurther(options, ref calls)
+                || (handoff is null && !await run.GoesOnAsync(ct).ConfigureAwait(false)))
+                break;
 
             call = [.. call, .. last];
             if (handoff is not null) call.Add(handoff.Result);
@@ -359,14 +366,14 @@ internal sealed class ConversationChatClient(
             // D51, D80: steering input passed the batch the run asked by
             if (run.Asked is { } passed)
             {
-                if (await ExpireAsync(run, passed) is not { } results) break;
+                if (await ExpireAsync(run, passed).ConfigureAwait(false) is not { } results) break;
 
                 call.Add(results);
                 yield return Made(run, results, streaming);
             }
         }
 
-        await run.EndAsync(null);
+        await run.EndAsync(null).ConfigureAwait(false);
 
         if (Spent(run, options, streaming) is { } beside) yield return beside;
 
@@ -402,11 +409,11 @@ internal sealed class ConversationChatClient(
     {
         if (!streaming)
         {
-            yield return new(Response: await host.RunAsync(messages, handover, ct));
+            yield return new(Response: await host.RunAsync(messages, handover, ct).ConfigureAwait(false));
             yield break;
         }
 
-        await foreach (var update in host.RunStreamingAsync(messages, handover, ct))
+        await foreach (var update in host.RunStreamingAsync(messages, handover, ct).ConfigureAwait(false))
         {
             yield return new(update);
         }
@@ -509,15 +516,18 @@ internal sealed class ConversationChatClient(
     // waits for the run that carries them out
     private async Task<ChatMessage?> ExpireAsync(ConversationRun run, DecisionBatch asked)
     {
-        if (await run.ExpireAsync() is not { State: BatchState.Expired or BatchState.Cancelled } passed
-            || !passed.IsSame(asked))
+        var passed = await run.ExpireAsync().ConfigureAwait(false);
+
+        if (passed is not { State: BatchState.Expired or BatchState.Cancelled } || !passed.IsSame(asked))
             return null;
 
         var closed = DecisionResults.Closed(passed.State);
         var results = DecisionResults.Message(passed.Calls.Select(call => (call.CallId, closed)));
 
         Telemetry.Settled(run.Activity, passed, passed.Calls, repaired: false);
-        if (await run.AppendAsync([results]) is null) await run.CloseAsync(passed);
+        if (await run.AppendAsync([results]).ConfigureAwait(false) is null)
+            await run.CloseAsync(passed).ConfigureAwait(false);
+
         return results;
     }
 
@@ -627,11 +637,11 @@ internal sealed class ConversationChatClient(
 
         if (spent)
         {
-            await run.AppendAsync([result]);
+            await run.AppendAsync([result]).ConfigureAwait(false);
             return new Handoff(result);
         }
 
-        await run.HandOffAsync(result, target.Agent.Name);
+        await run.HandOffAsync(result, target.Agent.Name).ConfigureAwait(false);
         LogEvents.HandedOff(Logger, agent.Name, run.Conversation, target.Agent.Name);
 
         var handed = new RunHandover(
@@ -671,7 +681,7 @@ internal sealed class ConversationChatClient(
                 taken.Entries ?? [],
                 taken.Claim,
                 activity,
-                ct);
+                ct).ConfigureAwait(false);
         }
         catch
         {
@@ -708,7 +718,9 @@ internal sealed class ConversationChatClient(
         var runOptions = (ResolvedChatOptions)options.Clone();
 
         var hasInput = input.Count > 0;
-        var document = conversation is null ? DecisionDocument.Empty : await Ledger.LoadAsync(conversation, ct);
+        var document = conversation is null
+            ? DecisionDocument.Empty
+            : await Ledger.LoadAsync(conversation, ct).ConfigureAwait(false);
 
         // D52: until the document names a mode, the one an earlier version stored on the conversation's entries holds
         var legacy = document.Mode is null ? entries.LastOrDefault(entry => entry.Mode is not null)?.Mode : null;
@@ -733,11 +745,12 @@ internal sealed class ConversationChatClient(
         var batch = document.Batch;
         var started = false;
 
-        if (batch is { State: BatchState.Open } && hasInput) batch = await ledger.ExpireAsync(conversation!, ct);
+        if (batch is { State: BatchState.Open } && hasInput)
+            batch = await ledger.ExpireAsync(conversation!, ct).ConfigureAwait(false);
 
         if (batch is { State: BatchState.Answered })
         {
-            document = await ledger.StartAsync(conversation!, batch, ct);
+            document = await ledger.StartAsync(conversation!, batch, ct).ConfigureAwait(false);
             batch = document.Batch!;
             started = true;
         }
@@ -787,7 +800,7 @@ internal sealed class ConversationChatClient(
             ledger,
             Time,
             Logger,
-            conversation is null ? 0 : await LastSequenceAsync(conversation, entries, ct));
+            conversation is null ? 0 : await LastSequenceAsync(conversation, entries, ct).ConfigureAwait(false));
 
         runOptions.ConversationId = null;
         runOptions.AgentRun = agentRun;
@@ -810,7 +823,7 @@ internal sealed class ConversationChatClient(
         // a crash lost it, so the conversation reads as waiting
         if (batch is { State: BatchState.Open })
         {
-            if (entries is [.., { EndsRun: false }]) await run.EndAsync(null);
+            if (entries is [.., { EndsRun: false }]) await run.EndAsync(null).ConfigureAwait(false);
             Runs.Release(claim);
 
             return (run, call, runOptions, batch, null);
@@ -820,7 +833,7 @@ internal sealed class ConversationChatClient(
         // nothing is left to do but store the end, and the answer is what the run returns
         if (!hasInput && batch is null && call.Count == history.Count && AnswerOf(entries) is { } answer)
         {
-            await run.EndAsync(null);
+            await run.EndAsync(null).ConfigureAwait(false);
             Runs.Release(claim);
 
             return (run, call, runOptions, null, answer);
@@ -829,10 +842,11 @@ internal sealed class ConversationChatClient(
         // The batch closes once the conversation holds a result for each call: now, for one that will not run, or
         // with the last result of the one this run carries out (T4)
         if (started) run.Carry(batch!);
-        else if (batch is not null && (results is null || await run.AppendAsync([results]) is null))
-            await run.CloseAsync(batch);
+        else if (batch is not null
+            && (results is null || await run.AppendAsync([results]).ConfigureAwait(false) is null))
+            await run.CloseAsync(batch).ConfigureAwait(false);
 
-        if (input.Count > 0) await run.AppendAsync(input);
+        if (input.Count > 0) await run.AppendAsync(input).ConfigureAwait(false);
 
         // Last, so nothing that fails before it leaves the conversation claimed by a run that never ends
         Runs.Begin(run, claim);
@@ -849,7 +863,7 @@ internal sealed class ConversationChatClient(
         CancellationToken ct) =>
         ConversationHistory.LastSequence(
             entries is [{ IsSummary: true, Sequence: 0 }, ..] && entries.All(entry => entry.Sequence == 0)
-                ? await Store.LoadConversationAsync(conversation, ct)
+                ? await Store.LoadConversationAsync(conversation, ct).ConfigureAwait(false)
                 : entries);
 
     // The model's answer the conversation's last entry holds, when nothing follows it: no call, which would be in

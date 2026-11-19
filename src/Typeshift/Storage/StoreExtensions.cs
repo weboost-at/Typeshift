@@ -166,21 +166,26 @@ public static class StoreExtensions
                 + "ids apart.");
         }
 
-        if (settings is not null) await VerifySettingsAsync(settings, settingsIds.Id, settingsIds.Other, ct);
+        if (settings is not null)
+            await VerifySettingsAsync(settings, settingsIds.Id, settingsIds.Other, ct).ConfigureAwait(false);
 
         if (conversations is not null)
-            await VerifyConversationsAsync(conversations, conversationIds.Id, conversationIds.Other, ct);
+        {
+            await VerifyConversationsAsync(conversations, conversationIds.Id, conversationIds.Other, ct)
+                .ConfigureAwait(false);
+        }
 
         // D79: a conversation's decisions are under its id, so a store of them is checked with the conversation ids
         if (store is IDecisionStore<TConversationId> decisions)
-            await VerifyDecisionsAsync(decisions, conversationIds.Id, conversationIds.Other, ct);
+            await VerifyDecisionsAsync(decisions, conversationIds.Id, conversationIds.Other, ct).ConfigureAwait(false);
 
         if (store is not IAgentSettingsStore agents) return;
 
         var kind = settings is null ? $"{Kind}_{conversationIds.Id}" : $"{Kind}_{settingsIds.Id}";
 
-        await VerifyAgentDocumentsAsync(agents, kind, ct);
-        if (settings is not null) await VerifyApartAsync(settings, agents, settingsIds.Id, $"{kind}_apart", ct);
+        await VerifyAgentDocumentsAsync(agents, kind, ct).ConfigureAwait(false);
+        if (settings is not null)
+            await VerifyApartAsync(settings, agents, settingsIds.Id, $"{kind}_apart", ct).ConfigureAwait(false);
     }
 
     private static InvalidOperationException NoConversations<TConversationId>(object store) =>
@@ -202,16 +207,16 @@ public static class StoreExtensions
         const string agentJson = """{"of":"agent"}""";
         const string apart = "keep an agent's own documents apart from the documents of the same kind under an id.";
 
-        var saved = await settings.SaveAsync(id, kind, idJson, 0, ct);
+        var saved = await settings.SaveAsync(id, kind, idJson, 0, ct).ConfigureAwait(false);
 
-        if (await agents.LoadAsync(kind, ct) is not null)
+        if (await agents.LoadAsync(kind, ct).ConfigureAwait(false) is not null)
             throw Broken($"An agent's own load returned a document saved under an id: {apart}");
 
         long own;
 
         try
         {
-            own = await agents.SaveAsync(kind, agentJson, 0, ct);
+            own = await agents.SaveAsync(kind, agentJson, 0, ct).ConfigureAwait(false);
         }
         catch (StoreConflictException exception)
         {
@@ -220,10 +225,10 @@ public static class StoreExtensions
                 exception);
         }
 
-        if (await settings.LoadAsync(id, kind, ct) != new StoredDocument(idJson, saved))
+        if (await settings.LoadAsync(id, kind, ct).ConfigureAwait(false) != new StoredDocument(idJson, saved))
             throw Broken($"Saving an agent's own document replaced the one under an id: {apart}");
 
-        if (await agents.LoadAsync(kind, ct) != new StoredDocument(agentJson, own))
+        if (await agents.LoadAsync(kind, ct).ConfigureAwait(false) != new StoredDocument(agentJson, own))
             throw Broken($"An agent's own load did not return its last save and version: {apart}");
     }
 
@@ -240,29 +245,30 @@ public static class StoreExtensions
 
         foreach (var taken in (TId[])[id, otherId])
         {
-            if (await store.LoadAsync(taken, Kind, ct) is not null) throw new InvalidOperationException(Taken(taken));
+            if (await store.LoadAsync(taken, Kind, ct).ConfigureAwait(false) is not null)
+                throw new InvalidOperationException(Taken(taken));
         }
 
         long other;
 
         try
         {
-            other = await store.SaveAsync(otherId, Kind, otherJson, 0, ct);
+            other = await store.SaveAsync(otherId, Kind, otherJson, 0, ct).ConfigureAwait(false);
         }
         catch (StoreConflictException exception)
         {
             throw Broken("A first save at version 0 threw a StoreConflictException.", exception);
         }
 
-        if (await store.LoadAsync(id, Kind, ct) is not null)
+        if (await store.LoadAsync(id, Kind, ct).ConfigureAwait(false) is not null)
             throw Broken($"LoadAsync returned a document saved under another id: {ById}");
 
         await VerifyDocumentsAsync(
             kind => store.LoadAsync(id, kind, ct),
             (kind, json, loadedVersion) => store.SaveAsync(id, kind, json, loadedVersion, ct),
-            new(Kind, Taken(id), " under the same id", "id and kind together"));
+            new(Kind, Taken(id), " under the same id", "id and kind together")).ConfigureAwait(false);
 
-        if (await store.LoadAsync(otherId, Kind, ct) != new StoredDocument(otherJson, other))
+        if (await store.LoadAsync(otherId, Kind, ct).ConfigureAwait(false) != new StoredDocument(otherJson, other))
             throw Broken($"Saving a document under one id changed the one under another id: {ById}");
     }
 
@@ -282,7 +288,7 @@ public static class StoreExtensions
 
         foreach (var taken in (TId[])[conversation, other])
         {
-            if (await store.LoadDecisionsAsync(taken, ct) is not null)
+            if (await store.LoadDecisionsAsync(taken, ct).ConfigureAwait(false) is not null)
                 throw new InvalidOperationException(TakenDecisions(taken));
         }
 
@@ -290,14 +296,14 @@ public static class StoreExtensions
 
         try
         {
-            elsewhere = await store.SaveDecisionsAsync(other, otherJson, 0, ct);
+            elsewhere = await store.SaveDecisionsAsync(other, otherJson, 0, ct).ConfigureAwait(false);
         }
         catch (StoreConflictException exception)
         {
             throw Broken("A first save of decisions at version 0 threw a StoreConflictException.", exception);
         }
 
-        if (await store.LoadDecisionsAsync(conversation, ct) is not null)
+        if (await store.LoadDecisionsAsync(conversation, ct).ConfigureAwait(false) is not null)
             throw Broken($"LoadDecisionsAsync returned a document saved under another conversation: {byConversation}");
 
         await VerifyDocumentsAsync(
@@ -308,9 +314,9 @@ public static class StoreExtensions
                 IsOnlyKind = true,
                 Load = "LoadDecisionsAsync",
                 Save = "SaveDecisionsAsync"
-            });
+            }).ConfigureAwait(false);
 
-        if (await store.LoadDecisionsAsync(other, ct) != new StoredDocument(otherJson, elsewhere))
+        if (await store.LoadDecisionsAsync(other, ct).ConfigureAwait(false) != new StoredDocument(otherJson, elsewhere))
             throw Broken($"Saving decisions under one conversation changed those under another: {byConversation}");
     }
 
@@ -339,73 +345,78 @@ public static class StoreExtensions
         const string secondJson = """{"step":2}""";
         const string otherJson = """{"other":true}""";
 
-        if (await load(keys.Kind) is not null) throw new InvalidOperationException(keys.Taken);
+        if (await load(keys.Kind).ConfigureAwait(false) is not null) throw new InvalidOperationException(keys.Taken);
 
         const string missing =
             "A save at a version other than 0 of a document that is not stored did not throw a "
             + "StoreConflictException: update only a row that holds the version.";
 
         // A document its key holds alone has no kind to leave unstored, so the rule runs before its first save
-        if (keys.IsOnlyKind) await EnsureConflictAsync(keys.Kind, 1, null, missing);
+        if (keys.IsOnlyKind) await EnsureConflictAsync(keys.Kind, 1, null, missing).ConfigureAwait(false);
 
         var first = await SaveAsync(
-            keys.Kind,
-            firstJson,
-            0,
-            $"A first save at version 0 threw a StoreConflictException: key documents by {keys.Key}.");
+                keys.Kind,
+                firstJson,
+                0,
+                $"A first save at version 0 threw a StoreConflictException: key documents by {keys.Key}.")
+            .ConfigureAwait(false);
 
         await EnsureStoredAsync(
             keys.Kind,
             new(firstJson, first),
-            $"{keys.Load} did not return the last save and version.");
+            $"{keys.Load} did not return the last save and version.").ConfigureAwait(false);
 
         if (!keys.IsOnlyKind)
         {
             var other = await SaveAsync(
-                keys.OtherKind,
-                otherJson,
-                0,
-                $"Saving a document of another kind{keys.Scope} conflicted: key documents by {keys.Key}.");
+                    keys.OtherKind,
+                    otherJson,
+                    0,
+                    $"Saving a document of another kind{keys.Scope} conflicted: key documents by {keys.Key}.")
+                .ConfigureAwait(false);
 
             await EnsureStoredAsync(
-                keys.Kind,
-                new(firstJson, first),
-                $"Saving a document of another kind{keys.Scope} replaced this one: key documents by {keys.Key}.");
+                    keys.Kind,
+                    new(firstJson, first),
+                    $"Saving a document of another kind{keys.Scope} replaced this one: key documents by {keys.Key}.")
+                .ConfigureAwait(false);
 
             await EnsureStoredAsync(
                 keys.OtherKind,
                 new(otherJson, other),
-                $"{keys.Load} returned another kind's document: load by {keys.Key}.");
+                $"{keys.Load} returned another kind's document: load by {keys.Key}.").ConfigureAwait(false);
         }
 
         await EnsureConflictAsync(
-            keys.Kind,
-            0,
-            new(firstJson, first),
-            "A save at version 0 of a document stored already did not throw a StoreConflictException.");
+                keys.Kind,
+                0,
+                new(firstJson, first),
+                "A save at version 0 of a document stored already did not throw a StoreConflictException.")
+            .ConfigureAwait(false);
 
         var second = await SaveAsync(
             keys.Kind,
             secondJson,
             first,
-            "A save with the version the last save returned threw a StoreConflictException.");
+            "A save with the version the last save returned threw a StoreConflictException.").ConfigureAwait(false);
 
         if (second == first) throw Broken($"{keys.Save} returned the version the document had before the save.");
 
         await EnsureConflictAsync(
-            keys.Kind,
-            first,
-            new(secondJson, second),
-            "A save with a version another save replaced did not throw a StoreConflictException.");
+                keys.Kind,
+                first,
+                new(secondJson, second),
+                "A save with a version another save replaced did not throw a StoreConflictException.")
+            .ConfigureAwait(false);
 
         // A document deleted since the caller loaded it: an update that inserts the missing row brings it back
-        if (!keys.IsOnlyKind) await EnsureConflictAsync(keys.MissingKind, second, null, missing);
+        if (!keys.IsOnlyKind) await EnsureConflictAsync(keys.MissingKind, second, null, missing).ConfigureAwait(false);
 
         async Task<long> SaveAsync(string kind, string json, long loadedVersion, string conflictRule)
         {
             try
             {
-                var saved = await save(kind, json, loadedVersion);
+                var saved = await save(kind, json, loadedVersion).ConfigureAwait(false);
                 if (saved == 0)
                     throw Broken($"{keys.Save} returned version 0, which tells Typeshift nothing is stored.");
 
@@ -419,21 +430,22 @@ public static class StoreExtensions
 
         async Task EnsureStoredAsync(string kind, StoredDocument? expected, string rule)
         {
-            if (await load(kind) != expected) throw Broken(rule);
+            if (await load(kind).ConfigureAwait(false) != expected) throw Broken(rule);
         }
 
         async Task EnsureConflictAsync(string kind, long loadedVersion, StoredDocument? stored, string rule)
         {
             try
             {
-                await save(kind, """{"step":0}""", loadedVersion);
+                await save(kind, """{"step":0}""", loadedVersion).ConfigureAwait(false);
             }
             catch (StoreConflictException)
             {
                 await EnsureStoredAsync(
-                    kind,
-                    stored,
-                    "A save that conflicted changed the document: check the version and write in one statement.");
+                        kind,
+                        stored,
+                        "A save that conflicted changed the document: check the version and write in one statement.")
+                    .ConfigureAwait(false);
 
                 return;
             }
@@ -458,7 +470,7 @@ public static class StoreExtensions
     {
         foreach (var taken in (TId[])[conversation, other])
         {
-            if ((await store.LoadConversationAsync(taken, ct)).Count > 0)
+            if ((await store.LoadConversationAsync(taken, ct).ConfigureAwait(false)).Count > 0)
             {
                 throw new InvalidOperationException(
                     $"LoadConversationAsync returned entries for {taken}: give VerifyAsync a new id.");
@@ -483,45 +495,45 @@ public static class StoreExtensions
             "LoadConversationAsync did not return the entries in the order appended, oldest first: order them by a "
             + "number the store assigns as it appends, never by their times, which tie and run backwards.";
 
-        await AppendToAsync(other, elsewhere[0]);
+        await AppendToAsync(other, elsewhere[0]).ConfigureAwait(false);
 
-        if ((await store.LoadConversationAsync(conversation, ct)).Count > 0)
+        if ((await store.LoadConversationAsync(conversation, ct).ConfigureAwait(false)).Count > 0)
         {
             throw Broken(
                 "LoadConversationAsync returned entries appended to another conversation: key entries by the "
                 + "conversation id.");
         }
 
-        await AppendAsync(entries[..2]);
-        EnsureSame(await store.LoadConversationAsync(conversation, ct), entries[..2], order);
+        await AppendAsync(entries[..2]).ConfigureAwait(false);
+        EnsureSame(await store.LoadConversationAsync(conversation, ct).ConfigureAwait(false), entries[..2], order);
 
         EnsureSame(
-            await store.LoadConversationSinceCompactionAsync(conversation, ct),
+            await store.LoadConversationSinceCompactionAsync(conversation, ct).ConfigureAwait(false),
             entries[..2],
             "LoadConversationSinceCompactionAsync did not return every entry of a conversation with no summary.");
 
-        await AppendAsync(entries[2..]);
-        EnsureSame(await store.LoadConversationAsync(conversation, ct), entries, order);
+        await AppendAsync(entries[2..]).ConfigureAwait(false);
+        EnsureSame(await store.LoadConversationAsync(conversation, ct).ConfigureAwait(false), entries, order);
 
         EnsureSame(
-            await store.LoadConversationSinceCompactionAsync(conversation, ct),
+            await store.LoadConversationSinceCompactionAsync(conversation, ct).ConfigureAwait(false),
             entries[4..],
             "LoadConversationSinceCompactionAsync did not start at the last summary.");
 
         EnsureSame(
-            await store.LoadConversationSinceCompactionAsync(other, ct),
+            await store.LoadConversationSinceCompactionAsync(other, ct).ConfigureAwait(false),
             elsewhere,
             "LoadConversationSinceCompactionAsync started a conversation at another conversation's summary: look for "
             + "the last summary of the conversation it is given.");
 
         try
         {
-            await store.AppendConversationAsync(conversation, second, ct);
+            await store.AppendConversationAsync(conversation, second, ct).ConfigureAwait(false);
         }
         catch (StoreConflictException)
         {
             EnsureSame(
-                await store.LoadConversationAsync(conversation, ct),
+                await store.LoadConversationAsync(conversation, ct).ConfigureAwait(false),
                 entries,
                 "An append the store refused changed the conversation: check the number and write in one statement.");
 
@@ -547,7 +559,7 @@ public static class StoreExtensions
         {
             foreach (var entry in steps)
             {
-                await AppendToAsync(conversation, entry);
+                await AppendToAsync(conversation, entry).ConfigureAwait(false);
             }
         }
 
@@ -556,7 +568,7 @@ public static class StoreExtensions
         {
             try
             {
-                await store.AppendConversationAsync(id, entry, ct);
+                await store.AppendConversationAsync(id, entry, ct).ConfigureAwait(false);
             }
             catch (StoreConflictException exception)
             {

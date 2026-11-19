@@ -632,6 +632,12 @@ All notable changes to this project are documented here. The format follows
   with `TypeshiftHost_`, `TypeshiftTools_` and `TypeshiftSchemaAnnotations_`. Code completion in your own project
   listed one of them for each agent and toolset when you typed `Type`, beside `TypeshiftRuntime`. Your code calls
   the members of these classes and never names them, so nothing changes for it.
+- Typeshift and the code the generator writes await with `ConfigureAwait(false)`, so a run started on a UI thread,
+  in a WPF, WinForms, MAUI or Blazor app, no longer comes back to that thread where Typeshift waits. Once a run waited
+  for your store, its tools, middleware and store calls run on the thread pool. Before, nearly every step of a run
+  went back to the UI thread, a streamed run posted to it several times per update, and the store appended there.
+  Microsoft.Extensions.AI's tool loop still resumes on the context it finds, so a run on the store in memory, which
+  never waits, can still call your tools on the UI thread.
 
 ### Fixed
 

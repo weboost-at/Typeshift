@@ -24,12 +24,12 @@ internal sealed class RunStart(Agent agent, IServiceProvider services, DecisionL
         var runs = services.GetRequiredService<LiveRuns>();
 
         // A run handed a claim takes it in place of claiming
-        var claim = handover.Claim ?? await runs.ClaimAsync(conversation, ct);
+        var claim = handover.Claim ?? await runs.ClaimAsync(conversation, ct).ConfigureAwait(false);
 
         try
         {
             var entries = await services.GetRequiredService<StoreAccess>()
-                .LoadConversationSinceCompactionAsync(conversation, ct);
+                .LoadConversationSinceCompactionAsync(conversation, ct).ConfigureAwait(false);
 
             // D78: said once per load, since the run goes on without what the entries left out
             if (entries.Sum(entry => entry.UnreadContents) is > 0 and var unread)
@@ -39,7 +39,7 @@ internal sealed class RunStart(Agent agent, IServiceProvider services, DecisionL
 
             // D52: a run whose settings name a mode switches the conversation to it before anyone answers, so the
             // agent the run is passed on or handed to runs in it too
-            if (named is { } mode) await ledger.SetModeAsync(conversation, mode, ct);
+            if (named is { } mode) await ledger.SetModeAsync(conversation, mode, ct).ConfigureAwait(false);
 
             return (handover with { Claim = claim, Entries = entries }, AnsweringAgent(entries));
         }

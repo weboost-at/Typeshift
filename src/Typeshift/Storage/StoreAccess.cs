@@ -25,7 +25,7 @@ internal sealed class StoreAccess(IServiceProvider services, IServiceCollection 
 
     public async Task<Stored<TData>?> LoadAsync<TData>(StoreId id, CancellationToken ct)
         where TData : class, IStorable<TData> =>
-        Read<TData>(await id.LoadAsync(this, TData.Kind, ct));
+        Read<TData>(await id.LoadAsync(this, TData.Kind, ct).ConfigureAwait(false));
 
     public Task<long> SaveAsync<TData>(StoreId id, TData data, long loadedVersion, CancellationToken ct)
         where TData : class, IStorable<TData> =>
@@ -33,7 +33,7 @@ internal sealed class StoreAccess(IServiceProvider services, IServiceCollection 
 
     public async Task<Stored<TData>?> LoadAgentSettingsAsync<TData>(CancellationToken ct)
         where TData : class, IStorable<TData> =>
-        Read<TData>(await AgentSettingsStore.LoadAsync(TData.Kind, ct));
+        Read<TData>(await AgentSettingsStore.LoadAsync(TData.Kind, ct).ConfigureAwait(false));
 
     public Task<long> SaveAgentSettingsAsync<TData>(TData data, long loadedVersion, CancellationToken ct)
         where TData : class, IStorable<TData> =>

@@ -13,7 +13,7 @@ internal sealed class DecisionLedger(StoreAccess stores, TimeProvider time, Agen
     public AgentMode? LegacyMode { get; private set; } = legacyMode;
 
     public async Task<DecisionDocument> LoadAsync(StoreId conversation, CancellationToken ct) =>
-        (await ReadAsync(conversation, ct)).Document;
+        (await ReadAsync(conversation, ct).ConfigureAwait(false)).Document;
 
     // D52: a run's settings or your app name the conversation's mode, which every agent that answers it then runs in
     public Task<DecisionDocument> SetModeAsync(StoreId conversation, AgentMode mode, CancellationToken ct) =>
@@ -90,7 +90,7 @@ internal sealed class DecisionLedger(StoreAccess stores, TimeProvider time, Agen
             document => document.Batch is { State: BatchState.Open } open
                 ? document with { Batch = open with { State = BatchState.Expired } }
                 : document,
-            ct);
+            ct).ConfigureAwait(false);
 
         return document.Batch;
     }
@@ -202,7 +202,7 @@ internal sealed class DecisionLedger(StoreAccess stores, TimeProvider time, Agen
     {
         for (var attempt = 1; ; attempt++)
         {
-            var (document, version) = await ReadAsync(conversation, ct);
+            var (document, version) = await ReadAsync(conversation, ct).ConfigureAwait(false);
             var changed = change(document);
 
             if (ReferenceEquals(changed, document)) return document;
@@ -210,7 +210,7 @@ internal sealed class DecisionLedger(StoreAccess stores, TimeProvider time, Agen
 
             try
             {
-                await stores.SaveDecisionsAsync(conversation, changed.Serialize(), version, ct);
+                await stores.SaveDecisionsAsync(conversation, changed.Serialize(), version, ct).ConfigureAwait(false);
                 LegacyMode = null;
 
                 return changed;
@@ -225,7 +225,7 @@ internal sealed class DecisionLedger(StoreAccess stores, TimeProvider time, Agen
     private async Task<(DecisionDocument Document, long Version)> ReadAsync(
         StoreId conversation,
         CancellationToken ct) =>
-        await stores.LoadDecisionsAsync(conversation, ct) is { } stored
+        await stores.LoadDecisionsAsync(conversation, ct).ConfigureAwait(false) is { } stored
             ? (DecisionDocument.Deserialize(stored.Json), stored.Version)
             : (DecisionDocument.Empty, 0);
 }

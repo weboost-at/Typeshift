@@ -16,7 +16,7 @@ internal sealed class UniqueCallIdsChatClient(IChatClient inner) : DelegatingCha
     {
         var call = messages.ToList();
         var used = Used(call, options);
-        var response = await base.GetResponseAsync(call, options, cancellationToken);
+        var response = await base.GetResponseAsync(call, options, cancellationToken).ConfigureAwait(false);
 
         if (response.ConversationId is not null) return response;
 
@@ -39,8 +39,9 @@ internal sealed class UniqueCallIdsChatClient(IChatClient inner) : DelegatingCha
         var used = Used(call, options);
         var renamed = new Dictionary<string, string>();
         var kept = false;
+        var answer = base.GetStreamingResponseAsync(call, options, cancellationToken);
 
-        await foreach (var update in base.GetStreamingResponseAsync(call, options, cancellationToken))
+        await foreach (var update in answer.ConfigureAwait(false))
         {
             kept |= update.ConversationId is not null;
             if (!kept) update.Contents = Renamed(update.Contents, used, renamed);

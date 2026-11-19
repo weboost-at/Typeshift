@@ -16,18 +16,20 @@ internal sealed class ContextChatClient(IChatClient inner) : DelegatingChatClien
         CancellationToken cancellationToken = default)
     {
         if (options is not ResolvedChatOptions { AgentRun.Agent.ContextProviders.Count: > 0 } resolved)
-            return await base.GetResponseAsync(messages, options, cancellationToken);
+            return await base.GetResponseAsync(messages, options, cancellationToken).ConfigureAwait(false);
 
         List<IContextProvider> created = [];
 
         try
         {
-            (messages, options) = await AddContextAsync(messages, resolved, created, cancellationToken);
-            return await base.GetResponseAsync(messages, options, cancellationToken);
+            (messages, options) = await AddContextAsync(messages, resolved, created, cancellationToken)
+                .ConfigureAwait(false);
+
+            return await base.GetResponseAsync(messages, options, cancellationToken).ConfigureAwait(false);
         }
         finally
         {
-            await DisposeAsync(created);
+            await DisposeAsync(created).ConfigureAwait(false);
         }
     }
 
@@ -41,16 +43,21 @@ internal sealed class ContextChatClient(IChatClient inner) : DelegatingChatClien
         try
         {
             if (options is ResolvedChatOptions { AgentRun.Agent.ContextProviders.Count: > 0 } resolved)
-                (messages, options) = await AddContextAsync(messages, resolved, created, cancellationToken);
+            {
+                (messages, options) = await AddContextAsync(messages, resolved, created, cancellationToken)
+                    .ConfigureAwait(false);
+            }
 
-            await foreach (var update in base.GetStreamingResponseAsync(messages, options, cancellationToken))
+            var answer = base.GetStreamingResponseAsync(messages, options, cancellationToken);
+
+            await foreach (var update in answer.ConfigureAwait(false))
             {
                 yield return update;
             }
         }
         finally
         {
-            await DisposeAsync(created);
+            await DisposeAsync(created).ConfigureAwait(false);
         }
     }
 
@@ -79,7 +86,7 @@ internal sealed class ContextChatClient(IChatClient inner) : DelegatingChatClien
             var (provider, isCreated) = source(run.Services);
             if (isCreated) created.Add(provider);
 
-            var context = await provider.GetContextAsync(run, ct);
+            var context = await provider.GetContextAsync(run, ct).ConfigureAwait(false);
 
             if (context.Instructions is { } instructions)
             {
@@ -101,7 +108,7 @@ internal sealed class ContextChatClient(IChatClient inner) : DelegatingChatClien
     {
         foreach (var provider in created)
         {
-            if (provider is IAsyncDisposable disposable) await disposable.DisposeAsync();
+            if (provider is IAsyncDisposable disposable) await disposable.DisposeAsync().ConfigureAwait(false);
             else (provider as IDisposable)?.Dispose();
         }
     }

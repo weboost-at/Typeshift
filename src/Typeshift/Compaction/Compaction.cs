@@ -56,7 +56,7 @@ internal sealed class Compaction(ReportedCall? last)
 
         var target = options.RunOptions.TargetInputTokens ?? max / 2;
         var (count, estimate) = (call.Count, SentEstimate);
-        call = await CompactAsync(history, SentEstimate, options, target / _calibration, ct);
+        call = await CompactAsync(history, SentEstimate, options, target / _calibration, ct).ConfigureAwait(false);
         SentEstimate = Tokens.Estimate(call, options, _lengths);
 
         // A call with nothing left to clear or to summarize goes out as it came, and says nothing
@@ -138,7 +138,7 @@ internal sealed class Compaction(ReportedCall? last)
         // The summary model reads the turns with the results clearing took from the run's model, and none of what
         // the pass added. Without a summary the call goes out with its results cleared, and the provider decides
         List<ChatMessage> turns = [.. history.Take(cut).Where(message => !IsAdded(message, options))];
-        if (await TrySummarizeAsync(turns, options, ct) is not { } summary) return call;
+        if (await TrySummarizeAsync(turns, options, ct).ConfigureAwait(false) is not { } summary) return call;
 
         _summary = [summary, .. TodosOf(region)];
         var keptContents = call[cut].Contents;
@@ -151,7 +151,7 @@ internal sealed class Compaction(ReportedCall? last)
         if (options.ConversationRun is { } conversation)
         {
             await conversation.AppendSummaryAsync(
-                [.. _summary, .. kept.Where(message => !conversation.IsTransient(message))]);
+                [.. _summary, .. kept.Where(message => !conversation.IsTransient(message))]).ConfigureAwait(false);
         }
 
         return [.. _summary, .. region.Where(message => IsAdded(message, options)), .. kept];
@@ -265,7 +265,8 @@ internal sealed class Compaction(ReportedCall? last)
         {
             try
             {
-                return await SummarizeAsync(turns, provider, model, options.RunOptions.SummaryInstructions, run, ct);
+                return await SummarizeAsync(turns, provider, model, options.RunOptions.SummaryInstructions, run, ct)
+                    .ConfigureAwait(false);
             }
             catch (Exception exception) when (!ct.IsCancellationRequested)
             {
@@ -297,7 +298,7 @@ internal sealed class Compaction(ReportedCall? last)
         var instrumented = run.Services.GetRequiredService<InstrumentedClients>();
 
         var summarized = $"the summary of the agent '{run.Agent.Name}'";
-        var provided = await ChatClients.GetAsync(run.Services, summarized, provider, model, ct);
+        var provided = await ChatClients.GetAsync(run.Services, summarized, provider, model, ct).ConfigureAwait(false);
         using var client = instrumented.Instrument(provided, model);
 
         var response = await client.GetResponseAsync(
@@ -306,7 +307,7 @@ internal sealed class Compaction(ReportedCall? last)
                 new ChatMessage(ChatRole.User, Transcript(turns))
             ],
             new ChatOptions { ModelId = model },
-            ct);
+            ct).ConfigureAwait(false);
 
         // D32: the summary is the run's cost too, which its response reports and the summary's entry holds
         run.AddUsage(response.Usage);

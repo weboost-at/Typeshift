@@ -46,14 +46,14 @@ internal sealed class FileAgentSettingsStore : IAgentSettingsStore
     public async Task<StoredDocument?> LoadAsync(string kind, CancellationToken ct)
     {
         var path = PathOf(kind);
-        return await TryReadAsync(path, ct) is { } file ? Read(path, kind, file) : null;
+        return await TryReadAsync(path, ct).ConfigureAwait(false) is { } file ? Read(path, kind, file) : null;
     }
 
     public async Task<long> SaveAsync(string kind, string json, long loadedVersion, CancellationToken ct)
     {
         var path = PathOf(kind);
         var saves = _saves.GetOrAdd(path, _ => new SemaphoreSlim(1, 1));
-        await saves.WaitAsync(ct);
+        await saves.WaitAsync(ct).ConfigureAwait(false);
 
         try
         {
@@ -63,15 +63,17 @@ internal sealed class FileAgentSettingsStore : IAgentSettingsStore
             // the first save says where the settings are
             if (Interlocked.Exchange(ref _announced, 1) == 0) LogEvents.FileStoreFolder(_logger, _directory);
 
-            await using var held = await LockAsync($"{path}.lock", ct);
+            await using var held = (await LockAsync($"{path}.lock", ct).ConfigureAwait(false)).ConfigureAwait(false);
             DeleteUnfinished(path);
 
-            var stored = await TryReadAsync(path, ct) is { } file ? Read(path, kind, file).Version : 0;
+            var stored = await TryReadAsync(path, ct).ConfigureAwait(false) is { } file
+                ? Read(path, kind, file).Version
+                : 0;
 
             if (stored != loadedVersion)
                 throw new StoreConflictException($"The agent's {kind} was saved since version {loadedVersion}.");
 
-            await ReplaceAsync(path, Write(kind, json, loadedVersion + 1), ct);
+            await ReplaceAsync(path, Write(kind, json, loadedVersion + 1), ct).ConfigureAwait(false);
             return loadedVersion + 1;
         }
         finally
@@ -87,9 +89,11 @@ internal sealed class FileAgentSettingsStore : IAgentSettingsStore
 
         try
         {
-            await using (var file = new FileStream(written, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+            var file = new FileStream(written, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+
+            await using (file.ConfigureAwait(false))
             {
-                await file.WriteAsync(content, ct);
+                await file.WriteAsync(content, ct).ConfigureAwait(false);
                 file.Flush(flushToDisk: true);
             }
 
@@ -139,7 +143,7 @@ internal sealed class FileAgentSettingsStore : IAgentSettingsStore
                 if (!waiting) LogEvents.FileStoreWaiting(_logger, path);
                 waiting = true;
 
-                await Task.Delay(TimeSpan.FromMilliseconds(5), _time, ct);
+                await Task.Delay(TimeSpan.FromMilliseconds(5), _time, ct).ConfigureAwait(false);
             }
         }
     }
@@ -150,7 +154,7 @@ internal sealed class FileAgentSettingsStore : IAgentSettingsStore
     {
         try
         {
-            await using var file = new FileStream(
+            var file = new FileStream(
                 path,
                 FileMode.Open,
                 FileAccess.Read,
@@ -158,8 +162,11 @@ internal sealed class FileAgentSettingsStore : IAgentSettingsStore
                 bufferSize: 4096,
                 useAsync: true);
 
-            using var reader = new StreamReader(file, Encoding.UTF8);
-            return await reader.ReadToEndAsync(ct);
+            await using (file.ConfigureAwait(false))
+            {
+                using var reader = new StreamReader(file, Encoding.UTF8);
+                return await reader.ReadToEndAsync(ct).ConfigureAwait(false);
+            }
         }
         catch (Exception exception) when (exception is FileNotFoundException or DirectoryNotFoundException)
         {

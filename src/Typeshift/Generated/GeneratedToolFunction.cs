@@ -113,7 +113,7 @@ public abstract class GeneratedToolFunction(ToolJson json) : AIFunction
     {
         var items = new List<T>();
 
-        await foreach (var item in stream.WithCancellation(ct))
+        await foreach (var item in stream.WithCancellation(ct).ConfigureAwait(false))
         {
             // An iterator without [EnumeratorCancellation] never sees the token
             ct.ThrowIfCancellationRequested();

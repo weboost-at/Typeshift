@@ -13,12 +13,12 @@ internal sealed class CompactingChatClient(IChatClient inner) : DelegatingChatCl
         CancellationToken cancellationToken = default)
     {
         if (options is not ResolvedChatOptions { AgentRun: { } run, RunOptions.MaxInputTokens: { } max } resolved)
-            return await base.GetResponseAsync(messages, options, cancellationToken);
+            return await base.GetResponseAsync(messages, options, cancellationToken).ConfigureAwait(false);
 
         var compaction = run.Compaction ??= new Compaction(run.LastCall);
-        var call = await compaction.PrepareAsync(messages, resolved, max, cancellationToken);
+        var call = await compaction.PrepareAsync(messages, resolved, max, cancellationToken).ConfigureAwait(false);
 
-        var response = await base.GetResponseAsync(call, options, cancellationToken);
+        var response = await base.GetResponseAsync(call, options, cancellationToken).ConfigureAwait(false);
         compaction.Calibrate(response.Usage);
         return response;
     }
@@ -39,10 +39,11 @@ internal sealed class CompactingChatClient(IChatClient inner) : DelegatingChatCl
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         var compaction = run.Compaction ??= new Compaction(run.LastCall);
-        var call = await compaction.PrepareAsync(messages, resolved, max, cancellationToken);
+        var call = await compaction.PrepareAsync(messages, resolved, max, cancellationToken).ConfigureAwait(false);
+        var answer = base.GetStreamingResponseAsync(call, resolved, cancellationToken);
         UsageDetails? usage = null;
 
-        await foreach (var update in base.GetStreamingResponseAsync(call, resolved, cancellationToken))
+        await foreach (var update in answer.ConfigureAwait(false))
         {
             foreach (var content in update.Contents.OfType<UsageContent>())
             {

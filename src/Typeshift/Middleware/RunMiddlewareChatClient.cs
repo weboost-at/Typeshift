@@ -18,7 +18,7 @@ internal sealed class RunMiddlewareChatClient(IChatClient inner) : DelegatingCha
     {
         if (options is not ResolvedChatOptions { AgentRun: { } run } resolved
             || run.Services.GetServices<IRunMiddleware>().ToList() is not { Count: > 0 } middleware)
-            return await base.GetResponseAsync(messages, options, cancellationToken);
+            return await base.GetResponseAsync(messages, options, cancellationToken).ConfigureAwait(false);
 
         var received = Begin(run, messages);
         var called = false;
@@ -27,10 +27,11 @@ internal sealed class RunMiddlewareChatClient(IChatClient inner) : DelegatingCha
         {
             called = true;
             Keep(run, resolved, received);
-            run.Answered(await InnerClient.GetResponseAsync(run.Messages, resolved, cancellationToken));
-        }, cancellationToken);
+            run.Answered(
+                await InnerClient.GetResponseAsync(run.Messages, resolved, cancellationToken).ConfigureAwait(false));
+        }, cancellationToken).ConfigureAwait(false);
 
-        return await AnsweredAsync(run, resolved, called);
+        return await AnsweredAsync(run, resolved, called).ConfigureAwait(false);
     }
 
     public override IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
@@ -61,11 +62,12 @@ internal sealed class RunMiddlewareChatClient(IChatClient inner) : DelegatingCha
             called = true;
             Keep(run, resolved, received);
             var arrived = new List<ChatResponseUpdate>();
+            var answer = InnerClient.GetStreamingResponseAsync(run.Messages, resolved, stop.Token);
 
-            await foreach (var update in InnerClient.GetStreamingResponseAsync(run.Messages, resolved, stop.Token))
+            await foreach (var update in answer.ConfigureAwait(false))
             {
                 arrived.Add(update);
-                await updates.Writer.WriteAsync(update, stop.Token);
+                await updates.Writer.WriteAsync(update, stop.Token).ConfigureAwait(false);
             }
 
             run.Answered(arrived.ToChatResponse());
@@ -73,16 +75,18 @@ internal sealed class RunMiddlewareChatClient(IChatClient inner) : DelegatingCha
 
         try
         {
-            await foreach (var update in updates.Reader.ReadAllAsync(CancellationToken.None))
+            await foreach (var update in updates.Reader.ReadAllAsync(CancellationToken.None).ConfigureAwait(false))
             {
                 yield return update;
             }
 
-            await chain;
+            await chain.ConfigureAwait(false);
 
             if (!called)
             {
-                foreach (var update in (await AnsweredAsync(run, resolved, called)).ToChatResponseUpdates())
+                var response = await AnsweredAsync(run, resolved, called).ConfigureAwait(false);
+
+                foreach (var update in response.ToChatResponseUpdates())
                 {
                     yield return update;
                 }
@@ -93,7 +97,7 @@ internal sealed class RunMiddlewareChatClient(IChatClient inner) : DelegatingCha
             // A caller that left early stops the run, and no longer hears how it ended
             if (!chain.IsCompleted)
             {
-                await stop.CancelAsync();
+                await stop.CancelAsync().ConfigureAwait(false);
                 await chain.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
             }
         }
@@ -129,7 +133,7 @@ internal sealed class RunMiddlewareChatClient(IChatClient inner) : DelegatingCha
     {
         try
         {
-            await InvokeAsync(middleware, 0, run, model, ct);
+            await InvokeAsync(middleware, 0, run, model, ct).ConfigureAwait(false);
         }
         finally
         {
@@ -148,7 +152,7 @@ internal sealed class RunMiddlewareChatClient(IChatClient inner) : DelegatingCha
     {
         if (index == middleware.Count)
         {
-            await model();
+            await model().ConfigureAwait(false);
             return;
         }
 
@@ -156,7 +160,7 @@ internal sealed class RunMiddlewareChatClient(IChatClient inner) : DelegatingCha
 
         try
         {
-            await middleware[index].InvokeAsync(run, NextAsync, ct);
+            await middleware[index].InvokeAsync(run, NextAsync, ct).ConfigureAwait(false);
         }
         finally
         {
@@ -166,7 +170,7 @@ internal sealed class RunMiddlewareChatClient(IChatClient inner) : DelegatingCha
         async Task NextAsync()
         {
             run.Answerable = false;
-            await InvokeAsync(middleware, index + 1, run, model, ct);
+            await InvokeAsync(middleware, index + 1, run, model, ct).ConfigureAwait(false);
         }
     }
 
@@ -183,7 +187,9 @@ internal sealed class RunMiddlewareChatClient(IChatClient inner) : DelegatingCha
             message.AuthorName ??= run.Agent.Name;
         }
 
-        if (options.ConversationRun is { } conversation) await conversation.AppendAsync([.. response.Messages]);
+        if (options.ConversationRun is { } conversation)
+            await conversation.AppendAsync([.. response.Messages]).ConfigureAwait(false);
+
         return response;
     }
 }

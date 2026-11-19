@@ -757,7 +757,7 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// <returns>The decisions; none open for a conversation that never asked.</returns>
     /// <exception cref="InvalidOperationException">The host has no conversation.</exception>
     public async Task<ConversationDecisions> GetDecisionsAsync(CancellationToken ct = default) =>
-        (await Ledger.LoadAsync(DecidedConversation, ct)).ToDecisions();
+        (await Ledger.LoadAsync(DecidedConversation, ct).ConfigureAwait(false)).ToDecisions();
 
     /// <summary>
     /// Records your app's answers to decisions of the host's conversation, by their ids, and starts no run:
@@ -783,7 +783,7 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     {
         ArgumentNullException.ThrowIfNull(answers);
 
-        return (await Ledger.RecordAsync(DecidedConversation, answers, ct)).ToDecisions();
+        return (await Ledger.RecordAsync(DecidedConversation, answers, ct).ConfigureAwait(false)).ToDecisions();
     }
 
     /// <summary>
@@ -797,7 +797,7 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// <exception cref="StoreConflictException">Other saves came first ten times in a row.</exception>
     /// <exception cref="InvalidOperationException">The host has no conversation.</exception>
     public async Task<ConversationDecisions> CancelDecisionsAsync(CancellationToken ct = default) =>
-        (await Ledger.CancelAsync(DecidedConversation, ct)).ToDecisions();
+        (await Ledger.CancelAsync(DecidedConversation, ct).ConfigureAwait(false)).ToDecisions();
 
     /// <summary>
     /// Switches the mode of the host's conversation, from <c>WithConversationId</c>. Its next run is in
@@ -813,7 +813,7 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// The host has no conversation, or stores are registered and none keeps the decisions of its id type.
     /// </exception>
     public async Task SetModeAsync(AgentMode mode, CancellationToken ct = default) =>
-        await Ledger.SetModeAsync(DecidedConversation, mode, ct);
+        await Ledger.SetModeAsync(DecidedConversation, mode, ct).ConfigureAwait(false);
 
     /// <summary>
     /// Withdraws a standing approval of the host's conversation, from <c>WithConversationId</c>: a tool your app
@@ -834,7 +834,7 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     {
         ArgumentNullException.ThrowIfNull(tool);
 
-        await Ledger.RevokeAsync(DecidedConversation, tool, server, ct);
+        await Ledger.RevokeAsync(DecidedConversation, tool, server, ct).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -856,7 +856,7 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// The stored settings were written under a newer schema version than this code's.
     /// </exception>
     public async Task<IChatClient> CreateChatClientAsync(CancellationToken ct = default) =>
-        await CreateChatClientAsync(await ResolveOptionsAsync(ct), ct);
+        await CreateChatClientAsync(await ResolveOptionsAsync(ct).ConfigureAwait(false), ct).ConfigureAwait(false);
 
     /// <summary>
     /// The raw path: creates the client of a run whose options <c>ResolveOptionsAsync</c> resolved. For options that
@@ -899,7 +899,8 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
         var provider = resolved.Provider;
         var model = resolved.ModelId;
 
-        var client = await ChatClients.GetAsync(_services, $"the agent '{Agent.Name}'", provider, model, ct);
+        var client = await ChatClients.GetAsync(_services, $"the agent '{Agent.Name}'", provider, model, ct)
+            .ConfigureAwait(false);
 
         // D29: a tool loop below Typeshift's own would run tools past the gate, the tool middleware and the run's
         // limits, so the client that brings one is refused before it is called
@@ -1002,7 +1003,7 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
             Store.KeepsAgentSettings ? declaration.LoadAgentSettingsAsync(Store, ct) : Task.FromResult<object?>(null),
             settingsId is null ? Task.FromResult<object?>(null) : declaration.LoadSettingsAsync(Store, settingsId, ct)
         };
-        object?[] loaded = [.. await Task.WhenAll(loads), settings];
+        object?[] loaded = [.. await Task.WhenAll(loads).ConfigureAwait(false), settings];
         IReadOnlyList<object> layers = [.. loaded.OfType<object>()];
 
         var options = new ResolvedChatOptions(Agent.ChatOptions)
@@ -1042,7 +1043,7 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
         var agents = Agent.SubAgents.Select(use => new SubAgentFunction(use, use.Host(_services).Agent));
         List<AITool> own = [.. tools, .. agents, .. options.Tools ?? []];
 
-        options.Tools = [.. own, .. await McpToolsAsync(own, ct)];
+        options.Tools = [.. own, .. await McpToolsAsync(own, ct).ConfigureAwait(false)];
         options.RunSetsMode = NamedMode(settings) is not null;
         options.SettingsId = settingsId;
 
@@ -1078,7 +1079,7 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
             input is null ? [] : [input],
             OwnRun(Conversation(input), result.Format, retries),
             settings,
-            ct);
+            ct).ConfigureAwait(false);
 
         return new ChatResponse<TResult>(response, result.SerializerOptions);
     }
@@ -1106,8 +1107,8 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
         object? settings,
         CancellationToken ct)
     {
-        await RecordAnswersAsync(answers, ct);
-        return await RunCoreAsync(null, settings, ct);
+        await RecordAnswersAsync(answers, ct).ConfigureAwait(false);
+        return await RunCoreAsync(null, settings, ct).ConfigureAwait(false);
     }
 
     internal async Task<ChatResponse<TResult>> AnswerCoreAsync<TResult>(
@@ -1115,8 +1116,8 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
         object? settings,
         CancellationToken ct)
     {
-        await RecordAnswersAsync(answers, ct);
-        return await RunCoreAsync<TResult>(null, settings, ct);
+        await RecordAnswersAsync(answers, ct).ConfigureAwait(false);
+        return await RunCoreAsync<TResult>(null, settings, ct).ConfigureAwait(false);
     }
 
     internal StreamingRun AnswerStreamingCoreAsync(
@@ -1143,11 +1144,11 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
         ChatResponseFormat? format,
         [EnumeratorCancellation] CancellationToken ct)
     {
-        await RecordAnswersAsync(answers, ct);
+        await RecordAnswersAsync(answers, ct).ConfigureAwait(false);
 
         var resumed = RunStreamingAsync([], OwnRun(ResumedConversation, format), settings, ct);
 
-        await foreach (var update in resumed)
+        await foreach (var update in resumed.ConfigureAwait(false))
         {
             yield return update;
         }
@@ -1189,16 +1190,16 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
         object? settings,
         CancellationToken ct)
     {
-        var (taken, answering) = await Start.TakeAsync(handover, NamedMode(settings), ct);
+        var (taken, answering) = await Start.TakeAsync(handover, NamedMode(settings), ct).ConfigureAwait(false);
 
         try
         {
-            if (answering is not null) return await answering.RunAsync(messages, taken, ct);
+            if (answering is not null) return await answering.RunAsync(messages, taken, ct).ConfigureAwait(false);
 
-            var options = await ResolveRunAsync(taken, settings, ct);
-            using var client = await CreateChatClientAsync(options, ct);
+            var options = await ResolveRunAsync(taken, settings, ct).ConfigureAwait(false);
+            using var client = await CreateChatClientAsync(options, ct).ConfigureAwait(false);
 
-            return await client.GetResponseAsync(messages, options, ct);
+            return await client.GetResponseAsync(messages, options, ct).ConfigureAwait(false);
         }
         finally
         {
@@ -1212,13 +1213,13 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
         object? settings,
         [EnumeratorCancellation] CancellationToken ct)
     {
-        var (taken, answering) = await Start.TakeAsync(handover, NamedMode(settings), ct);
+        var (taken, answering) = await Start.TakeAsync(handover, NamedMode(settings), ct).ConfigureAwait(false);
 
         try
         {
             if (answering is not null)
             {
-                await foreach (var update in answering.RunStreamingAsync(messages, taken, ct))
+                await foreach (var update in answering.RunStreamingAsync(messages, taken, ct).ConfigureAwait(false))
                 {
                     yield return update;
                 }
@@ -1226,10 +1227,10 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
                 yield break;
             }
 
-            var options = await ResolveRunAsync(taken, settings, ct);
-            using var client = await CreateChatClientAsync(options, ct);
+            var options = await ResolveRunAsync(taken, settings, ct).ConfigureAwait(false);
+            using var client = await CreateChatClientAsync(options, ct).ConfigureAwait(false);
 
-            await foreach (var update in client.GetStreamingResponseAsync(messages, options, ct))
+            await foreach (var update in client.GetStreamingResponseAsync(messages, options, ct).ConfigureAwait(false))
             {
                 yield return update;
             }
@@ -1259,7 +1260,7 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
 
         foreach (var use in Agent.McpServers)
         {
-            foreach (var tool in await provider.GetToolsAsync(use.Server, ct))
+            foreach (var tool in await provider.GetToolsAsync(use.Server, ct).ConfigureAwait(false))
             {
                 if (!names.Add(tool.Name))
                 {
@@ -1295,7 +1296,8 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
         object? settings,
         CancellationToken ct)
     {
-        var options = (ResolvedChatOptions)await ResolveOptionsCoreAsync(handover.SettingsId, settings, ct);
+        var options = (ResolvedChatOptions)await ResolveOptionsCoreAsync(handover.SettingsId, settings, ct)
+            .ConfigureAwait(false);
         options.Conversation = handover.Conversation;
         options.Claim = handover.Claim;
         options.Handoffs = handover.Handoffs;

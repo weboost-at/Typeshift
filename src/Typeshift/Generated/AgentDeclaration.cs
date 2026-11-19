@@ -62,10 +62,10 @@ public abstract class AgentDeclaration<TAgent, TSettings> : AgentDeclaration
         StoreAccess store,
         StoreId id,
         CancellationToken ct) =>
-        (await store.LoadAsync<TSettings>(id, ct))?.Data;
+        (await store.LoadAsync<TSettings>(id, ct).ConfigureAwait(false))?.Data;
 
     internal sealed override async Task<object?> LoadAgentSettingsAsync(StoreAccess store, CancellationToken ct) =>
-        (await store.LoadAgentSettingsAsync<TSettings>(ct))?.Data;
+        (await store.LoadAgentSettingsAsync<TSettings>(ct).ConfigureAwait(false))?.Data;
 
     /// <summary>
     /// Applies the chat and run options one settings layer sets.

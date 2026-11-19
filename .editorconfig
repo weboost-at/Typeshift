@@ -56,3 +56,7 @@ dotnet_diagnostic.IDE0055.severity = suggestion
 dotnet_diagnostic.CA1305.severity = error
 dotnet_diagnostic.CA1309.severity = error
 dotnet_diagnostic.CA1310.severity = error
+
+# Library awaits do not come back to the caller's synchronization context
+[src/Typeshift/**.cs]
+dotnet_diagnostic.CA2007.severity = error

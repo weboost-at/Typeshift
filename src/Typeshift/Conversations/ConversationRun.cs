@@ -162,7 +162,7 @@ internal sealed class ConversationRun(
             // Read before the queue: a sub-agent queues its answer before it counts itself done
             var working = !_background.IsEmpty;
 
-            await ScreenAsync(ct);
+            await ScreenAsync(ct).ConfigureAwait(false);
 
             lock (_steering)
             {
@@ -179,7 +179,7 @@ internal sealed class ConversationRun(
                 }
             }
 
-            await _arrived.WaitAsync(ct);
+            await _arrived.WaitAsync(ct).ConfigureAwait(false);
         }
     }
 
@@ -192,11 +192,11 @@ internal sealed class ConversationRun(
             _closed = true;
         }
 
-        await ScreenLastAsync();
+        await ScreenLastAsync().ConfigureAwait(false);
 
         List<ChatMessage> waiting = [.. notes ?? [], .. Take()];
 
-        if (waiting.Count > 0) await AppendAsync(waiting, answering: answering);
+        if (waiting.Count > 0) await AppendAsync(waiting, answering: answering).ConfigureAwait(false);
     }
 
     // D30, D51: steering input meets the app's run middleware before the run takes it, in the order it arrived,
@@ -214,7 +214,7 @@ internal sealed class ConversationRun(
                 if (!_steering.TryPeek(out input)) return;
             }
 
-            var taken = input.IsBackgroundAnswer ? input : await OnSteeringAsync(input, ct);
+            var taken = input.IsBackgroundAnswer ? input : await OnSteeringAsync(input, ct).ConfigureAwait(false);
 
             // Only the run takes input off the queue, so its first is still the one the middleware saw
             lock (_steering)
@@ -257,7 +257,7 @@ internal sealed class ConversationRun(
         {
             try
             {
-                await ScreenAsync(CancellationToken.None);
+                await ScreenAsync(CancellationToken.None).ConfigureAwait(false);
                 return;
             }
             catch (Exception exception)
@@ -279,7 +279,7 @@ internal sealed class ConversationRun(
 
         foreach (var middleware in _middleware)
         {
-            if (await middleware.OnSteeringAsync(run, input, ct) is not { } passed) return null;
+            if (await middleware.OnSteeringAsync(run, input, ct).ConfigureAwait(false) is not { } passed) return null;
 
             input = passed;
         }
@@ -297,7 +297,7 @@ internal sealed class ConversationRun(
         {
             try
             {
-                var answer = await AnswerAsync(agent, work);
+                var answer = await AnswerAsync(agent, work).ConfigureAwait(false);
 
                 // A run already ending stops its sub-agents, and whoever answers next hears they were lost
                 if (answer is null || _stopping.IsCancellationRequested) return (callId, agent);
@@ -324,7 +324,7 @@ internal sealed class ConversationRun(
     {
         _stopping.Cancel();
 
-        return [.. (await Task.WhenAll(_work)).OfType<(string CallId, string Agent)>()];
+        return [.. (await Task.WhenAll(_work).ConfigureAwait(false)).OfType<(string CallId, string Agent)>()];
     }
 
     // The history and the input a run starts from are stored already
@@ -382,7 +382,7 @@ internal sealed class ConversationRun(
     // whatever became of the run's token
     public async Task OpenAsync(DecisionBatch batch)
     {
-        await ledger.OpenAsync(Conversation!, batch, CancellationToken.None);
+        await ledger.OpenAsync(Conversation!, batch, CancellationToken.None).ConfigureAwait(false);
         Asked = batch;
         Telemetry.Asked(run.Activity, batch);
     }
@@ -391,7 +391,7 @@ internal sealed class ConversationRun(
     // expired, or what answers that came first made of it
     public async Task<DecisionBatch?> ExpireAsync()
     {
-        var batch = await ledger.ExpireAsync(Conversation!, CancellationToken.None);
+        var batch = await ledger.ExpireAsync(Conversation!, CancellationToken.None).ConfigureAwait(false);
         Asked = null;
 
         return batch;
@@ -424,7 +424,7 @@ internal sealed class ConversationRun(
     {
         try
         {
-            await ledger.CloseAsync(Conversation!, batch, CancellationToken.None);
+            await ledger.CloseAsync(Conversation!, batch, CancellationToken.None).ConfigureAwait(false);
         }
         catch (Exception exception)
         {
@@ -446,9 +446,9 @@ internal sealed class ConversationRun(
         MarkStored(steps.Take(streamed));
         _streamedUnmatched = 0;
 
-        if (steps.Count > streamed) await AppendAsync([.. steps.Skip(streamed)]);
+        if (steps.Count > streamed) await AppendAsync([.. steps.Skip(streamed)]).ConfigureAwait(false);
 
-        await ScreenAsync(ct);
+        await ScreenAsync(ct).ConfigureAwait(false);
 
         var steering = Take();
 
@@ -458,7 +458,7 @@ internal sealed class ConversationRun(
             call.Add(input);
         }
 
-        if (steering.Count > 0) await AppendAsync(steering);
+        if (steering.Count > 0) await AppendAsync(steering).ConfigureAwait(false);
         return call;
     }
 
@@ -517,23 +517,23 @@ internal sealed class ConversationRun(
 
         _ended = true;
         EndError = error;
-        await StopBackgroundAsync();
+        await StopBackgroundAsync().ConfigureAwait(false);
 
         if (_refused is not null) return;
 
         _ending = true;
-        await CloseAsync();
+        await CloseAsync().ConfigureAwait(false);
 
         await AppendAsync(
             error is null ? [] : [new ChatMessage(ChatRole.Assistant, [new ErrorContent(error)])],
-            endsRun: true);
+            endsRun: true).ConfigureAwait(false);
     }
 
     // The tool results of a tool loop that made no model call after them, a loop a tool or handoff ended
     public async Task StoreResultsAsync(IEnumerable<ChatMessage> messages)
     {
         var results = messages.Where(message => message.Role == ChatRole.Tool).Select(Unstored).OfType<ChatMessage>();
-        if (results.ToList() is { Count: > 0 } steps) await AppendAsync(steps);
+        if (results.ToList() is { Count: > 0 } steps) await AppendAsync(steps).ConfigureAwait(false);
     }
 
     // D34: the run hands the conversation on, and stores no end of its own. The result of the handoff call names the
@@ -541,13 +541,14 @@ internal sealed class ConversationRun(
     // the agent handed to hears of each (D33), ahead of the input no model received
     public async Task HandOffAsync(ChatMessage result, string target)
     {
-        await AppendAsync([result], answering: target);
+        await AppendAsync([result], answering: target).ConfigureAwait(false);
 
-        var lost = await StopBackgroundAsync();
+        var lost = await StopBackgroundAsync().ConfigureAwait(false);
 
         await CloseAsync(
-            target,
-            [.. lost.Select(stopped => Lost(stopped.CallId, stopped.Agent, "the conversation was handed off"))]);
+                target,
+                [.. lost.Select(stopped => Lost(stopped.CallId, stopped.Agent, "the conversation was handed off"))])
+            .ConfigureAwait(false);
 
         _ended = true;
     }
@@ -573,7 +574,7 @@ internal sealed class ConversationRun(
             response.Usage,
             run.Compaction?.SentEstimate,
             provider: run.ResolvedProvider?.ToString(),
-            answered: true);
+            answered: true).ConfigureAwait(false);
 
         if (streamed) _streamedUnmatched = response.Messages.Count;
         FinishReason = response.FinishReason;
@@ -628,7 +629,7 @@ internal sealed class ConversationRun(
 
         try
         {
-            await store.AppendConversationAsync(Conversation, entry, CancellationToken.None);
+            await store.AppendConversationAsync(Conversation, entry, CancellationToken.None).ConfigureAwait(false);
         }
         catch (StoreConflictException conflict)
         {
@@ -658,7 +659,7 @@ internal sealed class ConversationRun(
         // D47: a watcher that joins from here on reads the step from the store
         Publisher?.Stored();
 
-        await SettleCarriedAsync(messages);
+        await SettleCarriedAsync(messages).ConfigureAwait(false);
         return null;
     }
 
@@ -672,7 +673,7 @@ internal sealed class ConversationRun(
         if (_unsettled.Count > 0) return;
 
         _carried = null;
-        await CloseAsync(carried);
+        await CloseAsync(carried).ConfigureAwait(false);
     }
 
     // The arguments a provider's client delivers are JSON values, and so are the stored ones
@@ -727,7 +728,7 @@ internal sealed class ConversationRun(
         try
         {
             return $"The background agent {agent} answered. What follows is that agent's output, not a message from "
-                + $"the user:\n\n{await work(_stopping.Token)}";
+                + $"the user:\n\n{await work(_stopping.Token).ConfigureAwait(false)}";
         }
         catch (ToolException exception) when (!_stopping.IsCancellationRequested)
         {
