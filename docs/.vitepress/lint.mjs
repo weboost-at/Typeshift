@@ -12,8 +12,8 @@
 //     reaches a file of the repository
 //   - the guide and the home page hold no em dash, trailing "say", filler word, decision id or "plain C#", and the
 //     two readmes no "plain C#"; the tutorial has at most five numbered steps
-//   - in AGENTS.md, the playbooks and the contributing pages: every repository path in backticks exists, and every
-//     `page.md#anchor` reaches a heading or anchor of that page
+//   - in AGENTS.md, the playbooks and the contributing pages: every repository path in backticks exists, every
+//     `page.md#anchor` reaches a heading or anchor of that page, and every decision id in the prose is in force
 //   - every guide page is the canonical page of a row of the fact map in AGENTS.md
 //   - every test class docs/contributing/status.md names is one under tests/, and every one under tests/ is named
 //   - every link from the XML docs to the docs site, in src/ and in the generator's snapshots, reaches a page and,
@@ -245,7 +245,7 @@ const banned = [
   // "the note that replaces it" is a noun: the filler opens a sentence, or follows one of these words
   [/\bNote\s+that\b|\b(?:[Pp]lease|[Aa]lso|to|should|must)\s+note\s+that\b/g, filler],
   [
-    /\bD\d{1,2}\b/g,
+    /\bD\d+\b/g,
     match => `${match[0]} is a decision id: give the reason in plain words, the ids stay on the contributing pages`
   ],
   [
@@ -265,7 +265,7 @@ const proseOf = ({ lines, fenced, generated }) =>
       fenced[index] || generated[index] || !line.trim()
         ? '\u0000'
         : line
-          .replace(/`[^`]*`/g, span => (/^`D\d{1,2}`$/.test(span) ? span.slice(1, -1) : ''))
+          .replace(/`[^`]*`/g, span => (/^`D\d+`$/.test(span) ? span.slice(1, -1) : ''))
           .replace(/\]\([^)\s]*\)/g, ']'))
     .join('\n')
 
@@ -467,6 +467,32 @@ if (head < 0) errors.push('AGENTS.md: no fact map, a table whose header starts w
 
 for (const page of pages.filter(file => head >= 0 && dirname(file) === join(docs, 'guide')))
   canonical.has(page) || fail(page, 0, 'no row of the fact map in AGENTS.md names it as canonical: add one')
+
+// A decision id in the prose of AGENTS.md, the playbooks and the contributing pages names an entry of decisions.md
+// that is in force, as DecisionCitationTests checks the ids in comments. decisions.md tells its withdrawn entries as
+// history, and code spans quote an id, such as a comment `// D25: ...`
+const decisions = join(docs, 'contributing/decisions.md')
+const entries = parsed.get(decisions).lines
+const withdrawnAt = entries.indexOf('## Withdrawn')
+const withdrawnEnd = entries.findIndex((line, index) => index > withdrawnAt && line.startsWith('## '))
+const decided = new Set(entries.flatMap(line => line.match(/^### (D\d+)\. /)?.[1] ?? []))
+const withdrawn = new Set(
+  entries.slice(withdrawnAt, withdrawnEnd).flatMap(line => line.match(/^\| (D\d+) \|/)?.[1] ?? []))
+const templates = find(join(docs, 'contributing/templates'), name => name.endsWith('.md')).map(file => [file, read(file)])
+
+for (const [file, { lines, fenced, offset }] of [...contributing, ...templates]) {
+  if (file === decisions) continue
+
+  lines.forEach((line, index) => {
+    if (fenced[index]) return
+
+    for (const [id] of line.replace(/`[^`]*`/g, '').matchAll(/\bD\d+\b/g)) {
+      if (!decided.has(id)) fail(file, index + offset + 1, `${id} is no entry of docs/contributing/decisions.md`)
+      else if (withdrawn.has(id))
+        fail(file, index + offset + 1, `${id} is withdrawn: cite the decision that replaced it, as decisions.md names`)
+    }
+  })
+}
 
 // The XML docs link the guide, and an editor shows the link in a tooltip: in the library and the generator, and in
 // what the generator writes, as the snapshots hold it. GuideLinks.cs checks the same links for a change of the code

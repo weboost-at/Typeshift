@@ -259,7 +259,8 @@ The docs rules check what a machine can:
   two readmes are checked for "plain C#";
 - Getting started has at most five numbered steps;
 - every repository path and every anchor of a docs page that `AGENTS.md`, the playbooks and the contributing pages
-  name in backticks exists;
+  name in backticks exists, and every decision ID their prose cites is an entry of [Decisions](./decisions.md) that
+  is in force;
 - every guide page is the canonical page of a row of the fact map in `AGENTS.md`;
 - every test class that [Status](./status.md) names exists, and every test class is named in a row of it;
 - every link from the XML docs to this site reaches its page and its anchor: those in `src/`, which an editor shows
