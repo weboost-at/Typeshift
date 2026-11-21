@@ -176,7 +176,7 @@ style; the essentials:
 | Conversations: storage, resume, steering, live updates and the tracker of each id type, several instances of an app, compaction | `guide/conversations.md` | `native-aot.md#trackers-of-value-type-ids` |
 | A chat UI's endpoints: posting, streaming as server-sent events, loading the chat and its decisions, answering a decision by its id, serving an AG-UI client | `guide/chat-endpoint.md` | `conversations.md#what-a-chat-page-shows` (which entries a page shows) |
 | Generated members, `AgentHost` members and signatures | `guide/generated-members.md` | `running-agents.md` |
-| Spans, metrics, message content, and the logs: their category, every event with its id, where they go | `guide/observability.md` | `models.md#wrapping-a-client` (a second `UseOpenTelemetry()`), `registration.md#the-runtime` (logging for a runtime from `Create`), `toolsets.md#when-a-tool-fails` (the tool loop's category) |
+| Spans, metrics, message content, and the logs: their category, every event with its id, where they go; a run seen in a local dashboard | `guide/observability.md` | `models.md#wrapping-a-client` (a second `UseOpenTelemetry()`), `registration.md#the-runtime` (logging for a runtime from `Create`), `toolsets.md#when-a-tool-fails` (the tool loop's category) |
 | Native AOT and trimmed apps: the project, JSON metadata for tool and run types, trackers of value-type ids | `guide/native-aot.md` | `diagnostics.md#tsh027`, `toolsets.md#results` (link), `conversations.md#live-runs` (the tracker tip) |
 | Docs for coding assistants: `llms.txt`, `llms-full.txt`, a page as Markdown | `guide/getting-started.md#docs-for-coding-assistants` | |
 | Diagnostics | `guide/diagnostics.md` | every page, linked by ID |

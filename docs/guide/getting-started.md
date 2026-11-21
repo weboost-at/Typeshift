@@ -309,6 +309,8 @@ at hand. Add `llms-full.txt` to the context of one that cannot fetch. `llms.txt`
 
 - [The quickstart's code](https://github.com/weboost-at/Typeshift/tree/main/samples/Typeshift.Samples.Docs/Quickstart):
   the toolset, the settings record, the agent and the runs of this page, as the docs samples build and run them.
+- [The demos](https://github.com/weboost-at/Typeshift/blob/main/demos/README.md): three apps built on Typeshift, a
+  coding agent, a support desk and providers picked at run time, each runnable offline or against a real provider.
 - [Toolsets](./toolsets.md): tools, their names, parameters and results in depth.
 - [Tool settings](./tool-settings.md): what a settings record may hold and what may change it.
 - [Agents](./defining-agents.md): everything an agent's constructor can declare.

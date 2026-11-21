@@ -104,6 +104,15 @@ const sidebar = {
         { text: 'Errors at run time', link: '/guide/diagnostics#errors-at-run-time' },
         { text: 'Glossary', link: '/guide/glossary' }
       ]
+    },
+    // Last, since VitePress takes these links for the pager too, and they leave the site
+    {
+      text: 'Samples and demos',
+      collapsed: true,
+      items: [
+        { text: 'The demos', link: `${repository}/blob/main/demos/README.md` },
+        { text: "The guide's code", link: `${repository}/tree/main/samples/Typeshift.Samples.Docs` }
+      ]
     }
   ],
   '/contributing/': [

@@ -201,6 +201,60 @@ what your customers wrote and what your tools read for them. Turn it on only whe
 data.
 :::
 
+## See a run locally
+
+While you develop, the [Aspire dashboard](https://aspire.dev/dashboard/standalone/) shows your app's spans, metrics
+and logs in the browser. It runs as a container of its own, without the rest of Aspire, and answers the questions a
+first run raises: what the model was sent, which tools it called with which arguments, and why the run stopped. Start
+it with Docker, then read its log for the address that signs you in:
+
+```bash
+docker run --rm -d -p 18888:18888 -p 4317:18889 --name aspire-dashboard mcr.microsoft.com/aspire/dashboard:latest
+docker logs aspire-dashboard
+```
+
+The dashboard's page is `http://localhost:18888`. Port 4317 receives OTLP, OpenTelemetry's protocol, over gRPC, and
+is the port an exporter sends to by default. Your app adds the package `OpenTelemetry.Exporter.OpenTelemetryProtocol`
+and exports what it listens to:
+
+<!-- snippet: otlp-export -->
+<a id='snippet-otlp-export'></a>
+```cs
+services.AddOpenTelemetry()
+    .WithTracing(tracing => tracing.AddSource("Typeshift"))
+    .WithMetrics(metrics => metrics.AddMeter("Typeshift"))
+    .WithLogging()
+    .UseOtlpExporter();
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Observability.cs#L55-L61' title='Snippet source file'>snippet source</a> | <a href='#snippet-otlp-export' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+- `UseOtlpExporter()` sends the spans, the metrics and the logs to `http://localhost:4317`, unless the environment
+  variable `OTEL_EXPORTER_OTLP_ENDPOINT` names another address.
+- `WithLogging()` adds your app's logs, so Typeshift's [events](#logs) show up with the trace of the run that logged
+  them.
+
+Before your app starts, turn [message content](#message-content) on, and give your app the name the dashboard lists
+it by:
+
+```bash
+export OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true
+export OTEL_SERVICE_NAME=<your-app>
+```
+
+Run an agent once, and the dashboard shows the run:
+
+- Under Traces, the run's `invoke_agent` span with a `chat` span for each model call and an `execute_tool` span for
+  each tool call, tagged as [Spans](#spans) lists.
+- On a `chat` span, the dashboard's
+  [GenAI visualizer](https://aspire.dev/dashboard/explore/#genai-telemetry-visualization) shows the call as a
+  conversation: the messages it sent, the tool calls the model asked for, and the answer.
+- Under Structured logs, Typeshift's events, each linked to its trace.
+- Under Metrics, the instruments of [Metrics](#metrics), such as the duration of each model call.
+
+The dashboard keeps what it receives in memory until its container stops, so it suits your own machine. In
+production your app exports to your tracing backend instead, with the same registration.
+
 ## Related
 
 - [How a run works](./how-a-run-works.md): the steps the spans of a run cover.

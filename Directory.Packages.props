@@ -29,6 +29,8 @@
     <PackageVersion Include="MinVer" Version="7.0.0" />
     <PackageVersion Include="ModelContextProtocol.Core" Version="2.4.0" />
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.4" />
+    <!-- The docs sample alone, to export a run's spans to a local dashboard -->
+    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.21.0" />
     <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.21.0" />
     <PackageVersion Include="Weboost.SchemaAnnotations" Version="1.0.0" />
     <PackageVersion Include="xunit.v3" Version="4.0.3" />

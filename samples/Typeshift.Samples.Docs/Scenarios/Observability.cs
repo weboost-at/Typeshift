@@ -1,16 +1,29 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
+using OpenTelemetry;
+using OpenTelemetry.Trace;
 using Typeshift.Samples.Quickstart;
 
 namespace Typeshift.Samples.Scenarios;
 
 // The spans of a run as an exporter receives them: the run's chat and tool spans hang under its invoke_agent span,
-// whether the run streams or not
+// whether the run streams or not. Before that, the export to a local dashboard, built and resolved; no span is made
+// while it listens, so it sends nothing
 internal static class Observability
 {
     public static async Task RunAsync(IServiceProvider provider)
     {
+        var services = new ServiceCollection();
+        ShowOtlpExport(services);
+
+        await using (var exporting = services.BuildServiceProvider())
+        {
+            exporting.GetRequiredService<TracerProvider>();
+            if (!new ActivitySource("Typeshift").HasListeners())
+                throw new InvalidOperationException("Expected the OTLP export to listen to Typeshift's spans.");
+        }
+
         var spans = new ConcurrentQueue<Activity>();
 
         using var listener = new ActivityListener
@@ -35,6 +48,17 @@ internal static class Observability
         }
 
         ExpectOneTree(spans, "a streaming run");
+    }
+
+    public static void ShowOtlpExport(IServiceCollection services)
+    {
+        // begin-snippet: otlp-export
+        services.AddOpenTelemetry()
+            .WithTracing(tracing => tracing.AddSource("Typeshift"))
+            .WithMetrics(metrics => metrics.AddMeter("Typeshift"))
+            .WithLogging()
+            .UseOtlpExporter();
+        // end-snippet
     }
 
     private static void ExpectOneTree(IReadOnlyCollection<Activity> spans, string run)
