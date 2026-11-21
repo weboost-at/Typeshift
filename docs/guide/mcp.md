@@ -141,7 +141,7 @@ hosted tool added with `WithTools(...)`. Add a server that only reads with `With
 
 ::: warning Only some clients send a hosted server
 The `IChatClient` that serves the run has to send the server to the provider, and only a client of an API that
-connects MCP servers itself does. With Microsoft.Extensions.AI.OpenAI 10.10.0 and Anthropic 12.55.0, two clients
+connects MCP servers itself does. With Microsoft.Extensions.AI.OpenAI 10.11.1 and Anthropic 13.12.0, two clients
 send it: OpenAI's Responses client and Anthropic's beta client, both shown below. OpenAI's Chat Completions client,
 `GetChatClient(model).AsIChatClient()`, and Anthropic's default `client.AsIChatClient(model)` drop the tool without
 an error, so the model never sees the server's tools.
@@ -159,7 +159,7 @@ var client = new OpenAIClient(apiKey)
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L152-L158' title='Snippet source file'>snippet source</a> | <a href='#snippet-openai-responses-client' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-With Microsoft.Extensions.AI.OpenAI 10.10.0, the Responses client is still marked experimental: `GetResponsesClient()`
+With Microsoft.Extensions.AI.OpenAI 10.11.1, the Responses client is still marked experimental: `GetResponsesClient()`
 and its `AsIChatClient(model)` fail the build with OPENAI001 until you suppress it, as the two `#pragma` lines do.
 
 Anthropic's beta client comes from the same `AnthropicClient` as its default one
