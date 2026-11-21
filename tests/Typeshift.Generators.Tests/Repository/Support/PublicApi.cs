@@ -29,6 +29,16 @@ public static class PublicApi
 
     private static readonly IAssemblySymbol Library = Load();
 
+    // The bases a type's keyword implies, left out of its line; every other base and every interface, IDisposable
+    // and IEnumerable<T> among them, is listed
+    private static readonly SpecialType[] Implied =
+    [
+        SpecialType.System_Object,
+        SpecialType.System_ValueType,
+        SpecialType.System_Enum,
+        SpecialType.System_MulticastDelegate
+    ];
+
     // Every visible type and member; a property stands for its accessors and a delegate for its members
     public static IReadOnlyList<ISymbol> Members { get; } =
     [
@@ -114,7 +124,7 @@ public static class PublicApi
     {
         var name = type.ToDisplayString(Inheritance);
         var parents = type.Interfaces.Prepend(type.BaseType)
-            .Where(parent => parent is { SpecialType: SpecialType.None } && IsVisible(parent))
+            .Where(parent => parent is not null && !Implied.Contains(parent.SpecialType) && IsVisible(parent))
             .Select(parent => parent!.ToDisplayString(Name))
             .ToList();
 

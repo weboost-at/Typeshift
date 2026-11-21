@@ -33,7 +33,7 @@ public override string Typeshift.AgentContext.ToString()
 public System.Collections.Generic.IReadOnlyList<Microsoft.Extensions.AI.AITool> Typeshift.AgentContext.Tools { get; init; }
 public static bool Typeshift.AgentContext.operator !=(Typeshift.AgentContext? left, Typeshift.AgentContext? right)
 public static bool Typeshift.AgentContext.operator ==(Typeshift.AgentContext? left, Typeshift.AgentContext? right)
-public sealed class Typeshift.AgentHost<TAgent> : Typeshift.IAgentHost, System.IAsyncDisposable where TAgent : Typeshift.Agent
+public sealed class Typeshift.AgentHost<TAgent> : Typeshift.IAgentHost, System.IAsyncDisposable, System.IDisposable where TAgent : Typeshift.Agent
 public TAgent Typeshift.AgentHost<TAgent>.Agent { get; }
 public System.Threading.Tasks.Task<Microsoft.Extensions.AI.ChatResponse> Typeshift.AgentHost<TAgent>.AnswerAsync(System.Collections.Generic.IReadOnlyList<Typeshift.DecisionAnswer> answers, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
 public System.Threading.Tasks.Task<Microsoft.Extensions.AI.ChatResponse<TResult>> Typeshift.AgentHost<TAgent>.AnswerAsync<TResult>(System.Collections.Generic.IReadOnlyList<Typeshift.DecisionAnswer> answers, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
@@ -432,7 +432,7 @@ public Typeshift.Generated.ToolParameter.ToolParameter(string Name, System.Type 
 public System.Type Typeshift.Generated.ToolParameter.Type { get; init; }
 public static bool Typeshift.Generated.ToolParameter.operator !=(Typeshift.Generated.ToolParameter? left, Typeshift.Generated.ToolParameter? right)
 public static bool Typeshift.Generated.ToolParameter.operator ==(Typeshift.Generated.ToolParameter? left, Typeshift.Generated.ToolParameter? right)
-public interface Typeshift.IAgentHost : System.IAsyncDisposable
+public interface Typeshift.IAgentHost : System.IAsyncDisposable, System.IDisposable
 abstract Typeshift.Agent Typeshift.IAgentHost.Agent { get; }
 abstract System.Threading.Tasks.Task<Microsoft.Extensions.AI.ChatResponse> Typeshift.IAgentHost.AnswerAsync(System.Collections.Generic.IReadOnlyList<Typeshift.DecisionAnswer> answers, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
 abstract System.Threading.Tasks.Task<Microsoft.Extensions.AI.ChatResponse<TResult>> Typeshift.IAgentHost.AnswerAsync<TResult>(System.Collections.Generic.IReadOnlyList<Typeshift.DecisionAnswer> answers, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
@@ -780,7 +780,7 @@ public void Typeshift.TypeshiftOptions.NewConversationIds<TId>(System.Func<TId> 
 public bool Typeshift.TypeshiftOptions.PersistAllConversations { get; set; }
 public Typeshift.StoreFailure Typeshift.TypeshiftOptions.StoreFailure { get; set; }
 public Typeshift.TypeshiftOptions.TypeshiftOptions()
-public sealed class Typeshift.TypeshiftRuntime : System.IAsyncDisposable
+public sealed class Typeshift.TypeshiftRuntime : System.IAsyncDisposable, System.IDisposable
 public System.Collections.Generic.IReadOnlyList<Typeshift.AgentInfo> Typeshift.TypeshiftRuntime.Agents { get; }
 public static Typeshift.TypeshiftRuntime Typeshift.TypeshiftRuntime.Create(Microsoft.Extensions.AI.IChatClient client, System.Action<Typeshift.TypeshiftBuilder>? configure = null)
 public Typeshift.IAgentHost Typeshift.TypeshiftRuntime.CreateHost(System.Type agent)
