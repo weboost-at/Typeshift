@@ -588,7 +588,8 @@ internal sealed class ConversationChatClient(
             options.ResultFormat,
             options.Handoffs,
             options.Entries,
-            Retries: options.Retries);
+            Retries: options.Retries,
+            Provider: options.HandedProvider);
 
         return new RunStart(agent, services, Ledger).TakeAsync(
             handover,
@@ -661,12 +662,14 @@ internal sealed class ConversationChatClient(
         await run.HandOffAsync(result, target.Agent.Name).ConfigureAwait(false);
         LogEvents.HandedOff(Logger, agent.Name, run.Conversation, target.Agent.Name);
 
+        // D87: the agent handed to keeps the provider the call site handed the run
         var handed = new RunHandover(
             options.SettingsId,
             run.Conversation,
             Runs.HandOff(run),
             options.ResultFormat,
-            options.Handoffs + 1);
+            options.Handoffs + 1,
+            Provider: options.HandedProvider);
 
         return new Handoff(result, target, handed);
     }

@@ -72,6 +72,15 @@ internal static class RunningAgents
 
         Expect(stored.Text == answer.Text, "a run with a settings id answers");
 
+        // begin-snippet: call-site-provider
+        var premium = await support
+            .WithProvider("anthropic")
+            .WithModel("claude-sonnet-5-5")
+            .RunAsync("Where is my refund?");
+        // end-snippet
+
+        Expect(premium.Text == answer.Text, "a run on the provider and model of its call site answers");
+
         // begin-snippet: run-settings
         var run = new SupportAgent.Settings
         {

@@ -1,3 +1,4 @@
+using Typeshift.Tests.Hosting.Support;
 using Typeshift.Tests.MultiAgent.Support;
 using FluentAssertions;
 using Microsoft.Extensions.AI;
@@ -43,6 +44,110 @@ public class SubAgentTests : MultiAgentTestBase
             .Select(name => name.GetString())
             .Should()
             .Equal("input");
+    }
+
+    [Fact]
+    public async Task Given_A_Provider_At_The_Call_Site_The_Sub_Agent_Runs_On_It_With_Its_Own_Model()
+    {
+        // Arrange
+        CallSite
+            .Reply(Call(Data.Tool.CallId, "helper_agent", ("input", Data.Agent.FollowUp)))
+            .Reply(Text(Data.Agent.Reason))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await Host<LeadAgent>().WithProvider(Vendor.Other).RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        CallSite.Options[1]!.ModelId.Should().Be(HelperAgent.Model);
+    }
+
+    [Fact]
+    public async Task Given_A_Model_At_The_Call_Site_The_Sub_Agent_Keeps_Its_Own()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "helper_agent", ("input", Data.Agent.FollowUp)))
+            .Reply(Text(Data.Tool.Answer));
+
+        HelperClient.Reply(Text(Data.Agent.Reason));
+
+        // Act
+        await Host<LeadAgent>().WithModel(Data.Agent.Model).RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        HelperClient.Options[0]!.ModelId.Should().Be(HelperAgent.Model);
+    }
+
+    [Fact]
+    public async Task Given_A_Sub_Agent_Whose_Provider_Nothing_Serves_The_Run_Fails_Before_It_Calls_A_Model()
+    {
+        // Act
+        var run = () => Host<UnservedLeadAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        await run.Should().ThrowAsync<InvalidOperationException>().WithMessage(
+            $"No chat client serves the agent 'unserved_helper_agent' on '{UnservedHelperAgent.Model}' of "
+            + $"'{Vendor.Probe}': the registered clients are under 'Other'*");
+
+        ChatClient.Requests.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Given_A_Provider_At_The_Call_Site_A_Sub_Agent_Nothing_Else_Serves_Runs_On_It()
+    {
+        // Arrange
+        CallSite
+            .Reply(Call(Data.Tool.CallId, "unserved_helper_agent", ("input", Data.Agent.FollowUp)))
+            .Reply(Text(Data.Agent.Reason))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        var response = await Host<UnservedLeadAgent>().WithProvider(Vendor.Other).RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        response.Text.Should().Be(Data.Tool.Answer);
+    }
+
+    [Fact]
+    public async Task Given_A_Sub_Agents_Stored_Provider_Nothing_Serves_The_Run_Fails_Before_It_Calls_A_Model()
+    {
+        // Arrange
+        await Host<SwitchableHelperAgent>()
+            .WithSettingsId(Data.Persistence.SettingsId)
+            .SaveSettingsAsync(new() { Provider = Vendor.Probe }, 0, Ct);
+
+        // Act
+        var run = () => Host<SwitchableLeadAgent>()
+            .WithSettingsId(Data.Persistence.SettingsId)
+            .RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        await run.Should().ThrowAsync<InvalidOperationException>().WithMessage("*'switchable_helper_agent'*");
+        ChatClient.Requests.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Given_A_Sub_Agents_Stored_Provider_That_Is_Served_The_Provider_Its_Code_Names_Is_Not_Needed()
+    {
+        // Arrange
+        await Host<SwitchableHelperAgent>()
+            .WithSettingsId(Data.Persistence.SettingsId)
+            .SaveSettingsAsync(new() { Provider = Vendor.Other }, 0, Ct);
+
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "switchable_helper_agent", ("input", Data.Agent.FollowUp)))
+            .Reply(Text(Data.Tool.Answer));
+
+        CallSite.Reply(Text(Data.Agent.Reason));
+
+        // Act
+        var response = await Host<SwitchableLeadAgent>()
+            .WithSettingsId(Data.Persistence.SettingsId)
+            .RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        response.Text.Should().Be(Data.Tool.Answer);
     }
 
     [Fact]

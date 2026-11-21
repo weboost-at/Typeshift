@@ -11,7 +11,7 @@ section names the declaration that adds a member.
 ## The agent host
 
 `AgentHost<TAgent>` runs one agent. Its own members are `Agent`, `Services`, `WithSettingsId`,
-`WithConversationId`, its runs without settings, `CreateChatClientAsync`, `LoadConversationAsync`, the members for
+`WithConversationId`, `WithProvider`, `WithModel`, its runs without settings, `CreateChatClientAsync`, `LoadConversationAsync`, the members for
 [the decisions of a conversation](#decisions-of-the-conversation), `DisposeAsync` and `Dispose`. The generator adds
 the typed runs and settings of each agent.
 
@@ -179,8 +179,8 @@ declared, and `Agent.Description` what `WithDescription` or the agent's `<summar
 `IServiceProvider Services { get; }` is the scope the host's runs resolve their services from: the one the host was
 resolved from, or the one the runtime created for it, as the host's scope below explains. A job sets your app's
 scoped state there before it runs, such as the current tenant
-([Fill the job's scope](./using-an-agent.md#fill-the-job-s-scope)). Copies from `WithSettingsId` and
-`WithConversationId` share it.
+([Fill the job's scope](./using-an-agent.md#fill-the-job-s-scope)). Copies from `WithSettingsId`,
+`WithConversationId`, `WithProvider` and `WithModel` share it.
 
 ### `WithSettingsId` and `WithConversationId`
 
@@ -193,6 +193,16 @@ Disposing the copy disposes what disposing the host would ([`DisposeAsync`](#dis
 throws an `ArgumentNullException` for a null id.
 [Ids of your own types](./settings-and-stores.md#ids-of-your-own-types) explains the copy and the store its id picks:
 an `ISettingsStore<TId>` for a settings id, an `IConversationStore<TId>` for a conversation id.
+
+### `WithProvider` and `WithModel`
+
+`AgentHost<TAgent> WithProvider<TProviderId>(TProviderId provider)` names the provider that serves the copy's runs,
+by its key, and `AgentHost<TAgent> WithModel(string model)` the model they ask for. Both return a copy of the host,
+as `WithSettingsId` does, which keeps the host's ids and what an earlier copy named. They win over the agent's code
+and its settings, and the provider serves the run's sub-agents, handoffs and summary too
+([Choosing at the call site](./models.md#choosing-at-the-call-site)). `WithProvider` throws an
+`ArgumentNullException` for a null key and an `ArgumentException` for text that is white space; `WithModel` an
+`ArgumentException` for a blank model.
 
 ### `CreateChatClientAsync`
 
@@ -267,8 +277,8 @@ none of them [keeps decisions](./implementing-a-store.md#which-store-serves-a-ca
 ### `DisposeAsync` and `Dispose`
 
 `ValueTask DisposeAsync()` and `void Dispose()` dispose the scope of a host that `TypeshiftRuntime.CreateHost<TAgent>()`
-created, and with it the scoped services its runs resolved. A copy from `WithSettingsId` or `WithConversationId`
-disposes the same scope, and disposing it a second time does nothing. A host your container resolved, such as one
+created, and with it the scoped services its runs resolved. A copy from `WithSettingsId`, `WithConversationId`,
+`WithProvider` or `WithModel` disposes the same scope, and disposing it a second time does nothing. A host your container resolved, such as one
 injected into a request, owns nothing, so disposing it or a copy of it does nothing. Dispose a host once its runs and
 streams are done, since they use its scope: once the host or a copy is disposed, a run of any of them throws an
 `ObjectDisposedException`. `Dispose` throws an `InvalidOperationException` when a scoped service implements only

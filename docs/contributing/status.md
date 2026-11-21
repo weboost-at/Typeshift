@@ -33,7 +33,7 @@ that no row names, and on a name that is no test class.
 |---|---|
 | The runtime, its hosts and its catalog | `TypeshiftRuntimeTests`, `RuntimeCatalogTests` |
 | Registration: the chain, its stores, the interceptor | `AddTypeshiftTests`, `StoreRegistrationTests` |
-| Providers and chat clients | `ChatClientResolutionTests` |
+| Providers and chat clients, the default rule, the call site's provider and model | `ChatClientResolutionTests`, `HostSelectionTests` |
 | Tools: schemas, arguments, overrides, unions | `ToolSchemaTests`, `ToolInvocationTests`, `ToolOverridesTests`, `UnionToolTests` |
 | Tool results and failed calls | `ToolResultWireTests`, `ToolFailureTests` |
 | Runs: options, instructions, own tools, usage, the raw path, the caller's context | `AgentRunTests`, `ChatOptionsBuilderTests`, `ResolvedChatOptionsTests`, `OwnToolsTests`, `ChatResponsesTests`, `SynchronizationContextTests` |
@@ -146,12 +146,6 @@ that no row names, and on a name that is no test class.
   registration may lie in another project. Without stores every id type works in memory, so the first call with
   such an id fails only once a store is registered, naming the store interface it needs. A check at startup of the
   id types the call sites name would need the generator to collect them across projects.
-- **A model nobody configured.** A run that names no model reaches its client without a `ModelId`, and nothing
-  checks that the client has a model of its own, so the provider rejects the call. Whether the model a client was
-  built with counts as the configured default is open with the owner.
-- **A sub-agent's provider nothing serves.** A run finds its own client before it stores an entry (D63), but not
-  those of the agents it may call or hand off to. A sub-agent whose provider nothing serves fails each call of it,
-  logged as an error, while the calling run goes on, and a handoff to such an agent fails the run when it happens.
 - **No fallback, no model catalog.** A failed model call ends the run: Typeshift moves to no other model or
   provider, and `RetryAsync` continues the run on what its settings name. It keeps no list of a provider's models,
   so a model a settings page stores is checked for being a name at all (D28) and no further.

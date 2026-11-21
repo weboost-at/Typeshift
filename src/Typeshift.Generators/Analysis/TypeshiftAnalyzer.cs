@@ -350,9 +350,10 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         }
     }
 
-    // D72: the copy carries the id, and the host it is called on stays as it was
+    // D72, D87: the copy carries the id, the provider or the model, and the host it is called on stays as it was
     private static bool IsHostCopy(IMethodSymbol method) =>
-        method.Name is "WithSettingsId" or "WithConversationId" && method.ContainingType.Is(KnownTypes.AgentHost);
+        method.Name is "WithSettingsId" or "WithConversationId" or "WithProvider" or "WithModel"
+        && method.ContainingType.Is(KnownTypes.AgentHost);
 
     private static void AnalyzeHostCopy(OperationAnalysisContext context, IInvocationOperation copy)
     {
@@ -363,7 +364,13 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
             context.ReportDiagnostic(Diagnostic.Create(
                 Descriptors.DroppedHostCopy,
                 copy.Syntax.GetLocation(),
-                copy.TargetMethod.Name));
+                copy.TargetMethod.Name,
+                copy.TargetMethod.Name switch
+                {
+                    "WithProvider" => "provider",
+                    "WithModel" => "model",
+                    _ => "id"
+                }));
 
             return;
         }

@@ -46,6 +46,9 @@ public sealed class TypeshiftOptions
         _newTextId = create as Func<string>;
     }
 
+    // D63: the key WithDefaultProvider names, which a run that names no provider takes
+    internal ProviderId? DefaultProvider { get; set; }
+
     // D73: an id the app chose, or a Guid of version 7, ordered by the clock the host injects
     internal StoreId NewConversationId(TimeProvider time) =>
         _newConversationId?.Invoke() ?? new StoreId<Guid>(Guid.CreateVersion7(time.GetUtcNow()));

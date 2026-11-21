@@ -29,6 +29,10 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     private StoreId? _settingsId;
     private StoreId? _conversationId;
 
+    // D87: the provider and the model the call site gave, over every settings layer
+    private ProviderId? _provider;
+    private string? _model;
+
     internal AgentHost(TAgent agent, IServiceProvider services, AsyncServiceScope? scope = null)
     {
         Agent = agent;
@@ -98,7 +102,7 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     public AgentHost<TAgent> WithSettingsId<TId>(TId id) where TId : notnull
     {
         ArgumentNullException.ThrowIfNull(id);
-        return Copy(new StoreId<TId>(id), _conversationId);
+        return Copy(new StoreId<TId>(id), _conversationId, _provider, _model);
     }
 
     // D72: the id's type is its value's, so a Guid? names the settings under the Guid
@@ -114,7 +118,7 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// </returns>
     /// <exception cref="ArgumentNullException"><paramref name="id"/> holds no value.</exception>
     public AgentHost<TAgent> WithSettingsId<TId>(TId? id) where TId : struct =>
-        Copy(new StoreId<TId>(id ?? throw new ArgumentNullException(nameof(id))), _conversationId);
+        Copy(new StoreId<TId>(id ?? throw new ArgumentNullException(nameof(id))), _conversationId, _provider, _model);
 
     /// <summary>
     /// Returns a copy of this host with a conversation id and leaves this host as it was. The copy's runs resume the
@@ -130,7 +134,7 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     public AgentHost<TAgent> WithConversationId<TId>(TId id) where TId : notnull
     {
         ArgumentNullException.ThrowIfNull(id);
-        return Copy(_settingsId, new StoreId<TId>(id));
+        return Copy(_settingsId, new StoreId<TId>(id), _provider, _model);
     }
 
     // D72: the id's type is its value's, so a Guid? names the conversation under the Guid
@@ -145,14 +149,65 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// </returns>
     /// <exception cref="ArgumentNullException"><paramref name="id"/> holds no value.</exception>
     public AgentHost<TAgent> WithConversationId<TId>(TId? id) where TId : struct =>
-        Copy(_settingsId, new StoreId<TId>(id ?? throw new ArgumentNullException(nameof(id))));
+        Copy(_settingsId, new StoreId<TId>(id ?? throw new ArgumentNullException(nameof(id))), _provider, _model);
+
+    // D87: the call site's choice of who serves the run, apart from the model, as ids are given (D72)
+    /// <summary>
+    /// Returns a copy of this host whose runs a provider serves, named by its key, and leaves this host as it was: the
+    /// client registered under the key, as <c>services.AddKeyedChatClient(key, client)</c> registers one. It wins over
+    /// the provider the agent's code and settings name, and serves the whole run: its sub-agents, the agents it hands
+    /// off to and its summary, while each sub-agent keeps its own model.
+    /// More in the guide:
+    /// <see href="https://weboost-at.github.io/Typeshift/guide/models#choosing-at-the-call-site">Choosing at the call
+    /// site</see>.
+    /// </summary>
+    /// <param name="provider">The provider's key.</param>
+    /// <typeparam name="TProviderId">The key's type, any type the app registered a client under.</typeparam>
+    /// <returns>
+    /// The copy, with this host's ids and model and in its scope. Disposing it disposes what disposing this host would.
+    /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="provider"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="provider"/> is text that is white space.</exception>
+    public AgentHost<TAgent> WithProvider<TProviderId>(TProviderId provider) where TProviderId : notnull
+    {
+        ArgumentNullException.ThrowIfNull(provider);
+        if (provider is string text) ArgumentException.ThrowIfNullOrWhiteSpace(text, nameof(provider));
+
+        return Copy(_settingsId, _conversationId, new ProviderId<TProviderId>(provider), _model);
+    }
+
+    /// <summary>
+    /// Returns a copy of this host whose runs ask for a model, and leaves this host as it was. It wins over the model
+    /// the agent's code and settings name, whether or not the agent makes its model configurable, and is the host's
+    /// agent's alone: its sub-agents and the agents it hands off to keep their own.
+    /// More in the guide:
+    /// <see href="https://weboost-at.github.io/Typeshift/guide/models#choosing-at-the-call-site">Choosing at the call
+    /// site</see>.
+    /// </summary>
+    /// <param name="model">The model, as the API of the provider that serves the run names it.</param>
+    /// <returns>
+    /// The copy, with this host's ids and provider and in its scope. Disposing it disposes what disposing this host
+    /// would.
+    /// </returns>
+    /// <exception cref="ArgumentException"><paramref name="model"/> is null or white space.</exception>
+    public AgentHost<TAgent> WithModel(string model)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(model);
+        return Copy(_settingsId, _conversationId, _provider, model);
+    }
 
     // D72, D76: a copy runs in this host's scope and disposes it as this host would; a scope's disposal is idempotent
-    private AgentHost<TAgent> Copy(StoreId? settingsId, StoreId? conversationId) =>
+    private AgentHost<TAgent> Copy(
+        StoreId? settingsId,
+        StoreId? conversationId,
+        ProviderId? provider,
+        string? model) =>
         new(Agent, _services, _scope)
         {
             _settingsId = settingsId,
-            _conversationId = conversationId
+            _conversationId = conversationId,
+            _provider = provider,
+            _model = model
         };
 
     // D12: the runs without the agent's Settings are the host's own, so code generic over the agent runs any agent
@@ -960,6 +1015,14 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
             ChatClients.EnsureServed(_services, summarized, summary, run.SummaryModel ?? model);
         }
 
+        // D87: so do the providers of the agents the run may call or hand off to, unless the run was handed one, which
+        // serves them all and was found above
+        if (resolved.HandedProvider is null)
+        {
+            await ReachableProviders.EnsureServedAsync(Agent, _services, Store, resolved.SettingsId, ct)
+                .ConfigureAwait(false);
+        }
+
         // D29: outermost the conversation, then run middleware, context and the mode above the tool loop, the gate
         // (D81), the checkpoints, unique call ids (D59) and compaction inside it, and innermost the provider's
         // client, instrumented, behind a wrapper that never disposes it
@@ -1028,22 +1091,23 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// </exception>
     public void Dispose() => _scope?.Dispose();
 
+    // The options of the raw path and of the generated members that resolve them, with the host's own call site
+    internal Task<ChatOptions> ResolveOptionsCoreAsync(StoreId? settingsId, object? settings, CancellationToken ct) =>
+        ResolveOptionsCoreAsync(settingsId, settings, _provider, ct);
+
     // D27, D66: the agent's code, its own stored settings, those under the settings id, then the run's; values a layer
-    // leaves null keep the one below
-    internal async Task<ChatOptions> ResolveOptionsCoreAsync(
+    // leaves null keep the one below. D87: over them the call site's provider, which the run may have been handed by
+    // the run that called it, and the host's model. D63: a run that names no provider then takes the default one
+    private async Task<ChatOptions> ResolveOptionsCoreAsync(
         StoreId? settingsId,
         object? settings,
+        ProviderId? handed,
         CancellationToken ct)
     {
         SynchronizationContexts.Leave();
         var declaration = Agent.GeneratedDeclaration;
-        var loads = new[]
-        {
-            Store.KeepsAgentSettings ? declaration.LoadAgentSettingsAsync(Store, ct) : Task.FromResult<object?>(null),
-            settingsId is null ? Task.FromResult<object?>(null) : declaration.LoadSettingsAsync(Store, settingsId, ct)
-        };
-        object?[] loaded = [.. await Task.WhenAll(loads).ConfigureAwait(false), settings];
-        IReadOnlyList<object> layers = [.. loaded.OfType<object>()];
+        var loaded = await declaration.LoadLayersAsync(Store, settingsId, ct).ConfigureAwait(false);
+        IReadOnlyList<object> layers = [.. loaded.Append(settings).OfType<object>()];
 
         var options = new ResolvedChatOptions(Agent.ChatOptions)
         {
@@ -1057,12 +1121,23 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
             run = declaration.ApplySettings(options, run, layer);
         }
 
+        if (handed is not null)
+        {
+            options.Provider = handed;
+            options.HandedProvider = handed;
+            options.SummaryProvider = null;
+        }
+
+        if (_model is not null) options.ModelId = _model;
+        options.Provider ??= ChatClients.DefaultProvider(_services);
+
         string?[] applied =
         [
             "its code",
             loaded[0] is null ? null : "its stored settings",
             loaded[1] is null ? null : $"settings id {settingsId}",
-            settings is null ? null : "the run"
+            settings is null ? null : "the run",
+            handed is null && _model is null ? null : "the call site"
         ];
 
         options.Layers = string.Join(", ", applied.OfType<string>());
@@ -1103,9 +1178,9 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     // A resume needs a conversation
     private StoreId? Conversation(ChatMessage? input) => input is null ? ResumedConversation : _conversationId;
 
-    // A run the host's own members start is handed nothing but the host's ids
+    // A run the host's own members start is handed nothing but what the host was given: its ids and its provider
     private RunHandover OwnRun(StoreId? conversation, ChatResponseFormat? format = null, bool retries = false) =>
-        new(_settingsId, conversation, Claim: null, format, Retries: retries);
+        new(_settingsId, conversation, Claim: null, format, Retries: retries, Provider: _provider);
 
     internal async Task<ChatResponse<TResult>> RunCoreAsync<TResult>(
         ChatMessage? input,
@@ -1336,8 +1411,11 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
         object? settings,
         CancellationToken ct)
     {
-        var options = (ResolvedChatOptions)await ResolveOptionsCoreAsync(handover.SettingsId, settings, ct)
-            .ConfigureAwait(false);
+        var options = (ResolvedChatOptions)await ResolveOptionsCoreAsync(
+            handover.SettingsId,
+            settings,
+            handover.Provider,
+            ct).ConfigureAwait(false);
         options.Conversation = handover.Conversation;
         options.Claim = handover.Claim;
         options.Handoffs = handover.Handoffs;

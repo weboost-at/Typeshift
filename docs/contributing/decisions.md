@@ -92,7 +92,7 @@ The table lists every entry by its ID, with the section that holds it and whethe
 | D60 | [An answer to a closed request throws; steering that the run answers closes its requests](#d60) | Conversations | Withdrawn |
 | D61 | [The package targets .NET 11 only](#d61) | Registration and the generator | In force |
 | D62 | [Union types in tools and typed runs](#d62) | Storage | In force |
-| D63 | [The default client serves only a run that names no provider](#d63) | Runtime | In force |
+| D63 | [The default provider serves only a run that names none](#d63) | Runtime | In force |
 | D64 | [A typed run can stream](#d64) | Storage | In force |
 | D65 | [A sub-agent can answer in a type](#d65) | Runtime | In force |
 | D66 | [Each agent has settings of its own, under no id](#d66) | Storage | In force |
@@ -116,6 +116,7 @@ The table lists every entry by its ID, with the section that holds it and whethe
 | D84 | [An agent's use of a toolset may require approval for a tool and let settings switch one off](#d84) | Runtime | In force |
 | D85 | [A run leaves the caller's synchronization context](#d85) | Runtime | In force |
 | D86 | [An agent names its provider and its model apart](#d86) | Runtime | In force |
+| D87 | [The call site hands the host its provider and its model](#d87) | Runtime | In force |
 
 ## Registration and the generator
 
@@ -630,7 +631,8 @@ The table lists every entry by its ID, with the section that holds it and whethe
 
 - **Status:** brief. Code defaults, the agent's code, its stored `Settings`, the run. Stored tool
   defaults (`ToolDefaults`) are gone, so resolving a run's settings is one document. The stored layer holds the
-  agent's own settings and, over them, those under the settings id (D66).
+  agent's own settings and, over them, those under the settings id (D66). A provider and a model the call site hands
+  the host win over all four (D87): they are no layer of settings, but the code that runs the agent.
 
 ### D28. The model is a configurable option like any other {#d28}
 
@@ -641,7 +643,9 @@ The table lists every entry by its ID, with the section that holds it and whethe
   calls and reasoning; the rest belong to the run or have no stored form (TSH012).
 - **A name at all (owner: traps are loud):** a blank model or provider is refused where it enters, as a run option
   out of range is (D32): `WithModel` and `WithSummaryModel` throw, a save refuses blank settings and a run that
-  resolves one throws by the member's name. Before, a settings form's empty field was stored and sent to the
+  resolves one throws by the member's name.
+- **The call site (D87):** `host.WithModel(model)` needs no `Configurable`. The allow list guards what stored data
+  and a run's settings may change, and the call site is the app's own code, as the agent's is. Before, a settings form's empty field was stored and sent to the
   provider as the model. Whether a model exists stays the provider's to say.
 - **Alternatives:** `Model` in every `Settings` (v0, the brief's first sketch), which lets a settings form a
   customer edits pick any model the provider knows.
@@ -699,9 +703,10 @@ The table lists every entry by its ID, with the section that holds it and whethe
   for an agent without one. The generator reads it, so that agent's `Settings.Provider` and `SummaryProvider` are of
   it. `Provider` and `Model` in `Settings` stay two members that layer apart, which the one pick
   `Configurable(o => o.ModelId)` brings in: a layer that names only a provider keeps the model, which with one model
-  behind two vendors is the point. The summary model is the run's model unless named, and its provider the run's provider: the agent's code
-  names a summary model only (`WithSummaryModel`), and only settings (`SummaryProvider`) name another provider for
-  it. A summary model the run's provider cannot serve, as after a user switched the agent to another provider, costs
+  behind two vendors is the point. The summary model is the run's model unless named, and its provider the run's
+  provider, or the one the call site handed the run (D87): the agent's code names a summary model only
+  (`WithSummaryModel`), and only settings (`SummaryProvider`) name another provider for it. A summary model the
+  run's provider cannot serve, as after a user switched the agent to another provider, costs
   a failed call and a warning, and the run's own model writes the summary (D32).
 - **As built:** a provider goes down the run as a `ProviderId<TProviderId>`, made where its type is known: in
   `WithProvider`, and in the generated `ApplySettings`, through `SetProvider<TProviderId>` and
@@ -731,21 +736,75 @@ The table lists every entry by its ID, with the section that holds it and whethe
   declares beside `WithProvider`, which says it twice; looking the provider up by its value's runtime type, which
   needs `MakeGenericType` and misses a provider whose runtime type differs from its declared one.
 
-### D63. The default client serves only a run that names no provider {#d63}
+### D87. The call site hands the host its provider and its model {#d87}
 
-- **Status:** owner; rewritten. It read "a registered chat client serves a run no `IChatClientProvider` serves",
-  and let the client registered for every agent answer a run whose provider nothing served.
+- **Status:** owner, shape A of the model selection design.
+- **Context:** who serves a run and which model it asks for are often chosen where the agent runs: an endpoint that
+  knows the customer's plan, a job, a test. Before, the only way in was a run's `Settings`, whose `Provider` and
+  `Model` exist only where the agent's code made its model configurable. The owner: provider and model are two
+  choices, made apart, and a provider handed to a run serves its whole run.
+- **Decision:** `host.WithProvider(key)` and `host.WithModel(model)` return a copy of the host, as ids are given
+  (D72), on `AgentHost<TAgent>` and `IAgentHost`. A copy keeps the ids and what an earlier copy named, runs in the
+  host's scope and disposes it as the host would (D76). What the call site names wins over the four settings layers
+  (D27) and the agent's code. The model needs no `Configurable` (D28): the allow list guards what stored data may
+  change, and the call site is the app's code. The provider serves the whole run: its sub-agents, the agents it hands
+  off to, the agent a later run of the conversation is passed on to (D34) and the summary, in place of a
+  `SummaryProvider` the settings name (D32), since a customer who brings a key expects every call of the run on it.
+  The model is the host's agent's alone: each sub-agent keeps its own, as the run's settings apply to the host's
+  agent only (D33, D34). The raw path's options take the host's copies too (D26).
+- **Every provider a run may reach:** a run checks, before it stores anything, that a client serves the providers of
+  the agents it may call or hand off to, transitively, so a sub-agent nobody serves fails the run at its start, not
+  each of its calls while the run goes on (`ReachableProviders`). A run handed a provider checks none of them, since
+  that provider serves them all and was found as the run's own. Each agent's provider is resolved as its own run
+  would resolve it: from its stored settings under the run's settings id where they may name one, else its code,
+  else the default provider (D63). The generated declaration says whether an agent's settings store a provider
+  (`AgentDeclaration.StoresProvider`, which raised the stamp version), so a run whose agents name theirs in code
+  reads no settings for it.
+- **As built:** the call site's provider goes down the run in `RunHandover.Provider` (D33, D34), and the resolved
+  options keep it as `HandedProvider`, from which a sub-agent's and a handoff's handover take it. The host's model is
+  a field of the copy, which the hosts the library builds for sub-agents and handoffs never carry. TSH041 reports a
+  dropped `WithProvider` or `WithModel` as it does a dropped id.
+- **Where:** `Hosting/AgentHost.cs`, `Hosting/IAgentHost.cs` (`RunHandover`), `Hosting/ReachableProviders.cs`,
+  `Hosting/ResolvedChatOptions.cs`, `Agents/SubAgentFunction.cs`, `Conversations/ConversationChatClient.cs`,
+  `Generated/AgentDeclaration.cs`, `Emitting/AgentEmitter.cs`, `Analysis/TypeshiftAnalyzer.cs`.
+- **Alternatives:** one value of provider, model and failure handling handed to the runtime, which fuses the two
+  choices and needs every call site to restate both to change one; a selector service the app implements, asked
+  before each run, the most power with nothing inline, and a rule per run the owner does not take yet; the call
+  site's model for sub-agents too, which sends one agent's model to another; checking only the providers the
+  agents' code names, which fails a run whose sub-agent's settings name a served provider over an unserved default.
+
+### D63. The default provider serves only a run that names none {#d63}
+
+- **Status:** owner; rewritten twice. It read "a registered chat client serves a run no `IChatClientProvider`
+  serves", which let the client registered for every agent answer a run whose provider nothing served, and then "the
+  default client serves only a run that names no provider", before the app could name a keyed client as its default
+  and a client's own model counted as the run's.
 - **Context:** the owner asked that an agent without a model still run, and for a simpler setup than writing an
   `IChatClientProvider`: one provider, or a client per provider, for a demo or a local test. The first rule took the
   first of three that served, the last of them the client for every agent. So `WithModel("opnai", ...)`, a stored
   provider in another case, a member an enum no longer has and an enum agent beside a provider class for strings all
   ran on that client, which may be another account, without a log line. The owner's rule: "A user may configure a
   default provider and model. If not configured it should throw. If the user tries to resolve a provider which does
-  not exist, throw. If they want to use the default provider on purpose, use the default provider."
-- **Decision:** the provider a run names decides alone which client serves it.
-  - A run that names no provider takes the default client: the `IChatClient` registered for every agent, as
-    `AddChatClient` and `TypeshiftRuntime.Create(client)` register it (D75). Without one it throws. Its model, as
-    `WithModel(model)` names it (D86), reaches the client as `ModelId`; without one the client's own model answers.
+  not exist, throw. If they want to use the default provider on purpose, use the default provider." And for the
+  model (owner): the model a client was built with, its `ChatClientMetadata.DefaultModelId`, counts as a configured
+  default, and a run with no model on a client that reports none throws before the conversation is touched.
+- **Decision:** the provider a run names decides alone which client serves it, and the model comes from the run or
+  else from that client.
+
+  | The run names | Registered | Result |
+  |---|---|---|
+  | No provider | A default provider | It serves the run: naming none is how a run means the default, on purpose. |
+  | No provider | No default | Throws, naming the agent and the ways to name a provider or register a default. |
+  | A key | A client under the key | That client. |
+  | A key | Nothing under the key | Throws, listing the keys clients are registered under. Never the default. |
+  | No model | A client that reports a model of its own | That model, which the client applies to a request without one. |
+  | No model | A client that reports none | Throws before the conversation is touched. |
+
+  - The default provider is the keyed client `WithDefaultProvider(key)` names, or else the `IChatClient` registered
+    for every agent, as `AddChatClient` and `TypeshiftRuntime.Create(client)` register it (D75). An app whose
+    customers bring their own providers registers none, so a call site that forgets its provider fails rather than
+    spend the app's own account. A run that names none takes the default's key as its provider, so its span, its
+    entries and `AgentRun.Provider` name it (D36).
   - A run that names a provider takes the client of the `IChatClientProvider` of the agent's provider type (D86)
     when one is registered. The class decides alone for the providers of its type: when it throws, no client is
     tried after it, and a run that names a provider and no model throws, since the class serves a provider and a
@@ -754,20 +813,25 @@ The table lists every entry by its ID, with the section that holds it and whethe
   - Without a class of the type, the run takes the `IChatClient` registered under the provider as its key, as
     Microsoft.Extensions.AI's `AddKeyedChatClient` registers one. It receives the model as `ModelId`.
   - A provider nothing serves throws. The message lists the keys clients are registered under, which tells a typo
-    from a provider the app never registered. The default client is never asked.
+    from a provider the app never registered, and says so when the key is the default provider's. The default
+    provider is never asked in its place.
 - **As built:** the run's client is found before the run stores an entry or opens its span
   (`AgentHost.CreateChatClientAsync`). With a conversation, the run has claimed and loaded it by then (D34), and
   frees the claim when no client is found. A summary's provider is checked there too once the run can compact, without
   asking a provider class, which is asked when a summary is needed: a summary call that fails is best effort (D32),
-  a provider that does not exist is not. The keys are read from the registrations (`RegisteredChatClients`), since
-  a container does not list them.
+  a provider that does not exist is not. So are the providers of the agents the run may reach (D87). The keys are
+  read from the registrations (`RegisteredChatClients`), since a container does not list them. The model check
+  reads the client's `ChatClientMetadata`, which Microsoft.Extensions.AI's adapters fill from the model a client was
+  built with; a wrapper that answers no `GetService` hides it, and its runs need a model named.
 - **Where:** `Hosting/ChatClients.cs`, `Hosting/ProviderId.cs`, `Hosting/AgentHost.cs`, `Compaction/Compaction.cs`,
-  `Generated/ModuleRegistration.cs`.
+  `DependencyInjection/TypeshiftBuilder.cs` (`WithDefaultProvider`), `Generated/ModuleRegistration.cs`.
 - **Alternatives:** the fallback with a warning log, which still sends the prompt to the other account; the
   fallback only where no keyed client and no provider class is registered, which keeps the trap for the app with
   one client and a typo; chain calls of Typeshift's own, such as `WithChatClient(client)`, which repeat what
   Microsoft.Extensions.AI's registration already does; a built-in provider keyed by a registry of Typeshift's, a
-  second place to register clients.
+  second place to register clients. For the model: a default model always named in Typeshift, which repeats what
+  every client knows; sending no model and leaving the provider to reject the call, which failed late and with the
+  provider's words.
 
 ### D29. The chat client pipeline {#d29}
 
@@ -1088,8 +1152,9 @@ The table lists every entry by its ID, with the section that holds it and whethe
 - **The provider a run resolved (owner: traps are loud):** a chat span names its backend as the client describes
   itself, which says nothing of the provider id the agent's code or its settings named. The run's span carries that
   id as `typeshift.provider`, `AgentRun.Provider` hands run middleware its value, and the entry of each model
-  response keeps it as text beside the model (D50), written the same in every culture. A run on the default client
-  (D63) names none, so the tag and the entry's member are absent, as on entries stored before.
+  response keeps it as text beside the model (D50), written the same in every culture. A run on the client
+  registered for every agent (D63) names none, so the tag and the entry's member are absent, as on entries stored
+  before; one on the key `WithDefaultProvider` names, or on the call site's provider (D87), names that.
 - **Streaming:** an async iterator resumes in its caller's context (dotnet/runtime#47802), so after a streaming run's
   first update its span was no longer the current one, and the later chat and tool spans hung under the caller's span
   or started traces of their own. The run makes its span current again before it asks for each update, as

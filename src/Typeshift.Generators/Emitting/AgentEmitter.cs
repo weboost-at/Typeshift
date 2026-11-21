@@ -395,6 +395,13 @@ internal static class AgentEmitter
             writer.Line($"public override string? Description => {description};");
             writer.Line();
 
+            // D87: a run reads the settings of an agent it may reach only where they may name its provider
+            if (agent.ChatOptions.Contains("ModelId"))
+            {
+                writer.Line("public override bool StoresProvider => true;");
+                writer.Line();
+            }
+
             // D84: the catalog lists the tools settings may switch off
             var switchable = output.Tools.Where(offered => offered.Switchable).ToList();
 

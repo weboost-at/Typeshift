@@ -16,6 +16,10 @@ internal sealed class ResolvedChatOptions : ChatOptions
     // D86: null for the run's provider
     public ProviderId? SummaryProvider { get; set; }
 
+    // D87: the provider the call site handed the run, which serves its whole run: its sub-agents, the agents it hands
+    // off to, and its summary
+    public ProviderId? HandedProvider { get; set; }
+
     public RunOptions RunOptions { get; set; } = new();
 
     // D52: a run whose settings name a mode switches the conversation to it
@@ -136,6 +140,7 @@ internal sealed class ResolvedChatOptions : ChatOptions
         {
             Provider = Provider,
             SummaryProvider = SummaryProvider,
+            HandedProvider = HandedProvider,
             RunOptions = RunOptions,
             RunSetsMode = RunSetsMode,
             SettingsId = SettingsId,

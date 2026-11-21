@@ -10,4 +10,8 @@ public sealed partial class AgentHost<TAgent>
     IAgentHost IAgentHost.WithConversationId<TId>(TId id) => WithConversationId(id);
 
     IAgentHost IAgentHost.WithConversationId<TId>(TId? id) where TId : struct => WithConversationId(id);
+
+    IAgentHost IAgentHost.WithProvider<TProviderId>(TProviderId provider) => WithProvider(provider);
+
+    IAgentHost IAgentHost.WithModel(string model) => WithModel(model);
 }

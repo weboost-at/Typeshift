@@ -34,6 +34,12 @@ public interface IAgentHost : IAsyncDisposable, IDisposable
     /// <inheritdoc cref="AgentHost{TAgent}.WithConversationId{TId}(Nullable{TId})"/>
     IAgentHost WithConversationId<TId>(TId? id) where TId : struct;
 
+    /// <inheritdoc cref="AgentHost{TAgent}.WithProvider{TProviderId}(TProviderId)"/>
+    IAgentHost WithProvider<TProviderId>(TProviderId provider) where TProviderId : notnull;
+
+    /// <inheritdoc cref="AgentHost{TAgent}.WithModel(string)"/>
+    IAgentHost WithModel(string model);
+
     /// <inheritdoc cref="AgentHost{TAgent}.RunAsync(string, CancellationToken)"/>
     Task<ChatResponse> RunAsync(string input, CancellationToken ct = default);
 
@@ -135,7 +141,8 @@ public interface IAgentHost : IAsyncDisposable, IDisposable
 }
 
 // What one agent's run hands the run of another: the settings id its stored settings load under, the conversation it
-// continues, and the format of a typed answer, which the other agent answers in too (D64). A run handed a claim on
+// continues, the provider the call site handed it, which serves every agent of the run (D87), and the format of a
+// typed answer, which the other agent answers in too (D64). A run handed a claim on
 // the conversation takes it in place of claiming the conversation itself (D34, D50), and counts on from the
 // handoffs the run made before it. A run passed on to the agent that answers is handed the entries loaded for it
 // too, so the conversation is loaded once. A sub-agent's run has its caller, whose mode and standing approvals it
@@ -149,4 +156,5 @@ internal sealed record RunHandover(
     int Handoffs = 0,
     IReadOnlyList<ConversationEntry>? Entries = null,
     AgentRun? Caller = null,
-    bool Retries = false);
+    bool Retries = false,
+    ProviderId? Provider = null);

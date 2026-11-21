@@ -12,6 +12,13 @@ All notable changes to this project are documented here. The format follows
   generator now reads those alone. It read every constructor, so a `UseToolset<T>()` or a pick in another one reached
   the generated settings and tools, while its values, such as `WithInstructions(...)`, never reached a run. Move the
   declaration into the parameterless constructor, or chain that one to it.
+- `host.WithProvider(key)` and `host.WithModel(model)`, on `AgentHost<TAgent>` and `IAgentHost`, return a copy of the
+  host whose runs that provider serves and that model answers, over the agent's code and its settings, as in
+  `support.WithProvider("anthropic").WithModel("claude-sonnet-5-5").RunAsync(question)`. The model needs no
+  `Configurable(o => o.ModelId)`. The provider serves the whole run: its sub-agents, the agents it hands off to and
+  its summary, while each sub-agent keeps its own model. TSH041 reports such a copy that a statement drops.
+- `AddTypeshift().WithDefaultProvider(key)` names the keyed client that serves every run that names no provider, in
+  place of the client registered for every agent.
 - `host.CreateChatClientAsync()`, and the agent's generated `CreateChatClientAsync(settings)`, create the client of the
   raw path in one call: they resolve the run's options as `ResolveOptionsAsync` does, and the client keeps them, so
   `using var client = await support.CreateChatClientAsync();` is all a library that takes an `IChatClient` needs.
@@ -262,6 +269,14 @@ All notable changes to this project are documented here. The format follows
   `services.AddTypeshift()` registers it as one, over a class of the library's. `TypeshiftRuntime` is a static class
   that holds only `Create`. Inject `ITypeshiftRuntime` where you injected `TypeshiftRuntime`, as in
   `TicketDigest(ITypeshiftRuntime runtime)`, and resolve it as `GetRequiredService<ITypeshiftRuntime>()`.
+- **Breaking:** a run that names no model, on a client that reports no model of its own in its `ChatClientMetadata`,
+  throws an `InvalidOperationException` before it stores anything, naming the ways to name one. It sent the provider
+  no model, which rejected the call. Name a model, or build the client with one, as `GetChatClient("gpt-5-mini")`
+  does; the model a client was built with answers a run that names none, as before.
+- **Breaking:** a run whose sub-agents, or the agents it may hand off to, name a provider no client serves fails when
+  it starts, before it stores anything, as a run whose own provider nothing serves does. Each call of such a sub-agent
+  failed while the run went on, and a handoff to such an agent failed the run when it happened. Register a client
+  for the provider, or name the run's provider with `host.WithProvider(key)`, which serves its sub-agents too.
 - **Breaking:** an agent names its provider apart from its model. `WithModel(provider, model)` is gone: write
   `WithChatOptions().WithProvider("openai").WithModel("gpt-5-mini")` for `WithModel("openai", "gpt-5-mini")`, or
   `WithModel("gpt-5-mini")` alone for an agent that runs on the default client. The agent's provider id type is the

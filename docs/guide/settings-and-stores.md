@@ -56,6 +56,9 @@ The highest layer that sets a value wins:
 
 Because the layers resolve when a run starts, settings saved during a run apply from the next run on.
 
+A provider or a model your code hands the host for its runs, with `WithProvider` or `WithModel`, wins over all four
+layers ([Choosing at the call site](./models.md#choosing-at-the-call-site)).
+
 ### Null values and nested records
 
 A layer either replaces a value below it or leaves it alone. It never merges, so a configurable member that is itself
@@ -84,7 +87,8 @@ switches the conversation to it, and so do an approved plan and `SetModeAsync`
 
 ### Sub-agents and handoffs
 
-Sub-agents and handoffs keep the settings id, but not the run's settings. A sub-agent runs with the stored settings
+Sub-agents and handoffs keep the settings id and the provider the call site named, but not the run's settings
+or the call site's model. A sub-agent runs with the stored settings
 of its own kind, those of the agent and those under the caller's settings id, in the caller's mode. An agent handed
 off to answers with the stored settings of its kind under the same id. Run settings apply only to the agent the run
 started on, except a mode they name, which [belongs to the conversation](#the-mode-of-a-conversation)

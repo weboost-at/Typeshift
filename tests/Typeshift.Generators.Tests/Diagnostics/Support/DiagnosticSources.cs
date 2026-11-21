@@ -3791,6 +3791,24 @@ public static class DiagnosticSources
         }
         """;
 
+    // D87: the call site's provider is a copy too, which a statement drops
+    public const string DroppedHostCopyOfAProvider =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class SupportAgent : Agent
+        {
+            public SupportAgent() => WithInstructions("Answer questions about refunds.");
+        }
+
+        internal static class Desk
+        {
+            public static void Open(AgentHost<SupportAgent> support) => support.WithProvider("anthropic");
+        }
+        """;
+
     // D76: the copy disposes the scope of the host from the runtime, which the loop's next round runs in
     public const string DisposedCopyInALoop =
         """

@@ -3,9 +3,14 @@ using Microsoft.Extensions.AI;
 
 namespace Typeshift.Tests.Testing.Fakes;
 
-// One Reply scripts one inner call: updates are yielded, a TaskCompletionSource awaited, an exception thrown
-public sealed class ScriptedChatClient(CancellationToken limit) : IChatClient
+// One Reply scripts one inner call: updates are yielded, a TaskCompletionSource awaited, an exception thrown. Its
+// metadata names the model it was built with, as a provider's client does, unless a test builds it without one
+public sealed class ScriptedChatClient(CancellationToken limit, string? model = ScriptedChatClient.OwnModel)
+    : IChatClient
 {
+    public const string OwnModel = "scripted-own-model";
+
+    private readonly ChatClientMetadata _metadata = new(defaultModelId: model);
     private readonly Queue<object[]> _replies = new();
     private readonly List<(int Count, TaskCompletionSource Reached)> _waiting = [];
     private readonly List<string> _unscripted = [];
@@ -97,7 +102,9 @@ public sealed class ScriptedChatClient(CancellationToken limit) : IChatClient
         GetStreamingResponseAsync(messages, options, ct).ToChatResponseAsync(ct);
 
     public object? GetService(Type serviceType, object? serviceKey = null) =>
-        serviceType.IsInstanceOfType(this) ? this : null;
+        serviceType == typeof(ChatClientMetadata) ? _metadata
+        : serviceType.IsInstanceOfType(this) ? this
+        : null;
 
     public void Dispose() => Disposed = true;
 

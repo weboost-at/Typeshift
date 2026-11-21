@@ -1149,6 +1149,8 @@ partial class SupportAgent
 
         public override string? Description => "Answers customers.";
 
+        public override bool StoresProvider => true;
+
         protected override global::Typeshift.RunOptions ApplySettings(
             global::Microsoft.Extensions.AI.ChatOptions options,
             global::Typeshift.RunOptions run,
@@ -1258,7 +1260,7 @@ namespace System.Runtime.CompilerServices
 #nullable enable
 #pragma warning disable CS0612, CS0618
 
-[assembly: global::Typeshift.Generated.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule), 21)]
+[assembly: global::Typeshift.Generated.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule), 22)]
 
 namespace Typeshift.Generated;
 

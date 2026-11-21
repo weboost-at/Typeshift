@@ -51,10 +51,13 @@ caller's mode and shares the caller's [standing approvals](./tool-approval.md#ap
 its read-only tools and answers the caller, which presents the plan.
 
 Each agent runs on the client of the provider it names itself. Here `ReportAgent` takes the client registered
-under `anthropic`, and `ResearchAgent`, which names no provider, the default client
-([Registering clients](./models.md#registering-clients)).
+under `anthropic`, and `ResearchAgent`, which names no provider, the default provider's
+([Registering clients](./models.md#registering-clients)). A provider the call site names with
+`reports.WithProvider(...)` serves both, and each keeps its own model
+([Choosing at the call site](./models.md#choosing-at-the-call-site)).
 
-A sub-agent that fails, for example because no client serves its provider, fails its call as
+The run checks the sub-agents' providers before it stores anything, so a sub-agent whose provider no client serves
+fails the run at its start. A sub-agent that fails later, on its model's error for example, fails its call as
 [a tool that fails](./toolsets.md#when-a-tool-fails) does. The calling model reads that the call failed, but not
 why, the exception is logged and set on the call's span, and the calling run goes on.
 
@@ -276,7 +279,9 @@ the run has no handoffs left, and the agent that made it answers the user itself
 The `Settings` you pass to one run apply only to the agent you started it on. An agent it hands off to runs with its
 own settings stored under the same settings id. The mode is the one exception: a `Mode` in a run's settings switches
 the conversation, so the agent that answers the run is in it too, as it is in the mode of an approved plan
-([Setting the mode](./tool-approval.md#setting-the-mode)).
+([Setting the mode](./tool-approval.md#setting-the-mode)). A provider the call site names serves the agent handed to
+as well, with that agent's own model, and so does it serve the agent that answers a later run of the conversation. A
+run checks the providers of the agents it may hand off to when it starts, as it checks its sub-agents'.
 
 ::: warning Handoffs need a conversation
 A run without a conversation id does not offer the handoff tools, so its agent cannot hand off, unless your app

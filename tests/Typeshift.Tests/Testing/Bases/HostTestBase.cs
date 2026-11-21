@@ -53,10 +53,11 @@ public abstract class HostTestBase : UnitTestBase, IAsyncDisposable
     {
     }
 
-    // A scripted client whose replies the test must use up, as it must those of ChatClient
-    protected ScriptedChatClient CreateScriptedClient()
+    // A scripted client whose replies the test must use up, as it must those of ChatClient; with no model, one that
+    // was built without a model of its own
+    protected ScriptedChatClient CreateScriptedClient(string? model = ScriptedChatClient.OwnModel)
     {
-        var client = new ScriptedChatClient(Ct);
+        var client = new ScriptedChatClient(Ct, model);
         _scripted.Add(client);
         return client;
     }

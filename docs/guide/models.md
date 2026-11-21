@@ -6,9 +6,10 @@ description: Register a default chat client or one per provider, name an agent's
 # Models and providers
 
 An agent names its model, such as `WithModel("gpt-5-mini")`, and may name the provider that serves it, by its key,
-such as `WithProvider("openai")`. Typeshift takes the `IChatClient` your app registered for that provider, or the
-default client when the agent names none, and sends it the model as `ChatOptions.ModelId`, so one client serves
-every model of its provider. A provider nothing is registered for fails the run: no other client stands in for it.
+such as `WithProvider("openai")`; the code that runs the agent may name others. Typeshift takes the `IChatClient` your
+app registered for the run's provider, or the default provider's when the run names none, and sends it the model as
+`ChatOptions.ModelId`, so one client serves every model of its provider. A provider nothing is registered for fails
+the run: no other client stands in for it.
 
 ## Registering clients
 
@@ -19,12 +20,12 @@ With one provider, register one client. It is the default client, which serves e
 ```cs
 services.AddChatClient(openAi);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L25-L27' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-client' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L36-L38' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-client' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 An agent then names its model alone, as `WithModel("gpt-5-mini")` does, or no model at all. Without a model the run
-sends no `ModelId`, so the client's own model answers, and a demo or a local test needs nothing else.
-`TypeshiftRuntime.Create(client)` registers its client as the default too
+sends no `ModelId`, so the client's own model answers, the one you built it with, and a demo or a local test needs
+nothing else. `TypeshiftRuntime.Create(client)` registers its client as the default too
 ([The runtime](./registration.md#the-runtime)).
 
 With several providers, register one client per provider, with the provider's name as its key:
@@ -44,20 +45,78 @@ services.AddKeyedChatClient("anthropic", anthropic);
 as none runs a tool loop of its own ([Wrapping a client](#wrapping-a-client) says why). An app may register both: a
 default client, and clients under the providers some agents name.
 
-Which client a run gets depends on the provider it names, in its agent's code or in its settings:
+Which client a run gets depends on the provider it names: at the call site
+([Choosing at the call site](#choosing-at-the-call-site)), in its settings or in its agent's code. Which model it
+asks for comes from the same places, and then from the client:
 
 | The run names | Your app registered | The run gets |
 |---|---|---|
-| No provider | A default client | The default client. Naming no provider is how a run means the default. |
-| No provider | No default client | An exception that names the ways to register one or to name a provider |
+| No provider | A [default provider](#the-default-provider) | The default provider's client. Naming no provider is how a run means the default. |
+| No provider | No default provider | An exception that names the ways to register one or to name a provider |
 | A provider | An `IChatClientProvider<T>` of the agent's [provider id type](#the-provider-id-type) | The client your provider class returns ([Your own provider](#your-own-provider)). The class decides alone for the providers of its type: when it throws, the run fails, and a run that names a provider without a model fails too, since the class serves a provider and a model. |
 | A provider | A client under that provider, and no provider class of the type | That client. It receives the model the run names, and answers with its own when the run names none. |
 | A provider | Neither | An exception that lists the keys your app registered clients under |
+| No model | A client built with a model of its own, as `GetChatClient("gpt-5-mini")` builds one | That model: the client reports it as its `ChatClientMetadata.DefaultModelId` |
+| No model | A client without a model of its own | An exception that names the ways to name a model |
 
-The default client never stands in for a provider a run names. A typo, as in `WithProvider("opnai")`, a
+The default provider never stands in for a provider a run names. A typo, as in `WithProvider("opnai")`, a
 stored `Provider` in another case and a provider your app no longer registers each fail the run, where they would
 otherwise send a customer's prompt to another account. The exception is an `InvalidOperationException`, thrown before
-the run calls a model or stores an entry in its conversation ([When a provider fails](#when-a-provider-fails)).
+the run calls a model or stores an entry in its conversation ([When a provider fails](#when-a-provider-fails)). A run
+checks the providers of the agents it may call or hand off to there too, so a sub-agent nothing serves fails the run
+at its start, not at its first call.
+
+### The default provider
+
+The default provider serves every run that names no provider. It is the client registered for every agent, or, with
+several providers, the one `WithDefaultProvider(key)` names among your keyed clients:
+
+<!-- snippet: default-provider -->
+<a id='snippet-default-provider'></a>
+```cs
+services.AddKeyedChatClient("openai", openAi);
+services.AddKeyedChatClient("anthropic", anthropic);
+
+services.AddTypeshift()
+    .WithDefaultProvider("openai");
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L25-L31' title='Snippet source file'>snippet source</a> | <a href='#snippet-default-provider' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+- An agent that names no provider then runs on `openai`, and one with `WithProvider("anthropic")` on `anthropic`.
+- The key must be one a client is registered under. A key nothing serves fails the runs that take it, and the message
+  says that the key is the default provider's and lists the keys that are registered.
+- An app whose customers each bring their own provider registers no default provider, so a run that forgets to name
+  one fails rather than spend your app's own account.
+
+## Choosing at the call site
+
+The code that runs an agent may choose its provider and its model for each run, from what it knows at that moment:
+the customer's plan, a choice on a settings page, a test. `WithProvider` and `WithModel` on the agent's host return a
+copy of the host, as [`WithSettingsId`](./settings-and-stores.md#ids-of-your-own-types) does:
+
+<!-- snippet: call-site-provider -->
+<a id='snippet-call-site-provider'></a>
+```cs
+var premium = await support
+    .WithProvider("anthropic")
+    .WithModel("claude-sonnet-5-5")
+    .RunAsync("Where is my refund?");
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L75-L80' title='Snippet source file'>snippet source</a> | <a href='#snippet-call-site-provider' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+- What the call site names wins over the agent's code and over every [settings layer](./settings-and-stores.md#settings-layering).
+  The model needs no `Configurable(o => o.ModelId)`: the allow list guards what stored data may change, and the call
+  site is your app's code.
+- The provider serves the whole run: the agent's sub-agents, the agents it hands off to, and the summary of a long
+  conversation. A customer who brings a key expects every call of the run on it. The model is the host's agent's
+  alone, so each sub-agent keeps its own.
+- A copy leaves the host it came from as it was, and a later copy keeps what an earlier one named, so
+  `support.WithSettingsId(42).WithProvider("anthropic")` carries both. A copy whose result your code drops changes
+  nothing, which the analyzer reports ([TSH041](./diagnostics.md#tsh041)).
+- `IAgentHost`, the host of an agent your code does not name, has the same two copies
+  ([The catalog](./registration.md#the-catalog)).
 
 ## Your own provider
 
@@ -109,7 +168,7 @@ var openAi = new OpenAIClient(apiKey)
 
 services.AddKeyedChatClient("openai", openAi);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L32-L38' title='Snippet source file'>snippet source</a> | <a href='#snippet-openai-client' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L43-L49' title='Snippet source file'>snippet source</a> | <a href='#snippet-openai-client' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 - Typeshift names the model in every request as `ChatOptions.ModelId`, so this one client serves every OpenAI model
@@ -156,7 +215,7 @@ var local = new OpenAIClient(new ApiKeyCredential("none"), options)
 
 services.AddKeyedChatClient("local", local);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L43-L54' title='Snippet source file'>snippet source</a> | <a href='#snippet-local-chat-client' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L54-L65' title='Snippet source file'>snippet source</a> | <a href='#snippet-local-chat-client' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Another provider works the same way, through the `IChatClient` its package offers. A fake client for tests reads the
@@ -198,7 +257,7 @@ foreach (var provider in configuration.GetSection("Providers").GetChildren())
     services.AddKeyedChatClient(provider.Key, client);
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L59-L74' title='Snippet source file'>snippet source</a> | <a href='#snippet-providers-from-configuration' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L70-L85' title='Snippet source file'>snippet source</a> | <a href='#snippet-providers-from-configuration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 - The entry's name, such as `openai`, is the provider your agents name in `WithProvider` and your users pick in their
@@ -251,7 +310,7 @@ Register it on the chain, in place of a provider for your app's own keys:
 services.AddTypeshift()
     .WithChatClientProvider<TenantChatClientProvider>();
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L79-L82' title='Snippet source file'>snippet source</a> | <a href='#snippet-tenant-chat-client-provider-registration' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L90-L93' title='Snippet source file'>snippet source</a> | <a href='#snippet-tenant-chat-client-provider-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 - `ICurrentCustomer` and `ITenantKeys` stand for services of your app: who the request is for, and where you keep the
@@ -281,7 +340,7 @@ var openAi = new OpenAIClient(apiKey)
 services.AddKeyedChatClient("openai", openAi)
     .UseLogging();
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L87-L94' title='Snippet source file'>snippet source</a> | <a href='#snippet-wrapped-chat-client' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L98-L105' title='Snippet source file'>snippet source</a> | <a href='#snippet-wrapped-chat-client' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Wrap what concerns a single request, such as logging or a policy of your own written as a `DelegatingChatClient`
@@ -323,7 +382,7 @@ var openAi = new OpenAIClient(new ApiKeyCredential(apiKey), options)
 
 services.AddKeyedChatClient("openai", openAi);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L112-L123' title='Snippet source file'>snippet source</a> | <a href='#snippet-client-retries' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L123-L134' title='Snippet source file'>snippet source</a> | <a href='#snippet-client-retries' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ### Options of a provider's own
@@ -344,7 +403,7 @@ services.AddKeyedChatClient("openai", openAi)
     .ConfigureOptions(options =>
         options.RawRepresentationFactory = _ => new ChatCompletionOptions { StoredOutputEnabled = false });
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L99-L107' title='Snippet source file'>snippet source</a> | <a href='#snippet-client-request-options' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L110-L118' title='Snippet source file'>snippet source</a> | <a href='#snippet-client-request-options' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 For one agent, set it in a [run middleware](./middleware.md), which sees the run's options before its model calls:
@@ -518,7 +577,7 @@ var settings = new CodingAgent.Settings
     SummaryModel = "gpt-5-mini"
 };
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L128-L134' title='Snippet source file'>snippet source</a> | <a href='#snippet-summary-provider' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L139-L145' title='Snippet source file'>snippet source</a> | <a href='#snippet-summary-provider' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 | Named | The summary runs on |
@@ -555,12 +614,13 @@ What your code sees depends on whether the run fails before or after it stores i
 
 | What fails | Your code gets | The run's conversation |
 |---|---|---|
-| Nothing serves the run: it names a provider your app registered no client for, or no provider while no default client is registered, or it can compact and its settings name such a summary provider | An `InvalidOperationException` that names the agent, what it named and the keys your app registered clients under | Unchanged |
+| Nothing serves the run: it names a provider your app registered no client for, or no provider while no default provider is registered, or it can compact and its settings name such a summary provider, or an agent it may call or hand off to names such a provider | An `InvalidOperationException` that names the agent, what it named and the keys your app registered clients under | Unchanged |
+| No model: no layer names one, and the client that serves the run was built without one | An `InvalidOperationException` that names the ways to name a model | Unchanged |
 | Your provider throws for the run's model, such as for a provider it does not know | Your provider's exception | Unchanged |
 | The summary call fails, or your provider throws for the summary model, when compaction asks for it during the run | Nothing: the run goes on ([The summary model](#the-summary-model)) | Goes on, with a summary by the run's own model or without one |
 | The model call fails, such as on a wrong key, an unknown model or a rate limit that outlasts the retries | The client library's exception | Ends with an entry that holds an `ErrorContent` |
 
-- Typeshift finds the run's client before the run stores its input, so the first two fail with the conversation's
+- Typeshift finds the run's client before the run stores its input, so the first three fail with the conversation's
   entries as they were, and before the run's `invoke_agent` span starts. The run has loaded the conversation by
   then, and saved a mode its own settings name ([How a run works](./how-a-run-works.md#the-steps)). Run the agent
   again once you fix the cause.

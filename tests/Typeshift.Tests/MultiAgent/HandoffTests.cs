@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Typeshift.Tests.Agents.Support;
 using Typeshift.Tests.Conversations.Support;
+using Typeshift.Tests.Hosting.Support;
 using Typeshift.Tests.MultiAgent.Support;
 using FluentAssertions;
 using Microsoft.Extensions.AI;
@@ -29,6 +30,58 @@ public class HandoffTests : MultiAgentTestBase
         ChatClient.Requests[1].SelectMany(message => message.Contents).OfType<FunctionResultContent>()
             .Should()
             .ContainSingle(result => result.CallId == Data.Tool.CallId);
+    }
+
+    [Fact]
+    public async Task Given_A_Provider_At_The_Call_Site_The_Agent_Handed_To_Runs_On_It_With_Its_Own_Model()
+    {
+        // Arrange
+        CallSite
+            .Reply(Call(Data.Tool.CallId, "handoff_to_back_agent"))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await Host<FrontAgent>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .WithProvider(Vendor.Other)
+            .RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        CallSite.Options[1]!.ModelId.Should().Be("back-model");
+    }
+
+    [Fact]
+    public async Task Given_A_Provider_At_The_Call_Site_The_Agent_That_Answers_The_Conversation_Runs_On_It()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "handoff_to_back_agent"))
+            .Reply(Text(Data.Tool.Answer));
+
+        CallSite.Reply(Text(Data.Agent.Reason));
+        await RunAsync(Data.Tool.Question);
+
+        // Act
+        var response = await Host<FrontAgent>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .WithProvider(Vendor.Other)
+            .RunAsync(Data.Agent.FollowUp, ct: Ct);
+
+        // Assert
+        response.Messages[^1].AuthorName.Should().Be("back_agent");
+    }
+
+    [Fact]
+    public async Task Given_A_Handoff_To_An_Agent_Whose_Provider_Nothing_Serves_The_Run_Fails_Before_It_Calls_A_Model()
+    {
+        // Act
+        var run = () => Host<UnservedFrontAgent>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        await run.Should().ThrowAsync<InvalidOperationException>().WithMessage("*'unserved_back_agent'*");
+        ChatClient.Requests.Should().BeEmpty();
     }
 
     [Theory]

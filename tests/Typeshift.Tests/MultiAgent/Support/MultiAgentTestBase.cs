@@ -1,5 +1,6 @@
 using Typeshift.Tests.Agents.Support;
 using Typeshift.Tests.Approval.Support;
+using Typeshift.Tests.Hosting.Support;
 using Typeshift.Tests.Testing.Fakes;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
@@ -7,12 +8,19 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Typeshift.Tests.MultiAgent.Support;
 
 // The agent tests' host, with the helper's model on a scripted client of its own, so a sub-agent working alongside
-// its caller answers from its own script
+// its caller answers from its own script, and a client under an enum's provider for the call sites that name it
 public abstract class MultiAgentTestBase : AgentTestBase
 {
-    protected MultiAgentTestBase() => HelperClient = CreateScriptedClient();
+    protected MultiAgentTestBase()
+    {
+        HelperClient = CreateScriptedClient();
+        CallSite = CreateScriptedClient();
+    }
 
     protected ScriptedChatClient HelperClient { get; }
+
+    // The client of Vendor.Other, which no provider class serves; Vendor.Probe has none
+    protected ScriptedChatClient CallSite { get; }
 
     protected ToolCalls ToolCalls { get; } = [];
 
@@ -21,6 +29,7 @@ public abstract class MultiAgentTestBase : AgentTestBase
         base.ConfigureServices(services);
 
         services.AddTypeshift().WithChatClientProvider<TwoClientProvider>();
+        services.AddKeyedChatClient(Vendor.Other, CallSite);
         services.AddSingleton(new HelperChatClient(HelperClient));
         services.AddSingleton(ToolCalls);
     }

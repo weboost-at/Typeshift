@@ -4,6 +4,7 @@ using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using OpenTelemetry.Trace;
+using Typeshift.Samples.Agents;
 using Typeshift.Samples.Hosting;
 using Typeshift.Samples.Stores.EfCore;
 
@@ -78,6 +79,15 @@ internal static class ShownRegistrations
         await using (var one = Build(services => Models.ShowChatClient(services, client)))
         {
             Expect(one.GetService<IChatClient>() is not null, "one client for every agent");
+        }
+
+        await using (var defaulted = Build(services => Models.ShowDefaultProvider(services, client, client)))
+        {
+            await using var scope = defaulted.CreateAsyncScope();
+            var assistant = scope.ServiceProvider.GetRequiredService<AgentHost<AssistantAgent>>();
+
+            var answer = await assistant.RunAsync("Where is my refund?");
+            Expect(answer.Text == CannedChatClient.Answer, "an agent that names no provider on the default provider");
         }
 
         await using (var openAi = Build(services => Models.ShowOpenAiClient(services, Key)))

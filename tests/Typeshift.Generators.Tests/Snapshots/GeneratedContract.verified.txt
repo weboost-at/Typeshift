@@ -1,8 +1,9 @@
-StampVersion = 21
+StampVersion = 22
 protected virtual Typeshift.Generated.AgentDeclaration Typeshift.Agent.Declaration { get; }
 public abstract class Typeshift.Generated.AgentDeclaration
 public abstract string? Typeshift.Generated.AgentDeclaration.Description { get; }
 public abstract string Typeshift.Generated.AgentDeclaration.Name { get; }
+public virtual bool Typeshift.Generated.AgentDeclaration.StoresProvider { get; }
 public virtual System.Collections.Generic.IReadOnlyList<string> Typeshift.Generated.AgentDeclaration.SwitchableTools { get; }
 public abstract class Typeshift.Generated.AgentDeclaration<TAgent, TSettings> : Typeshift.Generated.AgentDeclaration where TAgent : Typeshift.Agent where TSettings : class, Typeshift.IStorable<TSettings>
 protected Typeshift.Generated.AgentDeclaration<TAgent, TSettings>.AgentDeclaration()

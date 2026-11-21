@@ -576,7 +576,7 @@ reaches the maximum, Typeshift shrinks the history to `WithTargetInputTokens`, h
    `ReadOnly()` the note tells the model to call the tool again if it needs the result. For any other tool it says
    only that the result was cleared, because a second call would send, pay or delete a second time.
 2. If that is not enough, it summarizes the oldest turns with the [summary model](./models.md#the-summary-model), the
-   run's own unless you name another. The summary model reads those turns as text: each tool call with its arguments,
+   run's own unless you name another, on the run's provider, or on the one the call site named. The summary model reads those turns as text: each tool call with its arguments,
    and the first 2,000 characters of each result, including the results the first step cleared. When the summary
    call fails, the run goes on: its own model writes the summary, or the call goes out without one. The summary
    model's instructions are Typeshift's, in English, and ask for the task, the decisions, the facts and the work

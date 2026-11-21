@@ -69,6 +69,8 @@ public System.IServiceProvider Typeshift.AgentHost<TAgent>.Services { get; }
 public System.Threading.Tasks.Task Typeshift.AgentHost<TAgent>.SetModeAsync(Typeshift.AgentMode mode, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
 public Typeshift.AgentHost<TAgent> Typeshift.AgentHost<TAgent>.WithConversationId<TId>(TId id) where TId : notnull
 public Typeshift.AgentHost<TAgent> Typeshift.AgentHost<TAgent>.WithConversationId<TId>(TId? id) where TId : struct
+public Typeshift.AgentHost<TAgent> Typeshift.AgentHost<TAgent>.WithModel(string model)
+public Typeshift.AgentHost<TAgent> Typeshift.AgentHost<TAgent>.WithProvider<TProviderId>(TProviderId provider) where TProviderId : notnull
 public Typeshift.AgentHost<TAgent> Typeshift.AgentHost<TAgent>.WithSettingsId<TId>(TId id) where TId : notnull
 public Typeshift.AgentHost<TAgent> Typeshift.AgentHost<TAgent>.WithSettingsId<TId>(TId? id) where TId : struct
 public sealed record Typeshift.AgentInfo : System.IEquatable<Typeshift.AgentInfo>
@@ -285,6 +287,7 @@ public static Typeshift.AgentRun Typeshift.FunctionInvocationContextExtensions.g
 public abstract class Typeshift.Generated.AgentDeclaration
 public abstract string? Typeshift.Generated.AgentDeclaration.Description { get; }
 public abstract string Typeshift.Generated.AgentDeclaration.Name { get; }
+public virtual bool Typeshift.Generated.AgentDeclaration.StoresProvider { get; }
 public virtual System.Collections.Generic.IReadOnlyList<string> Typeshift.Generated.AgentDeclaration.SwitchableTools { get; }
 public abstract class Typeshift.Generated.AgentDeclaration<TAgent, TSettings> : Typeshift.Generated.AgentDeclaration where TAgent : Typeshift.Agent where TSettings : class, Typeshift.IStorable<TSettings>
 protected Typeshift.Generated.AgentDeclaration<TAgent, TSettings>.AgentDeclaration()
@@ -465,6 +468,8 @@ abstract System.IServiceProvider Typeshift.IAgentHost.Services { get; }
 abstract System.Threading.Tasks.Task Typeshift.IAgentHost.SetModeAsync(Typeshift.AgentMode mode, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
 abstract Typeshift.IAgentHost Typeshift.IAgentHost.WithConversationId<TId>(TId id) where TId : notnull
 abstract Typeshift.IAgentHost Typeshift.IAgentHost.WithConversationId<TId>(TId? id) where TId : struct
+abstract Typeshift.IAgentHost Typeshift.IAgentHost.WithModel(string model)
+abstract Typeshift.IAgentHost Typeshift.IAgentHost.WithProvider<TProviderId>(TProviderId provider) where TProviderId : notnull
 abstract Typeshift.IAgentHost Typeshift.IAgentHost.WithSettingsId<TId>(TId id) where TId : notnull
 abstract Typeshift.IAgentHost Typeshift.IAgentHost.WithSettingsId<TId>(TId? id) where TId : struct
 public interface Typeshift.IAgentSettingsStore
@@ -773,6 +778,7 @@ public Microsoft.Extensions.DependencyInjection.IServiceCollection Typeshift.Typ
 public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithApprovalRule<TRule>() where TRule : class, Typeshift.IToolApprovalRule
 public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithChatClientProvider<TProvider>() where TProvider : class
 public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithConversationTracker<TId>() where TId : notnull
+public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithDefaultProvider<TProviderId>(TProviderId provider) where TProviderId : notnull
 public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithFileStore(System.Action<Typeshift.FileStoreOptions>? configure = null, bool replace = false)
 public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithMcpToolProvider<TProvider>() where TProvider : class, Typeshift.IMcpToolProvider
 public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithOptions(System.Action<Typeshift.TypeshiftOptions> configure)

@@ -23,6 +23,13 @@ public abstract class AgentDeclaration
     /// </summary>
     public abstract string? Description { get; }
 
+    // D87: a run checks the providers of the agents it may reach, and reads their settings only where they may name one
+    /// <summary>
+    /// Whether the agent's <c>Settings</c> store the provider of its model, so a settings layer may name the provider
+    /// its runs take.
+    /// </summary>
+    public virtual bool StoresProvider => false;
+
     // D84: what the runtime's catalog lists of the tools settings may switch off
     /// <summary>
     /// The tools the agent's <c>Settings</c> may switch off, by name, in the order the agent offers them.
@@ -37,6 +44,18 @@ public abstract class AgentDeclaration
 
     // D66: the agent's own settings, under no id
     internal abstract Task<object?> LoadAgentSettingsAsync(StoreAccess store, CancellationToken ct);
+
+    // D27, D66: the agent's own stored settings and those under the settings id, null where none is stored
+    internal async Task<object?[]> LoadLayersAsync(StoreAccess store, StoreId? settingsId, CancellationToken ct)
+    {
+        var loads = new[]
+        {
+            store.KeepsAgentSettings ? LoadAgentSettingsAsync(store, ct) : Task.FromResult<object?>(null),
+            settingsId is null ? Task.FromResult<object?>(null) : LoadSettingsAsync(store, settingsId, ct)
+        };
+
+        return await Task.WhenAll(loads).ConfigureAwait(false);
+    }
 }
 
 /// <summary>

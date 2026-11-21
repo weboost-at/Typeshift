@@ -2987,6 +2987,22 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Dropped_Copy_With_A_Provider_TSH041_Is_Reported_Naming_The_Provider()
+    {
+        // Act
+        var run = Run(DiagnosticSources.DroppedHostCopyOfAProvider);
+
+        // Assert
+        run.Assert.Reports(
+            "TSH041",
+            DiagnosticSeverity.Error,
+            "support.WithProvider(\"anthropic\")",
+            message: "'WithProvider' returns a copy of the host with the provider and leaves the host it is called on "
+                + "as it was, so the provider is lost here: run the copy, as in "
+                + "host.WithProvider(provider).RunAsync(input), or keep it in a variable");
+    }
+
+    [Fact]
     public void Given_A_Dropped_Copy_With_Two_Ids_TSH041_Is_Reported_Once_On_The_Chain()
     {
         // Act

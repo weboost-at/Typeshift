@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Typeshift.Tests.Agents.Support;
 using Typeshift.Tests.Compaction.Support;
+using Typeshift.Tests.Hosting.Support;
 using Typeshift.Tests.Testing.Fakes;
 using FluentAssertions;
 using Microsoft.Extensions.AI;
@@ -12,6 +13,8 @@ namespace Typeshift.Tests.Compaction;
 public class CompactionTests : AgentTestBase
 {
     private const string SummaryModel = "summary-model";
+
+    private Action<IServiceCollection> _register = _ => { };
 
     private const string Cleared = Typeshift.Compaction.ClearedReadOnlyResult;
 
@@ -356,6 +359,35 @@ public class CompactionTests : AgentTestBase
 
         // Assert
         Models.Should().Contain(new ProvidedModel(Data.Agent.Provider, SummaryModel));
+    }
+
+    [Fact]
+    public async Task Given_A_Provider_At_The_Call_Site_It_Serves_The_Summary_Over_A_Summary_Provider()
+    {
+        // Arrange
+        var callSite = CreateScriptedClient();
+        _register = services => services.AddKeyedChatClient(Vendor.Other, callSite);
+
+        var settings = new CompactingAgent.Settings
+        {
+            MaxInputTokens = 1_000,
+            SummaryProvider = Data.Agent.Provider,
+            SummaryModel = SummaryModel
+        };
+
+        callSite
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(Text(Data.Agent.Reason))
+            .Reply(Text(Data.Tool.Answer));
+
+        var host = Host<CompactingAgent>().WithConversationId(Data.Agent.ConversationId).WithProvider(Vendor.Other);
+        await host.RunAsync(new string('x', Page), settings, Ct);
+
+        // Act
+        await host.RunAsync(Data.Agent.FollowUp, settings, Ct);
+
+        // Assert
+        callSite.Options[1]!.ModelId.Should().Be(SummaryModel);
     }
 
     [Fact]
@@ -844,6 +876,13 @@ public class CompactionTests : AgentTestBase
 
         // Assert
         Tokens.Estimate(loaded.Messages, null).Should().Be(Tokens.Estimate([message], null));
+    }
+
+    protected override void ConfigureServices(IServiceCollection services)
+    {
+        base.ConfigureServices(services);
+
+        _register(services);
     }
 
     private Task<ChatResponse> RunAsync(string input, CompactingAgent.Settings? settings = null) =>

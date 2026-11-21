@@ -1187,7 +1187,8 @@ The analyzer reports these spellings:
 **Copy of a host is dropped.** `WithSettingsId(id)` and `WithConversationId(id)` return a copy of the host with the
 id and leave the host they are called on as it was. A call whose copy goes nowhere changes nothing: the host's next
 run has no id, so it stores and resumes no conversation, and its settings members change the agent's own settings,
-which every run applies, in place of the settings under the id.
+which every run applies, in place of the settings under the id. `WithProvider(provider)` and `WithModel(model)` are
+copies too, and a dropped one leaves the host's runs on the provider and model they had.
 
 <!-- snippet: tsh041 -->
 <a id='snippet-tsh041'></a>
@@ -1234,7 +1235,7 @@ internal sealed class TicketFollowUp(ITypeshiftRuntime runtime)
     }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L3808-L3822' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh042' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L3826-L3840' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh042' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Take the copy without `using`, and dispose the host where its work ends. The analyzer reports nothing for
@@ -1260,7 +1261,7 @@ internal partial class DeskAgent : Agent
     }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L3956-L3966' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh043' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L3974-L3984' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh043' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Remove the `Exclude`, include the tool, or remove the mark. To make a tool ask your app, it has to be offered
@@ -1285,7 +1286,7 @@ internal partial class EchoAgent : Agent
         : this() => WithInstructions(instructions);
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L4097-L4105' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh044' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L4115-L4123' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh044' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The constructor takes the instructions, but `new EchoAgent()` never calls it. Move the declaration into the
@@ -1317,9 +1318,10 @@ Each row links the section that explains it. A word in braces stands for a value
 
 | Exception | Message | Cause | What to do |
 |---|---|---|---|
-| `InvalidOperationException` | `which names no provider, and no default client is registered` | The run names no provider, and your app registered no default client | Register one with `services.AddChatClient(client)`, or name a provider ([Registering clients](./models.md#registering-clients)) |
+| `InvalidOperationException` | `which names no provider, and no default provider is registered` | The run names no provider, and your app registered no default client and named no default provider | Register a client with `services.AddChatClient(client)`, name one with `WithDefaultProvider(key)`, or name the run's provider ([The default provider](./models.md#the-default-provider)) |
 | `InvalidOperationException` | `No chat client serves {run} on`, `Name a provider that has a client` | The run names a provider that no client is registered under, such as a typo. The message lists the keys your app registered clients under | Name a registered provider, or register a client under it ([Registering clients](./models.md#registering-clients)) |
 | `InvalidOperationException` | `which names no model: the` | Your provider class serves the run's provider, and the run names no model | Name the model, in the agent's code or its settings ([Your own provider](./models.md#your-own-provider)) |
+| `InvalidOperationException` | `No model is named for {run}`, `names no model of its own in its ChatClientMetadata` | No layer names a model, and the client that serves the run was built without one | Name a model at the call site, in the agent's code or its settings, or build the client with one ([The default provider](./models.md#the-default-provider)) |
 | `InvalidOperationException` | `returned no client for` | Your `IChatClientProvider<T>` returned null | Return a client, or throw for a provider it does not serve ([A key per customer](./models.md#a-key-per-customer)) |
 | `InvalidOperationException` | `runs a tool loop of its own` | The client is wrapped in `UseFunctionInvocation()` | Register the client without it ([Wrapping a client](./models.md#wrapping-a-client)) |
 | `InvalidOperationException` | `is no chat client provider: implement` | `WithChatClientProvider<T>()` got a class that implements no `IChatClientProvider<T>` | Implement it ([TSH030](#tsh030)) |

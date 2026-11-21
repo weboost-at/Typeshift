@@ -20,6 +20,17 @@ internal static partial class Models
         // end-snippet
     }
 
+    public static void ShowDefaultProvider(IServiceCollection services, IChatClient openAi, IChatClient anthropic)
+    {
+        // begin-snippet: default-provider
+        services.AddKeyedChatClient("openai", openAi);
+        services.AddKeyedChatClient("anthropic", anthropic);
+
+        services.AddTypeshift()
+            .WithDefaultProvider("openai");
+        // end-snippet
+    }
+
     public static void ShowChatClient(IServiceCollection services, IChatClient openAi)
     {
         // begin-snippet: chat-client

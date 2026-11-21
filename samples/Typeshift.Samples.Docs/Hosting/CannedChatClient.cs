@@ -10,10 +10,13 @@ namespace Typeshift.Samples.Hosting;
 // before it opens a ticket, a call of a sub-agent it is offered, a handoff to billing about a charge, of
 // find_companies for the city it is given, JSON when the run asks for it, otherwise one fixed answer; once a tool
 // answered, it answers in text, listing the companies find_companies found. It fails the first call of one input, as
-// a provider that is down does. Like a provider's client, it stops at a cancelled token
+// a provider that is down does. Like a provider's client, it stops at a cancelled token, and it names the model it was
+// built with, which answers a run that names none
 internal sealed class CannedChatClient : IChatClient
 {
     public const string Answer = "Your refund was approved and reaches your account within five days.";
+
+    private static readonly ChatClientMetadata Metadata = new("canned", defaultModelId: "canned-model");
 
     // An input the client fails once, with the HTTP error of a provider that is down, and answers after
     public const string Unavailable = "Is the provider up?";
@@ -64,7 +67,8 @@ internal sealed class CannedChatClient : IChatClient
         yield return new ChatResponseUpdate(message.Role, message.Contents) { ModelId = options?.ModelId };
     }
 
-    public object? GetService(Type serviceType, object? serviceKey = null) => null;
+    public object? GetService(Type serviceType, object? serviceKey = null) =>
+        serviceType == typeof(ChatClientMetadata) ? Metadata : null;
 
     public void Dispose()
     {

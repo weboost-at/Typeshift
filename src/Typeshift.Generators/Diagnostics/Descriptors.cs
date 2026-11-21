@@ -236,8 +236,8 @@ internal static class Descriptors
     public static readonly DiagnosticDescriptor DroppedHostCopy = Error(
         "TSH041",
         "Copy of a host is dropped",
-        "'{0}' returns a copy of the host with the id and leaves the host it is called on as it was, so the id is "
-        + "lost here: run the copy, as in host.{0}(id).RunAsync(input), or keep it in a variable");
+        "'{0}' returns a copy of the host with the {1} and leaves the host it is called on as it was, so the {1} is "
+        + "lost here: run the copy, as in host.{0}({1}).RunAsync(input), or keep it in a variable");
 
     public static readonly DiagnosticDescriptor DisposedHostThatLivesOn = Warning(
         "TSH042",

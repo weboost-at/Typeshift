@@ -261,13 +261,44 @@ public sealed class TypeshiftBuilder
     {
         ArgumentNullException.ThrowIfNull(configure);
 
-        var options = _services.Select(service => service.ImplementationInstance).OfType<TypeshiftOptions>()
-            .FirstOrDefault();
-
-        if (options is null) _services.AddSingleton(options = new TypeshiftOptions());
-
-        configure(options);
+        configure(Options);
         return this;
+    }
+
+    // D63: the default provider is a choice of the app's, made once, so a typo of a provider's key never falls back
+    /// <summary>
+    /// Names the provider that serves every run that names none, by its key: the client registered under the key, as
+    /// <c>services.AddKeyedChatClient(key, client)</c> registers one, in place of the client registered for every
+    /// agent. A run that names a provider is never served by it, and a key nothing serves fails the runs that take it,
+    /// naming the keys clients are registered under. The last call wins.
+    /// More in the guide:
+    /// <see href="https://weboost-at.github.io/Typeshift/guide/models#the-default-provider">The default provider</see>.
+    /// </summary>
+    /// <param name="provider">The provider's key.</param>
+    /// <typeparam name="TProviderId">The key's type, any type the app registered a client under.</typeparam>
+    /// <returns>The same chain.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="provider"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="provider"/> is text that is white space.</exception>
+    public TypeshiftBuilder WithDefaultProvider<TProviderId>(TProviderId provider) where TProviderId : notnull
+    {
+        ArgumentNullException.ThrowIfNull(provider);
+        if (provider is string text) ArgumentException.ThrowIfNullOrWhiteSpace(text, nameof(provider));
+
+        Options.DefaultProvider = new ProviderId<TProviderId>(provider);
+        return this;
+    }
+
+    // The one instance every call changes, registered by the first call that needs it
+    private TypeshiftOptions Options
+    {
+        get
+        {
+            var options = _services.Select(service => service.ImplementationInstance).OfType<TypeshiftOptions>()
+                .FirstOrDefault();
+
+            if (options is null) _services.AddSingleton(options = new TypeshiftOptions());
+            return options;
+        }
     }
 
     /// <summary>
