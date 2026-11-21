@@ -87,7 +87,7 @@ A configurable member needs a type settings can store ([TSH012](./diagnostics.md
 | Enums | Every enum | Its name, or its number for a value without a name, such as `[Flags]` with none set |
 | Ids, addresses, dates and times | `Guid`, `Uri`, `DateTime`, `DateTimeOffset`, `DateOnly`, `TimeOnly`, `TimeSpan` | A string |
 | Reasoning | `ReasoningOptions` | An object |
-| Objects | Non-generic classes and records with a public parameterless constructor, no `required` members and at least one settable member, each of a storable type, and record structs that meet the same rules | An object, replaced as a whole and never merged |
+| Objects | Non-generic classes and records outside the `System` and `Microsoft` namespaces, with a public parameterless constructor, no `required` members and at least one settable member, each of a storable type, and record structs that meet the same rules | An object, replaced as a whole and never merged |
 | Collections | `T[]`, `List<T>`, `IList<T>`, `IReadOnlyList<T>`, `ICollection<T>`, `IReadOnlyCollection<T>`, `IEnumerable<T>`, `HashSet<T>`, `ISet<T>` and `IReadOnlySet<T>` of storable values | An array |
 | Dictionaries | `Dictionary<TKey, TValue>`, `IDictionary<TKey, TValue>` and `IReadOnlyDictionary<TKey, TValue>` of storable values, keyed by `string` or an enum | An object |
 
@@ -105,6 +105,9 @@ The analyzer reports every other type, including these:
   writes.
 - `object` and a class without a settable member are not storable, also as an item or a dictionary value such as
   `Dictionary<string, object>`: settings would store `{}` and read back an empty object.
+- A class of .NET or of another Microsoft library that the table does not name, any type under the `System` or
+  `Microsoft` namespaces, is not storable, such as `StringBuilder`, even inside a record of yours: it would store
+  whatever its setters happen to reach, a `StringBuilder` its capacity and its length.
 
 ## Receiving settings in the tool
 

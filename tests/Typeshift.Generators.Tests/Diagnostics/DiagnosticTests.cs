@@ -633,6 +633,29 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Configurable_Member_Of_A_Framework_Class_TSH012_Is_Reported_On_The_Pick()
+    {
+        // Act
+        var run = Run(DiagnosticSources.FrameworkClassPick);
+
+        // Assert
+        run.Assert.Reports("TSH012", DiagnosticSeverity.Error, "s => s.Prefix")
+            .GetMessage()
+            .Should()
+            .Contain("its type 'StringBuilder'");
+    }
+
+    [Fact]
+    public void Given_A_Configurable_Record_Holding_A_Framework_Class_TSH012_Is_Reported_On_The_Pick()
+    {
+        // Act
+        var run = Run(DiagnosticSources.RecordHoldingAFrameworkClass);
+
+        // Assert
+        run.Assert.Reports("TSH012", DiagnosticSeverity.Error, "s => s.Greeting");
+    }
+
+    [Fact]
     public void Given_A_Recursive_Member_Under_A_Deny_List_TSH012_Is_Reported_On_The_Settings_Call()
     {
         // Act

@@ -151,7 +151,22 @@ internal static class Storage
     // A struct other than a record mostly keeps its state where no setter reaches, so it would store as {}
     private static bool IsObject(INamedTypeSymbol type) =>
         type is { IsAbstract: false, IsGenericType: false }
-        and ({ TypeKind: TypeKind.Class } or { TypeKind: TypeKind.Struct, IsRecord: true });
+        and ({ TypeKind: TypeKind.Class } or { TypeKind: TypeKind.Struct, IsRecord: true })
+        && !IsFrameworks(type);
+
+    // D19: a class of the framework would store what its setters happen to reach, StringBuilder its capacity and
+    // length; the scalars above are the ones it stores. Its outermost namespace tells it, the same on every machine
+    private static bool IsFrameworks(INamedTypeSymbol type)
+    {
+        var outermost = type.ContainingNamespace;
+
+        while (outermost is { ContainingNamespace.IsGlobalNamespace: false })
+        {
+            outermost = outermost.ContainingNamespace;
+        }
+
+        return outermost is { Name: "System" or "Microsoft" };
+    }
 
     // new() cannot create a class that requires members be set
     private static bool HasRequiredMembers(INamedTypeSymbol type)

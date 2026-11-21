@@ -471,9 +471,14 @@ The table lists every entry by its ID, with the section that holds it and whethe
   stores like a record. Other structs than the scalars are not storable, since most keep their state where no setter
   reaches and would store as an empty object. A class without a stored member is refused for that reason too:
   `object`, a marker class, a class whose only members have no setter, each also as an item or a dictionary value.
-  Such a member compiled once, was stored as `{}` and read back as an empty object. A class of another library
-  that has settable members still passes and stores what its setters reach, `StringBuilder` its capacity and
-  length; no rule tells such a class from a settings class of a library.
+  Such a member compiled once, was stored as `{}` and read back as an empty object.
+- **Framework classes:** a class or record struct whose outermost namespace is `System` or `Microsoft` is refused
+  unless the list above names it, since none is a settings class: it would store what its setters happen to reach,
+  `StringBuilder` its capacity and length, as it did up to 0.1.0-alpha.7. The namespace is read from the symbol, with
+  no lookup, and reads the same on every machine; telling a framework assembly by its name would take a list that
+  grows with every package, and by its public key one more read of metadata per type. A class of another
+  library that has settable members still passes and stores what its setters reach: no rule tells it from a
+  settings class of a library.
 - **One format each:** a `TimeSpan`, a `DateOnly` and a `TimeOnly` read only in the format their writers write, the
   constant format and ISO 8601. The lenient parsers read `"30"` as thirty days and `"01/02/2026"` as the second of
   January, in a file a person edits by hand. `TimeSpan.TryParseExact` with the constant format still takes `"30"`

@@ -4033,4 +4033,51 @@ public static class DiagnosticSources
             public LeadAgent() => UseAgent<HelpAgent>();
         }
         """;
+
+    // D19: a class of the framework would store what its setters reach, a StringBuilder its capacity and length
+    public const string FrameworkClassPick =
+        """
+        using System.Text;
+        using Typeshift;
+
+        internal record EchoSettings
+        {
+            public StringBuilder Prefix { get; init; } = new();
+        }
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() =>
+                AddTool(Echo).WithDescription("Echoes.").WithSettings<EchoSettings>().Configurable(s => s.Prefix);
+
+            public static string Echo(string text, EchoSettings settings) => settings.Prefix + text;
+        }
+        """;
+
+    // A record of the app's that holds one is refused as a whole
+    public const string RecordHoldingAFrameworkClass =
+        """
+        using System.Text;
+        using Typeshift;
+
+        internal record Greeting
+        {
+            public string Name { get; init; } = "";
+
+            public StringBuilder Prefix { get; init; } = new();
+        }
+
+        internal record EchoSettings
+        {
+            public Greeting Greeting { get; init; } = new();
+        }
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() =>
+                AddTool(Echo).WithDescription("Echoes.").WithSettings<EchoSettings>().Configurable(s => s.Greeting);
+
+            public static string Echo(string text, EchoSettings settings) => settings.Greeting.Name + text;
+        }
+        """;
 }

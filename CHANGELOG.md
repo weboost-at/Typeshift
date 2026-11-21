@@ -253,6 +253,10 @@ All notable changes to this project are documented here. The format follows
   the build passed and the model's calls failed once it sent an enum's name. Add
   `[JsonSourceGenerationOptions(UseStringEnumConverter = true)]` to the context, or give the enum a
   `[JsonConverter(typeof(JsonStringEnumConverter<TEnum>))]` of its own.
+- **Breaking:** a configurable settings member of a class of .NET or another Microsoft library that settings do not
+  list, any type under the `System` or `Microsoft` namespaces such as `StringBuilder`, is TSH012, also inside a record
+  of yours. It compiled and stored what the class's setters reach, a `StringBuilder` its capacity and its length.
+  Give the member a record of your own, or keep it in code with `NotConfigurable(...)`.
 - **Breaking:** `host.CreateChatClientAsync(options)` takes only options that `ResolveOptionsAsync` returned, and
   throws an `ArgumentException` for `ChatOptions` your code made, such as `new ChatOptions()`. Create the client from
   `await host.ResolveOptionsAsync()` instead. The client keeps those options: a call without options runs with them,
