@@ -155,6 +155,9 @@ you ship, your app has to do these things itself:
   running on your app's own key ([A key per customer](./models.md#a-key-per-customer)).
 - Decide what your app shows when a run fails because its conversation could not be saved, and watch your logs or
   spans for those failures ([When the store fails](./conversations.md#when-the-store-fails)).
+- Show your users a text of your own for a failed run in a chat built from the entries: its last entry holds the
+  exception's message as it is, and a provider's message can name details of the request
+  ([What is stored](./conversations.md#what-is-stored)).
 - Capture message content in traces only where your tracing backend may keep it
   ([Message content](./observability.md#message-content)).
 
