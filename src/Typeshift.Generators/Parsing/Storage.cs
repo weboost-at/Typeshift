@@ -155,9 +155,12 @@ internal static class Storage
         && !IsFrameworks(type);
 
     // D19: a class of the framework would store what its setters happen to reach, StringBuilder its capacity and
-    // length; the scalars above are the ones it stores. Its outermost namespace tells it, the same on every machine
+    // length; the scalars above are the ones it stores. A referenced type's outermost namespace tells it, the same on
+    // every machine; a type of the project's own source is the app's, whatever its namespace
     private static bool IsFrameworks(INamedTypeSymbol type)
     {
+        if (!type.DeclaringSyntaxReferences.IsEmpty) return false;
+
         var outermost = type.ContainingNamespace;
 
         while (outermost is { ContainingNamespace.IsGlobalNamespace: false })

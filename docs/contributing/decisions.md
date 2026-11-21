@@ -197,7 +197,7 @@ The table lists every entry by its ID, with the section that holds it and whethe
   outside the constructor body (TSH014). At runtime the chains declare nothing: the generated code is the one truth,
   and only values (`WithDisplayName`, chat options, `Configure{Tool}()`) are recorded.
 - **Constructors that never run:** the module creates each toolset and agent with its parameterless constructor,
-  which runs only the constructors it chains to with `this(...)`. Up to 0.1.0-alpha.7 the generator read the
+  which runs only the constructors it chains to with `this(...)`. Up to 0.1.0-alpha.6 the generator read the
   declarations of every constructor, so a pick or a toolset use in another one reached the generated `Settings` and
   tools while its values, such as the instructions, never reached a run; only the provider id type followed the
   chain (D77). The parsers read that chain's blocks alone (`ConstructorChains.GetRun`), and the analyzer reports a
@@ -228,7 +228,7 @@ The table lists every entry by its ID, with the section that holds it and whethe
   TSH007. A generated file is named after its class's full name. The compiler compares those file names without
   case, so where two full names differ only by case, each file's name also carries a hash of its class's spelling.
 - **A tool's factory and function:** `Create{Tool}` and the private `{Tool}Function` were members of the toolset up
-  to 0.1.0-alpha.7, so a method `CreateReport` beside `AddTool(Report)` was TSH018, and so was a toolset named
+  to 0.1.0-alpha.6, so a method `CreateReport` beside `AddTool(Report)` was TSH018, and so was a toolset named
   `CreateTicket` with a tool `ticket`. They live in `TypeshiftGenerated` now, a public static class, hidden, since an
   agent of another assembly calls the factory, and the stamp names it from the toolset,
   `TypeshiftGenerated.Create{Tool}` (D7). Two tools whose factory and function share a name there stay TSH007. An
@@ -479,9 +479,11 @@ The table lists every entry by its ID, with the section that holds it and whethe
   reaches and would store as an empty object. A class without a stored member is refused for that reason too:
   `object`, a marker class, a class whose only members have no setter, each also as an item or a dictionary value.
   Such a member compiled once, was stored as `{}` and read back as an empty object.
-- **Framework classes:** a class or record struct whose outermost namespace is `System` or `Microsoft` is refused
-  unless the list above names it, since none is a settings class: it would store what its setters happen to reach,
-  `StringBuilder` its capacity and length, as it did up to 0.1.0-alpha.7. The namespace is read from the symbol, with
+- **Framework classes:** a referenced class or record struct whose outermost namespace is `System` or `Microsoft`
+  is refused unless the list above names it, since none is a settings class: it would store what its setters happen
+  to reach, `StringBuilder` its capacity and length, as it did up to 0.1.0-alpha.6. A type of the project's own
+  source passes under any namespace, so an app whose namespaces begin with `Microsoft` keeps its records. The
+  namespace is read from the symbol, with
   no lookup, and reads the same on every machine; telling a framework assembly by its name would take a list that
   grows with every package, and by its public key one more read of metadata per type. A class of another
   library that has settable members still passes and stores what its setters reach: no rule tells it from a
@@ -1817,7 +1819,7 @@ The table lists every entry by its ID, with the section that holds it and whethe
   `integer`, and a name it sends fails the call. TSH033 reports a context that lists a tool type with an enum
   and has no `UseStringEnumConverter = true`. It skips an enum, and a property, with a `[JsonConverter]` of its
   own, and an enum the context's `Converters` name a converter for, and it shares TSH027's condition. It was a
-  warning up to 0.1.0-alpha.7, since the tool still works with numbers, and is an error at the owner's request: a
+  warning while it was built, before 0.1.0-alpha.8, since the tool still works with numbers, and is an error at the owner's request: a
   model sends the names it knows, so the tool failed in the published app alone, after a build that passed. The
   generator registers no converters itself: that would need
   every enum of every tool and typed-run type found at build time, nested ones included, where one line on the

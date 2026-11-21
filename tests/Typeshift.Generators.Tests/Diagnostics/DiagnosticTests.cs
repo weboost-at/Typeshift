@@ -656,6 +656,16 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Record_Of_Your_Own_Under_A_Microsoft_Namespace_TSH012_Is_Not_Reported()
+    {
+        // Act
+        var run = Run(ShapeSources.SettingsInAMicrosoftNamespace);
+
+        // Assert
+        run.Assert.DoesNotReport("TSH012");
+    }
+
+    [Fact]
     public void Given_A_Recursive_Member_Under_A_Deny_List_TSH012_Is_Reported_On_The_Settings_Call()
     {
         // Act

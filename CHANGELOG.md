@@ -63,11 +63,12 @@ All notable changes to this project are documented here. The format follows
   `WithStorageKind(Generated.Kind)` or a tool that takes another agent's generated `Settings`. The generator cannot
   see such code and left the declaration out without a word: the tool was missing, or the agent's settings were
   stored under the kind of its class. The message names the first difference.
-- TSH033 warns about a `JsonSerializerContext` that lists a tool type with an enum and has no
+- TSH033, an error, reports a `JsonSerializerContext` that lists a tool type with an enum and has no
   `UseStringEnumConverter = true`, in an app published with Native AOT or trimmed. There the context decides how an
   enum travels, and without the option the model reads `integer` in the tool's schema, gets numbers back, and fails
   the call when it sends the enum's name, as it does in an app that keeps JSON reflection. Add
-  `[JsonSourceGenerationOptions(UseStringEnumConverter = true)]` to the context.
+  `[JsonSourceGenerationOptions(UseStringEnumConverter = true)]` to the context, or give the enum a
+  `[JsonConverter(typeof(JsonStringEnumConverter<TEnum>))]` of its own.
 - `TypeshiftBuilder.Services` is the service collection the chain registers into. An app on
   `TypeshiftRuntime.Create` registers its logging and the services its tools resolve there, as in
   `TypeshiftRuntime.Create(client, typeshift => typeshift.Services.AddLogging(logging => logging.AddConsole()))`.
@@ -253,14 +254,9 @@ All notable changes to this project are documented here. The format follows
   member of yours named `TypeshiftGenerated` in a toolset with tools is TSH018 now. A tool of an agent's own has its
   factory and function in the agent's private `TypeshiftGenerated` class. Module stamps are at version 20, so a
   referenced project built with an earlier Typeshift is TSH020 until it is rebuilt.
-- **Breaking:** TSH033, a `JsonSerializerContext` that lists a tool type with an enum and has no
-  `UseStringEnumConverter = true` in an app published with Native AOT or trimmed, is an error. It was a warning, so
-  the build passed and the model's calls failed once it sent an enum's name. Add
-  `[JsonSourceGenerationOptions(UseStringEnumConverter = true)]` to the context, or give the enum a
-  `[JsonConverter(typeof(JsonStringEnumConverter<TEnum>))]` of its own.
 - **Breaking:** a configurable settings member of a class of .NET or another Microsoft library that settings do not
-  list, any type under the `System` or `Microsoft` namespaces such as `StringBuilder`, is TSH012, also inside a record
-  of yours. It compiled and stored what the class's setters reach, a `StringBuilder` its capacity and its length.
+  list, any referenced type under the `System` or `Microsoft` namespaces such as `StringBuilder`, is TSH012, also
+  inside a record of yours. It compiled and stored what the class's setters reach, a `StringBuilder` its capacity and its length.
   Give the member a record of your own, or keep it in code with `NotConfigurable(...)`.
 - **Breaking:** `host.CreateChatClientAsync(options)` takes only options that `ResolveOptionsAsync` returned, and
   throws an `ArgumentException` for `ChatOptions` your code made, such as `new ChatOptions()`. Create the client from

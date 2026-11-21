@@ -2866,6 +2866,32 @@ public static class ShapeSources
         """;
 
     // D14: Microsoft.Extensions.AI's [Description] describes a tool and its parameters where the XML docs say nothing
+    // A settings record of the project's own source under a namespace the framework's names begin with is the app's
+    public const string SettingsInAMicrosoftNamespace =
+        """
+        using Typeshift;
+
+        namespace Microsoft.Contoso.Billing;
+
+        internal record Greeting
+        {
+            public string Name { get; init; } = "";
+        }
+
+        internal record EchoSettings
+        {
+            public Greeting Greeting { get; init; } = new();
+        }
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() =>
+                AddTool(Echo).WithDescription("Echoes.").WithSettings<EchoSettings>().Configurable(s => s.Greeting);
+
+            public static string Echo(string text, EchoSettings settings) => settings.Greeting.Name + text;
+        }
+        """;
+
     public const string DescriptionAttributes =
         """
         using System.ComponentModel;

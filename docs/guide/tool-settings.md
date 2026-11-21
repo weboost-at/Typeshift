@@ -105,9 +105,9 @@ The analyzer reports every other type, including these:
   writes.
 - `object` and a class without a settable member are not storable, also as an item or a dictionary value such as
   `Dictionary<string, object>`: settings would store `{}` and read back an empty object.
-- A class of .NET or of another Microsoft library that the table does not name, any type under the `System` or
-  `Microsoft` namespaces, is not storable, such as `StringBuilder`, even inside a record of yours: it would store
-  whatever its setters happen to reach, a `StringBuilder` its capacity and its length.
+- A class of .NET or of another Microsoft library that the table does not name, any type of a referenced assembly
+  under the `System` or `Microsoft` namespaces, is not storable, such as `StringBuilder`, even inside a record of
+  yours: it would store whatever its setters happen to reach, a `StringBuilder` its capacity and its length.
 
 ## Receiving settings in the tool
 
