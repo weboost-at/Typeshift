@@ -15,15 +15,15 @@ namespace Typeshift;
 /// <param name="response">
 /// What the run answered, or the model's response that asked decisions the store failed to keep.
 /// </param>
-/// <param name="inner">
+/// <param name="innerException">
 /// The store's exception: of the first append that failed, or of the save of the decisions the run asks.
 /// </param>
 public sealed class ConversationStoreException(
     string message,
     object conversation,
     ChatResponse response,
-    Exception inner)
-    : InvalidOperationException(message, inner)
+    Exception innerException)
+    : InvalidOperationException(message, innerException)
 {
     /// <summary>
     /// The conversation's id, as <c>WithConversationId</c> took it; for a call on the raw path, the text of

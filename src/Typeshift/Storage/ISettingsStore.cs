@@ -60,5 +60,6 @@ public sealed record Stored<TData>(TData Data, long Version);
 /// A save that lost to another save of the same document.
 /// </summary>
 /// <param name="message">What was saved.</param>
-/// <param name="inner">The store's own exception, if any.</param>
-public sealed class StoreConflictException(string message, Exception? inner = null) : Exception(message, inner);
+/// <param name="innerException">The store's own exception, if any.</param>
+public sealed class StoreConflictException(string message, Exception? innerException = null)
+    : Exception(message, innerException);

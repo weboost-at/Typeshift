@@ -13,9 +13,9 @@ namespace Typeshift;
 /// </summary>
 /// <param name="message">The message, naming the conversation.</param>
 /// <param name="conversation">The conversation's id.</param>
-/// <param name="inner">The store's exception, for a run whose step the store refused; otherwise null.</param>
-public sealed class ConversationBusyException(string message, object conversation, Exception? inner = null)
-    : InvalidOperationException(message, inner)
+/// <param name="innerException">The store's exception, for a run whose step the store refused; otherwise null.</param>
+public sealed class ConversationBusyException(string message, object conversation, Exception? innerException = null)
+    : InvalidOperationException(message, innerException)
 {
     /// <summary>
     /// The conversation's id, as <c>WithConversationId</c> took it; for a call on the raw path, the text of

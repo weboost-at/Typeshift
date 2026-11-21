@@ -308,6 +308,10 @@ All notable changes to this project are documented here. The format follows
 - **Breaking:** `LiveRun<TId>` and `response.GetConversationId<TId>()` take a non-nullable id type, as
   `ConversationTracker<TId>` and the stores do, so `GetConversationId<string?>()` warns CS8714 under nullable
   annotations: write `GetConversationId<string>()`.
+- **Breaking:** the constructors of `ConversationBusyException`, `ConversationStoreException` and
+  `StoreConflictException` name their inner exception `innerException`, as .NET's exceptions and `ToolException` do.
+  Only a named argument changes: write `new StoreConflictException(message, innerException: conflict)` for
+  `new StoreConflictException(message, inner: conflict)`.
 - **Breaking:** a run that names no model, on a client that reports no model of its own in its `ChatClientMetadata`,
   throws an `InvalidOperationException` before it stores anything, naming the ways to name one. It sent the provider
   no model, which rejected the call. Name a model, or build the client with one, as `GetChatClient("gpt-5-mini")`
