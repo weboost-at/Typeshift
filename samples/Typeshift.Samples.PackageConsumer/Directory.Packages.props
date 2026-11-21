@@ -8,7 +8,7 @@
 
   <ItemGroup>
     <PackageVersion Include="Typeshift" Version="0.1.0-*" />
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.15" />
   </ItemGroup>
 
 </Project>

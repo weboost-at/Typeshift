@@ -230,6 +230,8 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
+- The package depends on Microsoft.Extensions.AI 10.11.1, up from 10.10.0, and on
+  Microsoft.Extensions.DependencyInjection 10.0.15, up from 10.0.12.
 - **Breaking:** `host.CreateChatClientAsync(options)` takes only options that `ResolveOptionsAsync` returned, and
   throws an `ArgumentException` for `ChatOptions` your code made, such as `new ChatOptions()`. Create the client from
   `await host.ResolveOptionsAsync()` instead. The client keeps those options: a call without options runs with them,
