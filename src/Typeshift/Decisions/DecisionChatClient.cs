@@ -1,5 +1,4 @@
 using System.Runtime.CompilerServices;
-using System.Runtime.ExceptionServices;
 using System.Text.Json;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
@@ -106,7 +105,8 @@ internal sealed class DecisionChatClient(IChatClient inner) : DelegatingChatClie
         }
 
         // A batch never points at calls the history lacks: the response's own append must have succeeded
-        if (run.ResponseFailure is { } failure) ExceptionDispatchInfo.Capture(failure).Throw();
+        if (run.ResponseFailure is { } failure)
+            throw ConversationStoreException.Undecided(run.Conversation, run.LastResponse!, failure);
 
         // A declaration the loop cannot invoke, a handoff for example, would make it hand a replay back untouched
         var unreplayable = decided.Where(call => call.Tool is AIFunctionDeclaration and not AIFunction).ToList();

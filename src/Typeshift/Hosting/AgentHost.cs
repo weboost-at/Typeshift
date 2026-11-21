@@ -175,7 +175,8 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// because a run in another container appended first.
     /// </exception>
     /// <exception cref="ConversationStoreException">
-    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue.
+    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue,
+    /// or to keep a decision the run asks.
     /// </exception>
     /// <exception cref="InvalidOperationException">
     /// The agent's chat client runs a tool loop of its own, or something the run needs is not registered, such as a
@@ -205,7 +206,8 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// because a run in another container appended first.
     /// </exception>
     /// <exception cref="ConversationStoreException">
-    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue.
+    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue,
+    /// or to keep a decision the run asks.
     /// </exception>
     /// <exception cref="InvalidOperationException">
     /// The agent's chat client runs a tool loop of its own, or something the run needs is not registered.
@@ -233,7 +235,8 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// because a run in another container appended first.
     /// </exception>
     /// <exception cref="ConversationStoreException">
-    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue.
+    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue,
+    /// or to keep a decision the run asks.
     /// </exception>
     /// <exception cref="InvalidOperationException">
     /// The agent's chat client runs a tool loop of its own, or something the run needs is not registered.
@@ -264,7 +267,8 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// because a run in another container appended first.
     /// </exception>
     /// <exception cref="ConversationStoreException">
-    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue.
+    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue,
+    /// or to keep a decision the run asks.
     /// </exception>
     /// <exception cref="InvalidOperationException">
     /// The agent's chat client runs a tool loop of its own, or something the run needs is not registered.
@@ -289,7 +293,8 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// because a run in another container appended first. A stream throws it when its updates are read.
     /// </exception>
     /// <exception cref="ConversationStoreException">
-    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue.
+    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue,
+    /// or to keep a decision the run asks.
     /// </exception>
     /// <exception cref="InvalidOperationException">
     /// The agent's chat client runs a tool loop of its own, or something the run needs is not registered.
@@ -311,7 +316,8 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// because a run in another container appended first. A stream throws it when its updates are read.
     /// </exception>
     /// <exception cref="ConversationStoreException">
-    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue.
+    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue,
+    /// or to keep a decision the run asks.
     /// </exception>
     /// <exception cref="InvalidOperationException">
     /// The agent's chat client runs a tool loop of its own, or something the run needs is not registered.
@@ -333,7 +339,8 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// because a run in another container appended first. A stream throws it when its updates are read.
     /// </exception>
     /// <exception cref="ConversationStoreException">
-    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue.
+    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue,
+    /// or to keep a decision the run asks.
     /// </exception>
     /// <exception cref="InvalidOperationException">
     /// The agent's chat client runs a tool loop of its own, or something the run needs is not registered.
@@ -354,7 +361,8 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// because a run in another container appended first. A stream throws it when its updates are read.
     /// </exception>
     /// <exception cref="ConversationStoreException">
-    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue.
+    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue,
+    /// or to keep a decision the run asks.
     /// </exception>
     /// <exception cref="InvalidOperationException">
     /// The agent's chat client runs a tool loop of its own, or something the run needs is not registered.
@@ -389,7 +397,8 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// <see cref="ResumeAsync(CancellationToken)"/>.
     /// </exception>
     /// <exception cref="ConversationStoreException">
-    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue.
+    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue,
+    /// or to keep a decision the run asks.
     /// </exception>
     /// <exception cref="InvalidOperationException">
     /// The host has no conversation, the agent's chat client runs a tool loop of its own, or something the run needs
@@ -418,7 +427,8 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// because a run in another container appended first. The answers are recorded.
     /// </exception>
     /// <exception cref="ConversationStoreException">
-    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue.
+    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue,
+    /// or to keep a decision the run asks.
     /// </exception>
     /// <exception cref="InvalidOperationException">
     /// The host has no conversation, the agent's chat client runs a tool loop of its own, or something the run needs
@@ -446,7 +456,8 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// because a run in another container appended first. The answers are recorded.
     /// </exception>
     /// <exception cref="ConversationStoreException">
-    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue.
+    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue,
+    /// or to keep a decision the run asks.
     /// </exception>
     /// <exception cref="InvalidOperationException">
     /// The host has no conversation, the agent's chat client runs a tool loop of its own, or something the run needs
@@ -471,7 +482,8 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// because a run in another container appended first. The answers are recorded.
     /// </exception>
     /// <exception cref="ConversationStoreException">
-    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue.
+    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue,
+    /// or to keep a decision the run asks.
     /// </exception>
     /// <exception cref="InvalidOperationException">
     /// The host has no conversation, the agent's chat client runs a tool loop of its own, or something the run needs
@@ -501,7 +513,8 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// because a run in another container appended first.
     /// </exception>
     /// <exception cref="ConversationStoreException">
-    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue.
+    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue,
+    /// or to keep a decision the run asks.
     /// </exception>
     /// <exception cref="InvalidOperationException">
     /// The host has no conversation, the agent's chat client runs a tool loop of its own, or something the run needs
@@ -525,7 +538,8 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// because a run in another container appended first. A stream throws it when its updates are read.
     /// </exception>
     /// <exception cref="ConversationStoreException">
-    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue.
+    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue,
+    /// or to keep a decision the run asks.
     /// </exception>
     /// <exception cref="InvalidOperationException">
     /// The host has no conversation, the agent's chat client runs a tool loop of its own, or something the run needs
@@ -551,7 +565,8 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// because a run in another container appended first.
     /// </exception>
     /// <exception cref="ConversationStoreException">
-    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue.
+    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue,
+    /// or to keep a decision the run asks.
     /// </exception>
     /// <exception cref="InvalidOperationException">
     /// The host has no conversation, the agent's chat client runs a tool loop of its own, or something the run needs
@@ -578,7 +593,8 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// because a run in another container appended first. A stream throws it when its updates are read.
     /// </exception>
     /// <exception cref="ConversationStoreException">
-    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue.
+    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue,
+    /// or to keep a decision the run asks.
     /// </exception>
     /// <exception cref="InvalidOperationException">
     /// The host has no conversation, the agent's chat client runs a tool loop of its own, or something the run needs
@@ -608,7 +624,8 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// because a run in another container appended first.
     /// </exception>
     /// <exception cref="ConversationStoreException">
-    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue.
+    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue,
+    /// or to keep a decision the run asks.
     /// </exception>
     /// <exception cref="InvalidOperationException">
     /// The host has no conversation, the agent's chat client runs a tool loop of its own, or something the run needs
@@ -632,7 +649,8 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// because a run in another container appended first. A stream throws it when its updates are read.
     /// </exception>
     /// <exception cref="ConversationStoreException">
-    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue.
+    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue,
+    /// or to keep a decision the run asks.
     /// </exception>
     /// <exception cref="InvalidOperationException">
     /// The host has no conversation, the agent's chat client runs a tool loop of its own, or something the run needs
@@ -657,7 +675,8 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// because a run in another container appended first.
     /// </exception>
     /// <exception cref="ConversationStoreException">
-    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue.
+    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue,
+    /// or to keep a decision the run asks.
     /// </exception>
     /// <exception cref="InvalidOperationException">
     /// The host has no conversation, the agent's chat client runs a tool loop of its own, or something the run needs
@@ -684,7 +703,8 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// because a run in another container appended first. A stream throws it when its updates are read.
     /// </exception>
     /// <exception cref="ConversationStoreException">
-    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue.
+    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue,
+    /// or to keep a decision the run asks.
     /// </exception>
     /// <exception cref="InvalidOperationException">
     /// The host has no conversation, the agent's chat client runs a tool loop of its own, or something the run needs

@@ -15,6 +15,9 @@ public abstract class DecisionTestBase : ApprovalTestBase
 
     protected ToolHold Hold { get; } = new();
 
+    // What a run does when the store fails, set before the test's first run
+    protected StoreFailure StoreFailure { get; set; }
+
     // The agent with the held tool, in the test's conversation
     protected AgentHost<HeldAgent> Held => Host<HeldAgent>().WithConversationId(Data.Agent.ConversationId);
 
@@ -56,7 +59,9 @@ public abstract class DecisionTestBase : ApprovalTestBase
         base.ConfigureServices(services);
 
         // In place of the base's store in memory
-        services.AddTypeshift().WithStore(Store, replace: true);
+        services.AddTypeshift()
+            .WithStore(Store, replace: true)
+            .WithOptions(options => options.StoreFailure = StoreFailure);
         services.AddSingleton(Hold);
     }
 

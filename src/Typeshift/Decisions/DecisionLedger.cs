@@ -42,9 +42,7 @@ internal sealed class DecisionLedger(StoreAccess stores, TimeProvider time, Agen
             conversation,
             document => document.Batch is null
                 ? document with { Batch = batch }
-                : throw new InvalidOperationException(
-                    $"Conversation {conversation} waits for decisions another run asked meanwhile: one run of a "
-                    + "conversation at a time, across processes too."),
+                : throw ConversationBusyException.Asked(conversation),
             ct);
 
     // T2: answers are recorded one by one or together; the batch is answered with the last. The same answer again

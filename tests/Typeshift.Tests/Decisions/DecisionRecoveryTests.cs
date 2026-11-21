@@ -18,9 +18,43 @@ public class DecisionRecoveryTests : DecisionTestBase
         var run = () => RunAsync(Data.Tool.Question);
 
         // Assert
-        await run.Should().ThrowAsync<IOException>();
+        await run.Should().ThrowAsync<ConversationStoreException>();
         (await DecisionsAsync()).Open.Should().BeEmpty();
         ToolCalls.Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Given_A_Store_That_Fails_To_Save_The_Batch_The_Exception_Holds_The_Stores_And_The_Calls(
+        bool streaming)
+    {
+        // Arrange
+        ChatClient.Reply(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket));
+        Store.FailingSave = 1;
+
+        // Act
+        var failed = await Record.ExceptionAsync(() => RunAsync(Data.Tool.Question, mode: null, streaming));
+        var calls = ((ConversationStoreException)failed!).Response.Messages.SelectMany(message => message.Contents);
+
+        // Assert
+        failed.InnerException.Should().BeOfType<IOException>();
+        calls.OfType<FunctionCallContent>().Select(call => call.CallId).Should().Equal(Data.Tool.CallId);
+    }
+
+    [Fact]
+    public async Task Given_The_Continue_Option_A_Store_That_Fails_To_Save_The_Batch_Fails_The_Run_All_The_Same()
+    {
+        // Arrange
+        StoreFailure = StoreFailure.ContinueRun;
+        ChatClient.Reply(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket));
+        Store.FailingSave = 1;
+
+        // Act
+        var run = () => RunAsync(Data.Tool.Question);
+
+        // Assert
+        await run.Should().ThrowAsync<ConversationStoreException>().WithMessage("*fails at once*");
     }
 
     [Fact]
@@ -43,17 +77,18 @@ public class DecisionRecoveryTests : DecisionTestBase
     }
 
     [Fact]
-    public async Task Given_A_Store_That_Failed_To_Append_The_Response_That_Asks_The_Run_Throws_The_Stores_Exception()
+    public async Task Given_A_Store_That_Failed_To_Append_The_Response_That_Asks_The_Run_Throws_Around_The_Stores()
     {
         // Arrange
         ChatClient.Reply(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket));
         Store.FailingAppend = 2;
 
         // Act
-        var run = () => RunAsync(Data.Tool.Question);
+        var failed = await Record.ExceptionAsync(() => RunAsync(Data.Tool.Question));
 
         // Assert
-        await run.Should().ThrowAsync<IOException>();
+        failed.Should().BeOfType<ConversationStoreException>();
+        failed!.InnerException.Should().BeOfType<IOException>();
         (await DecisionsAsync()).Open.Should().BeEmpty();
     }
 

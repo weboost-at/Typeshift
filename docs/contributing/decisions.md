@@ -1909,8 +1909,9 @@ The table lists every entry by its ID, with the section that holds it and whethe
   `ConversationIncomplete` set on the response (and on a stream's last update), and the run's span is an error
   either way. A `StoreConflictException` from an append is no failed save: a run of another container appended
   under the entry's number, and the run stops as busy (D50). The response that asks your app and its decision must
-  be stored whatever the option says, since a
-  decision without its call could not be carried out (D81): that run throws the store's exception at once. The
+  be stored whatever the option says, since a decision without its call could not be carried out (D81): that run
+  throws a `ConversationStoreException` at once, with the store's exception inside and the model's response that
+  asked in `Response`, so every run whose storing failed throws the same type (owner, for 0.1.0-alpha.8). The
   agent's name goes on `AuthorName`, never into `AdditionalProperties`.
 - **Details:** the end of a run is an entry of its own (`EndsRun`), with an `ErrorContent` when the run failed, was
   cancelled or its stream was left early: the exception's message, streaming or not, and a fixed text for a stream
@@ -2215,8 +2216,10 @@ The table lists every entry by its ID, with the section that holds it and whethe
   the others through the tool middleware (D30).
 - **Details:** a call a rule, a standing approval or auto mode approves costs no extra round and no write. The
   batch is saved after the response's entry and before the loop sees the response, so a decision your app holds
-  exists in the store: a save that fails, or a response whose append failed, fails the run with the store's
-  exception. A host's run without a conversation has nowhere to keep a decision, so it throws
+  exists in the store: a save that fails, or a response whose append failed, fails the run at once with a
+  `ConversationStoreException` around the store's exception (D46). A batch another container's run opened
+  meanwhile is no failed save: that run throws a `ConversationBusyException`, as a refused append does (D50). A
+  host's run without a conversation has nowhere to keep a decision, so it throws
   `DecisionUnavailableException` before its first model call when it offers a call nothing but your app could
   decide, naming the tools: a tool that requires approval while no `IToolApprovalRule` is registered and the run is
   not in auto mode, or `exit_plan_mode` in plan mode. The mode layer checks it, where the run's tools are complete.

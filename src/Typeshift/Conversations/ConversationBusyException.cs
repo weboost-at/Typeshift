@@ -8,7 +8,8 @@ namespace Typeshift;
 /// what it stored before stays, and the store's <see cref="StoreConflictException"/> is the inner exception. And
 /// thrown by <c>ConversationTracker.TrySteer</c> when the run going on holds as much steering input as it takes before
 /// its next model call: 32 inputs, or 262,144 characters of text with the one refused. Steer again once the model took
-/// them, or start a run with the input once that run has ended.
+/// them, or start a run with the input once that run has ended. Last, thrown by a run that asks your app while a run in
+/// another container asked meanwhile, whose decisions the conversation waits for.
 /// </summary>
 /// <param name="message">The message, naming the conversation.</param>
 /// <param name="conversation">The conversation's id.</param>
@@ -35,6 +36,14 @@ public sealed class ConversationBusyException(string message, object conversatio
             + $"takes before its next model call, {ConversationRun.MaxSteeringInputs} inputs or "
             + $"{ConversationRun.MaxSteeringCharacters} characters of text with this one: steer it again once its "
             + "model took them, or start a run with the input once it has ended.",
+            conversation.Value);
+
+    // D50: a run of another container asked its decisions between this run's load and its own asking
+    internal static ConversationBusyException Asked(StoreId conversation) =>
+        new(
+            $"Conversation {conversation} waits for decisions another run asked meanwhile, and a conversation has one "
+            + "run at a time, across containers too. This run stopped there, and what it stored before stays: start it "
+            + "again once the other run's decisions are answered.",
             conversation.Value);
 
     // D50: the store refused an entry under a number another container's run had taken

@@ -236,6 +236,12 @@ All notable changes to this project are documented here. The format follows
   your store, and give one that stored such an entry a unique key on the conversation and the number, as "Refuse a
   second run" in the guide's store page shows. `VerifyAsync` fails a store that stores the entry, where it passed a
   store without the flag.
+- **Breaking:** a run that asks your app a decision throws a `ConversationStoreException` at once, whatever
+  `StoreFailure` says, when the store fails to save the decisions document or the model's response that asks. It
+  threw the store's exception, which is now the inner exception, and `Response` holds the model's response that
+  asked. Catch `ConversationStoreException` where you caught your store's own exception. A run that asks while a run
+  in another container asked meanwhile throws a `ConversationBusyException`, which derives from the
+  `InvalidOperationException` it threw before.
 - The package depends on Microsoft.Extensions.AI 10.11.1, up from 10.10.0, and on
   Microsoft.Extensions.DependencyInjection 10.0.15, up from 10.0.12.
 - **Breaking:** `host.CreateChatClientAsync(options)` takes only options that `ResolveOptionsAsync` returned, and

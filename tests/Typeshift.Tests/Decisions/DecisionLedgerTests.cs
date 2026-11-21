@@ -21,7 +21,7 @@ public class DecisionLedgerTests : LedgerTestBase
     }
 
     [Fact]
-    public async Task Given_A_Batch_Another_Run_Opened_Opening_One_Throws_And_Leaves_It()
+    public async Task Given_A_Batch_Another_Run_Opened_Opening_One_Throws_Busy_And_Leaves_It()
     {
         // Arrange
         var first = Batch(Approval(Data.Tool.CallId));
@@ -31,7 +31,7 @@ public class DecisionLedgerTests : LedgerTestBase
         var open = () => Ledger.OpenAsync(Conversation, Batch(Approval(Data.Tool.SecondCallId)), Ct);
 
         // Assert
-        await open.Should().ThrowAsync<InvalidOperationException>().WithMessage("*another run asked*");
+        await open.Should().ThrowAsync<ConversationBusyException>().WithMessage("*another run asked*");
         (await DocumentAsync()).Batch!.Ids.Should().Equal(first.Ids);
     }
 

@@ -33,6 +33,9 @@ internal abstract record StoreId
         long loadedVersion,
         CancellationToken ct);
 
+    // D79: whether a store keeps decisions under ids of this type, which a save without one throws for
+    public abstract bool KeepsDecisions(StoreAccess stores);
+
     public sealed override string ToString() => Value.ToString() ?? "";
 }
 
@@ -77,4 +80,6 @@ internal sealed record StoreId<TId>(TId Id) : StoreId where TId : notnull
         CancellationToken ct) =>
         stores.Written(stores.DecisionStore<TId>() ?? throw StoreAccess.NoDecisionStore<TId>())
             .SaveDecisionsAsync(Id, json, loadedVersion, ct);
+
+    public override bool KeepsDecisions(StoreAccess stores) => stores.DecisionStore<TId>() is not null;
 }

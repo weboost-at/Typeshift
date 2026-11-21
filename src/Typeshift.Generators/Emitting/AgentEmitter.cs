@@ -902,7 +902,8 @@ internal static class AgentEmitter
 
     private const string Lacking =
         "The store failed to append a step of the run, which then fails as it ends, unless "
-        + "<c>TypeshiftOptions.StoreFailure</c> lets it continue. The exception holds what the run answered.";
+        + "<c>TypeshiftOptions.StoreFailure</c> lets it continue, or to keep a decision the run asks, which fails "
+        + "it at once. The exception holds the run's response.";
 
     // D50, D80: the host's conversation's interrupted run or answered decisions, continued without input
     private static void WriteResume(

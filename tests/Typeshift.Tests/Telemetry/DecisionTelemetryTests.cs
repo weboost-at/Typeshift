@@ -286,7 +286,7 @@ public sealed class DecisionTelemetryTests : QuestionTestBase
 
         // Assert
         var run = Activities.Run(Data.Agent.ConversationId);
-        failure.Should().BeOfType<IOException>();
+        failure.Should().BeOfType<ConversationStoreException>();
         run.Status.Should().Be(ActivityStatusCode.Error);
         run.GetTagItem("typeshift.decisions.asked").Should().BeNull();
     }

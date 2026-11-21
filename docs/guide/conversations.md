@@ -232,8 +232,10 @@ finished run look interrupted, and a lost answer is gone at the next page load. 
   `AddTypeshift().WithOptions(options => options.StoreFailure = StoreFailure.ContinueRun)`. The response then has
   `ConversationIncomplete` set, and so does the last update of a stream, so your app can tell the user that the
   chat may not have kept that answer. The span is an error all the same.
-- A run that asks your app throws the store's exception at once when it could not store the model's response or the
-  decision, whatever the option says, because a prompt your app shows must be one it can answer.
+- A run that asks your app fails at once when the store could not keep the model's response or the decision,
+  whatever the option says, because a prompt your app shows must be one it can answer. It throws a
+  `ConversationStoreException` too, whose `Response` holds the model's response that asked, and nothing waits for an
+  answer.
 
 ## Resuming
 

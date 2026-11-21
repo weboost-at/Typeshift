@@ -108,7 +108,9 @@ internal sealed class ConversationRun(
     // it by first
     public DecisionBatch? Asked { get; private set; }
 
-    // Why the store did not take the last model response, if it did not
+    // The last model response the run stored, or tried to, and why the store did not take it, if it did not
+    public ChatResponse? LastResponse { get; private set; }
+
     public Exception? ResponseFailure { get; private set; }
 
     // D46: the exception of the first step the store did not take, which makes the run fail or mark its response
@@ -379,10 +381,20 @@ internal sealed class ConversationRun(
     public CallVerdict? VerdictOf(string callId) => _verdicts.TryGetValue(callId, out var verdict) ? verdict : null;
 
     // T1: the batch exists once this returns, or the run fails and no decision does. Like every step, it is stored
-    // whatever became of the run's token
+    // whatever became of the run's token. A batch another run opened meanwhile is no failed save, and neither is an
+    // app without a store of decisions (D79)
     public async Task OpenAsync(DecisionBatch batch)
     {
-        await ledger.OpenAsync(Conversation!, batch, CancellationToken.None).ConfigureAwait(false);
+        try
+        {
+            await ledger.OpenAsync(Conversation!, batch, CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (Exception exception) when (exception is not ConversationBusyException
+            && Conversation!.KeepsDecisions(store))
+        {
+            throw ConversationStoreException.Undecided(Conversation!, LastResponse!, exception);
+        }
+
         Asked = batch;
         Telemetry.Asked(run.Activity, batch);
     }
@@ -567,6 +579,8 @@ internal sealed class ConversationRun(
 
     public async Task AppendResponseAsync(ChatResponse response, ChatOptions? options, bool streamed)
     {
+        LastResponse = response;
+
         // D32: with what compaction estimated the call at, the provider's report calibrates the next run
         ResponseFailure = await AppendAsync(
             [.. response.Messages],
