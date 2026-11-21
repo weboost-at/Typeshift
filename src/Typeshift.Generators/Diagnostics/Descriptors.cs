@@ -251,6 +251,12 @@ internal static class Descriptors
         "{0}(t => t.{1}) names a tool this use of '{2}' does not offer, since the use {3}: offer the tool, or "
         + "remove the {0}");
 
+    public static readonly DiagnosticDescriptor NeverRun = Error(
+        "TSH044",
+        "Declaration in a constructor Typeshift never runs",
+        "'{0}' is in a constructor that new {1}() does not run, and Typeshift creates '{1}' that way: move it into "
+        + "the parameterless constructor, or into one that constructor chains to with this(...)");
+
     private static DiagnosticDescriptor Error(string id, string title, string message, params string[] tags) =>
         Create(id, title, message, DiagnosticSeverity.Error, tags);
 

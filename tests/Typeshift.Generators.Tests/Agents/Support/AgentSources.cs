@@ -152,8 +152,6 @@ public static class AgentSources
 
             public SplitAgent(Vendor vendor) =>
                 WithChatOptions().WithModel(vendor, "fast-model").Configurable(o => o.ModelId);
-
-            public SplitAgent(string provider) => WithChatOptions().WithModel(provider, "fast-model");
         }
 
         public partial class OverridingAgent : Agent

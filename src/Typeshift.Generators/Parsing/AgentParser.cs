@@ -39,6 +39,9 @@ internal static class AgentParser
     {
         var (notPartial, unreachable) = ToolsetParser.ReadDeclaration(agent, reporter, ct);
 
+        // D4: only the constructors new TAgent() runs declare
+        constructors = ConstructorChains.GetRun(agent, constructors, reporter);
+
         // A class cannot hold a member of its own name, so the agent's name is none of the generated ones either
         var clash = Members.Contains(agent.Name)
             ? agent
@@ -478,7 +481,7 @@ internal static class AgentParser
         {
             if (call.Syntax is ConstructorInitializerSyntax
                 && Same(call.TargetMethod.ContainingType, agent)
-                && GetConstructor(agent, call.Syntax) is { } caller)
+                && ConstructorChains.GetConstructor(agent, call.Syntax) is { } caller)
                 chained[caller] = call.TargetMethod;
         }
 
@@ -487,7 +490,9 @@ internal static class AgentParser
 
         while (constructor is not null && visited.Add(constructor))
         {
-            var own = models.Where(model => Declares(GetConstructor(agent, model.Argument), constructor)).ToList();
+            var own = models
+                .Where(model => Declares(ConstructorChains.GetConstructor(agent, model.Argument), constructor))
+                .ToList();
 
             if (own.Count > 0) return own[own.Count - 1];
 
@@ -499,10 +504,6 @@ internal static class AgentParser
 
     private static bool Declares(IMethodSymbol? declaring, IMethodSymbol constructor) =>
         SymbolEqualityComparer.Default.Equals(declaring, constructor);
-
-    private static IMethodSymbol? GetConstructor(INamedTypeSymbol agent, SyntaxNode syntax) =>
-        agent.InstanceConstructors.FirstOrDefault(constructor => constructor.DeclaringSyntaxReferences.Any(reference =>
-            reference.SyntaxTree == syntax.SyntaxTree && reference.Span.Contains(syntax.Span)));
 
     // The generated Settings, in a file of their own, can name it
     private static bool IsNameable(ITypeSymbol type) =>

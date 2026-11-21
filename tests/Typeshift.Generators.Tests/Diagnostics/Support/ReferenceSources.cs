@@ -515,7 +515,8 @@ public static class ReferenceSources
 
         internal partial class SplitToolset : Toolset
         {
-            public SplitToolset() => AddTool(Echo).WithDescription("Echoes.");
+            public SplitToolset()
+                : this(1) => AddTool(Echo).WithDescription("Echoes.");
 
             public static string Echo(string text) => text;
         }

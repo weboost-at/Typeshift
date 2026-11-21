@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using Typeshift.Generators.Diagnostics;
+using Typeshift.Generators.Naming;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -25,6 +26,76 @@ internal static class ConstructorChains
             .Select(syntax => compilation.GetSemanticModel(syntax.SyntaxTree).GetOperation(syntax, ct))
             .OfType<IOperation>()
     ];
+
+    // D4: the module creates a toolset or an agent with new T(), which runs the parameterless constructor and those
+    // it chains to with this(...), so only their blocks declare, and a declaration in any other is TSH044. A class
+    // without a parameterless constructor is TSH016 already, and keeps every block
+    public static IReadOnlyList<IOperation> GetRun(
+        INamedTypeSymbol type,
+        IEnumerable<IOperation> blocks,
+        Reporter reporter)
+    {
+        var all = blocks.ToList();
+        var constructor = type.InstanceConstructors.FirstOrDefault(each => each.Parameters.IsEmpty);
+        if (constructor is null || all.Count == 0) return all;
+
+        var owners = all.Select(block => GetConstructor(type, block.Syntax)).ToList();
+        var run = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
+
+        while (constructor is not null && run.Add(constructor))
+        {
+            constructor = all
+                .Where((_, index) => SymbolEqualityComparer.Default.Equals(owners[index], constructor))
+                .Select(block => GetChained(type, block))
+                .FirstOrDefault(chained => chained is not null);
+        }
+
+        var read = new List<IOperation>();
+
+        for (var index = 0; index < all.Count; index++)
+        {
+            if (owners[index] is not { } owner || run.Contains(owner))
+            {
+                read.Add(all[index]);
+                continue;
+            }
+
+            foreach (var call in GetInvocations([all[index]]).Where(IsDeclaration))
+            {
+                reporter.Report(Descriptors.NeverRun, GetCalledName(call), call.TargetMethod.Name, type.Name);
+            }
+        }
+
+        return read;
+    }
+
+    // A call of what Toolset and Agent offer a constructor: AddTool, WithDisplayName, UseToolset<T>() and the rest
+    public static bool IsDeclaration(IInvocationOperation call) =>
+        call.TargetMethod is { MethodKind: MethodKind.Ordinary, IsStatic: false, Name: not "GetInstructions" } method
+        && (method.ContainingType.Is(KnownTypes.Toolset) || method.ContainingType.Is(KnownTypes.Agent));
+
+    // The constructor whose declaration holds the syntax, the innermost where a primary constructor's declaration,
+    // the whole class, holds the others too
+    public static IMethodSymbol? GetConstructor(INamedTypeSymbol type, SyntaxNode syntax) =>
+        type.InstanceConstructors
+            .SelectMany(constructor => constructor.DeclaringSyntaxReferences
+                .Where(reference => reference.SyntaxTree == syntax.SyntaxTree && reference.Span.Contains(syntax.Span))
+                .Select(reference => (Constructor: constructor, reference.Span.Length)))
+            .OrderBy(candidate => candidate.Length)
+            .Select(candidate => candidate.Constructor)
+            .FirstOrDefault();
+
+    // The constructor of the same class that this(...) names; a block's initializer is its only place
+    private static IMethodSymbol? GetChained(INamedTypeSymbol type, IOperation block)
+    {
+        var initializer = block is IConstructorBodyOperation body ? body.Initializer : block;
+        if (initializer is null) return null;
+
+        return GetInvocations([initializer])
+            .FirstOrDefault(call => call.Syntax is ConstructorInitializerSyntax
+                && SymbolEqualityComparer.Default.Equals(call.TargetMethod.ContainingType, type))
+            ?.TargetMethod;
+    }
 
     // D4: only calls made directly in a constructor count; TSH014 reports those in lambdas and local functions
     public static IEnumerable<IInvocationOperation> GetInvocations(IEnumerable<IOperation> blocks) =>

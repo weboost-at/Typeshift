@@ -13,7 +13,8 @@ the calls in context, read [Toolsets](./toolsets.md), [Tool settings](./tool-set
 
 Every chain follows these rules, and [How Typeshift reads your code](./how-typeshift-reads-your-code.md) explains why:
 
-- Every declaration sits directly in the constructor ([TSH014](./diagnostics.md#tsh014)).
+- Every declaration sits directly in the constructor ([TSH014](./diagnostics.md#tsh014)): the parameterless one, or
+  one it chains to with `this(...)`, since Typeshift runs no other ([TSH044](./diagnostics.md#tsh044)).
 - Each declaration is one chain in one statement ([TSH015](./diagnostics.md#tsh015)).
 - Names, descriptions, the storage kind and the schema version are constants ([TSH002](./diagnostics.md#tsh002)).
 - A declaration names constants, methods and types of your own code, not ones a source generator writes

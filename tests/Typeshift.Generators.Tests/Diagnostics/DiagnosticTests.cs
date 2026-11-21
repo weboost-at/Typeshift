@@ -2419,7 +2419,7 @@ public class DiagnosticTests : GeneratorTestBase
         var run = Run(DiagnosticSources.UnstorableProviderOfAnotherConstructor);
 
         // Assert
-        run.Assert.DoesNotReport("TSH029");
+        run.Assert.DoesNotReport("TSH029", also: "TSH044");
     }
 
     [Fact]
@@ -3189,5 +3189,41 @@ public class DiagnosticTests : GeneratorTestBase
             .GetMessage()
             .Should()
             .Contain("close");
+    }
+
+    [Fact]
+    public void Given_A_Declaration_In_An_Agents_Constructor_That_Never_Runs_TSH044_Is_Reported_On_The_Call()
+    {
+        // Act
+        var run = Run(DiagnosticSources.DeclarationInAConstructorThatNeverRuns);
+
+        // Assert
+        run.Assert.Reports(
+            "TSH044",
+            DiagnosticSeverity.Error,
+            "WithInstructions",
+            message: "'WithInstructions' is in a constructor that new EchoAgent() does not run, and Typeshift "
+                + "creates 'EchoAgent' that way: move it into the parameterless constructor, or into one that "
+                + "constructor chains to with this(...)");
+    }
+
+    [Fact]
+    public void Given_A_Tool_In_A_Toolsets_Constructor_That_Never_Runs_TSH044_Is_Reported_On_AddTool()
+    {
+        // Act
+        var run = Run(DiagnosticSources.ToolInAConstructorThatNeverRuns);
+
+        // Assert
+        run.Assert.Reports("TSH044", DiagnosticSeverity.Error, "AddTool");
+    }
+
+    [Fact]
+    public void Given_Declarations_In_The_Constructors_The_Parameterless_One_Chains_To_TSH044_Is_Not_Reported()
+    {
+        // Act
+        var run = Run(ShapeSources.DeclarationsOfChainedConstructors);
+
+        // Assert
+        run.Assert.DoesNotReport("TSH044");
     }
 }

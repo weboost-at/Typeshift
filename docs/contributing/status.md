@@ -160,10 +160,6 @@ that no row names, and on a name that is no test class.
   without the tools' settings. A generated `ResolveSettingsAsync()` that fills every member of `Settings` from the
   layers below a run would close it; it needs the provider in its typed form and each tool's overrides made from
   its resolved settings, which no generated member writes yet.
-- **Declarations of constructors that never run.** The generator reads the declarations of every constructor of an
-  agent, while the module creates it with the parameterless one, which runs only the constructors it chains to with
-  `this(...)`. Only the provider id type follows that chain (D77); a pick or a toolset use in another constructor
-  still reaches the generated `Settings` and tools.
 - **Obsolete and experimental types in the collected docs.** The class the package adds to a project makes
   Weboost.SchemaAnnotations name every documented type of the project in a generated file (D55). A documented type
   marked `[Obsolete]` is CS0618 there, an error where warnings are errors, and one marked `[Experimental]` an error

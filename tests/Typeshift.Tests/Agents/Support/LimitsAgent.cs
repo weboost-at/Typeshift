@@ -25,6 +25,7 @@ public partial class LimitsAgent : Agent
             .Configurable(r => r.SummaryInstructions);
     }
 
+#pragma warning disable TSH044 // the tests call these constructors themselves, and Typeshift never does
     public LimitsAgent(int iterations, int errors, int maximum, int target) =>
         WithRunOptions()
             .WithMaxToolIterations(iterations)
@@ -35,6 +36,7 @@ public partial class LimitsAgent : Agent
     public LimitsAgent(string provider, string model) => WithChatOptions().WithModel(provider, model);
 
     public LimitsAgent(string summaryModel) => WithRunOptions().WithSummaryModel(summaryModel);
+#pragma warning restore TSH044
 
     // The settings that set one limit
     public static Settings Limit(string option, int value) =>

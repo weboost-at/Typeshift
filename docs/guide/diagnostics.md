@@ -54,6 +54,7 @@ app runs throws an exception instead, and [Errors at run time](#errors-at-run-ti
 | [TSH041](#tsh041) | Error | Copy of a host is dropped | While you type |
 | [TSH042](#tsh042) | Warning | Copy of a host that lives on is disposed | While you type |
 | [TSH043](#tsh043) | Error | Use marks a tool it does not offer | While you type |
+| [TSH044](#tsh044) | Error | Declaration in a constructor Typeshift never runs | While you type |
 
 The last column says when an editor shows a diagnostic. "On build" marks a check that compares classes or
 projects: an editor runs it for a build or for an analysis of the whole solution, so its squiggle appears after you
@@ -1261,6 +1262,33 @@ internal partial class DeskAgent : Agent
 
 Remove the `Exclude`, include the tool, or remove the mark. To make a tool ask your app, it has to be offered
 ([Requiring approval](./tool-approval.md#requiring-approval)).
+
+## TSH044
+
+**Declaration in a constructor Typeshift never runs.** Typeshift creates each toolset and agent with `new()`, which
+runs the parameterless constructor and the constructors it chains to with `this(...)`, and no other. A declaration
+in another constructor would describe a class no instance is: its values, such as the instructions here, would never
+reach a run, while the generated code would offer the tools and settings it names. So the generator reads the
+constructors `new()` runs, and the analyzer reports a declaration in any other:
+
+<!-- snippet: tsh044 -->
+<a id='snippet-tsh044'></a>
+```cs
+internal partial class EchoAgent : Agent
+{
+    public EchoAgent() => WithDescription("Echoes.");
+
+    public EchoAgent(string instructions)
+        : this() => WithInstructions(instructions);
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L4090-L4098' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh044' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+The constructor takes the instructions, but `new EchoAgent()` never calls it. Move the declaration into the
+parameterless constructor, or chain the parameterless constructor to this one with `: this(...)`. Instructions that
+change from run to run come from an override of `GetInstructions`
+([Instructions built per run](./defining-agents.md#instructions-built-per-run)).
 
 ## Errors at run time
 

@@ -31,8 +31,9 @@ internal static class ToolsetParser
         out IReadOnlyList<(ToolModel Tool, IInvocationOperation AddTool)> declarations)
     {
         var (notPartial, unreachable) = ReadDeclaration(toolset, reporter, ct);
+        var run = ConstructorChains.GetRun(toolset, constructors, reporter);
 
-        declarations = ParseTools(toolset, constructors, documented, reporter, ct);
+        declarations = ParseTools(toolset, run, documented, reporter, ct);
         var tools = declarations.Select(declaration => declaration.Tool).ToEquatableArray();
         var clash = ClashesWithClasses(toolset, tools.Count, [Names.ToolNamesClass, Names.GeneratedClass], reporter);
 

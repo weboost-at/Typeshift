@@ -63,7 +63,8 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         Descriptors.NotIntercepted,
         Descriptors.DroppedHostCopy,
         Descriptors.DisposedHostThatLivesOn,
-        Descriptors.MarkOnToolNotOffered
+        Descriptors.MarkOnToolNotOffered,
+        Descriptors.NeverRun
     ];
 
     public override void Initialize(AnalysisContext context)
@@ -209,7 +210,8 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
 
         if (agent is null) return tools;
 
-        var toolsetUses = ConstructorChains.GetInvocations(constructors)
+        // The parser reported the declarations of a constructor new T() never runs, and read none of them
+        var toolsetUses = ConstructorChains.GetInvocations(ConstructorChains.GetRun(type, constructors, Reporter.None))
             .Where(call => AgentParser.IsDeclaration(call) && call.TargetMethod.Name == "UseToolset")
             .Select(call => (
                 call.TargetMethod.TypeArguments[0].ToTypeOf(),

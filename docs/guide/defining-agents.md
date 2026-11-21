@@ -117,7 +117,9 @@ agent at runtime.
 
 Typeshift creates each agent once, with `new`, so the class needs a public or internal parameterless constructor and
 cannot be nested as `private` or `protected` ([TSH016](./diagnostics.md#tsh016)). Its constructor therefore takes no
-services. The agent's tools reach them through their [`IServiceProvider` parameter](./toolsets.md#parameters).
+services. The agent's tools reach them through their [`IServiceProvider` parameter](./toolsets.md#parameters). A
+constructor with parameters declares only when the parameterless one chains to it with `this(...)`
+([TSH044](./diagnostics.md#tsh044)).
 
 ## Instructions built per run
 

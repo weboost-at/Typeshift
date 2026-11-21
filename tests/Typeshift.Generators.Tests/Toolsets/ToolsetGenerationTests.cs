@@ -147,6 +147,27 @@ public class ToolsetGenerationTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Tool_In_A_Constructor_That_Never_Runs_It_Is_Not_Generated()
+    {
+        // Act
+        var run = Run(DiagnosticSources.ToolInAConstructorThatNeverRuns);
+
+        // Assert
+        run.Source("EchoToolset.g.cs").Should().NotContain("\"shout\"");
+    }
+
+    [Fact]
+    public void Given_A_Tool_In_A_Constructor_The_Parameterless_One_Chains_To_It_Is_Generated()
+    {
+        // Act
+        var run = Run(ShapeSources.DeclarationsOfChainedConstructors);
+
+        // Assert
+        run.Assert.CompilesCleanly();
+        run.Source("Demo.EchoToolset.g.cs").Should().Contain("public const string Echo = \"echo\";");
+    }
+
+    [Fact]
     public void Given_Names_Spelled_Like_Keywords_The_Generated_Code_Compiles_Without_Warnings()
     {
         // Act

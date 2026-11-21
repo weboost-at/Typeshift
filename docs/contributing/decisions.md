@@ -196,9 +196,16 @@ The table lists every entry by its ID, with the section that holds it and whethe
   reports every other shape: a chain split over variables, a pick that is not `t => t.X` (TSH015), a declaration
   outside the constructor body (TSH014). At runtime the chains declare nothing: the generated code is the one truth,
   and only values (`WithDisplayName`, chat options, `Configure{Tool}()`) are recorded.
+- **Constructors that never run:** the module creates each toolset and agent with its parameterless constructor,
+  which runs only the constructors it chains to with `this(...)`. Up to 0.1.0-alpha.7 the generator read the
+  declarations of every constructor, so a pick or a toolset use in another one reached the generated `Settings` and
+  tools while its values, such as the instructions, never reached a run; only the provider id type followed the
+  chain (D77). The parsers read that chain's blocks alone (`ConstructorChains.GetRun`), and the analyzer reports a
+  declaration in any other constructor (TSH044), a toolset's too, whose instance records its `WithDisplayName`. A
+  class without a parameterless constructor is TSH016 already and keeps the blocks of all its constructors.
 - **Alternatives:** method groups (`Include(TicketToolset.SearchTickets)`), which bind semantically but take a
   `Delegate` and fail only through a diagnostic.
-- **Where:** `Parsing/AgentParser.cs`, `Analysis/`.
+- **Where:** `Parsing/AgentParser.cs`, `Parsing/ConstructorChains.cs`, `Analysis/`.
 
 ### D5. Settings and chat-option picks are typed lambdas that never run {#d5}
 

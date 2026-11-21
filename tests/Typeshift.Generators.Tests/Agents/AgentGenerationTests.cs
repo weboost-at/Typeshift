@@ -712,6 +712,28 @@ public partial class AgentGenerationTests : GeneratorTestBase
             .Contain("global::Demo.CompanyToolset.TypeshiftGenerated.CreateFind(json)");
     }
 
+    [Fact]
+    public void Given_A_Use_In_A_Constructor_The_Parameterless_One_Chains_To_The_Agent_Offers_Its_Tools()
+    {
+        // Act
+        var run = Run(ShapeSources.DeclarationsOfChainedConstructors);
+
+        // Assert
+        run.Source("Demo.EchoAgent.g.cs")
+            .Should()
+            .Contain("global::Demo.EchoToolset.TypeshiftGenerated.CreateEcho(json)");
+    }
+
+    [Fact]
+    public void Given_A_Use_In_A_Constructor_That_Never_Runs_The_Agent_Offers_None_Of_Its_Tools()
+    {
+        // Act
+        var run = Run(DiagnosticSources.ToolsetUseInAConstructorThatNeverRuns);
+
+        // Assert
+        run.Source("EchoAgent.g.cs").Should().NotContain("CreateEcho");
+    }
+
     [Theory]
     [InlineData(nameof(ShapeSources.AgentWithABaseInitializer))]
     [InlineData(nameof(ShapeSources.AgentWithAPrimaryConstructor))]

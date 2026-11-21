@@ -7,6 +7,11 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- TSH044 reports a declaration in a constructor of a toolset or an agent that Typeshift never runs. Typeshift creates
+  each with `new()`, which runs the parameterless constructor and those it chains to with `this(...)`, and the
+  generator now reads those alone. It read every constructor, so a `UseToolset<T>()` or a pick in another one reached
+  the generated settings and tools, while its values, such as `WithInstructions(...)`, never reached a run. Move the
+  declaration into the parameterless constructor, or chain that one to it.
 - `host.CreateChatClientAsync()`, and the agent's generated `CreateChatClientAsync(settings)`, create the client of the
   raw path in one call: they resolve the run's options as `ResolveOptionsAsync` does, and the client keeps them, so
   `using var client = await support.CreateChatClientAsync();` is all a library that takes an `IChatClient` needs.

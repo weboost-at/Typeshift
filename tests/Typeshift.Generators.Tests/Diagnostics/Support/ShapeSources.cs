@@ -2215,6 +2215,47 @@ public static class ShapeSources
         }
         """;
 
+    // D4: new T() runs the constructors the parameterless one chains to with this(...), so their declarations count
+    public const string DeclarationsOfChainedConstructors =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset()
+                : this("Echo")
+            {
+            }
+
+            private EchoToolset(string displayName)
+            {
+                WithDisplayName(displayName);
+                AddTool(Echo).WithDescription("Echoes.");
+            }
+
+            public static string Echo(string text) => text;
+        }
+
+        internal partial class EchoAgent : Agent
+        {
+            public EchoAgent()
+                : this("Echo what you read.")
+            {
+            }
+
+            private EchoAgent(string instructions)
+                : this(instructions, loud: false) => WithDescription("Echoes.");
+
+            private EchoAgent(string instructions, bool loud)
+            {
+                WithInstructions(loud ? instructions.ToUpperInvariant() : instructions);
+                UseToolset<EchoToolset>();
+            }
+        }
+        """;
+
     // The agent offers the tools it includes in the order of its picks, which is not the toolset's here
     public const string ToolsIncludedInAnotherOrder =
         """

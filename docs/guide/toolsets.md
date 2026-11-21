@@ -359,7 +359,9 @@ between toolsets through static methods rather than a base class. A toolset is n
 
 Typeshift creates each toolset once, with `new`, so the class needs a public or internal parameterless constructor
 and cannot be nested as `private` or `protected` ([TSH016](./diagnostics.md#tsh016)). Its constructor therefore takes
-no services. A tool reaches them through its [`IServiceProvider` parameter](#parameters).
+no services. A tool reaches them through its [`IServiceProvider` parameter](#parameters). A constructor with
+parameters declares only when the parameterless one chains to it with `this(...)`
+([TSH044](./diagnostics.md#tsh044)).
 
 ## Related
 

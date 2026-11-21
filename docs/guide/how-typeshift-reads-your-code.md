@@ -69,6 +69,11 @@ code always includes it, so the analyzer reports both ([TSH014](./diagnostics.md
 [TSH015](./diagnostics.md#tsh015)). Names and descriptions are constants, because the generator needs their values
 when you build. [Rules for every chain](./builders.md#rules-for-every-chain) lists each rule with its diagnostic.
 
+Typeshift creates each toolset and agent with `new()`, which runs the parameterless constructor and those it chains
+to with `this(...)`. The generator reads the declarations of those constructors alone, so the code it writes matches
+the instance your app runs. A declaration in another constructor would record nothing at runtime while the generated
+code offered what it names, and the analyzer reports it ([TSH044](./diagnostics.md#tsh044)).
+
 ## Code that other generators write
 
 The generator cannot see code that a source generator writes, whether another package's or Typeshift's own. That is

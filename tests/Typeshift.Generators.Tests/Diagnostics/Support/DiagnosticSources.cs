@@ -4080,4 +4080,59 @@ public static class DiagnosticSources
             public static string Echo(string text, EchoSettings settings) => settings.Greeting.Name + text;
         }
         """;
+
+    // D4: new EchoAgent() runs the parameterless constructor, which chains to no other, so the instructions never
+    // reach a run
+    public const string DeclarationInAConstructorThatNeverRuns =
+        """
+        using Typeshift;
+
+        // begin-snippet: tsh044
+        internal partial class EchoAgent : Agent
+        {
+            public EchoAgent() => WithDescription("Echoes.");
+
+            public EchoAgent(string instructions)
+                : this() => WithInstructions(instructions);
+        }
+        // end-snippet
+        """;
+
+    // A toolset is created with new() as well
+    public const string ToolInAConstructorThatNeverRuns =
+        """
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithDescription("Echoes.");
+
+            public EchoToolset(bool loud)
+                : this() => AddTool(Shout).WithDescription("Shouts.");
+
+            public static string Echo(string text) => text;
+
+            public static string Shout(string text) => text.ToUpperInvariant();
+        }
+        """;
+
+    // The tools of a use no instance makes would reach the generated Settings and the tools a run offers
+    public const string ToolsetUseInAConstructorThatNeverRuns =
+        """
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+        }
+
+        internal partial class EchoAgent : Agent
+        {
+            public EchoAgent() => WithDescription("Echoes.");
+
+            public EchoAgent(bool withTools) => UseToolset<EchoToolset>();
+        }
+        """;
 }
