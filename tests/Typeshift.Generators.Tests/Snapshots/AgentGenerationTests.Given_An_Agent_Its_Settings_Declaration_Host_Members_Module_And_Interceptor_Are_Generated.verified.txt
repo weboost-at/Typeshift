@@ -41,6 +41,10 @@ public static class Tshost_4Demo12SupportAgent
         /// client for the provider the run names or, when it names none, a default client; a store for the type of one
         /// of the host's ids; or an <c>IMcpToolProvider</c> for the agent's MCP servers.
         /// </exception>
+        /// <exception cref="global::System.TimeoutException">
+        /// A model call sent no answer within the timeout of the run's model policy, and no rule of the policy handles
+        /// a timeout.
+        /// </exception>
         /// <exception cref="global::System.Text.Json.JsonException">
         /// The stored settings were written under a newer schema version than this code's.
         /// </exception>
@@ -76,6 +80,10 @@ public static class Tshost_4Demo12SupportAgent
         /// The agent's chat client runs a tool loop of its own, or something the run needs is not registered: a chat
         /// client for the provider the run names or, when it names none, a default client; a store for the type of one
         /// of the host's ids; or an <c>IMcpToolProvider</c> for the agent's MCP servers.
+        /// </exception>
+        /// <exception cref="global::System.TimeoutException">
+        /// A model call sent no answer within the timeout of the run's model policy, and no rule of the policy handles
+        /// a timeout.
         /// </exception>
         /// <exception cref="global::System.Text.Json.JsonException">
         /// The stored settings were written under a newer schema version than this code's.
@@ -113,6 +121,10 @@ public static class Tshost_4Demo12SupportAgent
         /// The agent's chat client runs a tool loop of its own, or something the run needs is not registered: a chat
         /// client for the provider the run names or, when it names none, a default client; a store for the type of one
         /// of the host's ids; or an <c>IMcpToolProvider</c> for the agent's MCP servers.
+        /// </exception>
+        /// <exception cref="global::System.TimeoutException">
+        /// A model call sent no answer within the timeout of the run's model policy, and no rule of the policy handles
+        /// a timeout.
         /// </exception>
         /// <exception cref="global::System.Text.Json.JsonException">
         /// The stored settings were written under a newer schema version than this code's.
@@ -152,6 +164,10 @@ public static class Tshost_4Demo12SupportAgent
         /// client for the provider the run names or, when it names none, a default client; a store for the type of one
         /// of the host's ids; or an <c>IMcpToolProvider</c> for the agent's MCP servers.
         /// </exception>
+        /// <exception cref="global::System.TimeoutException">
+        /// A model call sent no answer within the timeout of the run's model policy, and no rule of the policy handles
+        /// a timeout.
+        /// </exception>
         /// <exception cref="global::System.Text.Json.JsonException">
         /// The stored settings were written under a newer schema version than this code's.
         /// </exception>
@@ -190,6 +206,10 @@ public static class Tshost_4Demo12SupportAgent
         /// client for the provider the run names or, when it names none, a default client; a store for the type of one
         /// of the host's ids; or an <c>IMcpToolProvider</c> for the agent's MCP servers.
         /// </exception>
+        /// <exception cref="global::System.TimeoutException">
+        /// A model call sent no answer within the timeout of the run's model policy, and no rule of the policy handles
+        /// a timeout.
+        /// </exception>
         /// <exception cref="global::System.Text.Json.JsonException">
         /// The stored settings were written under a newer schema version than this code's.
         /// </exception>
@@ -227,6 +247,10 @@ public static class Tshost_4Demo12SupportAgent
         /// The agent's chat client runs a tool loop of its own, or something the run needs is not registered: a chat
         /// client for the provider the run names or, when it names none, a default client; a store for the type of one
         /// of the host's ids; or an <c>IMcpToolProvider</c> for the agent's MCP servers.
+        /// </exception>
+        /// <exception cref="global::System.TimeoutException">
+        /// A model call sent no answer within the timeout of the run's model policy, and no rule of the policy handles
+        /// a timeout.
         /// </exception>
         /// <exception cref="global::System.Text.Json.JsonException">
         /// The stored settings were written under a newer schema version than this code's.
@@ -267,6 +291,10 @@ public static class Tshost_4Demo12SupportAgent
         /// client for the provider the run names or, when it names none, a default client; a store for the type of one
         /// of the host's ids; or an <c>IMcpToolProvider</c> for the agent's MCP servers.
         /// </exception>
+        /// <exception cref="global::System.TimeoutException">
+        /// A model call sent no answer within the timeout of the run's model policy, and no rule of the policy handles
+        /// a timeout.
+        /// </exception>
         /// <exception cref="global::System.Text.Json.JsonException">
         /// The stored settings were written under a newer schema version than this code's.
         /// </exception>
@@ -305,6 +333,10 @@ public static class Tshost_4Demo12SupportAgent
         /// The agent's chat client runs a tool loop of its own, or something the run needs is not registered: a chat
         /// client for the provider the run names or, when it names none, a default client; a store for the type of one
         /// of the host's ids; or an <c>IMcpToolProvider</c> for the agent's MCP servers.
+        /// </exception>
+        /// <exception cref="global::System.TimeoutException">
+        /// A model call sent no answer within the timeout of the run's model policy, and no rule of the policy handles
+        /// a timeout.
         /// </exception>
         /// <exception cref="global::System.Text.Json.JsonException">
         /// The stored settings were written under a newer schema version than this code's.
@@ -353,6 +385,10 @@ public static class Tshost_4Demo12SupportAgent
         /// needs is not registered: a chat client for the provider the run names or, when it names none, a default
         /// client; a store for the type of one of the host's ids; or an <c>IMcpToolProvider</c> for the agent's MCP
         /// servers.
+        /// </exception>
+        /// <exception cref="global::System.TimeoutException">
+        /// A model call sent no answer within the timeout of the run's model policy, and no rule of the policy handles
+        /// a timeout.
         /// </exception>
         /// <exception cref="global::System.Text.Json.JsonException">
         /// The stored settings were written under a newer schema version than this code's.
@@ -403,6 +439,10 @@ public static class Tshost_4Demo12SupportAgent
         /// needs is not registered: a chat client for the provider the run names or, when it names none, a default
         /// client; a store for the type of one of the host's ids; or an <c>IMcpToolProvider</c> for the agent's MCP
         /// servers.
+        /// </exception>
+        /// <exception cref="global::System.TimeoutException">
+        /// A model call sent no answer within the timeout of the run's model policy, and no rule of the policy handles
+        /// a timeout.
         /// </exception>
         /// <exception cref="global::System.Text.Json.JsonException">
         /// The stored settings were written under a newer schema version than this code's.
@@ -455,6 +495,10 @@ public static class Tshost_4Demo12SupportAgent
         /// client; a store for the type of one of the host's ids; or an <c>IMcpToolProvider</c> for the agent's MCP
         /// servers.
         /// </exception>
+        /// <exception cref="global::System.TimeoutException">
+        /// A model call sent no answer within the timeout of the run's model policy, and no rule of the policy handles
+        /// a timeout.
+        /// </exception>
         /// <exception cref="global::System.Text.Json.JsonException">
         /// The stored settings were written under a newer schema version than this code's.
         /// </exception>
@@ -505,6 +549,10 @@ public static class Tshost_4Demo12SupportAgent
         /// client; a store for the type of one of the host's ids; or an <c>IMcpToolProvider</c> for the agent's MCP
         /// servers.
         /// </exception>
+        /// <exception cref="global::System.TimeoutException">
+        /// A model call sent no answer within the timeout of the run's model policy, and no rule of the policy handles
+        /// a timeout.
+        /// </exception>
         /// <exception cref="global::System.Text.Json.JsonException">
         /// The stored settings were written under a newer schema version than this code's.
         /// </exception>
@@ -542,6 +590,10 @@ public static class Tshost_4Demo12SupportAgent
         /// client; a store for the type of one of the host's ids; or an <c>IMcpToolProvider</c> for the agent's MCP
         /// servers.
         /// </exception>
+        /// <exception cref="global::System.TimeoutException">
+        /// A model call sent no answer within the timeout of the run's model policy, and no rule of the policy handles
+        /// a timeout.
+        /// </exception>
         /// <exception cref="global::System.Text.Json.JsonException">
         /// The stored settings were written under a newer schema version than this code's.
         /// </exception>
@@ -575,6 +627,10 @@ public static class Tshost_4Demo12SupportAgent
         /// needs is not registered: a chat client for the provider the run names or, when it names none, a default
         /// client; a store for the type of one of the host's ids; or an <c>IMcpToolProvider</c> for the agent's MCP
         /// servers.
+        /// </exception>
+        /// <exception cref="global::System.TimeoutException">
+        /// A model call sent no answer within the timeout of the run's model policy, and no rule of the policy handles
+        /// a timeout.
         /// </exception>
         /// <exception cref="global::System.Text.Json.JsonException">
         /// The stored settings were written under a newer schema version than this code's.
@@ -614,6 +670,10 @@ public static class Tshost_4Demo12SupportAgent
         /// client; a store for the type of one of the host's ids; or an <c>IMcpToolProvider</c> for the agent's MCP
         /// servers.
         /// </exception>
+        /// <exception cref="global::System.TimeoutException">
+        /// A model call sent no answer within the timeout of the run's model policy, and no rule of the policy handles
+        /// a timeout.
+        /// </exception>
         /// <exception cref="global::System.Text.Json.JsonException">
         /// The stored settings were written under a newer schema version than this code's.
         /// </exception>
@@ -650,6 +710,10 @@ public static class Tshost_4Demo12SupportAgent
         /// client; a store for the type of one of the host's ids; or an <c>IMcpToolProvider</c> for the agent's MCP
         /// servers.
         /// </exception>
+        /// <exception cref="global::System.TimeoutException">
+        /// A model call sent no answer within the timeout of the run's model policy, and no rule of the policy handles
+        /// a timeout.
+        /// </exception>
         /// <exception cref="global::System.Text.Json.JsonException">
         /// The stored settings were written under a newer schema version than this code's.
         /// </exception>
@@ -685,6 +749,10 @@ public static class Tshost_4Demo12SupportAgent
         /// client; a store for the type of one of the host's ids; or an <c>IMcpToolProvider</c> for the agent's MCP
         /// servers.
         /// </exception>
+        /// <exception cref="global::System.TimeoutException">
+        /// A model call sent no answer within the timeout of the run's model policy, and no rule of the policy handles
+        /// a timeout.
+        /// </exception>
         /// <exception cref="global::System.Text.Json.JsonException">
         /// The stored settings were written under a newer schema version than this code's.
         /// </exception>
@@ -719,6 +787,10 @@ public static class Tshost_4Demo12SupportAgent
         /// needs is not registered: a chat client for the provider the run names or, when it names none, a default
         /// client; a store for the type of one of the host's ids; or an <c>IMcpToolProvider</c> for the agent's MCP
         /// servers.
+        /// </exception>
+        /// <exception cref="global::System.TimeoutException">
+        /// A model call sent no answer within the timeout of the run's model policy, and no rule of the policy handles
+        /// a timeout.
         /// </exception>
         /// <exception cref="global::System.Text.Json.JsonException">
         /// The stored settings were written under a newer schema version than this code's.
@@ -759,6 +831,10 @@ public static class Tshost_4Demo12SupportAgent
         /// client; a store for the type of one of the host's ids; or an <c>IMcpToolProvider</c> for the agent's MCP
         /// servers.
         /// </exception>
+        /// <exception cref="global::System.TimeoutException">
+        /// A model call sent no answer within the timeout of the run's model policy, and no rule of the policy handles
+        /// a timeout.
+        /// </exception>
         /// <exception cref="global::System.Text.Json.JsonException">
         /// The stored settings were written under a newer schema version than this code's.
         /// </exception>
@@ -795,6 +871,10 @@ public static class Tshost_4Demo12SupportAgent
         /// needs is not registered: a chat client for the provider the run names or, when it names none, a default
         /// client; a store for the type of one of the host's ids; or an <c>IMcpToolProvider</c> for the agent's MCP
         /// servers.
+        /// </exception>
+        /// <exception cref="global::System.TimeoutException">
+        /// A model call sent no answer within the timeout of the run's model policy, and no rule of the policy handles
+        /// a timeout.
         /// </exception>
         /// <exception cref="global::System.Text.Json.JsonException">
         /// The stored settings were written under a newer schema version than this code's.

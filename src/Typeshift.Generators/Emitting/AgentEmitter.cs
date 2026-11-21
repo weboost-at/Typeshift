@@ -901,6 +901,14 @@ internal static class AgentEmitter
         }
     }
 
+    // D89: what every member that starts a run throws when a model call outwaits its policy's timeout
+    private static void WriteTimedOut(SourceWriter writer) =>
+        Docs.WriteException(
+            writer,
+            "global::System.TimeoutException",
+            "A model call sent no answer within the timeout of the run's model policy, and no rule of the policy "
+            + "handles a timeout.");
+
     // D40: settings written under a newer schema version are refused, by every member that loads them
     private static void WriteNewerSettings(SourceWriter writer) =>
         Docs.WriteException(
@@ -956,6 +964,7 @@ internal static class AgentEmitter
             writer,
             InvalidOperation,
             $"The host has no conversation, {OwnLoop}, or {MissingRegistration}.");
+        WriteTimedOut(writer);
         WriteNewerSettings(writer);
         writer.Lines(
             $"""
@@ -997,6 +1006,7 @@ internal static class AgentEmitter
             writer,
             InvalidOperation,
             $"The host has no conversation, {OwnLoop}, or {MissingRegistration}.");
+        WriteTimedOut(writer);
         WriteNewerSettings(writer);
         writer.Lines(
             $"""
@@ -1059,6 +1069,7 @@ internal static class AgentEmitter
                 writer,
                 InvalidOperation,
                 $"The host has no conversation, {OwnLoop}, or {MissingRegistration}.");
+            WriteTimedOut(writer);
             WriteNewerSettings(writer);
             writer.Lines(
                 $"""
@@ -1107,6 +1118,7 @@ internal static class AgentEmitter
                 writer,
                 InvalidOperation,
                 $"The agent's chat client runs a tool loop of its own, or {MissingRegistration}.");
+            WriteTimedOut(writer);
             WriteNewerSettings(writer);
             writer.Lines(
                 $"""

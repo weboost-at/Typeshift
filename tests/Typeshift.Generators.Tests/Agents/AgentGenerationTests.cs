@@ -20,6 +20,7 @@ public partial class AgentGenerationTests : GeneratorTestBase
     private const string Busy = "global::Typeshift.ConversationBusyException";
     private const string Nothing = "global::Typeshift.NothingToResumeException";
     private const string NotStored = "global::Typeshift.ConversationStoreException";
+    private const string TimedOut = "global::System.TimeoutException";
 
     [Fact]
     public void Given_A_Toolset_And_An_Agent_Their_Global_Classes_Start_With_Ts_Then_Their_Full_Names()
@@ -64,14 +65,16 @@ public partial class AgentGenerationTests : GeneratorTestBase
     }
 
     [Theory]
-    [InlineData("RunAsync", new[] { Unavailable, Busy, NotStored, Invalid, Newer })]
-    [InlineData("RunStreamingAsync", new[] { Unavailable, Busy, NotStored, Invalid, Newer })]
-    [InlineData("AnswerAsync", new[] { Closed, Argument, Conflict, Busy, NotStored, Invalid, Newer })]
-    [InlineData("AnswerStreamingAsync", new[] { Closed, Argument, Conflict, Busy, NotStored, Invalid, Newer })]
-    [InlineData("ResumeAsync", new[] { Nothing, Busy, NotStored, Invalid, Newer })]
-    [InlineData("ResumeStreamingAsync", new[] { Nothing, Busy, NotStored, Invalid, Newer })]
-    [InlineData("RetryAsync", new[] { Nothing, Busy, NotStored, Invalid, Newer })]
-    [InlineData("RetryStreamingAsync", new[] { Nothing, Busy, NotStored, Invalid, Newer })]
+    [InlineData("RunAsync", new[] { Unavailable, Busy, NotStored, Invalid, TimedOut, Newer })]
+    [InlineData("RunStreamingAsync", new[] { Unavailable, Busy, NotStored, Invalid, TimedOut, Newer })]
+    [InlineData("AnswerAsync", new[] { Closed, Argument, Conflict, Busy, NotStored, Invalid, TimedOut, Newer })]
+    [InlineData(
+        "AnswerStreamingAsync",
+        new[] { Closed, Argument, Conflict, Busy, NotStored, Invalid, TimedOut, Newer })]
+    [InlineData("ResumeAsync", new[] { Nothing, Busy, NotStored, Invalid, TimedOut, Newer })]
+    [InlineData("ResumeStreamingAsync", new[] { Nothing, Busy, NotStored, Invalid, TimedOut, Newer })]
+    [InlineData("RetryAsync", new[] { Nothing, Busy, NotStored, Invalid, TimedOut, Newer })]
+    [InlineData("RetryStreamingAsync", new[] { Nothing, Busy, NotStored, Invalid, TimedOut, Newer })]
     [InlineData("ResolveOptionsAsync", new[] { Invalid, Newer })]
     [InlineData("CreateChatClientAsync", new[] { Invalid, Newer })]
     [InlineData("LoadSettingsAsync", new[] { Invalid, Newer })]

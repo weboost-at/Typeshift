@@ -304,6 +304,10 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// The agent's chat client runs a tool loop of its own, or something the run needs is not registered, such as a
     /// chat client or a store for one of the host's ids.
     /// </exception>
+    /// <exception cref="TimeoutException">
+    /// A model call sent no answer within the timeout of the run's model policy, and no rule of the policy
+    /// handles a timeout.
+    /// </exception>
     /// <exception cref="System.Text.Json.JsonException">
     /// The stored settings were written under a newer schema version than this code's.
     /// </exception>
@@ -334,6 +338,10 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// <exception cref="InvalidOperationException">
     /// The agent's chat client runs a tool loop of its own, or something the run needs is not registered.
     /// </exception>
+    /// <exception cref="TimeoutException">
+    /// A model call sent no answer within the timeout of the run's model policy, and no rule of the policy
+    /// handles a timeout.
+    /// </exception>
     /// <exception cref="System.Text.Json.JsonException">
     /// The stored settings were written under a newer schema version than this code's.
     /// </exception>
@@ -362,6 +370,10 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// </exception>
     /// <exception cref="InvalidOperationException">
     /// The agent's chat client runs a tool loop of its own, or something the run needs is not registered.
+    /// </exception>
+    /// <exception cref="TimeoutException">
+    /// A model call sent no answer within the timeout of the run's model policy, and no rule of the policy
+    /// handles a timeout.
     /// </exception>
     /// <exception cref="System.Text.Json.JsonException">
     /// The stored settings were written under a newer schema version than this code's.
@@ -395,6 +407,10 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// <exception cref="InvalidOperationException">
     /// The agent's chat client runs a tool loop of its own, or something the run needs is not registered.
     /// </exception>
+    /// <exception cref="TimeoutException">
+    /// A model call sent no answer within the timeout of the run's model policy, and no rule of the policy
+    /// handles a timeout.
+    /// </exception>
     /// <exception cref="System.Text.Json.JsonException">
     /// The stored settings were written under a newer schema version than this code's.
     /// </exception>
@@ -421,6 +437,10 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// <exception cref="InvalidOperationException">
     /// The agent's chat client runs a tool loop of its own, or something the run needs is not registered.
     /// </exception>
+    /// <exception cref="TimeoutException">
+    /// A model call sent no answer within the timeout of the run's model policy, and no rule of the policy
+    /// handles a timeout.
+    /// </exception>
     public StreamingRun RunStreamingAsync(string input, CancellationToken ct = default) =>
         RunStreamingCoreAsync(new ChatMessage(ChatRole.User, input), null, ct);
 
@@ -443,6 +463,10 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// </exception>
     /// <exception cref="InvalidOperationException">
     /// The agent's chat client runs a tool loop of its own, or something the run needs is not registered.
+    /// </exception>
+    /// <exception cref="TimeoutException">
+    /// A model call sent no answer within the timeout of the run's model policy, and no rule of the policy
+    /// handles a timeout.
     /// </exception>
     public StreamingRun RunStreamingAsync(ChatMessage input, CancellationToken ct = default) =>
         RunStreamingCoreAsync(input, null, ct);
@@ -467,6 +491,10 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// <exception cref="InvalidOperationException">
     /// The agent's chat client runs a tool loop of its own, or something the run needs is not registered.
     /// </exception>
+    /// <exception cref="TimeoutException">
+    /// A model call sent no answer within the timeout of the run's model policy, and no rule of the policy
+    /// handles a timeout.
+    /// </exception>
     public StreamingRun<TResult> RunStreamingAsync<TResult>(string input, CancellationToken ct = default) =>
         RunStreamingCoreAsync<TResult>(new ChatMessage(ChatRole.User, input), null, ct);
 
@@ -488,6 +516,10 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// </exception>
     /// <exception cref="InvalidOperationException">
     /// The agent's chat client runs a tool loop of its own, or something the run needs is not registered.
+    /// </exception>
+    /// <exception cref="TimeoutException">
+    /// A model call sent no answer within the timeout of the run's model policy, and no rule of the policy
+    /// handles a timeout.
     /// </exception>
     public StreamingRun<TResult> RunStreamingAsync<TResult>(ChatMessage input, CancellationToken ct = default) =>
         RunStreamingCoreAsync<TResult>(input, null, ct);
@@ -526,6 +558,10 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// The host has no conversation, the agent's chat client runs a tool loop of its own, or something the run needs
     /// is not registered.
     /// </exception>
+    /// <exception cref="TimeoutException">
+    /// A model call sent no answer within the timeout of the run's model policy, and no rule of the policy
+    /// handles a timeout.
+    /// </exception>
     /// <exception cref="ArgumentNullException"><paramref name="answers"/> is null.</exception>
     public Task<ChatResponse> AnswerAsync(IReadOnlyList<DecisionAnswer> answers, CancellationToken ct = default) =>
         AnswerCoreAsync(answers, null, ct);
@@ -556,6 +592,10 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// The host has no conversation, the agent's chat client runs a tool loop of its own, or something the run needs
     /// is not registered.
     /// </exception>
+    /// <exception cref="TimeoutException">
+    /// A model call sent no answer within the timeout of the run's model policy, and no rule of the policy
+    /// handles a timeout.
+    /// </exception>
     /// <exception cref="ArgumentNullException"><paramref name="answers"/> is null.</exception>
     public Task<ChatResponse<TResult>> AnswerAsync<TResult>(
         IReadOnlyList<DecisionAnswer> answers,
@@ -585,6 +625,10 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// The host has no conversation, the agent's chat client runs a tool loop of its own, or something the run needs
     /// is not registered.
     /// </exception>
+    /// <exception cref="TimeoutException">
+    /// A model call sent no answer within the timeout of the run's model policy, and no rule of the policy
+    /// handles a timeout.
+    /// </exception>
     public StreamingRun AnswerStreamingAsync(
         IReadOnlyList<DecisionAnswer> answers,
         CancellationToken ct = default) =>
@@ -610,6 +654,10 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// <exception cref="InvalidOperationException">
     /// The host has no conversation, the agent's chat client runs a tool loop of its own, or something the run needs
     /// is not registered.
+    /// </exception>
+    /// <exception cref="TimeoutException">
+    /// A model call sent no answer within the timeout of the run's model policy, and no rule of the policy
+    /// handles a timeout.
     /// </exception>
     public StreamingRun<TResult> AnswerStreamingAsync<TResult>(
         IReadOnlyList<DecisionAnswer> answers,
@@ -642,6 +690,10 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// The host has no conversation, the agent's chat client runs a tool loop of its own, or something the run needs
     /// is not registered.
     /// </exception>
+    /// <exception cref="TimeoutException">
+    /// A model call sent no answer within the timeout of the run's model policy, and no rule of the policy
+    /// handles a timeout.
+    /// </exception>
     /// <exception cref="System.Text.Json.JsonException">
     /// The stored settings were written under a newer schema version than this code's.
     /// </exception>
@@ -666,6 +718,10 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// <exception cref="InvalidOperationException">
     /// The host has no conversation, the agent's chat client runs a tool loop of its own, or something the run needs
     /// is not registered.
+    /// </exception>
+    /// <exception cref="TimeoutException">
+    /// A model call sent no answer within the timeout of the run's model policy, and no rule of the policy
+    /// handles a timeout.
     /// </exception>
     public StreamingRun ResumeStreamingAsync(CancellationToken ct = default) =>
         RunStreamingCoreAsync(null, null, ct);
@@ -694,6 +750,10 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// The host has no conversation, the agent's chat client runs a tool loop of its own, or something the run needs
     /// is not registered.
     /// </exception>
+    /// <exception cref="TimeoutException">
+    /// A model call sent no answer within the timeout of the run's model policy, and no rule of the policy
+    /// handles a timeout.
+    /// </exception>
     /// <exception cref="System.Text.Json.JsonException">
     /// The stored settings were written under a newer schema version than this code's.
     /// </exception>
@@ -721,6 +781,10 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// <exception cref="InvalidOperationException">
     /// The host has no conversation, the agent's chat client runs a tool loop of its own, or something the run needs
     /// is not registered.
+    /// </exception>
+    /// <exception cref="TimeoutException">
+    /// A model call sent no answer within the timeout of the run's model policy, and no rule of the policy
+    /// handles a timeout.
     /// </exception>
     public StreamingRun<TResult> ResumeStreamingAsync<TResult>(CancellationToken ct = default) =>
         RunStreamingCoreAsync<TResult>(null, null, ct);
@@ -754,6 +818,10 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// The host has no conversation, the agent's chat client runs a tool loop of its own, or something the run needs
     /// is not registered.
     /// </exception>
+    /// <exception cref="TimeoutException">
+    /// A model call sent no answer within the timeout of the run's model policy, and no rule of the policy
+    /// handles a timeout.
+    /// </exception>
     /// <exception cref="System.Text.Json.JsonException">
     /// The stored settings were written under a newer schema version than this code's.
     /// </exception>
@@ -778,6 +846,10 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// <exception cref="InvalidOperationException">
     /// The host has no conversation, the agent's chat client runs a tool loop of its own, or something the run needs
     /// is not registered.
+    /// </exception>
+    /// <exception cref="TimeoutException">
+    /// A model call sent no answer within the timeout of the run's model policy, and no rule of the policy
+    /// handles a timeout.
     /// </exception>
     public StreamingRun RetryStreamingAsync(CancellationToken ct = default) =>
         RunStreamingCoreAsync(null, null, ct, retries: true);
@@ -804,6 +876,10 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// <exception cref="InvalidOperationException">
     /// The host has no conversation, the agent's chat client runs a tool loop of its own, or something the run needs
     /// is not registered.
+    /// </exception>
+    /// <exception cref="TimeoutException">
+    /// A model call sent no answer within the timeout of the run's model policy, and no rule of the policy
+    /// handles a timeout.
     /// </exception>
     /// <exception cref="System.Text.Json.JsonException">
     /// The stored settings were written under a newer schema version than this code's.
@@ -832,6 +908,10 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// <exception cref="InvalidOperationException">
     /// The host has no conversation, the agent's chat client runs a tool loop of its own, or something the run needs
     /// is not registered.
+    /// </exception>
+    /// <exception cref="TimeoutException">
+    /// A model call sent no answer within the timeout of the run's model policy, and no rule of the policy
+    /// handles a timeout.
     /// </exception>
     public StreamingRun<TResult> RetryStreamingAsync<TResult>(CancellationToken ct = default) =>
         RunStreamingCoreAsync<TResult>(null, null, ct, retries: true);
@@ -1041,9 +1121,9 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// No chat client serves the options: they name a provider nothing is registered for, a document while no
     /// <see cref="IChatProviderConnector"/> is registered, or no provider while no default provider is registered. The
     /// default provider never serves a provider the options name. Or they name no model, and the client reports none of
-    /// its own; or the run can compact and its summary provider has no client, an agent the run may call or hand off
-    /// to names a provider nothing serves, or the client runs a tool loop of its own, as one registered with
-    /// <c>UseFunctionInvocation()</c> does.
+    /// its own; or the run can compact and its summary provider has no client, its model policy falls back to a
+    /// provider nothing serves, an agent the run may call or hand off to names one, or the client runs a tool loop of
+    /// its own, as one registered with <c>UseFunctionInvocation()</c> does.
     /// </exception>
     public async Task<IChatClient> CreateChatClientAsync(ChatOptions options, CancellationToken ct = default)
     {
