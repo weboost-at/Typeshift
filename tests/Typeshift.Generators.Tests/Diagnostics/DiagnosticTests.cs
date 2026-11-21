@@ -2073,7 +2073,7 @@ public class DiagnosticTests : GeneratorTestBase
         // Assert
         run.Assert.Reports(
             "TSH033",
-            DiagnosticSeverity.Warning,
+            DiagnosticSeverity.Error,
             "PickJson",
             message: "'PickJson' reads and writes the enum 'Mode' of the tool 'pick' as a number in an app published "
                 + "with Native AOT or trimmed: add [JsonSourceGenerationOptions(UseStringEnumConverter = true)] to "
@@ -2090,7 +2090,7 @@ public class DiagnosticTests : GeneratorTestBase
         var run = Run(compilation, properties: BuildProperties.JsonReflection(enabled: false));
 
         // Assert
-        run.Assert.Reports("TSH033", DiagnosticSeverity.Warning, "PickJson");
+        run.Assert.Reports("TSH033", DiagnosticSeverity.Error, "PickJson");
     }
 
     [Fact]

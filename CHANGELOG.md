@@ -248,6 +248,11 @@ All notable changes to this project are documented here. The format follows
   member of yours named `TypeshiftGenerated` in a toolset with tools is TSH018 now. A tool of an agent's own has its
   factory and function in the agent's private `TypeshiftGenerated` class. Module stamps are at version 20, so a
   referenced project built with an earlier Typeshift is TSH020 until it is rebuilt.
+- **Breaking:** TSH033, a `JsonSerializerContext` that lists a tool type with an enum and has no
+  `UseStringEnumConverter = true` in an app published with Native AOT or trimmed, is an error. It was a warning, so
+  the build passed and the model's calls failed once it sent an enum's name. Add
+  `[JsonSourceGenerationOptions(UseStringEnumConverter = true)]` to the context, or give the enum a
+  `[JsonConverter(typeof(JsonStringEnumConverter<TEnum>))]` of its own.
 - **Breaking:** `host.CreateChatClientAsync(options)` takes only options that `ResolveOptionsAsync` returned, and
   throws an `ArgumentException` for `ChatOptions` your code made, such as `new ChatOptions()`. Create the client from
   `await host.ResolveOptionsAsync()` instead. The client keeps those options: a call without options runs with them,

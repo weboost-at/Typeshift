@@ -73,8 +73,8 @@ list.
 `UseStringEnumConverter = true` keeps an enum what the model knows it as. Where JSON reflects, a tool's enum is its
 name: in the schema the model reads, in the argument it sends and in the result it gets back. Where it does not,
 the context decides, and without the option an enum is a number there. The schema then says `integer`, the model
-has to guess which number means what, and a name it sends fails the call. The analyzer warns about a context that
-lists a tool type with an enum and lacks the option ([TSH033](./diagnostics.md#tsh033)). An enum that carries its
+has to guess which number means what, and a name it sends fails the call. So a context that lists a tool type with
+an enum and lacks the option fails the build ([TSH033](./diagnostics.md#tsh033)). An enum that carries its
 own `[JsonConverter(typeof(JsonStringEnumConverter<TEnum>))]` needs none.
 
 Strings, `char`, `bool`, `short`, `int`, `long` and their unsigned forms, `float`, `double`, `decimal`, `DateTime`,

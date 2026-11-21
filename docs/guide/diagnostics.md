@@ -43,7 +43,7 @@ app runs throws an exception instead, and [Errors at run time](#errors-at-run-ti
 | [TSH030](#tsh030) | Error | Type is no chat client provider | While you type |
 | [TSH031](#tsh031) | Error | C# language version is below 14 | On build |
 | [TSH032](#tsh032) | Warning | Generator read the declaration differently | Both |
-| [TSH033](#tsh033) | Warning | Enum of a tool is a number for Native AOT or a trimmed app | On build |
+| [TSH033](#tsh033) | Error | Enum of a tool is a number for Native AOT or a trimmed app | On build |
 | [TSH034](#tsh034) | Warning | Sub-agent cannot ask the user | On build |
 | [TSH035](#tsh035) | Error | Tool name is reserved | While you type |
 | [TSH036](#tsh036) | Warning | Conversation store keeps no decisions | On build |

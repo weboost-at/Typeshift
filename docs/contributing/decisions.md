@@ -1802,10 +1802,12 @@ The table lists every entry by its ID, with the section that holds it and whethe
 - **Enums:** where JSON reflects, Microsoft.Extensions.AI's defaults carry a `JsonStringEnumConverter`, which wins
   over every context, so a tool's enum is its name in the schema, the arguments and the result. Where it does not,
   the defaults carry none, the context that lists the type decides, and its default is the number: the model reads
-  `integer`, and a name it sends fails the call. TSH033 warns about a context that lists a tool type with an enum
+  `integer`, and a name it sends fails the call. TSH033 reports a context that lists a tool type with an enum
   and has no `UseStringEnumConverter = true`. It skips an enum, and a property, with a `[JsonConverter]` of its
-  own, and an enum the context's `Converters` name a converter for. It is a warning, since the tool still works
-  with numbers, and it shares TSH027's condition. The generator registers no converters itself: that would need
+  own, and an enum the context's `Converters` name a converter for, and it shares TSH027's condition. It was a
+  warning up to 0.1.0-alpha.7, since the tool still works with numbers, and is an error at the owner's request: a
+  model sends the names it knows, so the tool failed in the published app alone, after a build that passed. The
+  generator registers no converters itself: that would need
   every enum of every tool and typed-run type found at build time, nested ones included, where one line on the
   context does it.
 - **As built:** TSH027 knows the types Microsoft.Extensions.AI's own context lists (strings, numbers, `bool`, dates,
