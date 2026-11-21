@@ -10,7 +10,7 @@ using Typeshift.Samples.Hosting;
 
 namespace Typeshift.Samples.Web;
 
-internal static class ChatEndpoints
+internal static partial class ChatEndpoints
 {
     extension(IEndpointRouteBuilder app)
     {
@@ -90,6 +90,8 @@ internal static class ChatEndpoints
                 }
             });
             // end-snippet
+
+            MapAgUi(chat);
         }
     }
 

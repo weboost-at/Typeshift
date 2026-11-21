@@ -1,6 +1,6 @@
 ---
 title: Serving a chat endpoint
-description: Run an agent from ASP.NET Core endpoints, stream its answer to a chat UI as server-sent events, and answer the decisions a run waits for by their ids.
+description: Run an agent from ASP.NET Core endpoints, stream its answer to a chat UI as server-sent events or AG-UI events, and answer the decisions a run waits for by their ids.
 ---
 
 # Serving a chat endpoint
@@ -182,7 +182,7 @@ private static async IAsyncEnumerable<SseItem<object>> Events(
     yield return new SseItem<object>("", failed ? "error" : "done");
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.cs#L129-L167' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-stream-events' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.cs#L131-L169' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-stream-events' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 - Every event carries JSON, written with your app's JSON options: a `text` event holds its text as a JSON string, and a
@@ -255,7 +255,7 @@ await using var app = builder.Build();
 
 app.MapHub<ConversationHub>("/hub");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/ChatEndpoint.cs#L46-L52' title='Snippet source file'>snippet source</a> | <a href='#snippet-conversation-hub-map' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/ChatEndpoint.cs#L47-L53' title='Snippet source file'>snippet source</a> | <a href='#snippet-conversation-hub-map' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Map it behind your authentication, as the endpoints are, for example with `RequireAuthorization()` after `MapHub`.
@@ -446,8 +446,133 @@ private static async IAsyncEnumerable<ChatResponseUpdate> Rest(
     }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.cs#L96-L127' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-stream-start' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.cs#L98-L129' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-stream-start' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
+
+## Serve an AG-UI client
+
+[AG-UI](https://github.com/ag-ui-protocol/ag-ui) is an open protocol between agents and the UIs that show them. A
+frontend built on an AG-UI client talks to your agent through one endpoint, with no wire format of your own to
+design. The AG-UI .NET SDK turns a run's updates into AG-UI events: with its
+[`AGUI.Server`](https://www.nuget.org/packages/AGUI.Server) package, version 1.0.1, one more endpoint of the chat
+group serves such a client:
+
+<!-- snippet: ag-ui-endpoint -->
+<a id='snippet-ag-ui-endpoint'></a>
+```cs
+chat.MapPost("/ag-ui", async Task<IResult> (
+    int chatId,
+    HttpRequest request,
+    AgentHost<SupportAgent> support,
+    ICurrentCustomer customer,
+    CancellationToken ct) =>
+{
+    var input = (await request.ReadFromJsonAsync<RunAgentInput>(AgUiJson, ct))!;
+    var context = input.ToChatRequestContext(AgUiJson, AgUiStream);
+    var host = support.WithSettingsId(customer.Id).WithConversationId(chatId);
+
+    // The conversation holds the chat, so a run takes the user's last message or the answers to interrupts
+    var updates = input.Resume is { Count: > 0 } resume
+        ? host.AnswerStreamingAsync([.. resume.Select(Answer)], ct)
+        : host.RunStreamingAsync(context.Messages[^1], ct);
+
+    try
+    {
+        var events = (await StartedAsync(updates, ct))
+            .AsAGUIEventStreamAsync(context, ct)
+            .Select(@event => JsonSerializer.Serialize(@event, AgUiJson));
+
+        return TypedResults.ServerSentEvents(events);
+    }
+    catch (DecisionClosedException)
+    {
+        // Answered already, in another tab or by a retry: the UI drops the interrupt
+        return TypedResults.Conflict();
+    }
+});
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.AgUi.cs#L44-L75' title='Snippet source file'>snippet source</a> | <a href='#snippet-ag-ui-endpoint' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+- The endpoint sits on the chat group, so the owner filter checks the chat and the busy filter answers a second run
+  with 409, as for the other endpoints. The conversation id is the chat's, from the route: the client posts to the
+  chat's address, such as `/chats/42/ag-ui`, with the chat's id as its thread id, which the events repeat.
+- An AG-UI client sends the whole conversation with every run. Typeshift keeps the conversation under the chat's id,
+  so the endpoint runs only the last message, and a run that answers interrupts carries out the answers instead.
+- `StartedAsync` reads the first update before the response begins, as in
+  [A chat that is answering](#a-chat-that-is-answering). Each event goes out as one line of JSON in a server-sent
+  event.
+
+Two settings make AG-UI's conversion work with Typeshift's runs, the JSON options and the mapping of a decision:
+
+<!-- snippet: ag-ui-options -->
+<a id='snippet-ag-ui-options'></a>
+```cs
+// AG-UI's types first, then Microsoft.Extensions.AI's and the content that carries a decision
+internal static readonly JsonSerializerOptions AgUiJson = CreateAgUiJson();
+
+private static readonly AGUIStreamOptions AgUiStream = new AGUIStreamOptions().MapInterrupt(Interrupt);
+
+private static JsonSerializerOptions CreateAgUiJson()
+{
+    var json = new JsonSerializerOptions(AIJsonUtilities.DefaultOptions) { WriteIndented = false };
+    json.TypeInfoResolverChain.Insert(0, AGUIJsonUtilities.DefaultTypeInfoResolver);
+    AIJsonUtilities.AddAIContentType<DecisionRequestContent>(json, "decision");
+    json.MakeReadOnly();
+    return json;
+}
+
+// A decision ends the run as an interrupt with the decision's id, and the decision's JSON as its metadata
+private static AGUIInterrupt? Interrupt(AIContent content) =>
+    content is DecisionRequestContent { Decision: var decision }
+        ? new AGUIInterrupt
+        {
+            Id = decision.Id,
+            Reason = "decision",
+            Metadata = JsonSerializer.SerializeToElement(decision, AgUiJson)
+        }
+        : null;
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.AgUi.cs#L15-L40' title='Snippet source file'>snippet source</a> | <a href='#snippet-ag-ui-options' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+- Each event carries the update it came from as its raw event, and a tool call's events carry its arguments and
+  result, all of them Microsoft.Extensions.AI's types. So the JSON options resolve those as well as AG-UI's own. With
+  AG-UI's context alone, even an answer without a tool call ends in `RUN_ERROR`.
+- The last update of a run that asks holds a `DecisionRequestContent`, the content that carries a decision, which
+  Microsoft.Extensions.AI's JSON does not know. The options add it, or that run ends in `RUN_ERROR` too.
+- `MapInterrupt` turns each decision into an AG-UI interrupt, so the run ends with `RUN_FINISHED` and the outcome
+  `interrupt`. The interrupt's metadata is the decision's JSON as the [reply](#return-the-answer) holds it, so the UI
+  shows the same prompt as the chat UI.
+
+The client answers the interrupts on its next run, in the `resume` of its input, and the endpoint turns each into a
+`DecisionAnswer`:
+
+<!-- snippet: ag-ui-answer -->
+<a id='snippet-ag-ui-answer'></a>
+```cs
+// A resolved interrupt's payload is the answer endpoint's body without the decision's id: {"approved":true}
+private static DecisionAnswer Answer(AGUIResume resume) =>
+    resume is { Status: ResumeStatus.Resolved, Payload: { } payload }
+        ? payload.Deserialize<DecisionAnswer>(AgUiJson)! with { DecisionId = resume.InterruptId }
+        : DecisionAnswer.Reject(resume.InterruptId);
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.AgUi.cs#L78-L84' title='Snippet source file'>snippet source</a> | <a href='#snippet-ag-ui-answer' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+- The payload of a resolved interrupt is the body that [Answer a decision](#answer-a-decision) takes, so questions are
+  answered with `answers` as there. A cancelled interrupt rejects the call or the plan, or declines the questions.
+- `AnswerStreamingAsync` records the answers and, once no decision of the chat is left open, streams the rest of the
+  run: the approved call's result and the answer. An interrupt answered again, in another tab for example, answers
+  409 Conflict.
+
+::: info What the endpoint leaves out
+The agent runs with its own tools and settings, so the endpoint ignores the tools, the state and the context an AG-UI
+client sends. AG-UI's frontend tools, which the browser runs, and the state it shares with the UI are not covered.
+The interrupts carry Typeshift's decisions in their metadata rather than AG-UI's payload for a tool approval, so a
+UI reads the decision from there. A run that fails after its first update ends in `RUN_ERROR` with AG-UI's own
+message, which leaves the exception out, and the run's span records it ([Observability](./observability.md#spans)).
+:::
 
 ## Related
 

@@ -23,9 +23,10 @@ namespace Typeshift.Samples.Scenarios;
 
 // Serves the chat endpoints and the hub on a local port and calls them as a chat UI would: a message, another
 // customer's chat, a decision loaded again and answered by its id, questions answered by label and in words, a
-// streamed answer that ends with its done event, one the provider drops with its error event, a second message while
-// the answer to the first is under way, the hub's negotiation, and a chat loaded again, one compaction summarized
-// included. Then the customer's settings form, and a staff endpoint that binds the whole Settings record
+// streamed answer that ends with its done event, one the provider drops with its error event, an AG-UI client's runs,
+// a second message while the answer to the first is under way, the hub's negotiation, and a chat loaded again, one
+// compaction summarized included. Then the customer's settings form, and a staff endpoint that binds the whole
+// Settings record
 internal static class ChatEndpoint
 {
     public static async Task RunAsync(IChatClient client, string database)
@@ -147,6 +148,8 @@ internal static class ChatEndpoint
         if (!errors.Exceptions.Any(exception => exception.ToString().Contains(DroppingChatClient.Reason)))
             throw new InvalidOperationException("Expected the endpoint to log the exception.");
 
+        await AgUi.RunAsync(http, DroppingChatClient.Dropped, DroppingChatClient.Reason);
+
         var slow = http.PostAsJsonAsync("/chats/45/messages", new ChatInput(HeldChatClient.Held));
         await held.Holding.Task;
 
@@ -157,6 +160,9 @@ internal static class ChatEndpoint
         var doubledStream = await http.PostAsJsonAsync("/chats/45/messages/stream", new ChatInput("Are you there?"));
         if (doubledStream.StatusCode != HttpStatusCode.Conflict)
             throw new InvalidOperationException("Expected a second streamed message to conflict before it streams.");
+
+        if ((await AgUi.PostAsync(http, "Are you there?", chat: 45)).StatusCode != HttpStatusCode.Conflict)
+            throw new InvalidOperationException("Expected an AG-UI run of a chat that is answering to conflict.");
 
         held.Release.SetResult();
         (await slow).EnsureSuccessStatusCode();
