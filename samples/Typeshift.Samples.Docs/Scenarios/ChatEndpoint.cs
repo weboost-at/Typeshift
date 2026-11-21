@@ -1,5 +1,7 @@
+using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Http.Json;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Builder;
@@ -10,6 +12,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Console;
 using Typeshift.Samples.Agents;
 using Typeshift.Samples.Hosting;
 using Typeshift.Samples.Stores.EfCore;
@@ -20,9 +23,9 @@ namespace Typeshift.Samples.Scenarios;
 
 // Serves the chat endpoints and the hub on a local port and calls them as a chat UI would: a message, another
 // customer's chat, a decision loaded again and answered by its id, questions answered by label and in words, a
-// streamed answer, a second message while the answer to the first is under way, the hub's negotiation, and a chat
-// loaded again, one compaction summarized included. Then the customer's settings form, and a staff endpoint that binds
-// the whole Settings record
+// streamed answer that ends with its done event, one the provider drops with its error event, a second message while
+// the answer to the first is under way, the hub's negotiation, and a chat loaded again, one compaction summarized
+// included. Then the customer's settings form, and a staff endpoint that binds the whole Settings record
 internal static class ChatEndpoint
 {
     public static async Task RunAsync(IChatClient client, string database)
@@ -31,7 +34,12 @@ internal static class ChatEndpoint
         builder.WebHost.UseUrls("http://127.0.0.1:0");
         builder.Logging.SetMinimumLevel(LogLevel.Warning);
 
-        var held = new HeldChatClient(client);
+        // The answer the scenario drops logs an error, which it checks rather than prints
+        var errors = new ErrorLog();
+        builder.Logging.AddProvider(errors);
+        builder.Logging.AddFilter<ConsoleLoggerProvider>(typeof(SupportAgent).FullName, LogLevel.None);
+
+        var held = new HeldChatClient(new DroppingChatClient(client));
         Registration.Register(builder.Services, held, held, database);
         builder.Services.AddSingleton<IChats, SampleChats>();
 
@@ -93,8 +101,8 @@ internal static class ChatEndpoint
 
         var stream = await http.PostAsJsonAsync("/chats/43/messages/stream", new ChatInput("Close ticket 1234."));
         var events = await stream.Content.ReadAsStringAsync();
-        if (!events.Contains("event: decision", StringComparison.Ordinal))
-            throw new InvalidOperationException($"Expected a decision event: {events}");
+        if (!events.Contains("event: decision", StringComparison.Ordinal) || !Ends(events, Done))
+            throw new InvalidOperationException($"Expected a decision event, then the done event: {events}");
 
         var streamed = JsonSerializer.Deserialize<Decision>(
             events.Split('\n').Single(line => line.StartsWith("data: {", StringComparison.Ordinal))[6..],
@@ -124,8 +132,20 @@ internal static class ChatEndpoint
         var text = await http.PostAsJsonAsync("/chats/41/messages/stream", new ChatInput("Where is my refund?"));
         var answer = await text.Content.ReadAsStringAsync();
         var textEvent = $"event: text\ndata: {JsonSerializer.Serialize(CannedChatClient.Answer)}";
-        if (!answer.Contains(textEvent, StringComparison.Ordinal))
-            throw new InvalidOperationException($"Expected the answer as a JSON string: {answer}");
+        if (!answer.Contains(textEvent, StringComparison.Ordinal) || !Ends(answer, Done))
+            throw new InvalidOperationException($"Expected the answer as a JSON string, then the done event: {answer}");
+
+        var lengthy = new ChatInput(DroppingChatClient.Dropped);
+        var dropping = await http.PostAsJsonAsync("/chats/47/messages/stream", lengthy);
+        var dropped = await dropping.Content.ReadAsStringAsync();
+        if (!dropped.Contains(textEvent, StringComparison.Ordinal) || !Ends(dropped, Error))
+            throw new InvalidOperationException($"Expected the answer so far, then the error event: {dropped}");
+
+        if (dropped.Contains(DroppingChatClient.Reason, StringComparison.Ordinal))
+            throw new InvalidOperationException("Expected the error event to leave out the exception's message.");
+
+        if (!errors.Exceptions.Any(exception => exception.ToString().Contains(DroppingChatClient.Reason)))
+            throw new InvalidOperationException("Expected the endpoint to log the exception.");
 
         var slow = http.PostAsJsonAsync("/chats/45/messages", new ChatInput(HeldChatClient.Held));
         await held.Holding.Task;
@@ -149,6 +169,63 @@ internal static class ChatEndpoint
 
         await CheckSettingsAsync(app.Services, http);
         await app.StopAsync();
+    }
+
+    // The last event of a stream: its run ended, answered or asking, or failed after the response began
+    private const string Done = "event: done\ndata: \"\"\n\n";
+
+    private const string Error = "event: error\ndata: \"\"\n\n";
+
+    private static bool Ends(string events, string last) => events.EndsWith(last, StringComparison.Ordinal);
+
+    // Streams its answer to one message and then loses the connection, as a provider can while it answers
+    private sealed class DroppingChatClient(IChatClient inner) : DelegatingChatClient(inner)
+    {
+        public const string Dropped = "Tell me everything about my refund.";
+
+        public const string Reason = "The provider reset the connection.";
+
+        public override async IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
+            IEnumerable<ChatMessage> messages,
+            ChatOptions? options = null,
+            [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            await foreach (var update in base.GetStreamingResponseAsync(messages, options, cancellationToken))
+            {
+                yield return update;
+            }
+
+            if (messages.Last().Text == Dropped) throw new HttpRequestException(Reason);
+        }
+    }
+
+    private sealed class ErrorLog : ILoggerProvider
+    {
+        public ConcurrentQueue<Exception> Exceptions { get; } = [];
+
+        public ILogger CreateLogger(string categoryName) => new Logger(Exceptions);
+
+        public void Dispose()
+        {
+        }
+
+        private sealed class Logger(ConcurrentQueue<Exception> exceptions) : ILogger
+        {
+            public IDisposable? BeginScope<TState>(TState state)
+                where TState : notnull => null;
+
+            public bool IsEnabled(LogLevel logLevel) => logLevel >= LogLevel.Error;
+
+            public void Log<TState>(
+                LogLevel logLevel,
+                EventId eventId,
+                TState state,
+                Exception? exception,
+                Func<TState, Exception?, string> formatter)
+            {
+                if (exception is not null && IsEnabled(logLevel)) exceptions.Enqueue(exception);
+            }
+        }
     }
 
     // Holds the answer to one message until the scenario lets it go, as a model that takes its time would

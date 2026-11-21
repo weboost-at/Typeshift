@@ -39,7 +39,7 @@ chat.MapPost("/messages", async (
     return ChatReply.From(response);
 });
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.cs#L17-L36' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-endpoint' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.cs#L19-L38' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-endpoint' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 - The host and `ICurrentCustomer` come from the request's scope, as
@@ -124,6 +124,7 @@ chat.MapPost("/messages/stream", async (
     ChatInput input,
     AgentHost<SupportAgent> support,
     ICurrentCustomer customer,
+    ILogger<SupportAgent> log,
     CancellationToken ct) =>
 {
     var updates = support
@@ -131,21 +132,43 @@ chat.MapPost("/messages/stream", async (
         .WithConversationId(chatId)
         .RunStreamingAsync(input.Text, ct);
 
-    return TypedResults.ServerSentEvents(Events(await StartedAsync(updates, ct)));
+    return TypedResults.ServerSentEvents(Events(await StartedAsync(updates, ct), log, ct));
 });
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.cs#L38-L53' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-stream-endpoint' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.cs#L40-L56' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-stream-endpoint' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-Each update becomes a `text` event with the text it adds, and each decision a `decision` event:
+Each update becomes a `text` event with the text it adds, and each decision a `decision` event. The stream ends with
+a `done` event, or with an `error` event when the run failed:
 
 <!-- snippet: chat-stream-events -->
 <a id='snippet-chat-stream-events'></a>
 ```cs
-private static async IAsyncEnumerable<SseItem<object>> Events(IAsyncEnumerable<ChatResponseUpdate> updates)
+private static async IAsyncEnumerable<SseItem<object>> Events(
+    IAsyncEnumerable<ChatResponseUpdate> updates,
+    ILogger log,
+    [EnumeratorCancellation] CancellationToken ct)
 {
-    await foreach (var update in updates)
+    await using var reader = updates.GetAsyncEnumerator(ct);
+    var failed = false;
+
+    while (true)
     {
+        try
+        {
+            if (!await reader.MoveNextAsync()) break;
+        }
+        catch (Exception exception) when (!ct.IsCancellationRequested)
+        {
+            // The response is under way, so the page learns of the failure from an event, and the exception,
+            // whose message can name your database or your provider, goes to the log
+            log.LogError(exception, "An answer to a chat failed after it began.");
+            failed = true;
+            break;
+        }
+
+        var update = reader.Current;
+
         if (update.Text is { Length: > 0 } text) yield return new SseItem<object>(text, "text");
 
         // Decisions come with the run's last update, so each one the UI shows can be answered
@@ -154,18 +177,32 @@ private static async IAsyncEnumerable<SseItem<object>> Events(IAsyncEnumerable<C
             yield return new SseItem<object>(decision, "decision");
         }
     }
+
+    // The last event: a stream that ends without one was cut off, by the network for example
+    yield return new SseItem<object>("", failed ? "error" : "done");
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.cs#L126-L140' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-stream-events' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.cs#L129-L167' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-stream-events' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-- Both events carry JSON, written with your app's JSON options: a `text` event holds its text as a JSON string, and a
-  `decision` event holds the decision as the reply does. Parse each event's data with `JSON.parse`.
+- Every event carries JSON, written with your app's JSON options: a `text` event holds its text as a JSON string, and a
+  `decision` event holds the decision as the reply does. `done` and `error` hold an empty string, since the event's
+  name says what happened. Parse each event's data with `JSON.parse`.
 - A browser reads the events with `fetch` and a reader over the response's body, because
   [`EventSource`](https://developer.mozilla.org/docs/Web/API/EventSource) sends only GET requests.
-- A run that asks sends its `decision` events last, once it has ended, so the UI can post an answer the moment it
-  shows the prompt. A reader that left the stream before then gets the decisions from the
+- A run that asks sends its `decision` events once it has ended, just before `done`, so the UI can post an answer the
+  moment it shows the prompt. A reader that left the stream before then gets the decisions from the
   [endpoint below](#load-the-decisions).
+- `done` ends the stream of every run that ended, whether it answered or asks your app. A stream that stops without
+  `done` or `error` was cut off, by the network for example, so the page loads the chat again
+  ([Load the chat](#load-the-chat)) rather than taking the text so far for the whole answer.
+- `error` ends the stream of a run that failed after its response began, such as a provider that drops the connection
+  halfway through an answer. The event leaves the exception out, because its message can name your database or your
+  provider, and the endpoint logs it instead. The conversation holds the user's message already, so the page offers
+  to retry ([Retrying a failed run](./conversations.md#retrying-a-failed-run)) instead of sending it again.
+- A run that fails at its first update fails the request instead, since the endpoint reads that update before the
+  response begins ([A chat that is answering](#a-chat-that-is-answering)). ASP.NET Core then answers 500 and logs the
+  exception, as it does for the endpoint that does not stream.
 - The response reads the run's stream, so when the user leaves the page, ASP.NET stops reading and the run stops at
   its next update, stored up to there, with or without a token. A run that has to finish either way runs as a
   [background job](./using-an-agent.md#run-from-a-background-job), and the page follows it as below: a page that
@@ -218,7 +255,7 @@ await using var app = builder.Build();
 
 app.MapHub<ConversationHub>("/hub");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/ChatEndpoint.cs#L38-L44' title='Snippet source file'>snippet source</a> | <a href='#snippet-conversation-hub-map' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/ChatEndpoint.cs#L46-L52' title='Snippet source file'>snippet source</a> | <a href='#snippet-conversation-hub-map' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Map it behind your authentication, as the endpoints are, for example with `RequireAuthorization()` after `MapHub`.
@@ -234,7 +271,7 @@ entries without a run, and the endpoint returns what the user reads of them:
 chat.MapGet("/messages", async (int chatId, AgentHost<SupportAgent> support, CancellationToken ct) =>
     ChatLine.From(await support.WithConversationId(chatId).LoadConversationAsync(ct)));
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.cs#L55-L58' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-history-endpoint' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.cs#L58-L61' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-history-endpoint' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 <!-- snippet: chat-line -->
@@ -271,7 +308,7 @@ decisions alone, without a run:
 chat.MapGet("/decisions", async (int chatId, AgentHost<SupportAgent> support, CancellationToken ct) =>
     (await support.WithConversationId(chatId).GetDecisionsAsync(ct)).Open);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.cs#L60-L63' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-decisions-endpoint' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.cs#L63-L66' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-decisions-endpoint' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The endpoint returns the open decisions, as the reply and the stream do. What it loaded also lists the tools
@@ -309,7 +346,7 @@ chat.MapPost("/decisions", async Task<IResult> (
     }
 });
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.cs#L65-L89' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-answer-endpoint' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.cs#L68-L92' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-answer-endpoint' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 - The body is a `DecisionAnswer`. `{"decisionId":"...","approved":true}` approves, `"approved":false` with a
@@ -409,7 +446,7 @@ private static async IAsyncEnumerable<ChatResponseUpdate> Rest(
     }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.cs#L93-L124' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-stream-start' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.cs#L96-L127' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-stream-start' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ## Related

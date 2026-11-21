@@ -1,6 +1,6 @@
 namespace Typeshift.Samples.Web;
 
-// The chats of the guide's scenario: six of the sample customer's, and one of another customer
+// The chats of the guide's scenario: seven of the sample customer's, and one of another customer
 internal sealed class SampleChats : IChats
 {
     private static readonly Dictionary<int, int> Owners = new()
@@ -11,6 +11,7 @@ internal sealed class SampleChats : IChats
         [44] = 7,
         [45] = 7,
         [46] = 7,
+        [47] = 7,
         [99] = 8
     };
 

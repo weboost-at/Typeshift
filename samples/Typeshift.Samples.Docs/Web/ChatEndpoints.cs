@@ -1,8 +1,10 @@
 using System.Net.ServerSentEvents;
+using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Logging;
 using Typeshift.Samples.Agents;
 using Typeshift.Samples.Hosting;
 
@@ -41,6 +43,7 @@ internal static class ChatEndpoints
                 ChatInput input,
                 AgentHost<SupportAgent> support,
                 ICurrentCustomer customer,
+                ILogger<SupportAgent> log,
                 CancellationToken ct) =>
             {
                 var updates = support
@@ -48,7 +51,7 @@ internal static class ChatEndpoints
                     .WithConversationId(chatId)
                     .RunStreamingAsync(input.Text, ct);
 
-                return TypedResults.ServerSentEvents(Events(await StartedAsync(updates, ct)));
+                return TypedResults.ServerSentEvents(Events(await StartedAsync(updates, ct), log, ct));
             });
             // end-snippet
 
@@ -124,10 +127,31 @@ internal static class ChatEndpoints
     // end-snippet
 
     // begin-snippet: chat-stream-events
-    private static async IAsyncEnumerable<SseItem<object>> Events(IAsyncEnumerable<ChatResponseUpdate> updates)
+    private static async IAsyncEnumerable<SseItem<object>> Events(
+        IAsyncEnumerable<ChatResponseUpdate> updates,
+        ILogger log,
+        [EnumeratorCancellation] CancellationToken ct)
     {
-        await foreach (var update in updates)
+        await using var reader = updates.GetAsyncEnumerator(ct);
+        var failed = false;
+
+        while (true)
         {
+            try
+            {
+                if (!await reader.MoveNextAsync()) break;
+            }
+            catch (Exception exception) when (!ct.IsCancellationRequested)
+            {
+                // The response is under way, so the page learns of the failure from an event, and the exception,
+                // whose message can name your database or your provider, goes to the log
+                log.LogError(exception, "An answer to a chat failed after it began.");
+                failed = true;
+                break;
+            }
+
+            var update = reader.Current;
+
             if (update.Text is { Length: > 0 } text) yield return new SseItem<object>(text, "text");
 
             // Decisions come with the run's last update, so each one the UI shows can be answered
@@ -136,6 +160,9 @@ internal static class ChatEndpoints
                 yield return new SseItem<object>(decision, "decision");
             }
         }
+
+        // The last event: a stream that ends without one was cut off, by the network for example
+        yield return new SseItem<object>("", failed ? "error" : "done");
     }
     // end-snippet
 }
