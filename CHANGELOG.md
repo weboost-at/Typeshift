@@ -5,6 +5,14 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0-alpha.8] - 2026-11-21
+
+The last alpha: from here on every release only adds, as
+[Compatibility from the first beta](https://weboost-at.github.io/Typeshift/contributing/releasing#compatibility-from-the-first-beta)
+says. The tag `v0.1.0-alpha.7` was pushed but never published, so this section holds every change since
+0.1.0-alpha.6. Module stamps are at version 25, so a referenced project built with an earlier Typeshift is TSH020
+until it is rebuilt with this one.
+
 ### Added
 
 - TSH044 reports a declaration in a constructor of a toolset or an agent that Typeshift never runs. Typeshift creates
@@ -279,8 +287,7 @@ All notable changes to this project are documented here. The format follows
   Code that creates a tool through its factory, such as a test, writes
   `TicketToolset.TypeshiftGenerated.CreateSearchTickets(json)` for `TicketToolset.CreateSearchTickets(json)`. A
   member of yours named `TypeshiftGenerated` in a toolset with tools is TSH018 now. A tool of an agent's own has its
-  factory and function in the agent's private `TypeshiftGenerated` class. Module stamps are at version 20, so a
-  referenced project built with an earlier Typeshift is TSH020 until it is rebuilt.
+  factory and function in the agent's private `TypeshiftGenerated` class.
 - **Breaking:** a configurable settings member of a class of .NET or another Microsoft library that settings do not
   list, any referenced type under the `System` or `Microsoft` namespaces such as `StringBuilder`, is TSH012, also
   inside a record of yours. It compiled and stored what the class's setters reach, a `StringBuilder` its capacity and its length.
@@ -317,8 +324,7 @@ All notable changes to this project are documented here. The format follows
   where it took `ct`. A call that passes the token by position is unchanged; one that names it changes: write
   `support.RunAsync(question, settings: run, cancellationToken: ct)` for
   `support.RunAsync(question, settings: run, ct: ct)`. Your implementations of `IConversationStore<TId>`,
-  `IRunMiddleware` and the other interfaces compile as they are, and their parameters may follow the new name. Module
-  stamps are at version 25, so a referenced project built with an earlier Typeshift is TSH020 until it is rebuilt.
+  `IRunMiddleware` and the other interfaces compile as they are, and their parameters may follow the new name.
 - **Breaking:** a run that names no model, on a client that reports no model of its own in its `ChatClientMetadata`,
   throws an `InvalidOperationException` before it stores anything, naming the ways to name one. It sent the provider
   no model, which rejected the call. Name a model, or build the client with one, as `GetChatClient("gpt-5-mini")`
@@ -443,8 +449,6 @@ All notable changes to this project are documented here. The format follows
   every record has from `object`, which is CS0108. Settings stored under the tool's name are not affected.
 - The module of an assembly whose name holds other characters than letters, digits and dots carries a hash of the
   name, as `Acme_Tools_1a2b3c4dModule` for `Acme-Tools`. The generated registration names it for you.
-- Module stamps are at version 16, so a referenced project built with an earlier Typeshift is TSH020 until it is
-  rebuilt.
 - The class that holds a toolset's picks for `Include` and `Exclude` lives in the global namespace, as the classes
   of the host members do. It was `{Toolset}ToolList` in the toolset's namespace and is `TypeshiftTools_` followed by
   the toolset's full name, each part after its length, hidden from code completion. Picks are written as before.

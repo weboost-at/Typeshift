@@ -71,13 +71,14 @@ that no row names, and on a name that is no test class.
 
   | Pairs | CPU per run | Allocated per run | Per pair |
   |---|---|---|---|
-  | 0 | 0.5 ms | 81 KB | |
-  | 5 | 16 ms | 1.5 MB | 296 KB |
-  | 10 | 29 ms | 2.7 MB | 273 KB |
-  | 50 | 126 ms | 12.7 MB | 255 KB |
-  | 100 | 166 ms | 25.3 MB | 253 KB |
+  | 0 | 1.0 ms | 81 KB | |
+  | 5 | 24 ms | 1.5 MB | 302 KB |
+  | 10 | 31 ms | 2.8 MB | 278 KB |
+  | 50 | 127 ms | 12.9 MB | 259 KB |
+  | 100 | 197 ms | 25.7 MB | 257 KB |
 
-  A toolset of ten tools that share one settings type costs about 765 KB per pair. Binding the constructors is 70%
+  A toolset of ten tools that share one settings type costs about 735 KB per pair. Measured for 0.1.0-alpha.8, where
+  reading only the constructors that run (TSH044) and the provider of `WithProvider` added about 1.5% per pair. Binding the constructors is 70%
   of a pair's cost; binding only what each chain names would cut into it, and waits for projects that need it.
 - **A run's limit across sub-agents.** `WithMaxToolIterations` bounds the model calls of one agent's run. Each run
   of a sub-agent counts its own, and one response may call a sub-agent many times, so an agent limited to three
