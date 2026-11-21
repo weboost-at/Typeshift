@@ -24,8 +24,8 @@ internal static class ChatResponses
 
     // D46: a run that was not stored whole says so on what it returns
     public static void Incomplete(ChatResponse response) =>
-        (response.AdditionalProperties ??= [])[ChatResponseExtensions.Incomplete] = true;
+        (response.AdditionalProperties ??= [])[TypeshiftExtensions.Incomplete] = true;
 
     public static ChatResponseUpdate IncompleteUpdate() =>
-        new() { AdditionalProperties = new() { [ChatResponseExtensions.Incomplete] = true } };
+        new() { AdditionalProperties = new() { [TypeshiftExtensions.Incomplete] = true } };
 }

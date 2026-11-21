@@ -73,39 +73,6 @@ public enum ModelFailure
     Any = Transient | Auth | ContentFilter | Rejected | Unknown
 }
 
-/// <summary>
-/// The members Typeshift adds to its own types.
-/// </summary>
-public static class TypeshiftExtensions
-{
-    extension(ModelFailure)
-    {
-        // D89: the table of statuses Typeshift reads from an HttpRequestException, for your app's classification of a
-        // client library's exception that holds a status
-        /// <summary>
-        /// The kind of failure an HTTP status tells: 429 <see cref="ModelFailure.RateLimit"/>, 408 and 504
-        /// <see cref="ModelFailure.Timeout"/>, 401 and 403 <see cref="ModelFailure.Auth"/>, 400, 404, 413 and 422
-        /// <see cref="ModelFailure.Rejected"/>, any other of 500 or more <see cref="ModelFailure.Unavailable"/>, and
-        /// any other status <see cref="ModelFailure.Unknown"/>. Use it in
-        /// <see cref="TypeshiftOptions.ClassifyModelFailure"/> for an exception that holds the status, as
-        /// <c>ModelFailure.FromStatus(failed.Status)</c> for the OpenAI client's <c>ClientResultException</c>.
-        /// </summary>
-        /// <param name="status">The HTTP status the provider answered with.</param>
-        /// <returns>The kind.</returns>
-        [Experimental(ExperimentalIds.ModelPolicy, UrlFormat = ExperimentalIds.ModelPolicyUrl)]
-        public static ModelFailure FromStatus(int status) =>
-            status switch
-            {
-                429 => ModelFailure.RateLimit,
-                408 or 504 => ModelFailure.Timeout,
-                401 or 403 => ModelFailure.Auth,
-                400 or 404 or 413 or 422 => ModelFailure.Rejected,
-                >= 500 => ModelFailure.Unavailable,
-                _ => ModelFailure.Unknown
-            };
-    }
-}
-
 // D89: the kind of a model call's failure, once it is not the caller's own cancellation or the policy's timeout,
 // which the policy's client tells apart itself. Your app's classification answers first, since only it knows a
 // client library's exceptions

@@ -96,7 +96,7 @@ internal sealed class LiveRuns(LiveUpdateOptions realtime, ILoggerFactory? logge
             : new ChatResponseUpdate { FinishReason = run.FinishReason };
 
         ended.AuthorName = run.Agent;
-        ended.AdditionalProperties = new() { [ChatResponseExtensions.RunEnded] = true };
+        ended.AdditionalProperties = new() { [TypeshiftExtensions.RunEnded] = true };
         return ended;
     }
 

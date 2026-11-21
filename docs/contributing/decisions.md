@@ -875,10 +875,11 @@ The table lists every entry by its ID, with the section that holds it and whethe
   `Agent.ModelPolicy` carry `[Experimental("TYPESHIFT001")]`, whose link opens the policy's section of the guide, so
   their shape may still change after the last alpha that breaks API. The library builds on them itself, so
   `.editorconfig` switches the id off for `src/Typeshift`; a test or a sample that uses them disables it by pragma.
-- **Where:** `Hosting/ModelPolicy.cs`, `Hosting/ModelFailure.cs`, `Hosting/ModelPolicyChatClient.cs`,
-  `Hosting/AgentHost.cs` (`GetClientsAsync`, `WithModelPolicy`), `Hosting/ReachableProviders.cs`,
-  `Agents/RunOptions.cs`, `Compaction/Compaction.cs`, `DependencyInjection/TypeshiftOptions.cs`,
-  `Telemetry/LogEvents.cs`, `Analysis/TypeshiftAnalyzer.cs` (`IsHostCopy`).
+- **Where:** `Hosting/ModelPolicy.cs`, `Hosting/ModelFailure.cs`, `Hosting/TypeshiftExtensions.cs` (`FromStatus`),
+  `Hosting/ModelPolicyChatClient.cs`, `Hosting/AgentHost.cs` (`GetClientsAsync`, `WithModelPolicy`),
+  `Hosting/ReachableProviders.cs`, `Agents/RunOptions.cs`, `Compaction/Compaction.cs`,
+  `DependencyInjection/TypeshiftOptions.cs`, `Telemetry/LogEvents.cs`, `Analysis/TypeshiftAnalyzer.cs`
+  (`IsHostCopy`).
 - **Alternatives:** a flat `WithFallback(...)` list, which handles every failure alike; a middleware class of the
   app's around the provider's client, which is not inline and runs outside the checkpoints; a selector service asked
   after each failure, the most power and nothing inline, which every app fills with the same counting; reading a

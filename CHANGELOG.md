@@ -300,6 +300,12 @@ All notable changes to this project are documented here. The format follows
   without its `decisionId`, which bound as null before, so an endpoint that binds one answers 400 Bad Request.
   `FileStoreOptions` is a sealed class, as `LiveUpdateOptions` is, and no longer a record. Module stamps are at
   version 23, so a referenced project built with an earlier Typeshift is TSH020 until it is rebuilt.
+- **Breaking:** the extension members of `ChatResponseExtensions` and `FunctionInvocationContextExtensions`, class
+  names that Microsoft.Extensions.AI and Agent Framework use too, are in one static class, `TypeshiftExtensions`,
+  beside `ModelFailure.FromStatus`. `response.Decisions`, `update.EndsRun` and `call.Run` read as before, so only code
+  that names the class changes: write `TypeshiftExtensions.GetConversationId<Guid>(response)` for
+  `ChatResponseExtensions.GetConversationId<Guid>(response)`, and a `using static` of either class names
+  `TypeshiftExtensions`.
 - **Breaking:** a run that names no model, on a client that reports no model of its own in its `ChatClientMetadata`,
   throws an `InvalidOperationException` before it stores anything, naming the ways to name one. It sent the provider
   no model, which rejected the call. Name a model, or build the client with one, as `GetChatClient("gpt-5-mini")`

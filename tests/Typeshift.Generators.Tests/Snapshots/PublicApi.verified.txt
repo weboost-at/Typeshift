@@ -161,24 +161,6 @@ protected virtual bool Typeshift.ChatProvider.PrintMembers(System.Text.StringBui
 public override string Typeshift.ChatProvider.ToString()
 public static bool Typeshift.ChatProvider.operator !=(Typeshift.ChatProvider? left, Typeshift.ChatProvider? right)
 public static bool Typeshift.ChatProvider.operator ==(Typeshift.ChatProvider? left, Typeshift.ChatProvider? right)
-public static class Typeshift.ChatResponseExtensions
-public static TId Typeshift.ChatResponseExtensions.GetConversationId<TId>(Microsoft.Extensions.AI.ChatResponse response) where TId : notnull, System.IParsable<TId>
-public static Typeshift.ChatResponseExtensions.extension(Microsoft.Extensions.AI.ChatMessage)
-public bool Typeshift.ChatResponseExtensions.extension(Microsoft.Extensions.AI.ChatMessage).IsBackgroundAnswer { get; }
-public static Typeshift.ChatResponseExtensions.extension(Microsoft.Extensions.AI.ChatResponse)
-public bool Typeshift.ChatResponseExtensions.extension(Microsoft.Extensions.AI.ChatResponse).ConversationIncomplete { get; }
-public System.Collections.Generic.IReadOnlyList<Typeshift.Decision> Typeshift.ChatResponseExtensions.extension(Microsoft.Extensions.AI.ChatResponse).Decisions { get; }
-public TId Typeshift.ChatResponseExtensions.extension(Microsoft.Extensions.AI.ChatResponse).GetConversationId<TId>() where TId : System.IParsable<TId>
-public static Typeshift.ChatResponseExtensions.extension(Microsoft.Extensions.AI.ChatResponseUpdate)
-public bool Typeshift.ChatResponseExtensions.extension(Microsoft.Extensions.AI.ChatResponseUpdate).ConversationIncomplete { get; }
-public System.Collections.Generic.IReadOnlyList<Typeshift.Decision> Typeshift.ChatResponseExtensions.extension(Microsoft.Extensions.AI.ChatResponseUpdate).Decisions { get; }
-public bool Typeshift.ChatResponseExtensions.extension(Microsoft.Extensions.AI.ChatResponseUpdate).EndsRun { get; }
-public static bool Typeshift.ChatResponseExtensions.get_ConversationIncomplete(Microsoft.Extensions.AI.ChatResponse response)
-public static bool Typeshift.ChatResponseExtensions.get_ConversationIncomplete(Microsoft.Extensions.AI.ChatResponseUpdate update)
-public static System.Collections.Generic.IReadOnlyList<Typeshift.Decision> Typeshift.ChatResponseExtensions.get_Decisions(Microsoft.Extensions.AI.ChatResponse response)
-public static System.Collections.Generic.IReadOnlyList<Typeshift.Decision> Typeshift.ChatResponseExtensions.get_Decisions(Microsoft.Extensions.AI.ChatResponseUpdate update)
-public static bool Typeshift.ChatResponseExtensions.get_EndsRun(Microsoft.Extensions.AI.ChatResponseUpdate update)
-public static bool Typeshift.ChatResponseExtensions.get_IsBackgroundAnswer(Microsoft.Extensions.AI.ChatMessage message)
 public sealed class Typeshift.ConfigurableSettingsBuilder<TSettings> where TSettings : class
 public Typeshift.ConfigurableSettingsBuilder<TSettings> Typeshift.ConfigurableSettingsBuilder<TSettings>.NotConfigurable<TMember>(System.Func<TSettings, TMember> member)
 public Typeshift.ConfigurableSettingsBuilder<TSettings> Typeshift.ConfigurableSettingsBuilder<TSettings>.ReadOnly()
@@ -289,10 +271,6 @@ public System.Collections.Generic.IReadOnlyList<string> Typeshift.DecisionUnavai
 public sealed class Typeshift.FileStoreOptions
 public Typeshift.FileStoreOptions.FileStoreOptions()
 public string Typeshift.FileStoreOptions.Folder { get; set; }
-public static class Typeshift.FunctionInvocationContextExtensions
-public static Typeshift.FunctionInvocationContextExtensions.extension(Microsoft.Extensions.AI.FunctionInvocationContext)
-public Typeshift.AgentRun Typeshift.FunctionInvocationContextExtensions.extension(Microsoft.Extensions.AI.FunctionInvocationContext).Run { get; }
-public static Typeshift.AgentRun Typeshift.FunctionInvocationContextExtensions.get_Run(Microsoft.Extensions.AI.FunctionInvocationContext call)
 public abstract class Typeshift.Generated.AgentDeclaration
 public abstract string? Typeshift.Generated.AgentDeclaration.Description { get; }
 public abstract string Typeshift.Generated.AgentDeclaration.Name { get; }
@@ -823,8 +801,28 @@ public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithStore<TStore>(b
 public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithToolMiddleware<TMiddleware>() where TMiddleware : class, Typeshift.IToolMiddleware
 public static class Typeshift.TypeshiftExtensions
 public static Typeshift.ModelFailure Typeshift.TypeshiftExtensions.FromStatus(int status)
+public static TId Typeshift.TypeshiftExtensions.GetConversationId<TId>(Microsoft.Extensions.AI.ChatResponse response) where TId : notnull, System.IParsable<TId>
+public static Typeshift.TypeshiftExtensions.extension(Microsoft.Extensions.AI.ChatMessage)
+public bool Typeshift.TypeshiftExtensions.extension(Microsoft.Extensions.AI.ChatMessage).IsBackgroundAnswer { get; }
+public static Typeshift.TypeshiftExtensions.extension(Microsoft.Extensions.AI.ChatResponse)
+public bool Typeshift.TypeshiftExtensions.extension(Microsoft.Extensions.AI.ChatResponse).ConversationIncomplete { get; }
+public System.Collections.Generic.IReadOnlyList<Typeshift.Decision> Typeshift.TypeshiftExtensions.extension(Microsoft.Extensions.AI.ChatResponse).Decisions { get; }
+public TId Typeshift.TypeshiftExtensions.extension(Microsoft.Extensions.AI.ChatResponse).GetConversationId<TId>() where TId : System.IParsable<TId>
+public static Typeshift.TypeshiftExtensions.extension(Microsoft.Extensions.AI.ChatResponseUpdate)
+public bool Typeshift.TypeshiftExtensions.extension(Microsoft.Extensions.AI.ChatResponseUpdate).ConversationIncomplete { get; }
+public System.Collections.Generic.IReadOnlyList<Typeshift.Decision> Typeshift.TypeshiftExtensions.extension(Microsoft.Extensions.AI.ChatResponseUpdate).Decisions { get; }
+public bool Typeshift.TypeshiftExtensions.extension(Microsoft.Extensions.AI.ChatResponseUpdate).EndsRun { get; }
+public static Typeshift.TypeshiftExtensions.extension(Microsoft.Extensions.AI.FunctionInvocationContext)
+public Typeshift.AgentRun Typeshift.TypeshiftExtensions.extension(Microsoft.Extensions.AI.FunctionInvocationContext).Run { get; }
 public static Typeshift.TypeshiftExtensions.extension(Typeshift.ModelFailure)
 public static Typeshift.ModelFailure Typeshift.TypeshiftExtensions.extension(Typeshift.ModelFailure).FromStatus(int status)
+public static bool Typeshift.TypeshiftExtensions.get_ConversationIncomplete(Microsoft.Extensions.AI.ChatResponse response)
+public static bool Typeshift.TypeshiftExtensions.get_ConversationIncomplete(Microsoft.Extensions.AI.ChatResponseUpdate update)
+public static System.Collections.Generic.IReadOnlyList<Typeshift.Decision> Typeshift.TypeshiftExtensions.get_Decisions(Microsoft.Extensions.AI.ChatResponse response)
+public static System.Collections.Generic.IReadOnlyList<Typeshift.Decision> Typeshift.TypeshiftExtensions.get_Decisions(Microsoft.Extensions.AI.ChatResponseUpdate update)
+public static bool Typeshift.TypeshiftExtensions.get_EndsRun(Microsoft.Extensions.AI.ChatResponseUpdate update)
+public static bool Typeshift.TypeshiftExtensions.get_IsBackgroundAnswer(Microsoft.Extensions.AI.ChatMessage message)
+public static Typeshift.AgentRun Typeshift.TypeshiftExtensions.get_Run(Microsoft.Extensions.AI.FunctionInvocationContext call)
 public sealed class Typeshift.TypeshiftOptions
 public System.Func<System.Exception, Typeshift.ModelFailure?>? Typeshift.TypeshiftOptions.ClassifyModelFailure { get; set; }
 public Typeshift.LiveUpdateOptions Typeshift.TypeshiftOptions.LiveUpdates { get; }
