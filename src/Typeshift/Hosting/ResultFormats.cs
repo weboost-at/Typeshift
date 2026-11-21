@@ -36,8 +36,7 @@ internal static class ResultFormats
     private static bool IsObjectOfProperties(JsonObject schema) =>
         schema["type"] is JsonValue type
         && type.GetValue<string>() is "object"
-        && schema["properties"] is JsonObject
-        && !schema.ContainsKey("anyOf");
+        && schema["properties"] is JsonObject;
 
     private static JsonObject UnderData(JsonObject schema)
     {
