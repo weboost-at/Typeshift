@@ -8,6 +8,7 @@ protected Typeshift.Agent.Agent()
 protected virtual Typeshift.Generated.AgentDeclaration Typeshift.Agent.Declaration { get; }
 public string? Typeshift.Agent.Description { get; }
 protected virtual string? Typeshift.Agent.GetInstructions(System.IServiceProvider services)
+public Typeshift.ModelPolicy Typeshift.Agent.ModelPolicy { get; }
 public string Typeshift.Agent.Name { get; }
 protected Typeshift.AgentUse Typeshift.Agent.UseAgent<TAgent>() where TAgent : Typeshift.Agent
 protected void Typeshift.Agent.UseContext<TProvider>() where TProvider : class, Typeshift.IContextProvider
@@ -70,6 +71,7 @@ public System.Threading.Tasks.Task Typeshift.AgentHost<TAgent>.SetModeAsync(Type
 public Typeshift.AgentHost<TAgent> Typeshift.AgentHost<TAgent>.WithConversationId<TId>(TId id) where TId : notnull
 public Typeshift.AgentHost<TAgent> Typeshift.AgentHost<TAgent>.WithConversationId<TId>(TId? id) where TId : struct
 public Typeshift.AgentHost<TAgent> Typeshift.AgentHost<TAgent>.WithModel(string model)
+public Typeshift.AgentHost<TAgent> Typeshift.AgentHost<TAgent>.WithModelPolicy(Typeshift.ModelPolicy policy)
 public Typeshift.AgentHost<TAgent> Typeshift.AgentHost<TAgent>.WithProvider(Typeshift.ChatProvider provider)
 public Typeshift.AgentHost<TAgent> Typeshift.AgentHost<TAgent>.WithProvider<TProviderId>(TProviderId provider) where TProviderId : notnull
 public Typeshift.AgentHost<TAgent> Typeshift.AgentHost<TAgent>.WithSettingsId<TId>(TId id) where TId : notnull
@@ -486,6 +488,7 @@ abstract System.Threading.Tasks.Task Typeshift.IAgentHost.SetModeAsync(Typeshift
 abstract Typeshift.IAgentHost Typeshift.IAgentHost.WithConversationId<TId>(TId id) where TId : notnull
 abstract Typeshift.IAgentHost Typeshift.IAgentHost.WithConversationId<TId>(TId? id) where TId : struct
 abstract Typeshift.IAgentHost Typeshift.IAgentHost.WithModel(string model)
+abstract Typeshift.IAgentHost Typeshift.IAgentHost.WithModelPolicy(Typeshift.ModelPolicy policy)
 abstract Typeshift.IAgentHost Typeshift.IAgentHost.WithProvider(Typeshift.ChatProvider provider)
 abstract Typeshift.IAgentHost Typeshift.IAgentHost.WithProvider<TProviderId>(TProviderId provider) where TProviderId : notnull
 abstract Typeshift.IAgentHost Typeshift.IAgentHost.WithSettingsId<TId>(TId id) where TId : notnull
@@ -672,6 +675,7 @@ public int Typeshift.RunOptions.MaxConsecutiveToolErrors { get; init; }
 public int? Typeshift.RunOptions.MaxInputTokens { get; init; }
 public int Typeshift.RunOptions.MaxToolIterations { get; init; }
 public Typeshift.AgentMode Typeshift.RunOptions.Mode { get; init; }
+public Typeshift.ModelPolicy Typeshift.RunOptions.ModelPolicy { get; init; }
 public Typeshift.RunOptions.RunOptions()
 public string? Typeshift.RunOptions.SummaryInstructions { get; init; }
 public string? Typeshift.RunOptions.SummaryModel { get; init; }
@@ -686,6 +690,7 @@ public Typeshift.RunOptionsBuilder Typeshift.RunOptionsBuilder.WithMaxConsecutiv
 public Typeshift.RunOptionsBuilder Typeshift.RunOptionsBuilder.WithMaxInputTokens(int tokens)
 public Typeshift.RunOptionsBuilder Typeshift.RunOptionsBuilder.WithMaxToolIterations(int iterations)
 public Typeshift.RunOptionsBuilder Typeshift.RunOptionsBuilder.WithMode(Typeshift.AgentMode mode)
+public Typeshift.RunOptionsBuilder Typeshift.RunOptionsBuilder.WithModelPolicy(Typeshift.ModelPolicy policy)
 public Typeshift.RunOptionsBuilder Typeshift.RunOptionsBuilder.WithSummaryInstructions(string instructions)
 public Typeshift.RunOptionsBuilder Typeshift.RunOptionsBuilder.WithSummaryModel(string model)
 public Typeshift.RunOptionsBuilder Typeshift.RunOptionsBuilder.WithTargetInputTokens(int tokens)

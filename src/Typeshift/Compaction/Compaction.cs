@@ -1,14 +1,14 @@
 using System.Text;
 using Microsoft.Extensions.AI;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Typeshift;
 
 // D32: what compaction did in one run, applied again to each later call, since the tool loop keeps the whole
 // history: the results it cleared, and the summary that stands in for the turns before the first message it kept.
 // The estimate is calibrated by the tokens the provider reported for the run's last call, and before the run's first
-// call by the last call of the conversation that holds both an estimate and a report
-internal sealed class Compaction(ReportedCall? last)
+// call by the last call of the conversation that holds both an estimate and a report. Its summaries go through the
+// run's model policy client, on the pair the run is on (D89)
+internal sealed class Compaction(ReportedCall? last, ModelPolicyChatClient models)
 {
     public const string ClearedResult = "[Cleared to save context.]";
 
@@ -251,14 +251,15 @@ internal sealed class Compaction(ReportedCall? last)
     // D86: a summary is best effort. The provider and model named for it write it, the run's own unless the settings
     // or the agent name others, and when they fail the run's own; D63: none for a run on the default client, and a
     // summary provider nothing serves failed the run when it started. Each failure is logged and recorded on the
-    // run's span, and null says that no model wrote one
-    private static async Task<ChatMessage?> TrySummarizeAsync(
+    // run's span, and null says that no model wrote one. D89: the run's own pair is the one it is on, which a fallback
+    // of its model policy may have moved, and each summary call goes under that policy
+    private async Task<ChatMessage?> TrySummarizeAsync(
         List<ChatMessage> turns,
         ResolvedChatOptions options,
         CancellationToken ct)
     {
         var run = options.AgentRun!;
-        (ProviderId? Provider, string? Model) own = (options.Provider, options.ModelId);
+        (ProviderId? Provider, string? Model) own = (run.ServingProvider, run.Models?.Model ?? options.ModelId);
         var named = (options.SummaryProvider ?? own.Provider, options.RunOptions.SummaryModel ?? own.Model);
 
         foreach (var (provider, model) in named == own ? [own] : new[] { named, own })
@@ -287,7 +288,7 @@ internal sealed class Compaction(ReportedCall? last)
         return null;
     }
 
-    private static async Task<ChatMessage> SummarizeAsync(
+    private async Task<ChatMessage> SummarizeAsync(
         List<ChatMessage> turns,
         ProviderId? provider,
         string? model,
@@ -295,19 +296,14 @@ internal sealed class Compaction(ReportedCall? last)
         AgentRun run,
         CancellationToken ct)
     {
-        var instrumented = run.Services.GetRequiredService<InstrumentedClients>();
-
-        var summarized = $"the summary of the agent '{run.Agent.Name}'";
-        var (provided, hold) = await ChatClients.GetAsync(run.Services, summarized, provider, model, ct)
-            .ConfigureAwait(false);
-        using var client = instrumented.Instrument(provided, model, hold);
-
-        var response = await client.GetResponseAsync(
+        var response = await models.SummarizeAsync(
             [
                 new ChatMessage(ChatRole.System, instructions ?? SummaryInstructions),
                 new ChatMessage(ChatRole.User, Transcript(turns))
             ],
             new ChatOptions { ModelId = model },
+            run,
+            provider,
             ct).ConfigureAwait(false);
 
         // D32: the summary is the run's cost too, which its response reports and the summary's entry holds

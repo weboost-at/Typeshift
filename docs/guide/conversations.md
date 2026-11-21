@@ -315,6 +315,11 @@ catch (HttpRequestException)
   "Retry" button that is pressed twice meets.
 - `RetryStreamingAsync`, `RetryAsync<TResult>` and `RetryStreamingAsync<TResult>` stream, or ask for `TResult` again,
   as the resumes do. A tool call the failed run left running is left out, as on [resume](#resuming).
+- A retry may go to another model or provider: call it on a copy of the host, as in
+  `refunds.WithModel("gpt-5-nano").RetryAsync()` or `refunds.WithProvider("anthropic").RetryAsync()`
+  ([Choosing at the call site](./models.md#choosing-at-the-call-site)). A
+  [model policy](./models.md#the-model-policy) moves a run the same way before its error reaches your app, so the
+  conversation holds no failed run to retry.
 
 ## One run at a time
 

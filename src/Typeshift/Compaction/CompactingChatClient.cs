@@ -4,8 +4,9 @@ using Microsoft.Extensions.AI;
 namespace Typeshift;
 
 // D32: inside the tool loop, below the checkpoints, which store each step before compaction sees it: before each
-// model call of a run with a maximum of input tokens, the history the model sees shrinks to the target
-internal sealed class CompactingChatClient(IChatClient inner) : DelegatingChatClient(inner)
+// model call of a run with a maximum of input tokens, the history the model sees shrinks to the target. D89: above the
+// model policy's client, which the summaries go through too
+internal sealed class CompactingChatClient(ModelPolicyChatClient inner) : DelegatingChatClient(inner)
 {
     public override async Task<ChatResponse> GetResponseAsync(
         IEnumerable<ChatMessage> messages,
@@ -15,7 +16,7 @@ internal sealed class CompactingChatClient(IChatClient inner) : DelegatingChatCl
         if (options is not ResolvedChatOptions { AgentRun: { } run, RunOptions.MaxInputTokens: { } max } resolved)
             return await base.GetResponseAsync(messages, options, cancellationToken).ConfigureAwait(false);
 
-        var compaction = run.Compaction ??= new Compaction(run.LastCall);
+        var compaction = run.Compaction ??= new Compaction(run.LastCall, inner);
         var call = await compaction.PrepareAsync(messages, resolved, max, cancellationToken).ConfigureAwait(false);
 
         var response = await base.GetResponseAsync(call, options, cancellationToken).ConfigureAwait(false);
@@ -38,7 +39,7 @@ internal sealed class CompactingChatClient(IChatClient inner) : DelegatingChatCl
         int max,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        var compaction = run.Compaction ??= new Compaction(run.LastCall);
+        var compaction = run.Compaction ??= new Compaction(run.LastCall, inner);
         var call = await compaction.PrepareAsync(messages, resolved, max, cancellationToken).ConfigureAwait(false);
         var answer = base.GetStreamingResponseAsync(call, resolved, cancellationToken);
         UsageDetails? usage = null;

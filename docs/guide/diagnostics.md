@@ -426,7 +426,7 @@ internal partial class EchoToolset : Toolset
     public static string Echo(string text, EchoSettings settings) => text;
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L1278-L1291' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh012' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L1290-L1303' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh012' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 A `Func<int>` has no stored form. Remove the pick, or change the member's type. A member that
@@ -555,7 +555,7 @@ internal partial class EchoAgent : Agent
     public EchoAgent(string model) => WithChatOptions().WithProvider("openai").WithModel(model);
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L955-L960' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh016' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L967-L972' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh016' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 A constructor with parameters is the usual cause, whether it takes a value, as `EchoAgent(string model)` does, or
@@ -681,7 +681,7 @@ namespace Billing
     }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L1321-L1337' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh022' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L1333-L1349' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh022' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Give one of them a `WithStorageKind` of its own, such as `WithStorageKind("BillingHelp")`.
@@ -705,7 +705,7 @@ internal partial class LeadAgent : Agent
     public LeadAgent() => UseAgent<HelpAgent>();
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L1366-L1376' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh023' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L1378-L1388' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh023' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 `HelpAgent` has no description. Give that agent a `<summary>` or a `WithDescription(...)` in its constructor, or fix
@@ -744,7 +744,7 @@ internal partial class LeadAgent : Agent
     public LeadAgent() => UseAgent<HelpAgent>();
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L1476-L1495' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh024' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L1488-L1507' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh024' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Add an [approval rule](./tool-approval.md#approval-rules) that decides the calls of `close`, or offer the agent with
@@ -768,7 +768,7 @@ internal partial class EchoAgent : Agent
     }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L1060-L1070' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh025' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L1072-L1082' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh025' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Remove the second `UseToolset<EchoToolset>()`. The first three cases below show while you type, the others when you
@@ -818,7 +818,7 @@ internal partial class TellAgent : Agent
     }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L2060-L2080' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh026' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L2072-L2092' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh026' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Break the circle by removing one of these `UseAgent<T>()` calls, or by replacing one with `UseHandoff<T>()`, because
@@ -853,7 +853,7 @@ internal static class Startup
         services.AddTypeshift().WithStore<Clock>();
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L2692-L2700' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh028' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L2704-L2712' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh028' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Implement one of them, or pass the store you meant. A store's id type picks the ids it serves, as
@@ -878,7 +878,7 @@ public partial class HelpAgent : Agent
             .Configurable(o => o.ModelId);
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L2962-L2973' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh029' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L2974-L2985' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh029' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Name providers by a string, a number, a `Guid` or an enum, or keep the model out of the settings: an agent whose
@@ -966,7 +966,7 @@ internal partial class LeadAgent : Agent
     public LeadAgent() => UseAgent<HelpAgent>();
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L1502-L1517' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh034' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L1514-L1529' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh034' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Declare `UseQuestions()` on the calling agent, which can [ask the user](./tool-approval.md#asking-the-user) and pass
@@ -988,7 +988,7 @@ internal partial class DeskToolset : Toolset
     public static string AskUser(string question) => question;
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L1553-L1560' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh035' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L1565-L1572' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh035' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The method `AskUser` names its tool `ask_user`, which is one of the reserved names:
@@ -1045,7 +1045,7 @@ internal partial class DeskAgent : Agent
     }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L1800-L1819' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh037' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L1812-L1831' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh037' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Remove the pick, so that only your code sets the mode: `WithMode(...)` for the agent's runs, an approved plan, and
@@ -1148,7 +1148,7 @@ internal static class Startup
         Create(client);
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L3645-L3655' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh040' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L3657-L3667' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh040' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The analyzer reports these spellings:
@@ -1166,7 +1166,8 @@ The analyzer reports these spellings:
 id and leave the host they are called on as it was. A call whose copy goes nowhere changes nothing: the host's next
 run has no id, so it stores and resumes no conversation, and its settings members change the agent's own settings,
 which every run applies, in place of the settings under the id. `WithProvider(provider)` and `WithModel(model)` are
-copies too, and a dropped one leaves the host's runs on the provider and model they had.
+copies too, and so is `WithModelPolicy(policy)`: a dropped one leaves the host's runs on the provider, model and
+policy they had.
 
 <!-- snippet: tsh041 -->
 <a id='snippet-tsh041'></a>
@@ -1182,7 +1183,7 @@ internal sealed class RefundDesk(AgentHost<SupportAgent> support)
     }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L3736-L3747' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh041' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L3748-L3759' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh041' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Run the copy, as in `support.WithSettingsId(customer).RunAsync(question)`, or keep it in a variable and run that
@@ -1213,7 +1214,7 @@ internal sealed class TicketFollowUp(ITypeshiftRuntime runtime)
     }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L3801-L3815' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh042' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L3833-L3847' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh042' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Take the copy without `using`, and dispose the host where its work ends. The analyzer reports nothing for
@@ -1239,7 +1240,7 @@ internal partial class DeskAgent : Agent
     }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L3949-L3959' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh043' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L3981-L3991' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh043' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Remove the `Exclude`, include the tool, or remove the mark. To make a tool ask your app, it has to be offered
@@ -1264,7 +1265,7 @@ internal partial class EchoAgent : Agent
         : this() => WithInstructions(instructions);
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L4090-L4098' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh044' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L4122-L4130' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh044' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The constructor takes the instructions, but `new EchoAgent()` never calls it. Move the declaration into the
@@ -1304,6 +1305,7 @@ Each row links the section that explains it. A word in braces stands for a value
 | `InvalidOperationException` | `names a second default provider`, `names a second provider connector` | Two calls of the chain name different default providers, or register different connectors | Name one default provider, and register one connector that switches on the document's `Kind` ([The default provider](./models.md#the-default-provider), [The connector](./models.md#the-connector)) |
 | `ArgumentException` | `An agent names its provider by its key`, `The default provider is the key of a registered client` | The agent's chain or `WithDefaultProvider` got a `ChatProvider` | Name a key there, and hand the document to the run with `host.WithProvider(document)` ([Providers your customers bring](./models.md#providers-your-customers-bring)) |
 | `InvalidOperationException` | `runs a tool loop of its own` | The client is wrapped in `UseFunctionInvocation()` | Register the client without it ([Wrapping a client](./models.md#wrapping-a-client)) |
+| `TimeoutException` | `sent no answer within`, `the timeout of its model policy` | A model call sent no update within the timeout of the run's model policy, and no rule of the policy handles a `Timeout` | Add a rule for `ModelFailure.Timeout`, or hand the run a longer timeout ([The model policy](./models.md#the-model-policy)) |
 
 ### Stores
 

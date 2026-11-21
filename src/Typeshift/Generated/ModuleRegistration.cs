@@ -30,6 +30,8 @@ public static class ModuleRegistration
         services.TryAddSingleton(new RegisteredChatClients(services));
         services.TryAddSingleton<LiveRuns>();
         services.TryAddSingleton<InstrumentedClients>();
+        // D89: the exception types of failures no kind was told for, each named once in a warning
+        services.TryAddSingleton<UnknownFailures>();
         // D88: the clients of the provider documents runs are handed, disposed with the container
         services.TryAddSingleton(provider => new ProviderClients(
 #pragma warning disable RS0030 // the clock of an app that registered no TimeProvider

@@ -11,7 +11,7 @@ section names the declaration that adds a member.
 ## The agent host
 
 `AgentHost<TAgent>` runs one agent. Its own members are `Agent`, `Services`, `WithSettingsId`,
-`WithConversationId`, `WithProvider`, `WithModel`, its runs without settings, `CreateChatClientAsync`, `LoadConversationAsync`, the members for
+`WithConversationId`, `WithProvider`, `WithModel`, `WithModelPolicy`, its runs without settings, `CreateChatClientAsync`, `LoadConversationAsync`, the members for
 [the decisions of a conversation](#decisions-of-the-conversation), `DisposeAsync` and `Dispose`. The generator adds
 the typed runs and settings of each agent.
 
@@ -180,7 +180,7 @@ declared, and `Agent.Description` what `WithDescription` or the agent's `<summar
 resolved from, or the one the runtime created for it, as the host's scope below explains. A job sets your app's
 scoped state there before it runs, such as the current tenant
 ([Fill the job's scope](./using-an-agent.md#fill-the-job-s-scope)). Copies from `WithSettingsId`,
-`WithConversationId`, `WithProvider` and `WithModel` share it.
+`WithConversationId`, `WithProvider`, `WithModel` and `WithModelPolicy` share it.
 
 ### `WithSettingsId` and `WithConversationId`
 
@@ -206,6 +206,11 @@ and its settings, and the provider serves the run's sub-agents, handoffs and sum
 ([Choosing at the call site](./models.md#choosing-at-the-call-site)). `WithProvider` throws an
 `ArgumentNullException` for a null key and an `ArgumentException` for text that is white space; `WithModel` an
 `ArgumentException` for a blank model.
+
+`AgentHost<TAgent> WithModelPolicy(ModelPolicy policy)` hands the copy's runs a model policy in place of the one the
+agent's code declares, which `Agent.ModelPolicy` holds, as a copy of the same kind. It serves the run's sub-agents,
+handoffs and summary too, and throws an `ArgumentNullException` for a null policy. It is experimental
+([The model policy](./models.md#the-model-policy)).
 
 ### `CreateChatClientAsync`
 
@@ -281,7 +286,7 @@ none of them [keeps decisions](./implementing-a-store.md#which-store-serves-a-ca
 
 `ValueTask DisposeAsync()` and `void Dispose()` dispose the scope of a host that `TypeshiftRuntime.CreateHost<TAgent>()`
 created, and with it the scoped services its runs resolved. A copy from `WithSettingsId`, `WithConversationId`,
-`WithProvider` or `WithModel` disposes the same scope, and disposing it a second time does nothing. A host your container resolved, such as one
+`WithProvider`, `WithModel` or `WithModelPolicy` disposes the same scope, and disposing it a second time does nothing. A host your container resolved, such as one
 injected into a request, owns nothing, so disposing it or a copy of it does nothing. Dispose a host once its runs and
 streams are done, since they use its scope: once the host or a copy is disposed, a run of any of them throws an
 `ObjectDisposedException`. `Dispose` throws an `InvalidOperationException` when a scoped service implements only

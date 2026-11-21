@@ -157,7 +157,7 @@ var client = new OpenAIClient(apiKey)
     .AsIChatClient("gpt-5-mini");
 #pragma warning restore OPENAI001
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L163-L169' title='Snippet source file'>snippet source</a> | <a href='#snippet-openai-responses-client' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L176-L182' title='Snippet source file'>snippet source</a> | <a href='#snippet-openai-responses-client' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 With Microsoft.Extensions.AI.OpenAI 10.11.1, the Responses client is still marked experimental: `GetResponsesClient()`

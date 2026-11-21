@@ -10,8 +10,8 @@ namespace Typeshift.Samples.Hosting;
 // before it opens a ticket, a call of a sub-agent it is offered, a handoff to billing about a charge, of
 // find_companies for the city it is given, JSON when the run asks for it, otherwise one fixed answer; once a tool
 // answered, it answers in text, listing the companies find_companies found. It fails the first call of one input, as
-// a provider that is down does. Like a provider's client, it stops at a cancelled token, and it names the model it was
-// built with, which answers a run that names none
+// a provider that is down does, and of another, as one that limits its rate does. Like a provider's client, it stops
+// at a cancelled token, and it names the model it was built with, which answers a run that names none
 internal sealed class CannedChatClient : IChatClient
 {
     public const string Answer = "Your refund was approved and reaches your account within five days.";
@@ -21,7 +21,12 @@ internal sealed class CannedChatClient : IChatClient
     // An input the client fails once, with the HTTP error of a provider that is down, and answers after
     public const string Unavailable = "Is the provider up?";
 
+    // An input the client refuses once for its rate limit, and answers after, as a model policy's retry does
+    public const string Overloaded = "Are you busy right now?";
+
     private int _failed;
+
+    private int _limited;
 
     // What a model asks before it opens a ticket: one choice, and one question the user answers in their own words
     private static readonly JsonElement Questions = JsonElement.Parse(
@@ -78,6 +83,9 @@ internal sealed class CannedChatClient : IChatClient
     {
         if (messages.LastOrDefault()?.Text == Unavailable && Interlocked.Exchange(ref _failed, 1) == 0)
             throw new HttpRequestException("Service unavailable.", null, System.Net.HttpStatusCode.ServiceUnavailable);
+
+        if (messages.LastOrDefault()?.Text == Overloaded && Interlocked.Exchange(ref _limited, 1) == 0)
+            throw new HttpRequestException("Too many requests.", null, System.Net.HttpStatusCode.TooManyRequests);
 
         var offers = (options?.Tools ?? []).Select(tool => tool.Name).ToHashSet();
         var answered = messages.Count > 0 && messages[^1].Role == ChatRole.Tool;

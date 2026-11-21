@@ -857,6 +857,18 @@ public static class DiagnosticSources
         }
         """;
 
+    // D89: a model policy is a value the code holds, which settings cannot store
+    public const string ModelPolicyPick =
+        """
+        #pragma warning disable TYPESHIFT001 // the model policy is experimental
+        using Typeshift;
+
+        internal partial class EchoAgent : Agent
+        {
+            public EchoAgent() => WithRunOptions().Configurable(r => r.ModelPolicy);
+        }
+        """;
+
     public const string DeclarationInHelper =
         """
         using Typeshift;
@@ -3781,6 +3793,26 @@ public static class DiagnosticSources
         internal static class Desk
         {
             public static void Open(AgentHost<SupportAgent> support) => support.WithProvider("anthropic");
+        }
+        """;
+
+    // D89: so is the call site's model policy
+    public const string DroppedHostCopyOfAPolicy =
+        """
+        #pragma warning disable TYPESHIFT001 // the model policy is experimental
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class SupportAgent : Agent
+        {
+            public SupportAgent() => WithInstructions("Answer questions about refunds.");
+        }
+
+        internal static class Desk
+        {
+            public static void Open(AgentHost<SupportAgent> support) =>
+                support.WithModelPolicy(ModelPolicy.Handle(ModelFailure.Transient).Retry(2));
         }
         """;
 

@@ -1,6 +1,6 @@
 ---
 title: Models and providers
-description: Register clients and a default provider, name a model and a provider apart, choose both at the call site, run on providers your customers bring, and pick the summary model.
+description: Register clients, name a model and a provider apart, choose both at the call site, run on providers your customers bring, and say what a run does when a model call fails.
 ---
 
 # Models and providers
@@ -20,7 +20,7 @@ With one provider, register one client. It is the default client, which serves e
 ```cs
 services.AddChatClient(openAi);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L36-L38' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-client' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L37-L39' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-client' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 An agent then names its model alone, as `WithModel("gpt-5-mini")` does, or no model at all. Without a model the run
@@ -36,7 +36,7 @@ With several providers, register one client per provider, with the provider's na
 services.AddKeyedChatClient("openai", openAi);
 services.AddKeyedChatClient("anthropic", anthropic);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L17-L20' title='Snippet source file'>snippet source</a> | <a href='#snippet-keyed-chat-clients' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L18-L21' title='Snippet source file'>snippet source</a> | <a href='#snippet-keyed-chat-clients' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 `AddKeyedChatClient` comes with Microsoft.Extensions.AI. Its key is the provider your agents name in
@@ -80,7 +80,7 @@ services.AddKeyedChatClient("anthropic", anthropic);
 services.AddTypeshift()
     .WithDefaultProvider("openai");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L25-L31' title='Snippet source file'>snippet source</a> | <a href='#snippet-default-provider' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L26-L32' title='Snippet source file'>snippet source</a> | <a href='#snippet-default-provider' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 - An agent that names no provider then runs on `openai`, and one with `WithProvider("anthropic")` on `anthropic`.
@@ -205,7 +205,7 @@ Register it on the chain:
 services.AddTypeshift()
     .WithProviderConnector<Connectors>();
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L90-L93' title='Snippet source file'>snippet source</a> | <a href='#snippet-provider-connector-registration' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L91-L94' title='Snippet source file'>snippet source</a> | <a href='#snippet-provider-connector-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 - Typeshift asks the connector once for each document it holds no client for, and runs that hand in equal documents
@@ -267,7 +267,7 @@ var openAi = new OpenAIClient(apiKey)
 
 services.AddKeyedChatClient("openai", openAi);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L43-L49' title='Snippet source file'>snippet source</a> | <a href='#snippet-openai-client' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L44-L50' title='Snippet source file'>snippet source</a> | <a href='#snippet-openai-client' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 - Typeshift names the model in every request as `ChatOptions.ModelId`, so this one client serves every OpenAI model
@@ -314,7 +314,7 @@ var local = new OpenAIClient(new ApiKeyCredential("none"), options)
 
 services.AddKeyedChatClient("local", local);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L54-L65' title='Snippet source file'>snippet source</a> | <a href='#snippet-local-chat-client' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L55-L66' title='Snippet source file'>snippet source</a> | <a href='#snippet-local-chat-client' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Another provider works the same way, through the `IChatClient` its package offers. A fake client for tests reads the
@@ -356,7 +356,7 @@ foreach (var provider in configuration.GetSection("Providers").GetChildren())
     services.AddKeyedChatClient(provider.Key, client);
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L70-L85' title='Snippet source file'>snippet source</a> | <a href='#snippet-providers-from-configuration' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L71-L86' title='Snippet source file'>snippet source</a> | <a href='#snippet-providers-from-configuration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 - The entry's name, such as `openai`, is the provider your agents name in `WithProvider` and your users pick in their
@@ -391,7 +391,7 @@ var openAi = new OpenAIClient(apiKey)
 services.AddKeyedChatClient("openai", openAi)
     .UseLogging();
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L98-L105' title='Snippet source file'>snippet source</a> | <a href='#snippet-wrapped-chat-client' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L111-L118' title='Snippet source file'>snippet source</a> | <a href='#snippet-wrapped-chat-client' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Wrap what concerns a single request, such as logging or a policy of your own written as a `DelegatingChatClient`
@@ -415,8 +415,8 @@ for a provider, such as a fake in your tests: where it reads a result, it parses
 
 ### Retries
 
-Leave retries to the client library, which knows which of its errors are worth another try. The OpenAI client retries
-timeouts, rate limits and server errors three times by default, and its `RetryPolicy` sets how many times.
+A client library retries on its own, since it knows which of its errors are worth another try. The OpenAI client
+retries timeouts, rate limits and server errors three times by default, and its `RetryPolicy` sets how many times.
 `ClientRetryPolicy` is in the `System.ClientModel.Primitives` namespace:
 
 <!-- snippet: client-retries -->
@@ -433,8 +433,12 @@ var openAi = new OpenAIClient(new ApiKeyCredential(apiKey), options)
 
 services.AddKeyedChatClient("openai", openAi);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L123-L134' title='Snippet source file'>snippet source</a> | <a href='#snippet-client-retries' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L136-L147' title='Snippet source file'>snippet source</a> | <a href='#snippet-client-retries' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
+
+A [model policy](#the-model-policy) retries too, and moves a run to another model or provider. Its tries multiply with
+the client's, five of the client's for each of the policy's, so set one of the two: the client's retries for a call
+that is merely tried again, the policy's rules when a failure should move the run elsewhere.
 
 ### Options of a provider's own
 
@@ -454,7 +458,7 @@ services.AddKeyedChatClient("openai", openAi)
     .ConfigureOptions(options =>
         options.RawRepresentationFactory = _ => new ChatCompletionOptions { StoredOutputEnabled = false });
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L110-L118' title='Snippet source file'>snippet source</a> | <a href='#snippet-client-request-options' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L123-L131' title='Snippet source file'>snippet source</a> | <a href='#snippet-client-request-options' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 For one agent, set it in a [run middleware](./middleware.md), which sees the run's options before its model calls:
@@ -622,7 +626,7 @@ var settings = new CodingAgent.Settings
     SummaryModel = "gpt-5-mini"
 };
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L139-L145' title='Snippet source file'>snippet source</a> | <a href='#snippet-summary-provider' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L152-L158' title='Snippet source file'>snippet source</a> | <a href='#snippet-summary-provider' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 | Named | The summary runs on |
@@ -663,7 +667,8 @@ What your code sees depends on whether the run fails before or after it stores i
 | No model: no layer names one, and the client that serves the run was built without one | An `InvalidOperationException` that names the ways to name a model | Unchanged |
 | Your connector throws for a document, such as one of a kind it does not know | Your connector's exception | Unchanged |
 | The summary call fails, when compaction asks for it during the run | Nothing: the run goes on ([The summary model](#the-summary-model)) | Goes on, with a summary by the run's own model or without one |
-| The model call fails, such as on a wrong key, an unknown model or a rate limit that outlasts the retries | The client library's exception | Ends with an entry that holds an `ErrorContent` |
+| The model call fails, such as on a wrong key, an unknown model or a rate limit that outlasts the retries, and no rule of the run's [model policy](#the-model-policy) handles it | The client library's exception, or a `TimeoutException` for the policy's timeout | Ends with an entry that holds an `ErrorContent` |
+| The model call fails, and a rule of the run's model policy handles it | Nothing: the call is tried again, or goes to another model or provider | Holds nothing of the failed attempt |
 
 - Typeshift finds the run's client before the run stores its input, so the first three fail with the conversation's
   entries as they were, and before the run's `invoke_agent` span starts. The run has loaded the conversation by
@@ -680,6 +685,123 @@ What your code sees depends on whether the run fails before or after it stores i
   ([What a save refuses](./settings-and-stores.md#what-a-save-refuses)). It never checks that the model exists: the
   provider rejects an unknown one when a run calls it, so a typo saved on a settings page fails a later run. Check
   the pick against the models the provider offers when your settings page saves it.
+
+### The model policy
+
+A model policy says what a run does when a model call fails before any of its answer reached your app: try the call
+again, move to another model or another provider, or give up waiting. You write it inline, from
+`ModelPolicy.Handle(...)`, the way Polly's policies read. An agent declares its own in its run options:
+
+<!-- snippet: model-policy -->
+<a id='snippet-model-policy'></a>
+```cs
+WithRunOptions()
+    .WithModelPolicy(ModelPolicy
+        .Handle(ModelFailure.Transient).Retry(2, delay: TimeSpan.FromSeconds(1))
+        .Or(ModelFailure.Transient | ModelFailure.Rejected).FallbackTo("openai", "gpt-5-mini")
+        .Timeout(TimeSpan.FromSeconds(30)));
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/HelpCenterAgent.cs#L16-L22' title='Snippet source file'>snippet source</a> | <a href='#snippet-model-policy' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+- A model call starts on the pair of provider and model the run resolved. When it fails, the failure gets a kind
+  ([Which failure is which](#which-failure-is-which)), and the first rule, top to bottom, that handles the kind and is
+  not used up applies. A failure no rule handles reaches your code as the client threw it.
+- `Retry(times, delay, backoff)` tries the call again on the same pair, up to `times` for each model call of the run
+  and each pair. It waits `delay` before the first try and multiplies each later wait by `backoff`, 2 unless you set
+  it.
+- `FallbackToModel(model)`, `FallbackToProvider(key)` and `FallbackTo(key, model)` move the run to another pair. The
+  run stays there for the rest of its model calls, and each fallback applies once in a run. A fallback to a provider
+  keeps the model the run is on, for one model that two vendors serve; `FallbackTo` names both, for a vendor that
+  names the model otherwise. A provider is a key or a [provider document](#providers-your-customers-bring).
+- `Timeout(untilFirstUpdate)` counts from the start of an attempt to its first update when the run streams, or to the
+  response when it does not. An attempt that waits longer fails as a `Timeout`, which a rule may handle; without one,
+  the run throws a `TimeoutException`. An answer that started keeps coming, however long it takes.
+- A run checks that a client serves every provider its policy falls back to when it starts, as it checks its own, so
+  a fallback nothing serves fails the run before it stores anything, not on the night the first provider is down.
+- The policy sits below the steps a conversation stores, so the conversation holds nothing of a failed attempt and
+  the user's message once. Once the first update of a streaming answer reached your app, nothing is tried again: the
+  failure comes out of the stream, and `RetryAsync` continues the run
+  ([Retrying a failed run](./conversations.md#retrying-a-failed-run)).
+- Settings cannot store a policy, so `Configurable(r => r.ModelPolicy)` is [TSH012](./diagnostics.md#tsh012).
+  Without a policy, a run makes one attempt for each model call, as `ModelPolicy.None` does.
+
+Each retry and each fallback is an event on the run's span, and each attempt has a chat span of its own
+([Spans](./observability.md#spans)). The entry of the answer names the provider and the model that gave it.
+
+::: warning The model policy is experimental
+`ModelPolicy`, `ModelFailure`, `WithModelPolicy`, `Agent.ModelPolicy` and `ClassifyModelFailure` may still change
+before Typeshift 1.0. Code that uses them gets the compiler error `TYPESHIFT001` until it says it knows: add
+`#pragma warning disable TYPESHIFT001` to the file, or `TYPESHIFT001` to the project's `NoWarn`.
+:::
+
+### A policy at the call site
+
+The code that runs an agent may hand a run another policy, as it hands it a provider
+([Choosing at the call site](#choosing-at-the-call-site)). `Agent.ModelPolicy` is the one the agent's code declares,
+to start from:
+
+<!-- snippet: call-site-model-policy -->
+<a id='snippet-call-site-model-policy'></a>
+```cs
+var patient = helpCenter.Agent.ModelPolicy.Timeout(TimeSpan.FromMinutes(2));
+
+var answer = await helpCenter
+    .WithModelPolicy(patient)
+    .RunAsync("How do I change my plan?");
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/ModelPolicies.cs#L24-L30' title='Snippet source file'>snippet source</a> | <a href='#snippet-call-site-model-policy' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+- The policy of the call site replaces the agent's for the run. Build it from what your app knows when the run
+  starts, such as the customer's plan, as in
+  `ModelPolicy.Handle(ModelFailure.Auth | ModelFailure.RateLimit).FallbackToProvider("house")` beside the customer's
+  own provider.
+- It serves the whole run: the agent's sub-agents, the agents it hands off to and the summary of a long conversation.
+  A sub-agent goes by its own declared policy only in a run that was handed none.
+
+### Which failure is which
+
+Typeshift references no vendor's client library, so it tells the kind of a failure from .NET's own exceptions:
+
+| The model call threw | Kind |
+|---|---|
+| An `OperationCanceledException` for a token your app cancelled | None: it reaches your code as it is |
+| The policy's timeout; a `TimeoutException`; a cancellation your app did not ask for; status 408 or 504 | `Timeout` |
+| Status 429 | `RateLimit` |
+| Status 401 or 403 | `Auth` |
+| Another status of 500 or more; an `HttpRequestException` without a status; a `SocketException`; an `IOException` | `Unavailable` |
+| Status 400, 404, 413 or 422, such as for an unknown model or an input too long | `Rejected` |
+| Anything else | `Unknown` |
+
+A status is the `StatusCode` of an `HttpRequestException`. `ModelFailure.Transient` is `RateLimit`, `Timeout` and
+`Unavailable` together, and `ModelFailure.Any` is every kind.
+
+A client library throws exceptions of its own, as the OpenAI client throws a `ClientResultException` with the status
+in `Status`, and those are `Unknown` until your app says what they are. Tell their kind on the registration chain:
+
+<!-- snippet: classify-model-failure -->
+<a id='snippet-classify-model-failure'></a>
+```cs
+services.AddTypeshift()
+    .WithOptions(options => options.ClassifyModelFailure = exception => exception switch
+    {
+        ClientResultException failed => ModelFailure.FromStatus(failed.Status),
+        _ => null
+    });
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L99-L106' title='Snippet source file'>snippet source</a> | <a href='#snippet-classify-model-failure' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+- Your function answers first, for every failure but your app's own cancellation and the policy's timeout. Null
+  leaves the exception to Typeshift's table, and `ModelFailure.None` lets it reach your code as it is.
+  `ModelFailure.FromStatus(status)` reads a status as the table does.
+- An `Unknown` failure that no rule of the run's policy can handle logs the warning `UnknownModelFailure`, once for
+  each exception type, which names the type to classify ([Logs](./observability.md#logs)). Otherwise a retry that
+  never fires looks like a policy that does not work.
+- `ContentFilter` comes from your function alone, since no status tells it. A rule for it sends the content one
+  vendor refused to another, so decide whether your app wants that. A refusal that arrives as an ordinary answer is
+  no failure at all.
 
 ## Related
 

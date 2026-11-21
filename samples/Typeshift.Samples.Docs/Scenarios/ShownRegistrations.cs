@@ -1,3 +1,5 @@
+#pragma warning disable TYPESHIFT001 // the model policy is experimental
+using System.ClientModel;
 using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
@@ -152,6 +154,15 @@ internal static class ShownRegistrations
         await using (var retrying = Build(services => Models.ShowRetries(services, Key)))
         {
             Expect(Model(retrying, "openai") == "gpt-5-mini", "OpenAI's client with retries");
+        }
+
+        await using (var classified = Build(Models.ShowClassifyModelFailure))
+        {
+            var classify = classified.GetRequiredService<TypeshiftOptions>().ClassifyModelFailure!;
+            var refused = new ClientResultException("Too many requests.");
+
+            Expect(classify(refused) == ModelFailure.Unknown, "a client's exception of no status to be of no kind");
+            Expect(classify(new InvalidOperationException()) is null, "another exception left to Typeshift");
         }
 
         using var completions = Models.ShowOpenAiChatClient(Key);

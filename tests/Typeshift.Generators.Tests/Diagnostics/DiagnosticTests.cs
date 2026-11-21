@@ -1087,6 +1087,21 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Configurable_Model_Policy_TSH012_Is_Reported_On_The_Pick()
+    {
+        // Act
+        var run = Run(DiagnosticSources.ModelPolicyPick);
+
+        // Assert
+        run.Assert.Reports("TSH012", DiagnosticSeverity.Error, "r => r.ModelPolicy")
+            .GetMessage()
+            .Should()
+            .Be("'ModelPolicy' cannot be configurable: of these options, settings store only Mode, MaxToolIterations, "
+                + "MaxConsecutiveToolErrors, ConcurrentToolCalls, MaxInputTokens, TargetInputTokens, SummaryModel, "
+                + "SummaryInstructions; remove the pick");
+    }
+
+    [Fact]
     public void Given_An_Agent_Declaration_In_A_Helper_Method_TSH014_Is_Reported_On_The_Call()
     {
         // Act
@@ -2976,6 +2991,22 @@ public class DiagnosticTests : GeneratorTestBase
             message: "'WithProvider' returns a copy of the host with the provider and leaves the host it is called on "
                 + "as it was, so the provider is lost here: run the copy, as in "
                 + "host.WithProvider(provider).RunAsync(input), or keep it in a variable");
+    }
+
+    [Fact]
+    public void Given_A_Dropped_Copy_With_A_Model_Policy_TSH041_Is_Reported_Naming_The_Policy()
+    {
+        // Act
+        var run = Run(DiagnosticSources.DroppedHostCopyOfAPolicy);
+
+        // Assert
+        run.Assert.Reports(
+            "TSH041",
+            DiagnosticSeverity.Error,
+            "support.WithModelPolicy(ModelPolicy.Handle(ModelFailure.Transient).Retry(2))",
+            message: "'WithModelPolicy' returns a copy of the host with the policy and leaves the host it is called on "
+                + "as it was, so the policy is lost here: run the copy, as in "
+                + "host.WithModelPolicy(policy).RunAsync(input), or keep it in a variable");
     }
 
     [Fact]

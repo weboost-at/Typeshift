@@ -25,6 +25,18 @@ public abstract class Agent
     /// </summary>
     public string? Description => GeneratedDeclaration.Description;
 
+    // D89: the typed default, which a call site builds on, as in support.Agent.ModelPolicy.Timeout(...)
+    /// <summary>
+    /// What the agent's runs do when a model call fails, as its code declares it with
+    /// <c>WithRunOptions().WithModelPolicy(policy)</c>; <see cref="Typeshift.ModelPolicy.None"/> without one. A call
+    /// site that hands a run another policy can start from it, as in
+    /// <c>support.Agent.ModelPolicy.Timeout(patience)</c>.
+    /// More in the guide:
+    /// <see href="https://weboost-at.github.io/Typeshift/guide/models#the-model-policy">The model policy</see>.
+    /// </summary>
+    [Experimental(ExperimentalIds.ModelPolicy, UrlFormat = ExperimentalIds.ModelPolicyUrl)]
+    public ModelPolicy ModelPolicy => RunOptions.ModelPolicy;
+
     // D4: the values the chains record; what they declare is in the generated declaration
     internal ChatOptions ChatOptions { get; } = new();
 

@@ -119,4 +119,12 @@ internal static partial class LogEvents
         "Conversation {Conversation} is stored without steering input a run middleware failed on while the run "
         + "ended.")]
     public static partial void SteeringNotStored(ILogger logger, Exception exception, StoreId? conversation);
+
+    [LoggerMessage(
+        17,
+        LogLevel.Warning,
+        "A model call of agent {Agent} failed with {Exception}, whose kind Typeshift cannot tell, so no rule of its "
+        + "model policy handles it: tell the kind with TypeshiftOptions.ClassifyModelFailure. Each type is named "
+        + "once.")]
+    public static partial void UnknownModelFailure(ILogger logger, string agent, string? exception);
 }

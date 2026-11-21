@@ -36,15 +36,16 @@ internal sealed class SubAgentFunction(AgentUse use, Agent agent) : AIFunction
         var json = caller.Services.GetRequiredService<ToolJson>();
         var format = use.Result?.GetFormat(json);
 
-        // D33: the caller's settings id and the caller itself, and no conversation of its own; D87: the provider the
-        // call site handed the caller's run, and not the caller's model
+        // D33: the caller's settings id and the caller itself, and no conversation of its own; D87, D89: the provider
+        // and the model policy the call site handed the caller's run, and not the caller's model
         var handover = new RunHandover(
             options.SettingsId,
             Conversation: null,
             Claim: null,
             format,
             Caller: caller,
-            Provider: options.HandedProvider);
+            Provider: options.HandedProvider,
+            Policy: options.HandedPolicy);
 
         // D33: what the sub-agent spent, its own sub-agents' included, counts as the caller's, whatever its answer
         async Task<ChatResponse> RunAsync(CancellationToken token)

@@ -1,3 +1,4 @@
+#pragma warning disable TYPESHIFT001 // the model policy is experimental
 using System.ClientModel;
 using System.ClientModel.Primitives;
 using Microsoft.Extensions.AI;
@@ -90,6 +91,18 @@ internal static partial class Models
         // begin-snippet: provider-connector-registration
         services.AddTypeshift()
             .WithProviderConnector<Connectors>();
+        // end-snippet
+    }
+
+    public static void ShowClassifyModelFailure(IServiceCollection services)
+    {
+        // begin-snippet: classify-model-failure
+        services.AddTypeshift()
+            .WithOptions(options => options.ClassifyModelFailure = exception => exception switch
+            {
+                ClientResultException failed => ModelFailure.FromStatus(failed.Status),
+                _ => null
+            });
         // end-snippet
     }
 

@@ -20,9 +20,9 @@ internal sealed class InstrumentedClients : IDisposable
     // The client of the call going on; an async method's change to an AsyncLocal stays within its call
     private readonly AsyncLocal<IChatClient?> _call = new();
 
-    // A run's pipeline disposes what it wraps, and neither the instrumented client nor the provider's is its to
-    // dispose: it ends only the run's hold on a client Typeshift keeps (D88)
-    public IChatClient Instrument(IChatClient client, string? model, IDisposable? hold)
+    // The client of one pair of provider and model a run calls (D89), which never disposes the instrumented client
+    // nor the provider's: the run's policy client ends its hold on a client Typeshift keeps (D88)
+    public IChatClient Instrument(IChatClient client, string? model)
     {
         var metadata = client.GetService<ChatClientMetadata>();
 
@@ -37,7 +37,7 @@ internal sealed class InstrumentedClients : IDisposable
             (backend.ProviderName, backend.ProviderUri?.Host, backend.ProviderUri?.Port, backend.DefaultModelId),
             _ => new Lazy<OpenTelemetryChatClient>(() => CreateInstrumented(backend)));
 
-        return new UndisposedChatClient(new CallingClient(instrumented.Value, client, _call), hold);
+        return new CallingClient(instrumented.Value, client, _call);
     }
 
     public void Dispose()
@@ -134,6 +134,11 @@ internal sealed class InstrumentedClients : IDisposable
         }
 
         private AIContent AsSent(AIContent content) => IsJson(content) ? _sent.GetValue(content, AsText) : content;
+
+        // The instrumented client serves every run of its backend, and the provider's client is the app's or kept
+        protected override void Dispose(bool disposing)
+        {
+        }
     }
 
     // The client of the call going on, under the instrumentation every call to a backend shares

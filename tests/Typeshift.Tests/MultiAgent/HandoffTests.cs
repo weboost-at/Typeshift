@@ -1,3 +1,5 @@
+#pragma warning disable TYPESHIFT001 // a run hands the agent it hands off to its call site's model policy
+using System.Net;
 using System.Text.Json;
 using Typeshift.Tests.Agents.Support;
 using Typeshift.Tests.Conversations.Support;
@@ -48,6 +50,27 @@ public class HandoffTests : MultiAgentTestBase
 
         // Assert
         CallSite.Options[1]!.ModelId.Should().Be("back-model");
+    }
+
+    [Fact]
+    public async Task Given_A_Model_Policy_At_The_Call_Site_It_Serves_The_Agent_Handed_To()
+    {
+        // Arrange
+        var policy = ModelPolicy.Handle(ModelFailure.Unavailable).Retry(1);
+
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "handoff_to_back_agent"))
+            .Reply(new HttpRequestException(Data.Agent.Reason, null, HttpStatusCode.ServiceUnavailable))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        var response = await Host<FrontAgent>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .WithModelPolicy(policy)
+            .RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        response.Text.Should().EndWith(Data.Tool.Answer);
     }
 
     [Fact]

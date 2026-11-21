@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Typeshift;
 
 /// <summary>
@@ -90,6 +92,26 @@ public sealed class RunOptionsBuilder
         return Set(options => options with { SummaryInstructions = instructions });
     }
 
+    // D89: a value, as WithReasoning takes one, so the chain stays flat and the generator reads nothing new
+    /// <summary>
+    /// Sets what the agent's runs do when a model call fails before any of its answer reached your app: try it again,
+    /// move to another model or provider, or time out, as in
+    /// <c>WithModelPolicy(ModelPolicy.Handle(ModelFailure.Transient).Retry(2).Timeout(TimeSpan.FromSeconds(30)))</c>.
+    /// <see cref="ModelPolicy.None"/>, one attempt for each call, unless set. The call site's
+    /// <c>host.WithModelPolicy(policy)</c> hands a run another, and settings cannot store one.
+    /// More in the guide:
+    /// <see href="https://weboost-at.github.io/Typeshift/guide/models#the-model-policy">The model policy</see>.
+    /// </summary>
+    /// <param name="policy">The policy.</param>
+    /// <returns>The same chain.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="policy"/> is null.</exception>
+    [Experimental(ExperimentalIds.ModelPolicy, UrlFormat = ExperimentalIds.ModelPolicyUrl)]
+    public RunOptionsBuilder WithModelPolicy(ModelPolicy policy)
+    {
+        ArgumentNullException.ThrowIfNull(policy);
+        return Set(options => options with { ModelPolicy = policy });
+    }
+
     // D5: the generator reads the pick; at runtime the call declares nothing
     /// <summary>
     /// Lets a run option change at runtime. The lambda never runs.
@@ -161,6 +183,13 @@ public sealed record RunOptions
     /// The instructions the summary model receives; null for Typeshift's.
     /// </summary>
     public string? SummaryInstructions { get; init; }
+
+    /// <summary>
+    /// What the runs do when a model call fails: the policy of the agent's code, or the one the call site handed the
+    /// run. Settings cannot store it.
+    /// </summary>
+    [Experimental(ExperimentalIds.ModelPolicy, UrlFormat = ExperimentalIds.ModelPolicyUrl)]
+    public ModelPolicy ModelPolicy { get; init; } = ModelPolicy.None;
 
     // D32: the first value no run can go with, and what it must do instead; null when every value holds
     internal (string Option, object Value, string Must)? GetInvalid() =>

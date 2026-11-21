@@ -34,7 +34,7 @@ that no row names, and on a name that is no test class.
 | The runtime, its hosts and its catalog | `TypeshiftRuntimeTests`, `RuntimeCatalogTests` |
 | Registration: the chain, its stores, the interceptor | `AddTypeshiftTests`, `StoreRegistrationTests` |
 | Providers and chat clients, the default rule, the call site's provider and model, provider documents | `ChatClientResolutionTests`, `HostSelectionTests`, `ProviderClientsTests`, `ChatProviderTests`, `ProviderRegistrationTests` |
-| The model policy: its value and the kinds of failure | `ModelPolicyTests`, `ModelFailureTests` |
+| The model policy: its value, the kinds of failure, the runs under it | `ModelPolicyTests`, `ModelFailureTests`, `ModelPolicyRunTests` |
 | Tools: schemas, arguments, overrides, unions | `ToolSchemaTests`, `ToolInvocationTests`, `ToolOverridesTests`, `UnionToolTests` |
 | Tool results and failed calls | `ToolResultWireTests`, `ToolFailureTests` |
 | Runs: options, instructions, own tools, usage, the raw path, the caller's context | `AgentRunTests`, `ChatOptionsBuilderTests`, `ResolvedChatOptionsTests`, `OwnToolsTests`, `ChatResponsesTests`, `SynchronizationContextTests` |
@@ -147,9 +147,9 @@ that no row names, and on a name that is no test class.
   registration may lie in another project. Without stores every id type works in memory, so the first call with
   such an id fails only once a store is registered, naming the store interface it needs. A check at startup of the
   id types the call sites name would need the generator to collect them across projects.
-- **No fallback, no model catalog.** A failed model call ends the run: Typeshift moves to no other model or
-  provider, and `RetryAsync` continues the run on what its settings name. It keeps no list of a provider's models,
-  so a model a settings page stores is checked for being a name at all (D28) and no further.
+- **No model catalog.** Typeshift keeps no list of a provider's models, so a model a settings page stores is checked
+  for being a name at all (D28) and no further, and a model policy's fallback to a model is checked only when a call
+  fails. A model a provider does not know fails the call as `Rejected`, which a rule may handle (D89).
 - **No effective settings for a settings page.** `LoadSettingsAsync` returns what is stored, so a form shows empty
   fields where the agent's code or a record's default applies, and `ResolveOptionsAsync` returns the chat options
   without the tools' settings. A generated `ResolveSettingsAsync()` that fills every member of `Settings` from the

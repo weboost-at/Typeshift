@@ -1,3 +1,5 @@
+#pragma warning disable TYPESHIFT001 // a run under a model policy records its retries and fallbacks
+using System.Net;
 using System.Diagnostics;
 using System.Text.Json;
 using Typeshift.Tests.Agents.Support;
@@ -304,6 +306,70 @@ public sealed class TelemetryTests : AgentTestBase
         var span = Activities.Run(Data.Agent.ConversationId);
         span.Status.Should().Be(ActivityStatusCode.Error);
         span.GetTagItem("error.type").Should().Be(typeof(InvalidOperationException).FullName);
+    }
+
+    [Fact]
+    public async Task Given_A_Retry_Of_The_Model_Policy_The_Runs_Span_Carries_It_As_An_Event()
+    {
+        // Arrange
+        ChatClient.Reply(Unavailable()).Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await RunAsync(ModelPolicy.Handle(ModelFailure.Unavailable).Retry(1));
+
+        // Assert
+        Activities.Run(Data.Agent.ConversationId).Events.Single(@event => @event.Name == "typeshift.model.retry").Tags
+            .Should()
+            .BeEquivalentTo(new Dictionary<string, object?>
+            {
+                ["typeshift.model.failure"] = "Unavailable",
+                ["error.type"] = typeof(HttpRequestException).FullName,
+                ["typeshift.model.from.provider"] = ProbeAgent.ModelProvider,
+                ["typeshift.model.from.model"] = ProbeAgent.Model,
+                ["typeshift.model.to.provider"] = ProbeAgent.ModelProvider,
+                ["typeshift.model.to.model"] = ProbeAgent.Model,
+                ["typeshift.model.retries"] = 1
+            });
+    }
+
+    [Fact]
+    public async Task Given_A_Fallback_Of_The_Model_Policy_The_Runs_Span_Carries_It_As_An_Event()
+    {
+        // Arrange
+        ChatClient.Reply(Unavailable()).Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await RunAsync(ModelPolicy.Handle(ModelFailure.Transient).FallbackTo(Data.Agent.Provider, Data.Agent.Model));
+
+        // Assert
+        Activities.Run(Data.Agent.ConversationId).Events.Single(@event => @event.Name == "typeshift.model.fallback")
+            .Tags
+            .Should()
+            .BeEquivalentTo(new Dictionary<string, object?>
+            {
+                ["typeshift.model.failure"] = "Unavailable",
+                ["error.type"] = typeof(HttpRequestException).FullName,
+                ["typeshift.model.from.provider"] = ProbeAgent.ModelProvider,
+                ["typeshift.model.from.model"] = ProbeAgent.Model,
+                ["typeshift.model.to.provider"] = Data.Agent.Provider,
+                ["typeshift.model.to.model"] = Data.Agent.Model
+            });
+    }
+
+    [Fact]
+    public async Task Given_A_Fallback_Each_Attempt_Has_A_Chat_Span_Of_The_Model_It_Called()
+    {
+        // Arrange
+        ChatClient.Reply(Unavailable()).Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await RunAsync(ModelPolicy.Handle(ModelFailure.Transient).FallbackToModel(Data.Agent.Model));
+
+        // Assert
+        var run = Activities.Run(Data.Agent.ConversationId);
+        Activities.Inside(run).Select(activity => activity.DisplayName)
+            .Should()
+            .Equal($"chat {ProbeAgent.Model}", $"chat {Data.Agent.Model}");
     }
 
     [Fact]
@@ -740,6 +806,15 @@ public sealed class TelemetryTests : AgentTestBase
 
     private Task<ChatResponse> RunAsync() =>
         Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Tool.Question, ct: Ct);
+
+    private Task<ChatResponse> RunAsync(ModelPolicy policy) =>
+        Host<ProbeAgent>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .WithModelPolicy(policy)
+            .RunAsync(Data.Tool.Question, ct: Ct);
+
+    private HttpRequestException Unavailable() =>
+        new(Data.Agent.Reason, null, HttpStatusCode.ServiceUnavailable);
 
     // A container that serves each run from a client of the next backend, as a client per customer or per model would
     private ServiceProvider ServicesOf(params ChatClientMetadata[] backends)

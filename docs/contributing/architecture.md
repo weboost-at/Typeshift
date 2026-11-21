@@ -149,24 +149,28 @@ is built and holds under `data` unless it is an object of properties.
 3. The host resolves the options. It starts from a copy of the agent's chat options and its instructions, and
    applies each settings layer through the generated declaration: the agent's own stored settings, those under the
    settings id, then the run's. Each layer
-   reaches the configurable options and the run options. Over them go the provider and the model the call site
-   handed the host (D87), and a run that names no provider takes the default provider (D63). Then come the offered
-   tools, created with their layered settings (D27), the sub-agents (D33) and the MCP servers' tools (D35).
-4. It takes the client of the run's provider (D86): the `IChatClient` keyed by a key, the client `ProviderClients`
-   keeps for a document, which the connector built once (D88), or the default provider's. A provider nothing serves
-   throws here, and so does a run without a model whose client reports none (D63), and a provider of an agent the
-   run may reach that nothing serves (`ReachableProviders`, D87). It builds the pipeline, outermost first:
+   reaches the configurable options and the run options. Over them go the provider, the model and the model policy
+   the call site handed the host (D87, D89), and a run that names no provider takes the default provider (D63).
+   Then come the offered tools, created with their layered settings (D27), the sub-agents (D33) and the MCP servers'
+   tools (D35).
+4. It takes the clients of every provider the run may use (`RunClients`): its own (D86), those its model policy
+   falls back to (D89), and its summary's once it can compact: the `IChatClient` keyed by a key, the client
+   `ProviderClients` keeps for a document, which the connector built once (D88), or the default provider's. A
+   provider nothing serves throws here, and so does a run without a model whose client reports none (D63), and a
+   provider of an agent the run may reach that nothing serves (`ReachableProviders`, D87). It builds the pipeline,
+   outermost first:
    - the conversation (D46, D50), which also settles the decisions that wait (D80), run middleware (D30), context
      providers (D31), the mode (D52), and author names on every message (D26);
    - `ToolLoop`, a `FunctionInvokingChatClient` that writes one fixed sentence as the result of a call whose
      exception is no `ToolException` (D53), with the run options, the scope's services, `exit_plan_mode` and, as its
      function invoker, the tool gate with the tool middleware behind it, built anew for each pass with the call's
      run options and what is left of the run's limit, so one client serves concurrent calls;
-   - the decision gate (D81), the checkpoints, unique call ids (D59), compaction (D32), and the provider's client,
-     instrumented (D36), behind a wrapper that never disposes it and ends the run's hold on a kept client (D29,
-     D88) and one that hands it each JSON result as text (D45). This innermost line, `CreateChatClientAsync`'s
-     `Instrument` call over the client `ChatClients.GetAsync` returns, is where a client per provider and model
-     would go.
+   - the decision gate (D81), the checkpoints, unique call ids (D59), compaction (D32), and innermost the model
+     policy's client (`ModelPolicyChatClient`, D89). It calls each pair of provider and model through an
+     instrumented client of its own (D36), which hands the provider's client each JSON result as text (D45) and
+     never disposes it, and it tries a failed attempt again or moves the run to another pair by the policy's rules,
+     keeping where the run is in `AgentRun.Models`. Disposing it ends the run's holds on the clients Typeshift keeps
+     (D29, D88). A summary's calls go through it too, from the pair the run is on.
 5. The options are a `ChatOptions` subclass that remembers the run options, so the raw path's client gets them too.
    A host's run finds the claim and the entries it took in them. The client keeps the options it was created from,
    and a call with options of its own, or none, runs over them (`ResolvedChatOptions.ForCall`, D26).

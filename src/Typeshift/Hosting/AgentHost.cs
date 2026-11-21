@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
@@ -29,9 +30,10 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     private StoreId? _settingsId;
     private StoreId? _conversationId;
 
-    // D87: the provider and the model the call site gave, over every settings layer
+    // D87: the provider and the model the call site gave, over every settings layer; D89: and its model policy
     private ProviderId? _provider;
     private string? _model;
+    private ModelPolicy? _policy;
 
     internal AgentHost(TAgent agent, IServiceProvider services, AsyncServiceScope? scope = null)
     {
@@ -102,7 +104,7 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     public AgentHost<TAgent> WithSettingsId<TId>(TId id) where TId : notnull
     {
         ArgumentNullException.ThrowIfNull(id);
-        return Copy(new StoreId<TId>(id), _conversationId, _provider, _model);
+        return Copy(new StoreId<TId>(id), _conversationId, _provider, _model, _policy);
     }
 
     // D72: the id's type is its value's, so a Guid? names the settings under the Guid
@@ -118,7 +120,12 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// </returns>
     /// <exception cref="ArgumentNullException"><paramref name="id"/> holds no value.</exception>
     public AgentHost<TAgent> WithSettingsId<TId>(TId? id) where TId : struct =>
-        Copy(new StoreId<TId>(id ?? throw new ArgumentNullException(nameof(id))), _conversationId, _provider, _model);
+        Copy(
+            new StoreId<TId>(id ?? throw new ArgumentNullException(nameof(id))),
+            _conversationId,
+            _provider,
+            _model,
+            _policy);
 
     /// <summary>
     /// Returns a copy of this host with a conversation id and leaves this host as it was. The copy's runs resume the
@@ -134,7 +141,7 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     public AgentHost<TAgent> WithConversationId<TId>(TId id) where TId : notnull
     {
         ArgumentNullException.ThrowIfNull(id);
-        return Copy(_settingsId, new StoreId<TId>(id), _provider, _model);
+        return Copy(_settingsId, new StoreId<TId>(id), _provider, _model, _policy);
     }
 
     // D72: the id's type is its value's, so a Guid? names the conversation under the Guid
@@ -149,7 +156,12 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// </returns>
     /// <exception cref="ArgumentNullException"><paramref name="id"/> holds no value.</exception>
     public AgentHost<TAgent> WithConversationId<TId>(TId? id) where TId : struct =>
-        Copy(_settingsId, new StoreId<TId>(id ?? throw new ArgumentNullException(nameof(id))), _provider, _model);
+        Copy(
+            _settingsId,
+            new StoreId<TId>(id ?? throw new ArgumentNullException(nameof(id))),
+            _provider,
+            _model,
+            _policy);
 
     // D87: the call site's choice of who serves the run, apart from the model, as ids are given (D72)
     /// <summary>
@@ -180,7 +192,7 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
         if (provider is ChatProvider document) return WithProvider(document);
         if (provider is string text) ArgumentException.ThrowIfNullOrWhiteSpace(text, nameof(provider));
 
-        return Copy(_settingsId, _conversationId, new ProviderId<TProviderId>(provider), _model);
+        return Copy(_settingsId, _conversationId, new ProviderId<TProviderId>(provider), _model, _policy);
     }
 
     // D88: a provider of the app's own, which its connector turns into a client that Typeshift keeps
@@ -204,7 +216,7 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
         ArgumentNullException.ThrowIfNull(provider);
         ArgumentException.ThrowIfNullOrWhiteSpace(provider.Kind, nameof(provider));
 
-        return Copy(_settingsId, _conversationId, new ProviderDocument(provider), _model);
+        return Copy(_settingsId, _conversationId, new ProviderDocument(provider), _model, _policy);
     }
 
     /// <summary>
@@ -224,7 +236,29 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     public AgentHost<TAgent> WithModel(string model)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(model);
-        return Copy(_settingsId, _conversationId, _provider, model);
+        return Copy(_settingsId, _conversationId, _provider, model, _policy);
+    }
+
+    // D89: the call site's policy, over the one the agent's code declares, as its provider is (D87)
+    /// <summary>
+    /// Returns a copy of this host whose runs go by a model policy in place of the one the agent's code declares, and
+    /// leaves this host as it was: what a run does when a model call fails, as in
+    /// <c>support.WithModelPolicy(support.Agent.ModelPolicy.Timeout(patience))</c>. It serves the whole run, as a
+    /// provider the call site names does: its sub-agents, the agents it hands off to and its summary.
+    /// More in the guide:
+    /// <see href="https://weboost-at.github.io/Typeshift/guide/models#the-model-policy">The model policy</see>.
+    /// </summary>
+    /// <param name="policy">The policy.</param>
+    /// <returns>
+    /// The copy, with this host's ids, provider and model and in its scope. Disposing it disposes what disposing this
+    /// host would.
+    /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="policy"/> is null.</exception>
+    [Experimental(ExperimentalIds.ModelPolicy, UrlFormat = ExperimentalIds.ModelPolicyUrl)]
+    public AgentHost<TAgent> WithModelPolicy(ModelPolicy policy)
+    {
+        ArgumentNullException.ThrowIfNull(policy);
+        return Copy(_settingsId, _conversationId, _provider, _model, policy);
     }
 
     // D72, D76: a copy runs in this host's scope and disposes it as this host would; a scope's disposal is idempotent
@@ -232,13 +266,15 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
         StoreId? settingsId,
         StoreId? conversationId,
         ProviderId? provider,
-        string? model) =>
+        string? model,
+        ModelPolicy? policy) =>
         new(Agent, _services, _scope)
         {
             _settingsId = settingsId,
             _conversationId = conversationId,
             _provider = provider,
-            _model = model
+            _model = model,
+            _policy = policy
         };
 
     // D12: the runs without the agent's Settings are the host's own, so code generic over the agent runs any agent
@@ -694,7 +730,8 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// Continues the host's conversation, from <c>WithConversationId</c>, as
     /// <see cref="ResumeAsync(CancellationToken)"/> does, and also when its last run failed, was cancelled or stopped,
     /// as on a provider's error or a timeout: from that run's stored steps, so the model receives the user's message
-    /// once. The agent's generated <c>RetryAsync</c> also takes the run's <c>Settings</c>.
+    /// once. A retry on another model or provider runs on a copy of the host, as from <c>WithModel(model)</c> or
+    /// <c>WithProvider(key)</c>. The agent's generated <c>RetryAsync</c> also takes the run's <c>Settings</c>.
     /// More in the guide:
     /// <see href="https://weboost-at.github.io/Typeshift/guide/conversations#retrying-a-failed-run">Retrying a
     /// failed run</see>.
@@ -833,8 +870,10 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
             "Decisions belong to a conversation: call this on a host from WithConversationId(id).");
 
 #pragma warning disable RS0030 // the fallback for a host that registered no TimeProvider
-    private DecisionLedger Ledger => new(Store, _services.GetService<TimeProvider>() ?? TimeProvider.System);
+    private TimeProvider Time => _services.GetService<TimeProvider>() ?? TimeProvider.System;
 #pragma warning restore RS0030
+
+    private DecisionLedger Ledger => new(Store, Time);
 
     // D69, D72: through the store of the id's type, so the memory a new app runs on answers too
     /// <summary>
@@ -1023,31 +1062,38 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
 
         var provider = resolved.Provider;
         var model = resolved.ModelId;
-
-        var (client, hold) = await ChatClients.GetAsync(_services, $"the agent '{Agent.Name}'", provider, model, ct)
-            .ConfigureAwait(false);
+        var run = resolved.RunOptions;
+        var clients = await GetClientsAsync(resolved, ct).ConfigureAwait(false);
 
         try
         {
-            await EnsureServedAsync(resolved, client, ct).ConfigureAwait(false);
+            await EnsureServedAsync(resolved, ct).ConfigureAwait(false);
         }
         catch
         {
-            hold?.Dispose();
+            clients.Dispose();
             throw;
         }
 
-        var run = resolved.RunOptions;
+        var loggers = _services.GetService<ILoggerFactory>();
+        var logger = LogEvents.For(loggers);
 
         // D29: outermost the conversation, then run middleware, context and the mode above the tool loop, the gate
-        // (D81), the checkpoints, unique call ids (D59) and compaction inside it, and innermost the provider's
-        // client, instrumented, behind a wrapper that never disposes it and ends the run's hold on it (D88)
-        var provided = _services.GetRequiredService<InstrumentedClients>().Instrument(client, model, hold);
+        // (D81), the checkpoints, unique call ids (D59) and compaction inside it, and innermost the model policy's
+        // client (D89), which calls each pair of provider and model through its own instrumented client, never
+        // disposes a provider's client and ends the run's hold on those Typeshift keeps (D88)
+        var provided = new ModelPolicyChatClient(
+            run.ModelPolicy,
+            clients,
+            model,
+            _services.GetRequiredService<InstrumentedClients>(),
+            Time,
+            _services.GetService<TypeshiftOptions>()?.ClassifyModelFailure,
+            _services.GetRequiredService<UnknownFailures>(),
+            logger);
 
         var checkpoints = new CheckpointChatClient(new UniqueCallIdsChatClient(new CompactingChatClient(provided)));
         var decisions = new DecisionChatClient(checkpoints);
-        var loggers = _services.GetService<ILoggerFactory>();
-        var logger = LogEvents.For(loggers);
         var gate = new ToolGate([.. _services.GetServices<IToolMiddleware>()], logger);
 
         LogEvents.RunResolved(
@@ -1055,7 +1101,7 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
             Agent.Name,
             model,
             provider,
-            client.GetType().Name,
+            clients.Of(provider).GetType().Name,
             resolved.Layers);
 
         var mode = new ModeChatClient(Loop(run, run.MaxToolIterations), Loop);
@@ -1088,38 +1134,77 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
         }
     }
 
-    // What else the run needs is checked before it stores anything: the client, the summary's provider and the
-    // providers of the agents it may reach
-    private async Task EnsureServedAsync(ResolvedChatOptions resolved, IChatClient client, CancellationToken ct)
+    // D89: the clients of every provider the run may use, taken before it stores anything: its own, those its model
+    // policy's fallbacks name, and, once it can compact, its summary's (D63), so a fallback nothing serves fails the
+    // run at its start and not on the night the first provider is down
+    private async Task<RunClients> GetClientsAsync(ResolvedChatOptions resolved, CancellationToken ct)
     {
-        // D29: a tool loop below Typeshift's own would run tools past the gate, the tool middleware and the run's
-        // limits, so the client that brings one is refused before it is called
-        if (client.GetService<FunctionInvokingChatClient>() is not null)
-        {
-            throw new InvalidOperationException(
-                $"The chat client that serves the agent '{Agent.Name}' runs a tool loop of its own, as one registered "
-                + "with UseFunctionInvocation() does. Typeshift runs the tool loop of a run itself, with approval, "
-                + "tool middleware and the run's limits in it: register the client without UseFunctionInvocation().");
-        }
-
         var run = resolved.RunOptions;
+        var clients = new RunClients(resolved.Provider);
 
-        // D63: a summary provider nothing serves fails the run here, where it has stored nothing, and not as a
-        // warning once the history is compacted
-        if (run.MaxInputTokens is not null && resolved.SummaryProvider is { } summary)
+        try
         {
-            var summarized = $"the summary of the agent '{Agent.Name}'";
-            ChatClients.EnsureServed(_services, summarized, summary, run.SummaryModel ?? resolved.ModelId);
+            await AddAsync($"the agent '{Agent.Name}'", resolved.Provider, resolved.ModelId, loops: true)
+                .ConfigureAwait(false);
+
+            foreach (var rule in run.ModelPolicy.Rules)
+            {
+                if (rule.Provider is not { } fallback || clients.Holds(fallback)) continue;
+
+                var policy = $"the model policy of the agent '{Agent.Name}'";
+                await AddAsync(policy, fallback, rule.Model ?? resolved.ModelId, loops: true).ConfigureAwait(false);
+            }
+
+            // D63: a summary provider nothing serves fails the run here, where it has stored nothing, and not as a
+            // warning once the history is compacted
+            if (run.MaxInputTokens is not null && resolved.SummaryProvider is { } summary && !clients.Holds(summary))
+            {
+                var summarized = $"the summary of the agent '{Agent.Name}'";
+                await AddAsync(summarized, summary, run.SummaryModel ?? resolved.ModelId, loops: false)
+                    .ConfigureAwait(false);
+            }
+
+            return clients;
+        }
+        catch
+        {
+            clients.Dispose();
+            throw;
         }
 
-        // D87: so do the providers of the agents the run may call or hand off to, unless the run was handed one, which
-        // serves them all and was found as the run's own
-        if (resolved.HandedProvider is null)
+        async Task AddAsync(string what, ProviderId? provider, string? model, bool loops)
         {
-            await ReachableProviders.EnsureServedAsync(Agent, _services, Store, resolved.SettingsId, ct)
+            var (client, hold) = await ChatClients.GetAsync(_services, what, provider, model, ct)
                 .ConfigureAwait(false);
+
+            clients.Add(provider, client, hold);
+
+            // D29: a tool loop below Typeshift's own would run tools past the gate, the tool middleware and the run's
+            // limits, so the client that brings one is refused before it is called. A summary call offers no tools
+            if (loops && client.GetService<FunctionInvokingChatClient>() is not null)
+            {
+                throw new InvalidOperationException(
+                    $"The chat client that serves {what} runs a tool loop of its own, as one registered with "
+                    + "UseFunctionInvocation() does. Typeshift runs the tool loop of a run itself, with approval, tool "
+                    + "middleware and the run's limits in it: register the client without UseFunctionInvocation().");
+            }
         }
     }
+
+    // D87: the providers of the agents the run may call or hand off to are checked before it stores anything too,
+    // unless the run was handed one, which serves them all and was found as the run's own. D89: so are those their
+    // policies fall back to, unless the run was handed a policy, whose fallbacks were found as the run's own
+    private Task EnsureServedAsync(ResolvedChatOptions resolved, CancellationToken ct) =>
+        resolved is { HandedProvider: not null, HandedPolicy: not null }
+            ? Task.CompletedTask
+            : ReachableProviders.EnsureServedAsync(
+                Agent,
+                _services,
+                Store,
+                resolved.SettingsId,
+                resolved.HandedProvider,
+                resolved.HandedPolicy,
+                ct);
 
     /// <summary>
     /// Disposes the scope of a host <see cref="ITypeshiftRuntime.CreateHost{TAgent}"/> created, and with it the scoped
@@ -1142,15 +1227,17 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
 
     // The options of the raw path and of the generated members that resolve them, with the host's own call site
     internal Task<ChatOptions> ResolveOptionsCoreAsync(StoreId? settingsId, object? settings, CancellationToken ct) =>
-        ResolveOptionsCoreAsync(settingsId, settings, _provider, ct);
+        ResolveOptionsCoreAsync(settingsId, settings, _provider, _policy, ct);
 
     // D27, D66: the agent's code, its own stored settings, those under the settings id, then the run's; values a layer
     // leaves null keep the one below. D87: over them the call site's provider, which the run may have been handed by
-    // the run that called it, and the host's model. D63: a run that names no provider then takes the default one
+    // the run that called it, and the host's model; D89: and its model policy, handed on the same way. D63: a run
+    // that names no provider then takes the default one
     private async Task<ChatOptions> ResolveOptionsCoreAsync(
         StoreId? settingsId,
         object? settings,
         ProviderId? handed,
+        ModelPolicy? policy,
         CancellationToken ct)
     {
         SynchronizationContexts.Leave();
@@ -1177,6 +1264,12 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
             options.SummaryProvider = null;
         }
 
+        if (policy is not null)
+        {
+            run = run with { ModelPolicy = policy };
+            options.HandedPolicy = policy;
+        }
+
         if (_model is not null) options.ModelId = _model;
         options.Provider ??= ChatClients.DefaultProvider(_services);
 
@@ -1190,7 +1283,7 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
             loaded[0] is null ? null : "its stored settings",
             loaded[1] is null ? null : $"settings id {settingsId}",
             settings is null ? null : "the run",
-            handed is null && _model is null ? null : "the call site"
+            handed is null && _model is null && policy is null ? null : "the call site"
         ];
 
         options.Layers = string.Join(", ", applied.OfType<string>());
@@ -1231,9 +1324,10 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     // A resume needs a conversation
     private StoreId? Conversation(ChatMessage? input) => input is null ? ResumedConversation : _conversationId;
 
-    // A run the host's own members start is handed nothing but what the host was given: its ids and its provider
+    // A run the host's own members start is handed nothing but what the host was given: its ids, its provider and
+    // its model policy
     private RunHandover OwnRun(StoreId? conversation, ChatResponseFormat? format = null, bool retries = false) =>
-        new(_settingsId, conversation, Claim: null, format, Retries: retries, Provider: _provider);
+        new(_settingsId, conversation, Claim: null, format, Retries: retries, Provider: _provider, Policy: _policy);
 
     internal async Task<ChatResponse<TResult>> RunCoreAsync<TResult>(
         ChatMessage? input,
@@ -1468,6 +1562,7 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
             handover.SettingsId,
             settings,
             handover.Provider,
+            handover.Policy,
             ct).ConfigureAwait(false);
         options.Conversation = handover.Conversation;
         options.Claim = handover.Claim;

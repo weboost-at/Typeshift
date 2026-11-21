@@ -16,7 +16,7 @@ namespace Typeshift;
 /// rule handles reaches your app as the client threw it. Policies with the same rules, in the same order, and the same
 /// timeout are equal.
 /// More in the guide:
-/// <see href="https://weboost-at.github.io/Typeshift/guide/models#when-a-provider-fails">When a provider fails</see>.
+/// <see href="https://weboost-at.github.io/Typeshift/guide/models#the-model-policy">The model policy</see>.
 /// </summary>
 [Experimental(ExperimentalIds.ModelPolicy, UrlFormat = ExperimentalIds.ModelPolicyUrl)]
 public sealed record ModelPolicy

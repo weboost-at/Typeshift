@@ -581,13 +581,14 @@ internal sealed class ConversationRun(
     {
         LastResponse = response;
 
-        // D32: with what compaction estimated the call at, the provider's report calibrates the next run
+        // D32: with what compaction estimated the call at, the provider's report calibrates the next run. D89: the
+        // entry names the pair that answered, which a fallback of the model policy may have moved
         ResponseFailure = await AppendAsync(
             [.. response.Messages],
-            response.ModelId ?? options?.ModelId,
+            response.ModelId ?? run.Models?.Model ?? options?.ModelId,
             response.Usage,
             run.Compaction?.SentEstimate,
-            provider: run.ResolvedProvider?.ToString(),
+            provider: run.ServingProvider?.ToString(),
             answered: true).ConfigureAwait(false);
 
         if (streamed) _streamedUnmatched = response.Messages.Count;

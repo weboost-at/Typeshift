@@ -1,3 +1,5 @@
+#pragma warning disable TYPESHIFT001 // a summary goes under the run's model policy, which is experimental
+using System.Net;
 using System.Text.Json;
 using Typeshift.Tests.Agents.Support;
 using Typeshift.Tests.Compaction.Support;
@@ -462,6 +464,98 @@ public class CompactionTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Fallback_Of_The_Run_Its_Summary_Runs_On_The_Pair_The_Run_Is_On()
+    {
+        // Arrange
+        var policy = ModelPolicy.Handle(ModelFailure.Unavailable).FallbackTo(Data.Agent.Provider, Data.Agent.Model);
+
+        ChatClient
+            .Reply(Unavailable())
+            .Reply(Read(Data.Tool.CallId, Page))
+            .Reply(Read(Data.Tool.SecondCallId, Page))
+            .Reply(Text(Data.Agent.Reason))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await RunAsync(Data.Tool.Question, new() { MaxInputTokens = 1_500, TargetInputTokens = 1_000 }, policy);
+
+        // Assert
+        Models[3].Should().Be(new ProvidedModel(Data.Agent.Provider, Data.Agent.Model));
+    }
+
+    [Fact]
+    public async Task Given_A_Fallback_To_A_Provider_The_Summary_Model_Goes_To_That_Provider()
+    {
+        // Arrange
+        var policy = ModelPolicy.Handle(ModelFailure.Unavailable).FallbackToProvider(Data.Agent.Provider);
+
+        var settings = new CompactingAgent.Settings
+        {
+            MaxInputTokens = 1_500,
+            TargetInputTokens = 1_000,
+            SummaryModel = SummaryModel
+        };
+
+        ChatClient
+            .Reply(Unavailable())
+            .Reply(Read(Data.Tool.CallId, Page))
+            .Reply(Read(Data.Tool.SecondCallId, Page))
+            .Reply(Text(Data.Agent.Reason))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await RunAsync(Data.Tool.Question, settings, policy);
+
+        // Assert
+        Models[3].Should().Be(new ProvidedModel(Data.Agent.Provider, SummaryModel));
+    }
+
+    [Fact]
+    public async Task Given_A_Summary_Call_That_Fails_The_Runs_Model_Policy_Retries_It()
+    {
+        // Arrange
+        var policy = ModelPolicy.Handle(ModelFailure.Unavailable).Retry(1);
+
+        ChatClient
+            .Reply(Read(Data.Tool.CallId, Page))
+            .Reply(Read(Data.Tool.SecondCallId, Page))
+            .Reply(Unavailable())
+            .Reply(Text(Data.Agent.Reason))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await RunAsync(Data.Tool.Question, new() { MaxInputTokens = 1_500, TargetInputTokens = 1_000 }, policy);
+
+        // Assert
+        ChatClient.Assert.Request(4).Texts[0].Should().EndWith(Data.Agent.Reason);
+    }
+
+    [Fact]
+    public async Task Given_A_Summary_Call_The_Policy_Moves_Elsewhere_The_Runs_Own_Calls_Stay_On_Their_Pair()
+    {
+        // Arrange
+        var policy = ModelPolicy.Handle(ModelFailure.Unavailable).FallbackToModel(Data.Agent.Model);
+
+        ChatClient
+            .Reply(Read(Data.Tool.CallId, Page))
+            .Reply(Read(Data.Tool.SecondCallId, Page))
+            .Reply(Unavailable())
+            .Reply(Text(Data.Agent.Reason))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await RunAsync(Data.Tool.Question, new() { MaxInputTokens = 1_500, TargetInputTokens = 1_000 }, policy);
+
+        // Assert
+        Models.Select(asked => asked.Model).Should().Equal(
+            CompactingAgent.Model,
+            CompactingAgent.Model,
+            CompactingAgent.Model,
+            Data.Agent.Model,
+            CompactingAgent.Model);
+    }
+
+    [Fact]
     public async Task Given_A_Run_Cancelled_While_Its_Summary_Is_Written_The_Run_Ends_Cancelled()
     {
         // Arrange
@@ -893,6 +987,15 @@ public class CompactionTests : AgentTestBase
         Host<CompactingAgent>()
             .WithConversationId(Data.Agent.ConversationId)
             .RunAsync(input, settings: settings, ct: Ct);
+
+    private Task<ChatResponse> RunAsync(string input, CompactingAgent.Settings settings, ModelPolicy policy) =>
+        Host<CompactingAgent>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .WithModelPolicy(policy)
+            .RunAsync(input, settings: settings, ct: Ct);
+
+    private HttpRequestException Unavailable() =>
+        new(Data.Agent.Reason, null, HttpStatusCode.ServiceUnavailable);
 
     // A run of no conversation that reads two pages, one after the other, then answers: its third call holds both
     private async Task ReadTwoPagesAsync(CompactingAgent.Settings? settings = null)

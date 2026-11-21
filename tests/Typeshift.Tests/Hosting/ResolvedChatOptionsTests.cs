@@ -1,3 +1,4 @@
+#pragma warning disable TYPESHIFT001 // the options carry the model policy the call site handed the run
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using FluentAssertions;
@@ -48,6 +49,7 @@ public class ResolvedChatOptionsTests : UnitTestBase
             _ when type == typeof(ProviderId) => new ProviderId<string>(nameof(ProviderId)),
             _ when type == typeof(StoreId) => new StoreId<string>(nameof(StoreId)),
             _ when type == typeof(RunOptions) => new RunOptions { MaxToolIterations = 1 },
+            _ when type == typeof(ModelPolicy) => ModelPolicy.Handle(ModelFailure.Any).Retry(1),
             _ when type == typeof(ChatResponseFormat) => ChatResponseFormat.Json,
             _ when type == typeof(IReadOnlyList<ConversationEntry>) => Array.Empty<ConversationEntry>(),
             { IsClass: true, IsAbstract: false } => RuntimeHelpers.GetUninitializedObject(type),

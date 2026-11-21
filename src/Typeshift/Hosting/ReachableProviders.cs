@@ -3,7 +3,8 @@ namespace Typeshift;
 // D87: the providers of the agents a run may call as sub-agents or hand off to, each as its own run would resolve it
 // without the call site: from its stored settings under the run's settings id where they may name one, else its code,
 // else the default provider. A run checks they are served before it stores anything, so a sub-agent nobody serves
-// fails the run at its start, and not each of its calls while the run goes on
+// fails the run at its start, and not each of its calls while the run goes on. D89: so are the providers their own
+// model policies fall back to, which a policy the call site handed the run replaces
 internal static class ReachableProviders
 {
     public static async Task EnsureServedAsync(
@@ -11,12 +12,28 @@ internal static class ReachableProviders
         IServiceProvider services,
         StoreAccess store,
         StoreId? settingsId,
+        ProviderId? handedProvider,
+        ModelPolicy? handedPolicy,
         CancellationToken ct)
     {
         foreach (var reached in Reach(agent, services))
         {
-            var options = await ResolveAsync(reached, services, store, settingsId, ct).ConfigureAwait(false);
-            ChatClients.EnsureServed(services, $"the agent '{reached.Name}'", options.Provider, options.ModelId);
+            var model = reached.ChatOptions.ModelId;
+
+            if (handedProvider is null)
+            {
+                var options = await ResolveAsync(reached, services, store, settingsId, ct).ConfigureAwait(false);
+                ChatClients.EnsureServed(services, $"the agent '{reached.Name}'", options.Provider, options.ModelId);
+                model = options.ModelId;
+            }
+
+            if (handedPolicy is not null) continue;
+
+            foreach (var rule in reached.RunOptions.ModelPolicy.Rules.Where(rule => rule.Provider is not null))
+            {
+                var policy = $"the model policy of the agent '{reached.Name}'";
+                ChatClients.EnsureServed(services, policy, rule.Provider, rule.Model ?? model);
+            }
         }
     }
 

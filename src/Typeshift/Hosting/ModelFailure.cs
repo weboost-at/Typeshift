@@ -11,8 +11,8 @@ namespace Typeshift;
 /// such as an <see cref="HttpRequestException"/> by its status, and
 /// <see cref="TypeshiftOptions.ClassifyModelFailure"/> the kind of a client library's own.
 /// More in the guide:
-/// <see href="https://weboost-at.github.io/Typeshift/guide/models#when-a-provider-fails">When a provider
-/// fails</see>.
+/// <see href="https://weboost-at.github.io/Typeshift/guide/models#which-failure-is-which">Which failure is
+/// which</see>.
 /// </summary>
 [Flags]
 [Experimental(ExperimentalIds.ModelPolicy, UrlFormat = ExperimentalIds.ModelPolicyUrl)]
@@ -127,5 +127,5 @@ internal static class ExperimentalIds
 {
     public const string ModelPolicy = "TYPESHIFT001";
 
-    public const string ModelPolicyUrl = "https://weboost-at.github.io/Typeshift/guide/models#when-a-provider-fails";
+    public const string ModelPolicyUrl = "https://weboost-at.github.io/Typeshift/guide/models#the-model-policy";
 }

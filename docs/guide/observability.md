@@ -31,7 +31,7 @@ services.AddOpenTelemetry()
 | Span | For |
 |---|---|
 | `invoke_agent {agent}` | A run, with the agent, the provider and model it asks for, the conversation and the token usage. |
-| `chat {model}` | Each model call, including the calls that write a compaction summary. |
+| `chat {model}` | Each attempt of a model call, of the model it asked, including the calls that write a compaction summary. A call the run's [model policy](./models.md#the-model-policy) tries again or moves elsewhere has a span for each attempt. |
 | `execute_tool {tool}` | Each tool call. |
 
 A run's `chat` and `execute_tool` spans are children of its `invoke_agent` span, whether the run streams or not. The
@@ -79,6 +79,22 @@ fills in. When [providers your customers bring](./models.md#providers-your-custo
 client of their own, each customer's calls therefore show that customer's endpoint. The provider itself is the
 `typeshift.provider` tag of the run's span: the key the call site, the agent's settings or its code name, or a
 document's `Name`, else its `Kind`, and never its key.
+
+## Retries and fallbacks
+
+A model call that fails and that a rule of the run's [model policy](./models.md#the-model-policy) handles is no
+failure of the run either. Each rule that applies is an event on the run's `invoke_agent` span:
+
+| Event | For |
+|---|---|
+| `typeshift.model.retry` | A call the policy tries again on the same provider and model; `typeshift.model.retries` counts the tries |
+| `typeshift.model.fallback` | A call the policy moves to another model or provider, where the run's later calls stay |
+
+Both carry the failure's kind in `typeshift.model.failure`, such as `RateLimit`, and the exception's type in
+`error.type`. `typeshift.model.from.provider` and `typeshift.model.from.model` name the pair the failed attempt
+called, and `typeshift.model.to.provider` and `typeshift.model.to.model` the pair of the next one, a provider document
+by its `Name`, else its `Kind`. Alert on fallbacks when a provider that is down should page someone, since the runs
+themselves answer.
 
 ## Decisions
 
@@ -139,6 +155,7 @@ Filter and alert on those, since the text of a message may change:
 | 14 | `FileStoreFolder` | Information | The file store saved for the first time. The entry holds the folder that keeps the settings. |
 | 15 | `HandedOff` | Debug | An agent [handed its conversation off](./multi-agent.md#handoff) to another. The entry holds both agents and the conversation. |
 | 16 | `SteeringNotStored` | Error | A run middleware threw on [steering input](./middleware.md#steering-input) that still waited when its run ended, so the input is not stored. The entry holds the exception. |
+| 17 | `UnknownModelFailure` | Warning | A model call failed with an exception whose kind Typeshift cannot tell, under a model policy no rule of which handles an `Unknown` failure. The entry holds the agent and the exception's type, to tell its kind with `ClassifyModelFailure` ([Which failure is which](./models.md#which-failure-is-which)). Logged once for each type. |
 
 The `Debug` events answer why a run used a model or ran a tool without asking. Turn them on for the category, for
 example in `appsettings.json`:

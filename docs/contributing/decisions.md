@@ -745,7 +745,8 @@ The table lists every entry by its ID, with the section that holds it and whethe
   `Model` exist only where the agent's code made its model configurable. The owner: provider and model are two
   choices, made apart, and a provider handed to a run serves its whole run.
 - **Decision:** `host.WithProvider(key)` and `host.WithModel(model)` return a copy of the host, as ids are given
-  (D72), on `AgentHost<TAgent>` and `IAgentHost`. A copy keeps the ids and what an earlier copy named, runs in the
+  (D72), on `AgentHost<TAgent>` and `IAgentHost`, and so does `host.WithModelPolicy(policy)`, whose policy serves
+  the whole run as the provider does (D89). A copy keeps the ids and what an earlier copy named, runs in the
   host's scope and disposes it as the host would (D76). What the call site names wins over the four settings layers
   (D27) and the agent's code. The model needs no `Configurable` (D28): the allow list guards what stored data may
   change, and the call site is the app's code. The provider serves the whole run: its sub-agents, the agents it hands
@@ -794,10 +795,11 @@ The table lists every entry by its ID, with the section that holds it and whethe
   once; runs that hand in equal documents at the same time share that call, and one whose connecting run was
   cancelled connects again. A connection that fails is forgotten, so the next run tries again, and fails its run with
   the connector's exception before the run stores anything. A run holds its client from its start to the disposal of
-  its pipeline, streams included (`UndisposedChatClient` releases the hold). A client no run holds and none used for
-  `TypeshiftOptions.ProviderClientIdleTime`, 10 minutes by default, is disposed when a later run takes a client,
-  which looks at most once a minute on the injected `TimeProvider`, so no timer runs. Disposing the runtime disposes
-  the rest. Clients the app registered itself are never Typeshift's to dispose.
+  its pipeline, streams included: the model policy's client ends the holds when the pipeline is disposed (D89). A
+  client no run holds and none used for `TypeshiftOptions.ProviderClientIdleTime`, 10 minutes by default, is disposed
+  when a later run takes a client, which looks at most once a minute on the injected `TimeProvider`, so no timer
+  runs. Disposing the runtime disposes the rest. Clients the app registered itself are never Typeshift's to
+  dispose.
 - **Keys:** `ApiKey` is left out of the record's `ToString()` (`PrintMembers`), and a document is named by its
   `Name`, else its `Kind`, on the run's span, its entries, its log lines and its messages. Typeshift holds a document
   in memory while its client lives and writes it nowhere.
@@ -806,8 +808,9 @@ The table lists every entry by its ID, with the section that holds it and whethe
   `ChatClientResolutionTests` pin it).
 - **The model:** a document's `Model` answers a run that names none, as layer 5 of the model's resolution (D63).
 - **Where:** `Hosting/ChatProvider.cs`, `Hosting/IChatProviderConnector.cs`, `Hosting/ProviderClients.cs`,
-  `Hosting/ProviderId.cs` (`ProviderDocument`), `Hosting/ChatClients.cs`, `Hosting/UndisposedChatClient.cs`,
-  `Hosting/AgentHost.cs`, `DependencyInjection/TypeshiftBuilder.cs`, `DependencyInjection/TypeshiftOptions.cs`.
+  `Hosting/ProviderId.cs` (`ProviderDocument`), `Hosting/ChatClients.cs`, `Hosting/ModelPolicyChatClient.cs`
+  (`RunClients`), `Hosting/AgentHost.cs`, `DependencyInjection/TypeshiftBuilder.cs`,
+  `DependencyInjection/TypeshiftOptions.cs`.
 - **Alternatives:** keeping the scoped provider class with a cache built in, which keeps the routing in every app
   and the provider out of reach of the call site; a store of provider documents in Typeshift, a second place for data
   the app already keeps; documents registered under a key on the chain, which nothing asks for yet; a client per run,
@@ -829,6 +832,34 @@ The table lists every entry by its ID, with the section that holds it and whethe
   A provider of a fallback is a key or a `ChatProvider` document, as `host.WithProvider` takes it (D88): a derived
   record binds to the generic overload, which tells it apart. The text of a policy writes it as code does, with a
   document by its `Name` or `Kind`, never its key.
+- **The rules as a run reads them:** a model call starts on the pair of provider and model the run resolved. A
+  failure before any output reached the caller gets a kind, and the first rule, top to bottom, that handles the kind
+  and is not used up applies; with none, the exception is thrown as the client threw it. `Retry` tries the same pair
+  again after its delay, up to its times for each model call and pair. A fallback moves the run to another pair for
+  its remaining model calls and applies once in a run. The timeout counts from the start of an attempt to the first
+  update of a streaming call or the response of one that does not stream: a total would cut a long answer short and
+  then pay for the fallback too, and the policy's own timeout that no rule handles throws a `TimeoutException`
+  naming the pair. Nothing is tried again once an update reached the caller, who holds part of an answer: the failure
+  comes out of the stream, and `RetryAsync` continues the run (D50). The caller's own cancellation is never handled.
+- **Who it serves:** an agent declares its policy with `WithRunOptions().WithModelPolicy(policy)`, which
+  `Agent.ModelPolicy` returns, and `host.WithModelPolicy(policy)` hands a run another, as the call site hands it a
+  provider (D87): it serves the whole run, its sub-agents, the agents it hands off to and its summary, through
+  `RunHandover.Policy` and `ResolvedChatOptions.HandedPolicy`. Without one, each agent's runs go by its own.
+  Settings cannot store a policy, so `Configurable(r => r.ModelPolicy)` is TSH012, and TSH041 reports a dropped
+  `WithModelPolicy` copy.
+- **As built:** the policy's client is the innermost of the pipeline, under compaction, in place of one instrumented
+  client (D29, `ModelPolicyChatClient`). Every provider a run may use is taken when it starts (`RunClients`): its
+  own, each fallback's and its summary's, so a fallback nothing serves fails the run before it stores anything, not
+  on the night the first provider is down; `ReachableProviders` checks the fallbacks of the agents the run may reach
+  too, unless it was handed a policy. Each pair calls through an instrumented client of its own (D36), and a run's
+  pair lives in `AgentRun.Models`, so a response's entry names the pair that answered, and the summary starts from
+  it (D32). A policy without rules or timeout calls straight through, so a run without one allocates no more than
+  before. Below the checkpoints, a handled failure stores nothing and the input is stored once (D50). A retry and a
+  fallback are events on the run's span, and an `Unknown` failure no rule of a policy with rules could handle logs
+  `UnknownModelFailure` once per exception type, since a retry that never fires reads as a broken policy.
+- **Why Typeshift's own loop:** Microsoft.Extensions.AI's experimental failover client wraps one client around
+  others, picks by its own rules, sees neither the run's pair nor its checkpoints, and cannot move the run for its
+  remaining calls or name the pair on the entry; a loop inside the pipeline knows all of them.
 - **The kinds:** `RateLimit`, `Timeout`, `Unavailable`, `Auth`, `ContentFilter`, `Rejected` and `Unknown`, with
   `Transient` and `Any` as combinations. Typeshift references no vendor's client library, so it tells the kinds of
   .NET's own exceptions: the status of an `HttpRequestException` (`ModelFailure.FromStatus`, a static extension
@@ -843,7 +874,10 @@ The table lists every entry by its ID, with the section that holds it and whethe
   `Agent.ModelPolicy` carry `[Experimental("TYPESHIFT001")]`, whose link opens the policy's section of the guide, so
   their shape may still change after the last alpha that breaks API. The library builds on them itself, so
   `.editorconfig` switches the id off for `src/Typeshift`; a test or a sample that uses them disables it by pragma.
-- **Where:** `Hosting/ModelPolicy.cs`, `Hosting/ModelFailure.cs`, `DependencyInjection/TypeshiftOptions.cs`.
+- **Where:** `Hosting/ModelPolicy.cs`, `Hosting/ModelFailure.cs`, `Hosting/ModelPolicyChatClient.cs`,
+  `Hosting/AgentHost.cs` (`GetClientsAsync`, `WithModelPolicy`), `Hosting/ReachableProviders.cs`,
+  `Agents/RunOptions.cs`, `Compaction/Compaction.cs`, `DependencyInjection/TypeshiftOptions.cs`,
+  `Telemetry/LogEvents.cs`, `Analysis/TypeshiftAnalyzer.cs` (`IsHostCopy`).
 - **Alternatives:** a flat `WithFallback(...)` list, which handles every failure alike; a middleware class of the
   app's around the provider's client, which is not inline and runs outside the checkpoints; a selector service asked
   after each failure, the most power and nothing inline, which every app fills with the same counting; reading a
@@ -915,10 +949,11 @@ The table lists every entry by its ID, with the section that holds it and whethe
   live updates, the `invoke_agent` span), run middleware, context providers, the mode (the tools of the run's mode
   and each pass's share of the limit), `FunctionInvokingChatClient` (handoff, run options, the tool gate and tool
   middleware as its `FunctionInvoker`), the decision gate (D81), checkpoints (each step appended before compaction
-  sees it; steering input and background answers injected here), unique call ids (D59), compaction,
-  `OpenTelemetryChatClient`, the provider's client behind a wrapper that never disposes it and ends the run's hold
-  on a client Typeshift keeps for a document (D88). The client comes from `ChatClients.GetAsync`, the one place a
-  run turns its provider and model into a client.
+  sees it; steering input and background answers injected here), unique call ids (D59), compaction, and innermost
+  the model policy's client (D89), which calls each pair of provider and model through an `OpenTelemetryChatClient`
+  of its own over the provider's client, never disposes a provider's client and ends the run's hold on a client
+  Typeshift keeps for a document (D88). The clients come from `ChatClients.GetAsync`, the one place a run turns a
+  provider and a model into a client, each taken when the run starts.
   The run's own wrapper above `OpenTelemetryChatClient` hands the provider's client each JSON result as text without
   white space (D45). The gate, checkpoints and compaction sit inside the tool loop, so they act around every model
   call. The mode
@@ -1232,6 +1267,11 @@ The table lists every entry by its ID, with the section that holds it and whethe
   response keeps it as text beside the model (D50), written the same in every culture. A run on the client
   registered for every agent (D63) names none, so the tag and the entry's member are absent, as on entries stored
   before; one on the key `WithDefaultProvider` names, or on the call site's provider (D87), names that.
+- **The model policy (D89):** each attempt of a model call is a `chat {model}` span of the model it called, through
+  the pair's own instrumented client. A retry and a fallback are the events `typeshift.model.retry` and
+  `typeshift.model.fallback` on the run's span, each with the failure's kind, `error.type`, and the pair left and
+  the pair taken, so a fallback a run survives can still page someone. The entry of a response names the pair that
+  answered.
 - **Streaming:** an async iterator resumes in its caller's context (dotnet/runtime#47802), so after a streaming run's
   first update its span was no longer the current one, and the later chat and tool spans hung under the caller's span
   or started traces of their own. The run makes its span current again before it asks for each update, as
@@ -2155,8 +2195,8 @@ The table lists every entry by its ID, with the section that holds it and whethe
   stores none, the agent that answers in this one's place retries too, and a conversation whose last run answered
   or waits throws a `NothingToResumeException` with a message of its own. `ResumeAsync` keeps refusing an ended
   run, since a retry is a choice the app makes, after an error it saw, and a resume one it makes after a crash. A
-  model fallback (choosing another provider for the retry) is not built, and a retry does not need one: settings
-  for the retry may name another model.
+  retry on another model or provider is a copy of the host that names it (D87) and its `RetryAsync`, and a model
+  policy (D89) moves a run to another pair before the error is stored, so its conversation holds nothing to retry.
 - **One run at a time:** one run per conversation at a time in a container, a service provider, an app's or
   that of a runtime from `TypeshiftRuntime.Create`, so two runtimes in one process are two. A run claims its
   conversation there before it loads it, so no run reads it while another still stores its end. A run that finds
@@ -2166,6 +2206,9 @@ The table lists every entry by its ID, with the section that holds it and whethe
   input. Across containers, the store refuses a second run's entries by their numbers (details). Both exceptions
   derive from `InvalidOperationException`, so an endpoint tells a busy chat from a mistake by type and a `catch`
   written before them keeps working.
+- **A model policy below the checkpoints (D89):** an attempt that fails before any output and that a rule handles
+  stores nothing, so the conversation holds the input once and none of the failed attempt, and the entry of the
+  answer names the pair that gave it.
 - **Details:** across containers, each entry carries a `Sequence`. A run numbers its first entry one past the
   highest number it loaded, an entry stored before entries had numbers counting one past the entry before it, and
   takes the next number for each append it tries, so a failed append leaves a gap and never a number used twice.

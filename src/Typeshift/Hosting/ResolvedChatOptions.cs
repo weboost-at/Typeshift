@@ -20,6 +20,9 @@ internal sealed class ResolvedChatOptions : ChatOptions
     // off to, and its summary
     public ProviderId? HandedProvider { get; set; }
 
+    // D89: the policy the call site handed the run, which serves its whole run as its provider does
+    public ModelPolicy? HandedPolicy { get; set; }
+
     public RunOptions RunOptions { get; set; } = new();
 
     // D52: a run whose settings name a mode switches the conversation to it
@@ -141,6 +144,7 @@ internal sealed class ResolvedChatOptions : ChatOptions
             Provider = Provider,
             SummaryProvider = SummaryProvider,
             HandedProvider = HandedProvider,
+            HandedPolicy = HandedPolicy,
             RunOptions = RunOptions,
             RunSetsMode = RunSetsMode,
             SettingsId = SettingsId,

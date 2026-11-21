@@ -143,6 +143,7 @@ mode without the pick ([Setting the mode](./tool-approval.md#setting-the-mode)).
 | `WithTargetInputTokens(int tokens)` | half the maximum | Above 0 and below the maximum | Sets how far compaction shrinks the history. |
 | `WithSummaryModel(string model)` | the run's model | Not blank | Sets the model that summarizes the oldest turns when clearing old tool results does not shrink the history enough, served by the run's provider. Made configurable, it also adds `SummaryProvider` to `Settings` ([the summary model](./models.md#the-summary-model)). |
 | `WithSummaryInstructions(string instructions)` | Typeshift's, in English | Not blank | Sets the instructions the summary model receives, for an app in another language or domain ([Compaction](./conversations.md#compaction)). |
+| `WithModelPolicy(ModelPolicy policy)` | `ModelPolicy.None`, one attempt for each model call | Any policy | Sets what a run does when a model call fails: try it again, move to another model or provider, or time out. Experimental, and never configurable, since settings cannot store it: `host.WithModelPolicy(policy)` hands a run another ([The model policy](./models.md#the-model-policy)). |
 
 The run options resolve into a `RunOptions` record, with a property for each call named without `With`, such as
 `MaxToolIterations`: the property a `Configurable(r => r.X)` pick names, and the one run middleware reads in

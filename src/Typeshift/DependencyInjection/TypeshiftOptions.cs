@@ -77,8 +77,8 @@ public sealed class TypeshiftOptions
     /// a cancellation your app asked for or the policy's timeout, and <see cref="ModelFailure.None"/> lets the
     /// exception reach your app as the client threw it. Runs call it at the same time, so make it thread-safe.
     /// More in the guide:
-    /// <see href="https://weboost-at.github.io/Typeshift/guide/models#when-a-provider-fails">When a provider
-    /// fails</see>.
+    /// <see href="https://weboost-at.github.io/Typeshift/guide/models#which-failure-is-which">Which failure is
+    /// which</see>.
     /// </summary>
     [Experimental(ExperimentalIds.ModelPolicy, UrlFormat = ExperimentalIds.ModelPolicyUrl)]
     public Func<Exception, ModelFailure?>? ClassifyModelFailure { get; set; }

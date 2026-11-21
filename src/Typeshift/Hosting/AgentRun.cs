@@ -43,7 +43,8 @@ public sealed class AgentRun
     /// The provider that serves the run: the key the call site, the agent's settings or its code name, a string, an
     /// enum value or another value of the agent's provider id type, or the key of the default provider; or the
     /// <see cref="ChatProvider"/> document the call site handed the run. Null for a run on the client registered for
-    /// every agent. The run's client was taken for it before the run began, so it does not change.
+    /// every agent. The run's client was taken for it before the run began, so it does not change; a fallback of the
+    /// model policy moves the later model calls to another provider, which the entries of their responses name.
     /// </summary>
     public object? Provider => ResolvedProvider?.Value;
 
@@ -118,6 +119,12 @@ public sealed class AgentRun
 
     // D86: the provider with its type, which the entries of the run's model responses name as text
     internal ProviderId? ResolvedProvider => (Options as ResolvedChatOptions)?.Provider;
+
+    // D89: the pair the run's model calls are on, once its model policy has rules; a fallback moves it
+    internal PolicyState? Models { get; set; }
+
+    // The provider of the pair that answers, which a response's entry names
+    internal ProviderId? ServingProvider => Models is { } models ? models.Provider : ResolvedProvider;
 
     // The conversation's client begins every run with options of this type, which hold what else the run resolved
     private ResolvedChatOptions Resolved => (ResolvedChatOptions)Options;

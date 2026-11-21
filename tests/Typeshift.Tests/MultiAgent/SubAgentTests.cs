@@ -1,3 +1,5 @@
+#pragma warning disable TYPESHIFT001 // a run hands its sub-agents the model policy the call site handed it
+using System.Net;
 using Typeshift.Tests.Hosting.Support;
 using Typeshift.Tests.MultiAgent.Support;
 using FluentAssertions;
@@ -60,6 +62,27 @@ public class SubAgentTests : MultiAgentTestBase
 
         // Assert
         CallSite.Options[1]!.ModelId.Should().Be(HelperAgent.Model);
+    }
+
+    [Fact]
+    public async Task Given_A_Model_Policy_At_The_Call_Site_It_Serves_The_Sub_Agents_Run()
+    {
+        // Arrange
+        var policy = ModelPolicy.Handle(ModelFailure.Unavailable).Retry(1);
+
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "helper_agent", ("input", Data.Agent.FollowUp)))
+            .Reply(Text(Data.Tool.Answer));
+
+        HelperClient
+            .Reply(new HttpRequestException(Data.Agent.Reason, null, HttpStatusCode.ServiceUnavailable))
+            .Reply(Text(Data.Agent.Reason));
+
+        // Act
+        await Host<LeadAgent>().WithModelPolicy(policy).RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        HelperClient.Requests.Should().HaveCount(2);
     }
 
     [Fact]

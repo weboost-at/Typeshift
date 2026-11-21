@@ -20,7 +20,7 @@ flowchart TD
   context --> mode[Mode]
   mode --> before
   subgraph loop [Tool loop]
-    before[Store new steps, then compact] --> model[Call the model]
+    before[Store new steps, then compact] --> model[Call the model under its policy]
     model -->|tool calls| gate[Decide each call]
     gate -->|they may run| tools[Tool middleware, then the tools]
     tools --> before
@@ -50,8 +50,9 @@ the tool loop, as each model call answers, so run middleware reads it and cannot
    settings and those under the settings id, then the run's own settings. It creates the tools the agent offers, their
    settings resolved through the same layers, and adds the sub-agents and the tools of MCP servers after them. The
    layers resolve once, when the run starts ([settings layering](./settings-and-stores.md#settings-layering)). The
-   host then takes the run's chat client. Settings no run can go with and a provider no client is registered for
-   fail the run here, before it stores an entry ([When a provider fails](./models.md#when-a-provider-fails)).
+   host then takes the run's chat client, and those of the providers its model policy falls back to. Settings no run
+   can go with and a provider no client is registered for fail the run here, before it stores an entry
+   ([When a provider fails](./models.md#when-a-provider-fails)).
 3. **Resume the conversation.** The run puts the stored entries ahead of the new input, so the model sees the whole
    conversation, and stores the input. It also settles the decisions the conversation waits for: new input expires
    the ones still open, so the model reads that their calls did not run, as it does for the ones your app withdrew,
@@ -89,9 +90,13 @@ the run shows it to each middleware's `OnSteeringAsync` before it takes it
 loses at most the calls in flight.
 
 When compaction is on and the estimate of a call reaches the maximum of input tokens, the run compacts what the model
-sees, while the stored conversation keeps everything ([compaction](./conversations.md#compaction)). Typeshift traces
-every call to the provider's client ([Observability](./observability.md)), and hands it each JSON result of a tool as
-text without white space ([Results](./toolsets.md#results)).
+sees, while the stored conversation keeps everything ([compaction](./conversations.md#compaction)).
+
+Below compaction, the run's [model policy](./models.md#the-model-policy) makes the call: on the provider and model the
+run is on, tried again or moved to another pair when an attempt fails before any of its answer arrived. Each attempt
+goes to its provider's client, which Typeshift traces ([Observability](./observability.md)) and hands each JSON
+result of a tool as text without white space ([Results](./toolsets.md#results)). A failed attempt stores nothing, so
+the conversation holds the answer of the attempt that succeeded and nothing of those before it.
 
 ## What each step can change
 
