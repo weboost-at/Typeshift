@@ -70,7 +70,7 @@ public class StandingApprovalTests : ApprovalTestBase
             .Reply(CloseTicket(Data.Tool.SecondCallId, Data.Agent.Ticket.Updated))
             .Reply(Text(Data.Tool.Answer));
 
-        await Chat.RunAsync(new string('x', Page), settings: new() { MaxInputTokens = 1_000 }, ct: Ct);
+        await Chat.RunAsync(new string('x', Page), settings: new() { MaxInputTokens = 1_000 }, cancellationToken: Ct);
         var summarized = (await EntriesAsync(Data.Agent.ConversationId)).Any(entry => entry.IsSummary);
 
         // Act
@@ -110,7 +110,7 @@ public class StandingApprovalTests : ApprovalTestBase
         ChatClient.Reply(CloseTicket(Data.Tool.SecondCallId, Data.Agent.Ticket.Updated));
 
         // Act
-        await Chat.RevokeStandingApprovalAsync("close_ticket", ct: Ct);
+        await Chat.RevokeStandingApprovalAsync("close_ticket", cancellationToken: Ct);
         var later = await RunAsync(Data.Agent.FollowUp);
 
         // Assert
@@ -125,7 +125,7 @@ public class StandingApprovalTests : ApprovalTestBase
         await ApproveForTheConversationAsync();
 
         // Act
-        await Chat.RevokeStandingApprovalAsync("close_ticket", ct: Ct);
+        await Chat.RevokeStandingApprovalAsync("close_ticket", cancellationToken: Ct);
         var decisions = await DecisionsAsync();
 
         // Assert
@@ -139,7 +139,7 @@ public class StandingApprovalTests : ApprovalTestBase
         await ApproveForTheConversationAsync();
 
         // Act
-        await Chat.RevokeStandingApprovalAsync("note", ct: Ct);
+        await Chat.RevokeStandingApprovalAsync("note", cancellationToken: Ct);
         var decisions = await DecisionsAsync();
 
         // Assert
@@ -150,7 +150,7 @@ public class StandingApprovalTests : ApprovalTestBase
     public async Task Given_No_Standing_Approval_Withdrawing_One_Stores_Nothing()
     {
         // Act
-        await Chat.RevokeStandingApprovalAsync("close_ticket", ct: Ct);
+        await Chat.RevokeStandingApprovalAsync("close_ticket", cancellationToken: Ct);
 
         // Assert
         (await StoredDecisionsAsync()).Should().BeNull();
@@ -161,7 +161,7 @@ public class StandingApprovalTests : ApprovalTestBase
     {
         // Arrange
         await ApproveForTheConversationAsync();
-        await Chat.RevokeStandingApprovalAsync("close_ticket", ct: Ct);
+        await Chat.RevokeStandingApprovalAsync("close_ticket", cancellationToken: Ct);
 
         ChatClient
             .Reply(CloseTicket(Data.Tool.SecondCallId, Data.Agent.Ticket.Updated))
@@ -195,7 +195,7 @@ public class StandingApprovalTests : ApprovalTestBase
         await ChatClient.RequestedAsync(3);
 
         // Act
-        await Chat.RevokeStandingApprovalAsync("close_ticket", ct: Ct);
+        await Chat.RevokeStandingApprovalAsync("close_ticket", cancellationToken: Ct);
         gate.SetResult();
         var response = await run;
 
@@ -208,7 +208,7 @@ public class StandingApprovalTests : ApprovalTestBase
     public async Task Given_A_Host_Without_A_Conversation_Withdrawing_Fails_Naming_WithConversationId()
     {
         // Act
-        var revoke = () => Host<GuardedAgent>().RevokeStandingApprovalAsync("close_ticket", ct: Ct);
+        var revoke = () => Host<GuardedAgent>().RevokeStandingApprovalAsync("close_ticket", cancellationToken: Ct);
 
         // Assert
         await revoke.Should().ThrowAsync<InvalidOperationException>().WithMessage("*WithConversationId*");

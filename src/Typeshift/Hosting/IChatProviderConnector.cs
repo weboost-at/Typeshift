@@ -22,7 +22,7 @@ public interface IChatProviderConnector
     /// <param name="provider">
     /// The document as your app handed it to the run, of your record's type when your app derives one.
     /// </param>
-    /// <param name="ct">Cancels the connection.</param>
+    /// <param name="cancellationToken">Cancels the connection.</param>
     /// <returns>The client, which Typeshift owns from now on.</returns>
-    ValueTask<IChatClient> ConnectAsync(ChatProvider provider, CancellationToken ct);
+    ValueTask<IChatClient> ConnectAsync(ChatProvider provider, CancellationToken cancellationToken);
 }

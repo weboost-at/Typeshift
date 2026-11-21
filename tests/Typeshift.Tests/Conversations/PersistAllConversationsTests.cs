@@ -19,7 +19,7 @@ public class PersistAllConversationsTests : MultiAgentTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act
-        var response = await Host<ProbeAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        var response = await Host<ProbeAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         (await EntriesAsync(Guid.Parse(response.ConversationId!))).Should().NotBeEmpty();
@@ -31,12 +31,12 @@ public class PersistAllConversationsTests : MultiAgentTestBase
         // Arrange
         ChatClient.Reply(Text(Data.Tool.Answer)).Reply(Text(Data.Tool.Answer));
 
-        var first = await Host<ProbeAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        var first = await Host<ProbeAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Act
         await Host<ProbeAgent>()
             .WithConversationId(Guid.Parse(first.ConversationId!))
-            .RunAsync(Data.Agent.FollowUp, ct: Ct);
+            .RunAsync(Data.Agent.FollowUp, cancellationToken: Ct);
 
         // Assert
         ChatClient.Requests[1].Select(message => message.Text)
@@ -77,10 +77,10 @@ public class PersistAllConversationsTests : MultiAgentTestBase
         // Arrange
         ChatClient.Reply(Text(Data.Tool.Answer)).Reply(Text(Data.Tool.Answer));
 
-        var first = await Host<ProbeAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        var first = await Host<ProbeAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Act
-        var second = await Host<ProbeAgent>().RunAsync(Data.Agent.FollowUp, ct: Ct);
+        var second = await Host<ProbeAgent>().RunAsync(Data.Agent.FollowUp, cancellationToken: Ct);
 
         // Assert
         second.ConversationId.Should().NotBe(first.ConversationId);
@@ -93,7 +93,9 @@ public class PersistAllConversationsTests : MultiAgentTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act
-        var updates = await Host<ProbeAgent>().RunStreamingAsync(Data.Tool.Question, ct: Ct).ToListAsync(Ct);
+        var updates = await Host<ProbeAgent>().RunStreamingAsync(
+            Data.Tool.Question,
+            cancellationToken: Ct).ToListAsync(Ct);
 
         // Assert
         (await EntriesAsync(Guid.Parse(updates[^1].ConversationId!))).Should().NotBeEmpty();
@@ -108,7 +110,7 @@ public class PersistAllConversationsTests : MultiAgentTestBase
             .Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Host<ProbeAgent>().RunStreamingAsync(Data.Tool.Question, ct: Ct).ToListAsync(Ct);
+        await Host<ProbeAgent>().RunStreamingAsync(Data.Tool.Question, cancellationToken: Ct).ToListAsync(Ct);
 
         // Assert
         ChatClient.Requests[1][0].Text.Should().Be(Data.Tool.Question);
@@ -123,7 +125,7 @@ public class PersistAllConversationsTests : MultiAgentTestBase
         // Act
         var response = await Host<ProbeAgent>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunAsync(Data.Tool.Question, ct: Ct);
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         response.ConversationId.Should().Be(Data.Agent.ConversationId.ToString());
@@ -136,7 +138,7 @@ public class PersistAllConversationsTests : MultiAgentTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act
-        var response = await Host<ProbeAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        var response = await Host<ProbeAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
         var conversation = Guid.Parse(response.ConversationId!);
 
         // Assert
@@ -161,7 +163,7 @@ public class PersistAllConversationsTests : MultiAgentTestBase
 
         // Act
         var run = () => scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
-            .RunAsync(Data.Tool.Question, ct: Ct);
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         await run.Should().ThrowAsync<InvalidOperationException>()
@@ -190,7 +192,9 @@ public class PersistAllConversationsTests : MultiAgentTestBase
         await using var scope = provider.CreateAsyncScope();
 
         // Act
-        await scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>().RunAsync(Data.Tool.Question, ct: Ct);
+        await scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>().RunAsync(
+            Data.Tool.Question,
+            cancellationToken: Ct);
 
         // Assert
         var entries = await provider.GetRequiredService<IConversationStore<int>>()
@@ -206,7 +210,7 @@ public class PersistAllConversationsTests : MultiAgentTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         var host = Host<ProbeAgent>();
-        var options = await host.ResolveOptionsAsync(ct: Ct);
+        var options = await host.ResolveOptionsAsync(cancellationToken: Ct);
         using var client = await host.CreateChatClientAsync(options, Ct);
 
         // Act
@@ -226,7 +230,7 @@ public class PersistAllConversationsTests : MultiAgentTestBase
         await using var scope = provider.CreateAsyncScope();
 
         var host = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>();
-        var options = await host.ResolveOptionsAsync(ct: Ct);
+        var options = await host.ResolveOptionsAsync(cancellationToken: Ct);
         using var client = await host.CreateChatClientAsync(options, Ct);
 
         // Act
@@ -249,7 +253,7 @@ public class PersistAllConversationsTests : MultiAgentTestBase
         await using var scope = provider.CreateAsyncScope();
 
         var host = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>();
-        var options = await host.ResolveOptionsAsync(ct: Ct);
+        var options = await host.ResolveOptionsAsync(cancellationToken: Ct);
         using var client = await host.CreateChatClientAsync(options, Ct);
 
         var first = await client.GetResponseAsync(Data.Tool.Question, options, Ct);
@@ -273,7 +277,7 @@ public class PersistAllConversationsTests : MultiAgentTestBase
         await using var scope = provider.CreateAsyncScope();
 
         var host = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>();
-        var options = await host.ResolveOptionsAsync(ct: Ct);
+        var options = await host.ResolveOptionsAsync(cancellationToken: Ct);
         using var client = await host.CreateChatClientAsync(options, Ct);
 
         // Act
@@ -298,7 +302,7 @@ public class PersistAllConversationsTests : MultiAgentTestBase
         await using var scope = provider.CreateAsyncScope();
 
         var host = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>();
-        var options = await host.ResolveOptionsAsync(ct: Ct);
+        var options = await host.ResolveOptionsAsync(cancellationToken: Ct);
         using var client = await host.CreateChatClientAsync(options, Ct);
 
         // Act
@@ -319,7 +323,7 @@ public class PersistAllConversationsTests : MultiAgentTestBase
         await using var scope = provider.CreateAsyncScope();
 
         var host = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>();
-        var options = await host.ResolveOptionsAsync(ct: Ct);
+        var options = await host.ResolveOptionsAsync(cancellationToken: Ct);
         using var client = await host.CreateChatClientAsync(options, Ct);
 
         // Act
@@ -340,7 +344,7 @@ public class PersistAllConversationsTests : MultiAgentTestBase
         HelperClient.Reply(Text(Data.Agent.Reason));
 
         // Act
-        var response = await Host<LeadAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        var response = await Host<LeadAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         Store.Conversations.Should().Equal(Guid.Parse(response.ConversationId!));
@@ -355,7 +359,7 @@ public class PersistAllConversationsTests : MultiAgentTestBase
             .Reply(Text(Data.Tool.Answer));
 
         // Act
-        var response = await Host<FrontAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        var response = await Host<FrontAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
         var conversation = Guid.Parse(response.ConversationId!);
 
         // Assert
@@ -372,7 +376,10 @@ public class PersistAllConversationsTests : MultiAgentTestBase
             .Reply(Text(Data.Tool.Answer));
 
         // Act
-        var updates = await Host<FrontAgent>().RunStreamingAsync(Data.Tool.Question, ct: Ct).ToListAsync(Ct);
+        var updates = await Host<FrontAgent>().RunStreamingAsync(
+            Data.Tool.Question,
+            cancellationToken: Ct).ToListAsync(Ct);
+
         var conversation = Guid.Parse(updates[^1].ConversationId!);
 
         // Assert
@@ -397,7 +404,7 @@ public class PersistAllConversationsTests : MultiAgentTestBase
 
         // Act
         var response = await scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
-            .RunAsync(Data.Tool.Question, ct: Ct);
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         response.ConversationId.Should().BeNull();

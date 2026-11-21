@@ -13,13 +13,13 @@ public sealed class SteeringSeen : ConcurrentQueue<string>;
 // take one, and the steering input it is shown
 public sealed class RunEndMiddleware(RunEnds ends, SteeringSeen steering) : IRunMiddleware
 {
-    public ValueTask<ChatMessage?> OnSteeringAsync(AgentRun run, ChatMessage input, CancellationToken ct)
+    public ValueTask<ChatMessage?> OnSteeringAsync(AgentRun run, ChatMessage input, CancellationToken cancellationToken)
     {
         steering.Enqueue(input.Text);
         return new(input);
     }
 
-    public async Task InvokeAsync(AgentRun run, Func<Task> next, CancellationToken ct)
+    public async Task InvokeAsync(AgentRun run, Func<Task> next, CancellationToken cancellationToken)
     {
         try
         {

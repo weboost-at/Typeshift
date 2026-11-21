@@ -44,7 +44,7 @@ public class LogEventTests : MultiAgentTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Host<ProbeAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<ProbeAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         _log.Of("RunResolved").Select(logged => logged.Message).Should().Equal(
@@ -59,7 +59,7 @@ public class LogEventTests : MultiAgentTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Host<ProbeAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<ProbeAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         _log.Of("RunResolved").Should().ContainSingle(logged =>
@@ -77,7 +77,10 @@ public class LogEventTests : MultiAgentTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act
-        await customer.RunAsync(Data.Tool.Question, settings: new() { Instructions = Data.Agent.Instructions }, ct: Ct);
+        await customer.RunAsync(
+            Data.Tool.Question,
+            settings: new() { Instructions = Data.Agent.Instructions },
+            cancellationToken: Ct);
 
         // Assert
         _log.Of("RunResolved").Single().Message.Should().EndWith(
@@ -97,7 +100,7 @@ public class LogEventTests : MultiAgentTestBase
 
         HelperClient.Reply(failing, new InvalidOperationException(Data.Agent.Reason));
 
-        var running = Host<BackgroundLeadAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        var running = Host<BackgroundLeadAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
         await ChatClient.RequestedAsync(2);
 
         // Act
@@ -126,7 +129,9 @@ public class LogEventTests : MultiAgentTestBase
         };
 
         // Act
-        await Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<ProbeAgent>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         _log.Of("SteeringNotStored").Should().ContainSingle(logged =>
@@ -145,7 +150,9 @@ public class LogEventTests : MultiAgentTestBase
             .Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Host<FrontAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<FrontAgent>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         _log.Of("HandedOff").Select(logged => logged.Message).Should().Equal(
@@ -161,7 +168,9 @@ public class LogEventTests : MultiAgentTestBase
             .Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Host<FrontAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<FrontAgent>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         _log.Of("HandedOff").Should().ContainSingle(logged =>
@@ -182,7 +191,10 @@ public class LogEventTests : MultiAgentTestBase
         var first = watch.MoveNextAsync();
 
         // Act
-        await Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<ProbeAgent>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
+
         await first;
 
         // Assert
@@ -204,7 +216,10 @@ public class LogEventTests : MultiAgentTestBase
         var first = watch.MoveNextAsync();
 
         // Act
-        await Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<ProbeAgent>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
+
         await first;
 
         // Assert
@@ -223,7 +238,9 @@ public class LogEventTests : MultiAgentTestBase
             .Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Host<GuardedAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<GuardedAgent>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         _log.Of("RuleDecided").Select(logged => logged.Message).Should().Equal(
@@ -241,7 +258,9 @@ public class LogEventTests : MultiAgentTestBase
             .Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Host<GuardedAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<GuardedAgent>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         _log.Of("RuleDecided").Should().ContainSingle(logged =>
@@ -258,7 +277,9 @@ public class LogEventTests : MultiAgentTestBase
         ChatClient.Reply(Call(Data.Tool.CallId, "close_ticket", ("number", Data.Agent.Ticket.Default)));
 
         // Act
-        await Host<GuardedAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<GuardedAgent>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         _log.Of("RuleDecided").Should().BeEmpty();
@@ -277,7 +298,7 @@ public class LogEventTests : MultiAgentTestBase
         await Host<CompactingAgent>().RunAsync(
             Data.Tool.Question,
             settings: new() { MaxInputTokens = 2_000, TargetInputTokens = 1_500 },
-            ct: Ct);
+            cancellationToken: Ct);
 
         // Assert
         _log.Of("Compacted").Should().ContainSingle(logged =>
@@ -298,7 +319,7 @@ public class LogEventTests : MultiAgentTestBase
         await Host<CompactingAgent>().RunAsync(
             Data.Tool.Question,
             settings: new() { MaxInputTokens = 2, TargetInputTokens = 1 },
-            ct: Ct);
+            cancellationToken: Ct);
 
         // Assert
         _log.Of("Compacted").Should().BeEmpty();
@@ -321,7 +342,7 @@ public class LogEventTests : MultiAgentTestBase
         // Act
         await Record.ExceptionAsync(() => scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunAsync(Data.Tool.Question, ct: Ct));
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct));
 
         // Assert
         _log.Of("StepNotStored").Should().Contain(logged =>
@@ -346,7 +367,7 @@ public class LogEventTests : MultiAgentTestBase
         // Act
         await scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunAsync(Data.Tool.Question, ct: Ct);
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         _log.Of("NoStore").Should().ContainSingle(logged =>

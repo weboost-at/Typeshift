@@ -376,8 +376,8 @@ The tracker's members, each for the conversations under ids of `TId` in this con
 | Member | Does |
 |---|---|
 | `Runs` | Lists the runs going on, each a `LiveRun<TId>`. |
-| `WatchRunsAsync(ct)` | Yields the runs going on, then each run as it starts and as it ends, until `ct` is cancelled. |
-| `WatchAsync(conversation, ct)` | Yields the updates of the conversation's runs as they happen ([Live updates](#live-updates)). |
+| `WatchRunsAsync(cancellationToken)` | Yields the runs going on, then each run as it starts and as it ends, until the token is cancelled. |
+| `WatchAsync(conversation, cancellationToken)` | Yields the updates of the conversation's runs as they happen ([Live updates](#live-updates)). |
 | `TrySteer(conversation, input)` | Hands text or a user's `ChatMessage` to the run going on, and returns false when no run takes it ([Steering](#steering)). |
 
 Each `LiveRun<TId>` is a record of one run:

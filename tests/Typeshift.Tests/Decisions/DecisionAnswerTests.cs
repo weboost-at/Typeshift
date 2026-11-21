@@ -99,7 +99,7 @@ public class DecisionAnswerTests : ApprovalTestBase
         var recorded = await Chat.RecordAnswersAsync([DecisionAnswer.Approve(asked.Decisions[0].Id)], Ct);
 
         // Act
-        var response = await Chat.ResumeAsync(ct: Ct);
+        var response = await Chat.ResumeAsync(cancellationToken: Ct);
 
         // Assert
         recorded.CanResume.Should().BeTrue();
@@ -114,7 +114,7 @@ public class DecisionAnswerTests : ApprovalTestBase
         var asked = await AskAsync();
 
         // Act
-        var response = await Chat.ResumeAsync(ct: Ct);
+        var response = await Chat.ResumeAsync(cancellationToken: Ct);
 
         // Assert
         response.Decisions.Select(decision => decision.Id).Should().Equal(asked.Decisions[0].Id);
@@ -128,7 +128,7 @@ public class DecisionAnswerTests : ApprovalTestBase
         var asked = await AskAsync();
 
         // Act
-        var updates = await Chat.ResumeStreamingAsync(ct: Ct).ToListAsync(Ct);
+        var updates = await Chat.ResumeStreamingAsync(cancellationToken: Ct).ToListAsync(Ct);
 
         // Assert
         updates.Should().ContainSingle();
@@ -176,7 +176,7 @@ public class DecisionAnswerTests : ApprovalTestBase
         // Act
         var answer = () => Host<GuardedAgent>().AnswerAsync(
             [DecisionAnswer.Approve(Data.Decisions.DecisionId)],
-            ct: Ct);
+            cancellationToken: Ct);
 
         // Assert
         await answer.Should().ThrowAsync<InvalidOperationException>().WithMessage("*WithConversationId*");
@@ -191,7 +191,7 @@ public class DecisionAnswerTests : ApprovalTestBase
             .Reply(Text(Data.Tool.Answer));
 
         var chat = Chat;
-        var options = await chat.ResolveOptionsAsync(ct: Ct);
+        var options = await chat.ResolveOptionsAsync(cancellationToken: Ct);
         using var client = await chat.CreateChatClientAsync(options, Ct);
         var asked = await client.GetResponseAsync([new(ChatRole.User, Data.Tool.Question)], options, Ct);
         await chat.RecordAnswersAsync([DecisionAnswer.Approve(asked.Decisions[0].Id)], Ct);

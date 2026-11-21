@@ -36,7 +36,7 @@ public sealed class ContextLoggingToolMiddleware(ContextLog log) : IToolMiddlewa
     public ValueTask<object?> InvokeAsync(
         FunctionInvocationContext call,
         Func<ValueTask<object?>> next,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
     {
         log.Add(ContextLog.Tool);
         return next();
@@ -46,7 +46,7 @@ public sealed class ContextLoggingToolMiddleware(ContextLog log) : IToolMiddlewa
 // Awaits as app code often does, without ConfigureAwait(false), so a context it found would get the rest of the run
 public sealed class ContextLoggingRunMiddleware(ContextLog log) : IRunMiddleware
 {
-    public async Task InvokeAsync(AgentRun run, Func<Task> next, CancellationToken ct)
+    public async Task InvokeAsync(AgentRun run, Func<Task> next, CancellationToken cancellationToken)
     {
         log.Add(ContextLog.RunMiddleware);
         await next();
@@ -58,47 +58,58 @@ public sealed class ContextLoggingStore(ContextLog log) : ITypeshiftStore<Guid>
 {
     private readonly InMemoryTypeshiftStore<Guid> _store = new();
 
-    public Task<StoredDocument?> LoadAsync(Guid id, string kind, CancellationToken ct)
+    public Task<StoredDocument?> LoadAsync(Guid id, string kind, CancellationToken cancellationToken)
     {
         log.Add(ContextLog.Load);
-        return _store.LoadAsync(id, kind, ct);
+        return _store.LoadAsync(id, kind, cancellationToken);
     }
 
-    public Task<long> SaveAsync(Guid id, string kind, string json, long loadedVersion, CancellationToken ct)
+    public Task<long> SaveAsync(
+        Guid id,
+        string kind,
+        string json,
+        long loadedVersion,
+        CancellationToken cancellationToken)
     {
         log.Add(ContextLog.Save);
-        return _store.SaveAsync(id, kind, json, loadedVersion, ct);
+        return _store.SaveAsync(id, kind, json, loadedVersion, cancellationToken);
     }
 
-    public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(Guid conversation, CancellationToken ct)
+    public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(
+        Guid conversation,
+        CancellationToken cancellationToken)
     {
         log.Add(ContextLog.Load);
-        return _store.LoadConversationAsync(conversation, ct);
+        return _store.LoadConversationAsync(conversation, cancellationToken);
     }
 
     public Task<IReadOnlyList<ConversationEntry>> LoadConversationSinceCompactionAsync(
         Guid conversation,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
     {
         log.Add(ContextLog.Load);
-        return _store.LoadConversationSinceCompactionAsync(conversation, ct);
+        return _store.LoadConversationSinceCompactionAsync(conversation, cancellationToken);
     }
 
-    public Task AppendConversationAsync(Guid conversation, ConversationEntry entry, CancellationToken ct)
+    public Task AppendConversationAsync(Guid conversation, ConversationEntry entry, CancellationToken cancellationToken)
     {
         log.Add(ContextLog.Append);
-        return _store.AppendConversationAsync(conversation, entry, ct);
+        return _store.AppendConversationAsync(conversation, entry, cancellationToken);
     }
 
-    public Task<StoredDocument?> LoadDecisionsAsync(Guid conversation, CancellationToken ct)
+    public Task<StoredDocument?> LoadDecisionsAsync(Guid conversation, CancellationToken cancellationToken)
     {
         log.Add(ContextLog.Load);
-        return _store.LoadDecisionsAsync(conversation, ct);
+        return _store.LoadDecisionsAsync(conversation, cancellationToken);
     }
 
-    public Task<long> SaveDecisionsAsync(Guid conversation, string json, long loadedVersion, CancellationToken ct)
+    public Task<long> SaveDecisionsAsync(
+        Guid conversation,
+        string json,
+        long loadedVersion,
+        CancellationToken cancellationToken)
     {
         log.Add(ContextLog.Save);
-        return _store.SaveDecisionsAsync(conversation, json, loadedVersion, ct);
+        return _store.SaveDecisionsAsync(conversation, json, loadedVersion, cancellationToken);
     }
 }

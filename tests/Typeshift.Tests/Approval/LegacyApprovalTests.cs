@@ -176,7 +176,7 @@ public class LegacyApprovalTests : ApprovalTestBase
             .Reply(Text(Data.Tool.Answer))
             .Reply(Text(Data.Tool.Answer));
 
-        await Chat.RunAsync(Data.Agent.FollowUp, settings: new() { MaxInputTokens = 1_000 }, ct: Ct);
+        await Chat.RunAsync(Data.Agent.FollowUp, settings: new() { MaxInputTokens = 1_000 }, cancellationToken: Ct);
 
         // Act
         await RunAsync(Data.Agent.Steering);

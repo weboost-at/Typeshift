@@ -172,7 +172,7 @@ return await Demo.RunAsync(async () =>
             if (waiting.Open.Count > 0 || waiting.CanResume || (entries.Count > 0 && !entries[^1].EndsRun))
             {
                 Demo.Heading("Resuming the interrupted run");
-                var response = await RunAsync(chat.ResumeStreamingAsync(ct: session.Token));
+                var response = await RunAsync(chat.ResumeStreamingAsync(cancellationToken: session.Token));
                 answers = ConsoleApprover.Answers(response, ReadLine, approveAll);
             }
         }
@@ -192,8 +192,8 @@ return await Demo.RunAsync(async () =>
             try
             {
                 response = await RunAsync(answers.Count > 0
-                    ? chat.AnswerStreamingAsync(answers, ct: session.Token)
-                    : chat.RunStreamingAsync(next!, ct: session.Token));
+                    ? chat.AnswerStreamingAsync(answers, cancellationToken: session.Token)
+                    : chat.RunStreamingAsync(next!, cancellationToken: session.Token));
             }
             catch (DecisionClosedException)
             {

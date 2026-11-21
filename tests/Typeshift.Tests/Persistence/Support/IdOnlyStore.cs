@@ -5,26 +5,40 @@ public sealed class IdOnlyStore : ITypeshiftStore<Guid>
 {
     private readonly InMemoryTypeshiftStore<Guid> _store = new();
 
-    public Task<StoredDocument?> LoadAsync(Guid id, string kind, CancellationToken ct) =>
-        _store.LoadAsync(id, "settings", ct);
+    public Task<StoredDocument?> LoadAsync(Guid id, string kind, CancellationToken cancellationToken) =>
+        _store.LoadAsync(id, "settings", cancellationToken);
 
-    public Task<long> SaveAsync(Guid id, string kind, string json, long loadedVersion, CancellationToken ct) =>
-        _store.SaveAsync(id, "settings", json, loadedVersion, ct);
+    public Task<long> SaveAsync(
+        Guid id,
+        string kind,
+        string json,
+        long loadedVersion,
+        CancellationToken cancellationToken) =>
+        _store.SaveAsync(id, "settings", json, loadedVersion, cancellationToken);
 
-    public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(Guid conversation, CancellationToken ct) =>
-        _store.LoadConversationAsync(conversation, ct);
+    public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(
+        Guid conversation,
+        CancellationToken cancellationToken) =>
+        _store.LoadConversationAsync(conversation, cancellationToken);
 
     public Task<IReadOnlyList<ConversationEntry>> LoadConversationSinceCompactionAsync(
         Guid conversation,
-        CancellationToken ct) =>
-        _store.LoadConversationSinceCompactionAsync(conversation, ct);
+        CancellationToken cancellationToken) =>
+        _store.LoadConversationSinceCompactionAsync(conversation, cancellationToken);
 
-    public Task AppendConversationAsync(Guid conversation, ConversationEntry entry, CancellationToken ct) =>
-        _store.AppendConversationAsync(conversation, entry, ct);
+    public Task AppendConversationAsync(
+        Guid conversation,
+        ConversationEntry entry,
+        CancellationToken cancellationToken) =>
+        _store.AppendConversationAsync(conversation, entry, cancellationToken);
 
-    public Task<StoredDocument?> LoadDecisionsAsync(Guid conversation, CancellationToken ct) =>
-        _store.LoadDecisionsAsync(conversation, ct);
+    public Task<StoredDocument?> LoadDecisionsAsync(Guid conversation, CancellationToken cancellationToken) =>
+        _store.LoadDecisionsAsync(conversation, cancellationToken);
 
-    public Task<long> SaveDecisionsAsync(Guid conversation, string json, long loadedVersion, CancellationToken ct) =>
-        _store.SaveDecisionsAsync(conversation, json, loadedVersion, ct);
+    public Task<long> SaveDecisionsAsync(
+        Guid conversation,
+        string json,
+        long loadedVersion,
+        CancellationToken cancellationToken) =>
+        _store.SaveDecisionsAsync(conversation, json, loadedVersion, cancellationToken);
 }

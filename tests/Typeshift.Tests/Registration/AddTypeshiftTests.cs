@@ -125,7 +125,9 @@ public class AddTypeshiftTests : AgentTestBase
         await using var scope = provider.CreateAsyncScope();
 
         // Act
-        var run = () => scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>().RunAsync("", ct: Ct);
+        var run = () => scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>().RunAsync(
+            "",
+            cancellationToken: Ct);
 
         // Assert
         await run.Should().ThrowAsync<InvalidOperationException>().WithMessage("*AddKeyedChatClient*");

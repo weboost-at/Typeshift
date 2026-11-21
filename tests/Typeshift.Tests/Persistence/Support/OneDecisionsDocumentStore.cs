@@ -5,9 +5,13 @@ public sealed class OneDecisionsDocumentStore : IDecisionStore<Guid>
 {
     private readonly InMemoryTypeshiftStore<Guid> _store = new();
 
-    public Task<StoredDocument?> LoadDecisionsAsync(Guid conversation, CancellationToken ct) =>
-        _store.LoadDecisionsAsync(Guid.Empty, ct);
+    public Task<StoredDocument?> LoadDecisionsAsync(Guid conversation, CancellationToken cancellationToken) =>
+        _store.LoadDecisionsAsync(Guid.Empty, cancellationToken);
 
-    public Task<long> SaveDecisionsAsync(Guid conversation, string json, long loadedVersion, CancellationToken ct) =>
-        _store.SaveDecisionsAsync(Guid.Empty, json, loadedVersion, ct);
+    public Task<long> SaveDecisionsAsync(
+        Guid conversation,
+        string json,
+        long loadedVersion,
+        CancellationToken cancellationToken) =>
+        _store.SaveDecisionsAsync(Guid.Empty, json, loadedVersion, cancellationToken);
 }

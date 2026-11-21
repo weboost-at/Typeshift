@@ -40,7 +40,7 @@ public class ChatClientResolutionTests : HostTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act
-        var response = await Host<SchemaAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        var response = await Host<SchemaAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         response.Text.Should().Be(Data.Tool.Answer);
@@ -54,7 +54,7 @@ public class ChatClientResolutionTests : HostTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Host<SchemaAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<SchemaAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         ChatClient.Options[0]!.ModelId.Should().BeNull();
@@ -67,7 +67,7 @@ public class ChatClientResolutionTests : HostTestBase
         _register = services => services.AddChatClient(ChatClient);
 
         // Act
-        var run = () => Host<ProbeAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        var run = () => Host<ProbeAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         await run.Should().ThrowAsync<InvalidOperationException>().WithMessage(
@@ -91,7 +91,7 @@ public class ChatClientResolutionTests : HostTestBase
         };
 
         // Act
-        var run = () => Host<ProbeAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        var run = () => Host<ProbeAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         await run.Should()
@@ -105,10 +105,10 @@ public class ChatClientResolutionTests : HostTestBase
         // Arrange
         _register = services => services.AddChatClient(Other);
         var host = Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId);
-        await Record.ExceptionAsync(() => host.RunAsync(Data.Tool.Question, ct: Ct));
+        await Record.ExceptionAsync(() => host.RunAsync(Data.Tool.Question, cancellationToken: Ct));
 
         // Act
-        var again = () => host.RunAsync(Data.Tool.Question, ct: Ct);
+        var again = () => host.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         await again.Should().ThrowAsync<InvalidOperationException>().WithMessage($"*'{ProbeAgent.ModelProvider}'*");
@@ -143,7 +143,7 @@ public class ChatClientResolutionTests : HostTestBase
         _register = services => services.AddKeyedChatClient(ProbeAgent.ModelProvider, Other);
 
         // Act
-        var run = () => Host<ModelOnlyAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        var run = () => Host<ModelOnlyAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         await run.Should().ThrowAsync<InvalidOperationException>().WithMessage(
@@ -168,7 +168,7 @@ public class ChatClientResolutionTests : HostTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act
-        var response = await Host<ModelOnlyAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        var response = await Host<ModelOnlyAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         response.Text.Should().Be(Data.Tool.Answer);
@@ -187,7 +187,7 @@ public class ChatClientResolutionTests : HostTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Host<ModelOnlyAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<ModelOnlyAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         providers.Should().Equal(Vendor.Other);
@@ -204,7 +204,7 @@ public class ChatClientResolutionTests : HostTestBase
         };
 
         // Act
-        var run = () => Host<ModelOnlyAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        var run = () => Host<ModelOnlyAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         await run.Should().ThrowAsync<InvalidOperationException>().WithMessage(
@@ -227,7 +227,7 @@ public class ChatClientResolutionTests : HostTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act
-        var response = await Host<VendorAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        var response = await Host<VendorAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         response.Text.Should().Be(Data.Tool.Answer);
@@ -242,7 +242,7 @@ public class ChatClientResolutionTests : HostTestBase
         var host = Host<SchemaAgent>().WithConversationId(Data.Agent.ConversationId);
 
         // Act
-        var run = () => host.RunAsync(Data.Tool.Question, ct: Ct);
+        var run = () => host.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         await run.Should().ThrowAsync<InvalidOperationException>().WithMessage(
@@ -263,7 +263,7 @@ public class ChatClientResolutionTests : HostTestBase
         bare.Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Host<SchemaAgent>().WithModel(Data.Agent.Model).RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<SchemaAgent>().WithModel(Data.Agent.Model).RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         bare.Options[0]!.ModelId.Should().Be(Data.Agent.Model);
@@ -277,7 +277,9 @@ public class ChatClientResolutionTests : HostTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Host<ModelOnlyAgent>().WithProvider(Document(Data.Agent.Provider)).RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<ModelOnlyAgent>()
+            .WithProvider(Document(Data.Agent.Provider))
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         Connections.Single().Provider.Should().Be(Document(Data.Agent.Provider));
@@ -291,8 +293,12 @@ public class ChatClientResolutionTests : HostTestBase
         ChatClient.Reply(Text(Data.Tool.Answer)).Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Host<ModelOnlyAgent>().WithProvider(Document(Data.Agent.Provider)).RunAsync(Data.Tool.Question, ct: Ct);
-        await Host<ModelOnlyAgent>().WithProvider(Document(Data.Agent.Provider)).RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<ModelOnlyAgent>()
+            .WithProvider(Document(Data.Agent.Provider))
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
+        await Host<ModelOnlyAgent>()
+            .WithProvider(Document(Data.Agent.Provider))
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         Connections.Should().ContainSingle();
@@ -309,8 +315,8 @@ public class ChatClientResolutionTests : HostTestBase
         var first = Host<ModelOnlyAgent>().WithProvider(Document(Data.Agent.Provider));
         var second = Host<ModelOnlyAgent>().WithProvider(Document(Data.Agent.Provider));
         var runs = Task.WhenAll(
-            first.RunAsync(Data.Tool.Question, ct: Ct),
-            second.RunAsync(Data.Tool.Question, ct: Ct));
+            first.RunAsync(Data.Tool.Question, cancellationToken: Ct),
+            second.RunAsync(Data.Tool.Question, cancellationToken: Ct));
 
         // Act
         Connections.Gate.SetResult();
@@ -326,10 +332,14 @@ public class ChatClientResolutionTests : HostTestBase
         // Arrange
         _register = Connected;
         ChatClient.Reply(Text(Data.Tool.Answer)).Reply(Text(Data.Tool.Answer));
-        await Host<ModelOnlyAgent>().WithProvider(Document(Data.Agent.Provider)).RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<ModelOnlyAgent>()
+            .WithProvider(Document(Data.Agent.Provider))
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Act
-        await Host<ModelOnlyAgent>().WithProvider(Document(Data.Agent.Model)).RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<ModelOnlyAgent>()
+            .WithProvider(Document(Data.Agent.Model))
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         Connections.Should().HaveCount(2);
@@ -344,7 +354,7 @@ public class ChatClientResolutionTests : HostTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Host<ModelOnlyAgent>().WithProvider(document).RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<ModelOnlyAgent>().WithProvider(document).RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         Connections.Single().Provider.Should().Be(document);
@@ -359,7 +369,7 @@ public class ChatClientResolutionTests : HostTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Host<SchemaAgent>().WithProvider(document).RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<SchemaAgent>().WithProvider(document).RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         ChatClient.Options[0]!.ModelId.Should().Be(Data.Agent.Model);
@@ -377,7 +387,7 @@ public class ChatClientResolutionTests : HostTestBase
         await Host<ModelOnlyAgent>()
             .WithConversationId(Data.Agent.ConversationId)
             .WithProvider(document)
-            .RunAsync(Data.Tool.Question, ct: Ct);
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         (await Store.LoadConversationAsync(Data.Agent.ConversationId, Ct))[1].Provider
@@ -392,7 +402,9 @@ public class ChatClientResolutionTests : HostTestBase
         var document = Document(Data.Agent.Provider) with { Name = Data.Agent.Instructions };
 
         // Act
-        var run = () => Host<ModelOnlyAgent>().WithProvider(document).RunAsync(Data.Tool.Question, ct: Ct);
+        var run = () => Host<ModelOnlyAgent>()
+            .WithProvider(document)
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         await run.Should().ThrowAsync<InvalidOperationException>().WithMessage(
@@ -409,7 +421,9 @@ public class ChatClientResolutionTests : HostTestBase
         var host = Host<ModelOnlyAgent>().WithConversationId(Data.Agent.ConversationId);
 
         // Act
-        var run = () => host.WithProvider(Document(Data.Agent.Provider)).RunAsync(Data.Tool.Question, ct: Ct);
+        var run = () => host.WithProvider(Document(Data.Agent.Provider)).RunAsync(
+            Data.Tool.Question,
+            cancellationToken: Ct);
 
         // Assert
         await run.Should().ThrowAsync<InvalidOperationException>().WithMessage(FailingConnector.Reason);
@@ -423,8 +437,11 @@ public class ChatClientResolutionTests : HostTestBase
         _register = Connected;
         Connections.Gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         Connections.Gate.SetException(new InvalidOperationException(FailingConnector.Reason));
+
         await Record.ExceptionAsync(() =>
-            Host<ModelOnlyAgent>().WithProvider(Document(Data.Agent.Provider)).RunAsync(Data.Tool.Question, ct: Ct));
+            Host<ModelOnlyAgent>()
+                .WithProvider(Document(Data.Agent.Provider))
+                .RunAsync(Data.Tool.Question, cancellationToken: Ct));
 
         Connections.Gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         Connections.Gate.SetResult();
@@ -433,7 +450,7 @@ public class ChatClientResolutionTests : HostTestBase
         // Act
         var response = await Host<ModelOnlyAgent>()
             .WithProvider(Document(Data.Agent.Provider))
-            .RunAsync(Data.Tool.Question, ct: Ct);
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         response.Text.Should().Be(Data.Tool.Answer);
@@ -499,7 +516,7 @@ public class ChatClientResolutionTests : HostTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Host<ModelOnlyAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<ModelOnlyAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         providers.Should().Equal([null]);
@@ -513,7 +530,7 @@ public class ChatClientResolutionTests : HostTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Host<VendorAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<VendorAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         providers.Should().Equal(Vendor.Probe);
@@ -529,7 +546,7 @@ public class ChatClientResolutionTests : HostTestBase
         // Act
         await Host<ModelOnlyAgent>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunAsync(Data.Tool.Question, ct: Ct);
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         var response = (await Store.LoadConversationAsync(Data.Agent.ConversationId, Ct))[1];
 
@@ -565,7 +582,7 @@ public class ChatClientResolutionTests : HostTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Host<ModelOnlyAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<ModelOnlyAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         ChatClient.Options[0]!.ModelId.Should().Be(ModelOnlyAgent.Model);
@@ -594,7 +611,7 @@ public class ChatClientResolutionTests : HostTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Host<SwitchedModelAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<SwitchedModelAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         Models.Should().Equal(new ProvidedModel(SwitchedModelAgent.ModelProvider, SwitchedModelAgent.Model));
@@ -613,7 +630,7 @@ public class ChatClientResolutionTests : HostTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act
-        var response = await Host<ProbeAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        var response = await Host<ProbeAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         response.Text.Should().Be(Data.Tool.Answer);
@@ -632,8 +649,8 @@ public class ChatClientResolutionTests : HostTestBase
         ChatClient.Reply(Text(Data.Tool.Answer)).Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Host<ProbeAgent>().RunAsync(Data.Tool.Question, ct: Ct);
-        await Host<VendorAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<ProbeAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
+        await Host<VendorAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         Models.Should().Equal(
@@ -686,7 +703,7 @@ public class ChatClientResolutionTests : HostTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act
-        var response = await Host<VendorAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        var response = await Host<VendorAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         response.Text.Should().Be(Data.Tool.Answer);
@@ -703,7 +720,7 @@ public class ChatClientResolutionTests : HostTestBase
         };
 
         // Act
-        var run = () => Host<VendorAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        var run = () => Host<VendorAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         await run.Should().ThrowAsync<InvalidOperationException>().WithMessage($"*'{Vendor.Probe}'*");
@@ -717,7 +734,7 @@ public class ChatClientResolutionTests : HostTestBase
         _register = services => services.AddChatClient(ChatClient).UseFunctionInvocation();
 
         // Act
-        var run = () => Host<SchemaAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        var run = () => Host<SchemaAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         await run.Should().ThrowAsync<InvalidOperationException>().WithMessage(
@@ -734,7 +751,7 @@ public class ChatClientResolutionTests : HostTestBase
         _register = services => services.AddChatClient(ChatClient).UseFunctionInvocation();
 
         // Act
-        await Record.ExceptionAsync(() => Host<SchemaAgent>().RunAsync(Data.Tool.Question, ct: Ct));
+        await Record.ExceptionAsync(() => Host<SchemaAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct));
 
         // Assert
         ChatClient.Requests.Should().BeEmpty();
@@ -744,7 +761,7 @@ public class ChatClientResolutionTests : HostTestBase
     public async Task Given_No_Model_And_No_Chat_Client_The_Run_Fails_Saying_How_To_Serve_It()
     {
         // Act
-        var run = () => Host<SchemaAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        var run = () => Host<SchemaAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         await run.Should().ThrowAsync<InvalidOperationException>().WithMessage("*AddChatClient*");
@@ -754,7 +771,7 @@ public class ChatClientResolutionTests : HostTestBase
     public async Task Given_A_Model_And_No_Client_For_It_The_Run_Fails_Saying_How_To_Serve_It()
     {
         // Act
-        var run = () => Host<ProbeAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        var run = () => Host<ProbeAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         await run.Should().ThrowAsync<InvalidOperationException>().WithMessage("*AddKeyedChatClient*");

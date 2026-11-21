@@ -159,7 +159,7 @@ public class AllocationBudgetTests : AgentTestBase
         }
 
         ChatClient.Reply(Text(Data.Tool.Answer));
-        await host.RunAsync(Data.Tool.Question, ct: Ct);
+        await host.RunAsync(Data.Tool.Question, cancellationToken: Ct);
     }
 
     // The clock stands still, so every update falls into one publish interval
@@ -167,7 +167,7 @@ public class AllocationBudgetTests : AgentTestBase
     {
         ChatClient.Reply([.. Enumerable.Range(0, updates).Select(_ => Text("word "))]);
 
-        await foreach (var _ in host.RunStreamingAsync(Data.Tool.Question, ct: Ct))
+        await foreach (var _ in host.RunStreamingAsync(Data.Tool.Question, cancellationToken: Ct))
         {
         }
     }

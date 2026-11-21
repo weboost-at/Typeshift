@@ -8,7 +8,7 @@ namespace Typeshift.Samples.Hosting;
 // begin-snippet: provider-connector
 internal sealed class Connectors : IChatProviderConnector
 {
-    public ValueTask<IChatClient> ConnectAsync(ChatProvider provider, CancellationToken ct) =>
+    public ValueTask<IChatClient> ConnectAsync(ChatProvider provider, CancellationToken cancellationToken) =>
         ValueTask.FromResult(provider.Kind switch
         {
             "openai" => OpenAi(provider),
@@ -35,6 +35,6 @@ internal sealed class Connectors : IChatProviderConnector
 // The scenarios' connector, which serves every document from the canned client the guide's runs answer on
 internal sealed class CannedConnector(IChatClient canned) : IChatProviderConnector
 {
-    public ValueTask<IChatClient> ConnectAsync(ChatProvider provider, CancellationToken ct) =>
+    public ValueTask<IChatClient> ConnectAsync(ChatProvider provider, CancellationToken cancellationToken) =>
         ValueTask.FromResult(canned);
 }

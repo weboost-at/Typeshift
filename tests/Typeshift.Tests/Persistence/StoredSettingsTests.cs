@@ -25,7 +25,7 @@ public class StoredSettingsTests : AgentTestBase
         await host.SaveSettingsAsync(stored, 0, Ct);
 
         // Act
-        await host.RunAsync(Data.Tool.Question, ct: Ct);
+        await host.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         Models.Should().Equal(new ProvidedModel(Data.Agent.Provider, Data.Agent.Model));
@@ -38,7 +38,7 @@ public class StoredSettingsTests : AgentTestBase
         var host = await StoreAsync("""{"provider":"Anthropic","model":"claude"}""");
 
         // Act
-        var run = () => host.RunAsync(Data.Tool.Question, ct: Ct);
+        var run = () => host.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         await run.Should().ThrowAsync<JsonException>().WithMessage("*provider \"Anthropic\"*");
@@ -72,7 +72,7 @@ public class StoredSettingsTests : AgentTestBase
         await host.RunAsync(
             Data.Tool.Question,
             settings: new() { Temperature = Data.Agent.Temperature },
-            ct: Ct);
+            cancellationToken: Ct);
 
         // Assert
         Models.Should().Equal(new ProvidedModel(ProbeAgent.ModelProvider, Data.Agent.Model));
@@ -92,7 +92,7 @@ public class StoredSettingsTests : AgentTestBase
         await host.SaveSettingsAsync(stored, 0, Ct);
 
         // Act
-        var response = await host.RunAsync(Data.Tool.Question, ct: Ct);
+        var response = await host.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         response.Assert.ToolResult<ProbeResult>(Data.Tool.CallId, Json).Settings
@@ -282,7 +282,7 @@ public class StoredSettingsTests : AgentTestBase
         await host.SaveSettingsAsync(new() { Model = Data.Agent.Model }, 0, Ct);
 
         // Act
-        await host.RunAsync(Data.Tool.Question, ct: Ct);
+        await host.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         Models.Should().Equal(new ProvidedModel(ProbeAgent.ModelProvider, Data.Agent.Model));
@@ -333,7 +333,7 @@ public class StoredSettingsTests : AgentTestBase
         await host.SaveSettingsAsync(stored, 0, Ct);
 
         // Act
-        await host.RunAsync(Data.Tool.Question, ct: Ct);
+        await host.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         Models.Should().Equal(new ProvidedModel(Data.Agent.Provider, Data.Agent.Model));
@@ -379,7 +379,7 @@ public class StoredSettingsTests : AgentTestBase
         await customer.UpdateSettingsAsync(settings => settings with { ProbeEnabled = false }, Ct);
 
         // Act
-        await customer.RunAsync(Data.Tool.Question, ct: Ct);
+        await customer.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         ChatClient.Options[0]!.Tools!.Select(tool => tool.Name).Should().Equal(CompanyToolset.ToolNames.CountCompanies);
@@ -395,7 +395,9 @@ public class StoredSettingsTests : AgentTestBase
         await other.UpdateSettingsAsync(settings => settings with { ProbeEnabled = false }, Ct);
 
         // Act
-        await Host<SwitchingAgent>().WithSettingsId(Data.Persistence.OtherId).RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<SwitchingAgent>()
+            .WithSettingsId(Data.Persistence.OtherId)
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         ChatClient.Options[0]!.Tools!.Select(tool => tool.Name)
@@ -413,7 +415,7 @@ public class StoredSettingsTests : AgentTestBase
         await customer.UpdateSettingsAsync(settings => settings with { ProbeEnabled = false }, Ct);
 
         // Act
-        await customer.RunAsync(Data.Tool.Question, settings: new() { ProbeEnabled = true }, ct: Ct);
+        await customer.RunAsync(Data.Tool.Question, settings: new() { ProbeEnabled = true }, cancellationToken: Ct);
 
         // Assert
         ChatClient.Options[0]!.Tools!.Select(tool => tool.Name).Should().Contain(ProbeToolset.ToolNames.Probe);

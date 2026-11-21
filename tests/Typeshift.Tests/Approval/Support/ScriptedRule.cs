@@ -12,7 +12,10 @@ public sealed class RuleScript
 
 public sealed class ScriptedRule(RuleScript script) : IToolApprovalRule
 {
-    public ValueTask<RuleVerdict> DecideAsync(FunctionCallContent call, AgentRun run, CancellationToken ct)
+    public ValueTask<RuleVerdict> DecideAsync(
+        FunctionCallContent call,
+        AgentRun run,
+        CancellationToken cancellationToken)
     {
         script.Seen.Add((call.Name, run.Mode));
 
@@ -23,6 +26,9 @@ public sealed class ScriptedRule(RuleScript script) : IToolApprovalRule
 // A second rule, for verdicts that meet
 public sealed class SecondScriptedRule(RuleScript script) : IToolApprovalRule
 {
-    public ValueTask<RuleVerdict> DecideAsync(FunctionCallContent call, AgentRun run, CancellationToken ct) =>
+    public ValueTask<RuleVerdict> DecideAsync(
+        FunctionCallContent call,
+        AgentRun run,
+        CancellationToken cancellationToken) =>
         ValueTask.FromResult(script.Verdicts.Count > 1 ? script.Verdicts[1](call) : RuleVerdict.Abstain);
 }

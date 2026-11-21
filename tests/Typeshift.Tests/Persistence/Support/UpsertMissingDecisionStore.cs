@@ -6,12 +6,21 @@ public sealed class UpsertMissingDecisionStore : IDecisionStore<Guid>
 {
     private readonly InMemoryTypeshiftStore<Guid> _store = new();
 
-    public Task<StoredDocument?> LoadDecisionsAsync(Guid conversation, CancellationToken ct) =>
-        _store.LoadDecisionsAsync(conversation, ct);
+    public Task<StoredDocument?> LoadDecisionsAsync(Guid conversation, CancellationToken cancellationToken) =>
+        _store.LoadDecisionsAsync(conversation, cancellationToken);
 
-    public async Task<long> SaveDecisionsAsync(Guid conversation, string json, long loadedVersion, CancellationToken ct)
+    public async Task<long> SaveDecisionsAsync(
+        Guid conversation,
+        string json,
+        long loadedVersion,
+        CancellationToken cancellationToken)
     {
-        var stored = await _store.LoadDecisionsAsync(conversation, ct);
-        return await _store.SaveDecisionsAsync(conversation, json, stored is null ? 0 : loadedVersion, ct);
+        var stored = await _store.LoadDecisionsAsync(conversation, cancellationToken);
+
+        return await _store.SaveDecisionsAsync(
+            conversation,
+            json,
+            stored is null ? 0 : loadedVersion,
+            cancellationToken);
     }
 }

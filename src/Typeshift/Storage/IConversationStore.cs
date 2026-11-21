@@ -20,9 +20,9 @@ public interface IConversationStore<TId> where TId : notnull
     /// <see cref="LoadConversationSinceCompactionAsync"/> instead.
     /// </summary>
     /// <param name="conversation">The conversation's id.</param>
-    /// <param name="ct">Cancels the load.</param>
+    /// <param name="cancellationToken">Cancels the load.</param>
     /// <returns>The entries; none for a conversation never stored.</returns>
-    Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(TId conversation, CancellationToken ct);
+    Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(TId conversation, CancellationToken cancellationToken);
 
     /// <summary>
     /// Loads what every run reads first: the conversation's last summary and the entries after it, or every entry when
@@ -31,9 +31,11 @@ public interface IConversationStore<TId> where TId : notnull
     /// whole conversation and returns <c>entries.SinceLastSummary()</c>.
     /// </summary>
     /// <param name="conversation">The conversation's id.</param>
-    /// <param name="ct">Cancels the load.</param>
+    /// <param name="cancellationToken">Cancels the load.</param>
     /// <returns>The entries, in the order they were appended; none for a conversation never stored.</returns>
-    Task<IReadOnlyList<ConversationEntry>> LoadConversationSinceCompactionAsync(TId conversation, CancellationToken ct);
+    Task<IReadOnlyList<ConversationEntry>> LoadConversationSinceCompactionAsync(
+        TId conversation,
+        CancellationToken cancellationToken);
 
     /// <summary>
     /// Appends an entry to a conversation, creating it on the first. Runs append as they go, so this is the hot path.
@@ -50,10 +52,10 @@ public interface IConversationStore<TId> where TId : notnull
     /// </summary>
     /// <param name="conversation">The conversation's id.</param>
     /// <param name="entry">The entry.</param>
-    /// <param name="ct">Cancels the append.</param>
+    /// <param name="cancellationToken">Cancels the append.</param>
     /// <returns>A task that completes once the entry is stored.</returns>
     /// <exception cref="StoreConflictException">
     /// The conversation holds an entry of this entry's <see cref="ConversationEntry.Sequence"/> already.
     /// </exception>
-    Task AppendConversationAsync(TId conversation, ConversationEntry entry, CancellationToken ct);
+    Task AppendConversationAsync(TId conversation, ConversationEntry entry, CancellationToken cancellationToken);
 }

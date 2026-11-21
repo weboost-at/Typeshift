@@ -20,7 +20,7 @@ the user asks about passwords, and drops such a message when it is [steered](#st
 ```cs
 internal sealed class BlockedTopics : IRunMiddleware
 {
-    public Task InvokeAsync(AgentRun run, Func<Task> next, CancellationToken ct)
+    public Task InvokeAsync(AgentRun run, Func<Task> next, CancellationToken cancellationToken)
     {
         if (IsBlocked(run.Messages[^1]))
         {
@@ -31,14 +31,17 @@ internal sealed class BlockedTopics : IRunMiddleware
         return next();
     }
 
-    public ValueTask<ChatMessage?> OnSteeringAsync(AgentRun run, ChatMessage input, CancellationToken ct) =>
+    public ValueTask<ChatMessage?> OnSteeringAsync(
+        AgentRun run,
+        ChatMessage input,
+        CancellationToken cancellationToken) =>
         ValueTask.FromResult(IsBlocked(input) ? null : input);
 
     private static bool IsBlocked(ChatMessage message) =>
         message.Text.Contains("password", StringComparison.OrdinalIgnoreCase);
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/BlockedTopics.cs#L5-L25' title='Snippet source file'>snippet source</a> | <a href='#snippet-run-middleware' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/BlockedTopics.cs#L5-L28' title='Snippet source file'>snippet source</a> | <a href='#snippet-run-middleware' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 An `IRunMiddleware` receives the run as an `AgentRun`:
@@ -184,7 +187,7 @@ internal sealed class AuditToolCalls(ILogger<AuditToolCalls> logger) : IToolMidd
     public async ValueTask<object?> InvokeAsync(
         FunctionInvocationContext call,
         Func<ValueTask<object?>> next,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
     {
         var run = call.Run;
         int? customer = run.TryGetSettingsId<int>(out var id) ? id : null;
@@ -255,7 +258,7 @@ A context provider adds to the runs of the agents that use it, for example the c
 ```cs
 internal sealed class CustomerProfileContext(ICurrentCustomer customer) : IContextProvider
 {
-    public ValueTask<AgentContext> GetContextAsync(AgentRun run, CancellationToken ct) =>
+    public ValueTask<AgentContext> GetContextAsync(AgentRun run, CancellationToken cancellationToken) =>
         ValueTask.FromResult(new AgentContext
         {
             Instructions = $"The customer is {customer.Name}, on the {customer.Plan} plan."

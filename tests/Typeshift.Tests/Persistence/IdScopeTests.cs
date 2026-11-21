@@ -20,7 +20,7 @@ public class IdScopeTests : AgentTestBase
         await host.UpdateSettingsAsync(settings => settings with { Temperature = Data.Agent.Temperature }, Ct);
 
         // Act
-        await host.RunAsync(Data.Tool.Question, ct: Ct);
+        await host.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         ChatClient.Options[0]!.Temperature.Should().Be(Data.Agent.Temperature);
@@ -65,10 +65,10 @@ public class IdScopeTests : AgentTestBase
         ChatClient.Reply(Text(Data.Tool.Answer)).Reply(Text(Data.Tool.Answer));
 
         var host = Host<ProbeAgent>().WithConversationId(Data.Persistence.ChatName);
-        await host.RunAsync(Data.Tool.Question, ct: Ct);
+        await host.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Act
-        await host.RunAsync(Data.Agent.FollowUp, ct: Ct);
+        await host.RunAsync(Data.Agent.FollowUp, cancellationToken: Ct);
 
         // Assert
         ChatClient.Requests[1].Select(message => message.Text)
@@ -81,12 +81,14 @@ public class IdScopeTests : AgentTestBase
         // Arrange
         ChatClient.Reply(Text(Data.Tool.Answer)).Reply(Text(Data.Tool.Answer));
 
-        await Host<ProbeAgent>().WithConversationId(Data.Persistence.NumberId).RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<ProbeAgent>()
+            .WithConversationId(Data.Persistence.NumberId)
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Act
         await Host<ProbeAgent>()
             .WithConversationId(Data.Persistence.NumberId.ToString())
-            .RunAsync(Data.Agent.FollowUp, ct: Ct);
+            .RunAsync(Data.Agent.FollowUp, cancellationToken: Ct);
 
         // Assert
         ChatClient.Requests[1].Select(message => message.Text).Should().Equal(Data.Agent.FollowUp);
@@ -99,7 +101,10 @@ public class IdScopeTests : AgentTestBase
         var gate = new TaskCompletionSource();
         ChatClient.Reply(gate, Text(Data.Tool.Answer));
 
-        var run = Host<ProbeAgent>().WithConversationId(Data.Persistence.NumberId).RunAsync(Data.Tool.Question, ct: Ct);
+        var run = Host<ProbeAgent>()
+            .WithConversationId(Data.Persistence.NumberId)
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
+
         await ChatClient.Requested;
 
         // Act
@@ -118,7 +123,10 @@ public class IdScopeTests : AgentTestBase
         var gate = new TaskCompletionSource();
         ChatClient.Reply(gate, Text(Data.Tool.Answer));
 
-        var run = Host<ProbeAgent>().WithConversationId(Data.Persistence.NumberId).RunAsync(Data.Tool.Question, ct: Ct);
+        var run = Host<ProbeAgent>()
+            .WithConversationId(Data.Persistence.NumberId)
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
+
         await ChatClient.Requested;
 
         // Act
@@ -137,7 +145,7 @@ public class IdScopeTests : AgentTestBase
         var host = Host<ProbeAgent>().WithSettingsId((long)Data.Persistence.NumberId);
 
         // Act
-        var run = () => host.RunAsync(Data.Tool.Question, ct: Ct);
+        var run = () => host.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         await run.Should().ThrowAsync<InvalidOperationException>()
@@ -160,10 +168,10 @@ public class IdScopeTests : AgentTestBase
         var host = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
             .WithConversationId(Data.Persistence.NumberId);
 
-        await host.RunAsync(Data.Tool.Question, ct: Ct);
+        await host.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Act
-        await host.RunAsync(Data.Agent.FollowUp, ct: Ct);
+        await host.RunAsync(Data.Agent.FollowUp, cancellationToken: Ct);
 
         // Assert
         ChatClient.Requests[1].Select(message => message.Text)
@@ -192,7 +200,7 @@ public class IdScopeTests : AgentTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         var host = Host<ProbeAgent>().WithConversationId(Data.Persistence.ChatName);
-        var options = await host.ResolveOptionsAsync(ct: Ct);
+        var options = await host.ResolveOptionsAsync(cancellationToken: Ct);
         using var client = await host.CreateChatClientAsync(options, Ct);
 
         // Act
@@ -212,7 +220,7 @@ public class IdScopeTests : AgentTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         var host = Host<ProbeAgent>();
-        var options = await host.ResolveOptionsAsync(ct: Ct);
+        var options = await host.ResolveOptionsAsync(cancellationToken: Ct);
         options.ConversationId = Data.Persistence.ChatName;
 
         // Act
@@ -233,7 +241,7 @@ public class IdScopeTests : AgentTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         var host = Host<ProbeAgent>();
-        var options = await host.ResolveOptionsAsync(ct: Ct);
+        var options = await host.ResolveOptionsAsync(cancellationToken: Ct);
         using var client = await host.CreateChatClientAsync(options, Ct);
 
         var own = new ChatOptions
@@ -259,7 +267,7 @@ public class IdScopeTests : AgentTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         var host = Host<ProbeAgent>().WithConversationId(Data.Persistence.NumberId);
-        var options = await host.ResolveOptionsAsync(ct: Ct);
+        var options = await host.ResolveOptionsAsync(cancellationToken: Ct);
         using var client = await host.CreateChatClientAsync(options, Ct);
 
         // Act
@@ -279,7 +287,7 @@ public class IdScopeTests : AgentTestBase
         ChatClient.Reply(Text(Data.Tool.Answer)).Reply(Text(Data.Tool.Answer));
 
         var host = Host<ProbeAgent>().WithConversationId(Data.Persistence.NumberId);
-        var options = await host.ResolveOptionsAsync(ct: Ct);
+        var options = await host.ResolveOptionsAsync(cancellationToken: Ct);
         using var client = await host.CreateChatClientAsync(options, Ct);
 
         var first = await client.GetResponseAsync(Data.Tool.Question, options, Ct);
@@ -298,7 +306,7 @@ public class IdScopeTests : AgentTestBase
     {
         // Arrange
         var host = Host<ProbeAgent>().WithConversationId(Data.Persistence.NumberId);
-        var options = await host.ResolveOptionsAsync(ct: Ct);
+        var options = await host.ResolveOptionsAsync(cancellationToken: Ct);
         using var client = await host.CreateChatClientAsync(options, Ct);
 
         var own = new ChatOptions { ConversationId = Data.Persistence.ChatName };
@@ -335,7 +343,9 @@ public class IdScopeTests : AgentTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act
-        var response = await Host<ProbeAgent>().WithConversationId(Data.Persistence.ChatName).ResumeAsync(ct: Ct);
+        var response = await Host<ProbeAgent>()
+            .WithConversationId(Data.Persistence.ChatName)
+            .ResumeAsync(cancellationToken: Ct);
 
         // Assert
         response.Text.Should().Be(Data.Tool.Answer);
@@ -345,7 +355,7 @@ public class IdScopeTests : AgentTestBase
     public async Task Given_A_Host_Without_A_Conversation_Resuming_Fails_Naming_WithConversationId()
     {
         // Act
-        var resume = () => Host<ProbeAgent>().ResumeAsync(ct: Ct);
+        var resume = () => Host<ProbeAgent>().ResumeAsync(cancellationToken: Ct);
 
         // Assert
         await resume.Should().ThrowAsync<InvalidOperationException>().WithMessage("*WithConversationId*");
@@ -358,7 +368,10 @@ public class IdScopeTests : AgentTestBase
         var gate = new TaskCompletionSource();
         ChatClient.Reply(gate, Text(Data.Tool.Answer)).Reply(Text(Data.Tool.Answer));
 
-        var run = Host<ProbeAgent>().WithConversationId(Data.Persistence.NumberId).RunAsync(Data.Tool.Question, ct: Ct);
+        var run = Host<ProbeAgent>()
+            .WithConversationId(Data.Persistence.NumberId)
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
+
         await ChatClient.Requested;
 
         // Act
@@ -379,7 +392,7 @@ public class IdScopeTests : AgentTestBase
         Guid? conversation = Data.Agent.ConversationId;
 
         // Act
-        await Host<ProbeAgent>().WithConversationId(conversation).RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<ProbeAgent>().WithConversationId(conversation).RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         (await EntriesAsync(Data.Agent.ConversationId)).Should().NotBeEmpty();
@@ -397,7 +410,9 @@ public class IdScopeTests : AgentTestBase
             Ct);
 
         // Act
-        await Host<ProbeAgent>().WithSettingsId(Data.Persistence.NumberId).RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<ProbeAgent>()
+            .WithSettingsId(Data.Persistence.NumberId)
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         ChatClient.Options[0]!.Temperature.Should().Be(Data.Agent.Temperature);
@@ -545,7 +560,7 @@ public class IdScopeTests : AgentTestBase
             .WithConversationId(Data.Agent.ConversationId);
 
         // Act
-        var run = () => host.RunAsync(Data.Tool.Question, ct: Ct);
+        var run = () => host.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         await run.Should().ThrowAsync<InvalidOperationException>()
@@ -570,10 +585,10 @@ public class IdScopeTests : AgentTestBase
         var host = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>();
 
         ChatClient.Reply(Text(Data.Tool.Answer));
-        await Record.ExceptionAsync(() => host.RunAsync(Data.Tool.Question, ct: Ct));
+        await Record.ExceptionAsync(() => host.RunAsync(Data.Tool.Question, cancellationToken: Ct));
 
         // Act
-        var response = await host.RunAsync(Data.Agent.FollowUp, ct: Ct);
+        var response = await host.RunAsync(Data.Agent.FollowUp, cancellationToken: Ct);
 
         // Assert
         response.Text.Should().Be(Data.Tool.Answer);

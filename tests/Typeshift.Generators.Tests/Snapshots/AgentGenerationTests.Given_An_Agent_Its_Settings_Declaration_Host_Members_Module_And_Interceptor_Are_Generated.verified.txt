@@ -21,7 +21,7 @@ public static class Tshost_4Demo12SupportAgent
         /// </summary>
         /// <param name="input">The user's message.</param>
         /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
-        /// <param name="ct">Cancels the run.</param>
+        /// <param name="cancellationToken">Cancels the run.</param>
         /// <returns>The response; its messages carry the agent's name as their author.</returns>
         /// <exception cref="global::Typeshift.DecisionUnavailableException">
         /// A call would need a decision of your app, and the run has no conversation to keep it in. The run throws
@@ -51,8 +51,8 @@ public static class Tshost_4Demo12SupportAgent
         public global::System.Threading.Tasks.Task<global::Microsoft.Extensions.AI.ChatResponse> RunAsync(
             string input,
             global::Demo.SupportAgent.Settings? settings = null,
-            global::System.Threading.CancellationToken ct = default) =>
-            global::Typeshift.Generated.AgentRuns.RunAsync(host, new(global::Microsoft.Extensions.AI.ChatRole.User, input), settings, ct);
+            global::System.Threading.CancellationToken cancellationToken = default) =>
+            global::Typeshift.Generated.AgentRuns.RunAsync(host, new(global::Microsoft.Extensions.AI.ChatRole.User, input), settings, cancellationToken);
 
         /// <summary>
         /// Runs the agent on a message, which may carry images, in the host's conversation if it has one, with the
@@ -61,7 +61,7 @@ public static class Tshost_4Demo12SupportAgent
         /// </summary>
         /// <param name="input">The user's message.</param>
         /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
-        /// <param name="ct">Cancels the run.</param>
+        /// <param name="cancellationToken">Cancels the run.</param>
         /// <returns>The response; its messages carry the agent's name as their author.</returns>
         /// <exception cref="global::Typeshift.DecisionUnavailableException">
         /// A call would need a decision of your app, and the run has no conversation to keep it in. The run throws
@@ -91,8 +91,8 @@ public static class Tshost_4Demo12SupportAgent
         public global::System.Threading.Tasks.Task<global::Microsoft.Extensions.AI.ChatResponse> RunAsync(
             global::Microsoft.Extensions.AI.ChatMessage input,
             global::Demo.SupportAgent.Settings? settings = null,
-            global::System.Threading.CancellationToken ct = default) =>
-            global::Typeshift.Generated.AgentRuns.RunAsync(host, input, settings, ct);
+            global::System.Threading.CancellationToken cancellationToken = default) =>
+            global::Typeshift.Generated.AgentRuns.RunAsync(host, input, settings, cancellationToken);
 
         /// <summary>
         /// Runs the agent on a message, asking the model for JSON of <typeparamref name="TResult"/>'s schema, in the
@@ -102,7 +102,7 @@ public static class Tshost_4Demo12SupportAgent
         /// <typeparam name="TResult">The result's type.</typeparam>
         /// <param name="input">The user's message.</param>
         /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
-        /// <param name="ct">Cancels the run.</param>
+        /// <param name="cancellationToken">Cancels the run.</param>
         /// <returns>The response; its messages carry the agent's name as their author.</returns>
         /// <exception cref="global::Typeshift.DecisionUnavailableException">
         /// A call would need a decision of your app, and the run has no conversation to keep it in. The run throws
@@ -132,8 +132,8 @@ public static class Tshost_4Demo12SupportAgent
         public global::System.Threading.Tasks.Task<global::Microsoft.Extensions.AI.ChatResponse<TResult>> RunAsync<TResult>(
             string input,
             global::Demo.SupportAgent.Settings? settings = null,
-            global::System.Threading.CancellationToken ct = default) =>
-            global::Typeshift.Generated.AgentRuns.RunAsync<global::Demo.SupportAgent, TResult>(host, new(global::Microsoft.Extensions.AI.ChatRole.User, input), settings, ct);
+            global::System.Threading.CancellationToken cancellationToken = default) =>
+            global::Typeshift.Generated.AgentRuns.RunAsync<global::Demo.SupportAgent, TResult>(host, new(global::Microsoft.Extensions.AI.ChatRole.User, input), settings, cancellationToken);
 
         /// <summary>
         /// Runs the agent on a message, which may carry images, asking the model for JSON of
@@ -144,7 +144,7 @@ public static class Tshost_4Demo12SupportAgent
         /// <typeparam name="TResult">The result's type.</typeparam>
         /// <param name="input">The user's message.</param>
         /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
-        /// <param name="ct">Cancels the run.</param>
+        /// <param name="cancellationToken">Cancels the run.</param>
         /// <returns>The response; its messages carry the agent's name as their author.</returns>
         /// <exception cref="global::Typeshift.DecisionUnavailableException">
         /// A call would need a decision of your app, and the run has no conversation to keep it in. The run throws
@@ -174,8 +174,8 @@ public static class Tshost_4Demo12SupportAgent
         public global::System.Threading.Tasks.Task<global::Microsoft.Extensions.AI.ChatResponse<TResult>> RunAsync<TResult>(
             global::Microsoft.Extensions.AI.ChatMessage input,
             global::Demo.SupportAgent.Settings? settings = null,
-            global::System.Threading.CancellationToken ct = default) =>
-            global::Typeshift.Generated.AgentRuns.RunAsync<global::Demo.SupportAgent, TResult>(host, input, settings, ct);
+            global::System.Threading.CancellationToken cancellationToken = default) =>
+            global::Typeshift.Generated.AgentRuns.RunAsync<global::Demo.SupportAgent, TResult>(host, input, settings, cancellationToken);
 
         /// <summary>
         /// Runs the agent on a message, streaming the updates, in the host's conversation if it has one, with the
@@ -184,7 +184,7 @@ public static class Tshost_4Demo12SupportAgent
         /// </summary>
         /// <param name="input">The user's message.</param>
         /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
-        /// <param name="ct">Cancels the run.</param>
+        /// <param name="cancellationToken">Cancels the run.</param>
         /// <returns>
         /// The run, which streams its updates, each with the agent's name as its author, and then holds its response.
         /// </returns>
@@ -216,8 +216,8 @@ public static class Tshost_4Demo12SupportAgent
         public global::Typeshift.StreamingRun RunStreamingAsync(
             string input,
             global::Demo.SupportAgent.Settings? settings = null,
-            global::System.Threading.CancellationToken ct = default) =>
-            global::Typeshift.Generated.AgentRuns.RunStreamingAsync(host, new(global::Microsoft.Extensions.AI.ChatRole.User, input), settings, ct);
+            global::System.Threading.CancellationToken cancellationToken = default) =>
+            global::Typeshift.Generated.AgentRuns.RunStreamingAsync(host, new(global::Microsoft.Extensions.AI.ChatRole.User, input), settings, cancellationToken);
 
         /// <summary>
         /// Runs the agent on a message, which may carry images, streaming the updates, in the host's conversation if it
@@ -226,7 +226,7 @@ public static class Tshost_4Demo12SupportAgent
         /// </summary>
         /// <param name="input">The user's message.</param>
         /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
-        /// <param name="ct">Cancels the run.</param>
+        /// <param name="cancellationToken">Cancels the run.</param>
         /// <returns>
         /// The run, which streams its updates, each with the agent's name as its author, and then holds its response.
         /// </returns>
@@ -258,8 +258,8 @@ public static class Tshost_4Demo12SupportAgent
         public global::Typeshift.StreamingRun RunStreamingAsync(
             global::Microsoft.Extensions.AI.ChatMessage input,
             global::Demo.SupportAgent.Settings? settings = null,
-            global::System.Threading.CancellationToken ct = default) =>
-            global::Typeshift.Generated.AgentRuns.RunStreamingAsync(host, input, settings, ct);
+            global::System.Threading.CancellationToken cancellationToken = default) =>
+            global::Typeshift.Generated.AgentRuns.RunStreamingAsync(host, input, settings, cancellationToken);
 
         /// <summary>
         /// Runs the agent on a message, streaming the updates and asking the model for JSON of
@@ -271,7 +271,7 @@ public static class Tshost_4Demo12SupportAgent
         /// <typeparam name="TResult">The result's type.</typeparam>
         /// <param name="input">The user's message.</param>
         /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
-        /// <param name="ct">Cancels the run.</param>
+        /// <param name="cancellationToken">Cancels the run.</param>
         /// <returns>The run, which streams its updates and then holds the result.</returns>
         /// <exception cref="global::Typeshift.DecisionUnavailableException">
         /// A call would need a decision of your app, and the run has no conversation to keep it in. The run throws
@@ -301,8 +301,8 @@ public static class Tshost_4Demo12SupportAgent
         public global::Typeshift.StreamingRun<TResult> RunStreamingAsync<TResult>(
             string input,
             global::Demo.SupportAgent.Settings? settings = null,
-            global::System.Threading.CancellationToken ct = default) =>
-            global::Typeshift.Generated.AgentRuns.RunStreamingAsync<global::Demo.SupportAgent, TResult>(host, new(global::Microsoft.Extensions.AI.ChatRole.User, input), settings, ct);
+            global::System.Threading.CancellationToken cancellationToken = default) =>
+            global::Typeshift.Generated.AgentRuns.RunStreamingAsync<global::Demo.SupportAgent, TResult>(host, new(global::Microsoft.Extensions.AI.ChatRole.User, input), settings, cancellationToken);
 
         /// <summary>
         /// Runs the agent on a message, which may carry images, streaming the updates and asking the model for JSON of
@@ -314,7 +314,7 @@ public static class Tshost_4Demo12SupportAgent
         /// <typeparam name="TResult">The result's type.</typeparam>
         /// <param name="input">The user's message.</param>
         /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
-        /// <param name="ct">Cancels the run.</param>
+        /// <param name="cancellationToken">Cancels the run.</param>
         /// <returns>The run, which streams its updates and then holds the result.</returns>
         /// <exception cref="global::Typeshift.DecisionUnavailableException">
         /// A call would need a decision of your app, and the run has no conversation to keep it in. The run throws
@@ -344,8 +344,8 @@ public static class Tshost_4Demo12SupportAgent
         public global::Typeshift.StreamingRun<TResult> RunStreamingAsync<TResult>(
             global::Microsoft.Extensions.AI.ChatMessage input,
             global::Demo.SupportAgent.Settings? settings = null,
-            global::System.Threading.CancellationToken ct = default) =>
-            global::Typeshift.Generated.AgentRuns.RunStreamingAsync<global::Demo.SupportAgent, TResult>(host, input, settings, ct);
+            global::System.Threading.CancellationToken cancellationToken = default) =>
+            global::Typeshift.Generated.AgentRuns.RunStreamingAsync<global::Demo.SupportAgent, TResult>(host, input, settings, cancellationToken);
 
         /// <summary>
         /// Records your app's answers to decisions of the host's conversation, from <c>WithConversationId</c>, and,
@@ -358,7 +358,7 @@ public static class Tshost_4Demo12SupportAgent
         /// The answers, each made from its decision, as <c>decision.Approve()</c> makes one, or by its id.
         /// </param>
         /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
-        /// <param name="ct">Cancels the run.</param>
+        /// <param name="cancellationToken">Cancels the run.</param>
         /// <returns>The response; its messages carry the agent's name as their author.</returns>
         /// <exception cref="global::Typeshift.DecisionClosedException">
         /// An answer names a decision that is not open: answered already, passed by a new message, or unknown. Nothing
@@ -396,8 +396,8 @@ public static class Tshost_4Demo12SupportAgent
         public global::System.Threading.Tasks.Task<global::Microsoft.Extensions.AI.ChatResponse> AnswerAsync(
             global::System.Collections.Generic.IReadOnlyList<global::Typeshift.DecisionAnswer> answers,
             global::Demo.SupportAgent.Settings? settings = null,
-            global::System.Threading.CancellationToken ct = default) =>
-            global::Typeshift.Generated.AgentRuns.AnswerAsync(host, answers, settings, ct);
+            global::System.Threading.CancellationToken cancellationToken = default) =>
+            global::Typeshift.Generated.AgentRuns.AnswerAsync(host, answers, settings, cancellationToken);
 
         /// <summary>
         /// Records your app's answers to decisions of the host's conversation, from <c>WithConversationId</c>, and,
@@ -412,7 +412,7 @@ public static class Tshost_4Demo12SupportAgent
         /// The answers, each made from its decision, as <c>decision.Approve()</c> makes one, or by its id.
         /// </param>
         /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
-        /// <param name="ct">Cancels the run.</param>
+        /// <param name="cancellationToken">Cancels the run.</param>
         /// <returns>The response; its messages carry the agent's name as their author.</returns>
         /// <exception cref="global::Typeshift.DecisionClosedException">
         /// An answer names a decision that is not open: answered already, passed by a new message, or unknown. Nothing
@@ -450,8 +450,8 @@ public static class Tshost_4Demo12SupportAgent
         public global::System.Threading.Tasks.Task<global::Microsoft.Extensions.AI.ChatResponse<TResult>> AnswerAsync<TResult>(
             global::System.Collections.Generic.IReadOnlyList<global::Typeshift.DecisionAnswer> answers,
             global::Demo.SupportAgent.Settings? settings = null,
-            global::System.Threading.CancellationToken ct = default) =>
-            global::Typeshift.Generated.AgentRuns.AnswerAsync<global::Demo.SupportAgent, TResult>(host, answers, settings, ct);
+            global::System.Threading.CancellationToken cancellationToken = default) =>
+            global::Typeshift.Generated.AgentRuns.AnswerAsync<global::Demo.SupportAgent, TResult>(host, answers, settings, cancellationToken);
 
         /// <summary>
         /// Records your app's answers to decisions of the host's conversation, from <c>WithConversationId</c>, and,
@@ -465,7 +465,7 @@ public static class Tshost_4Demo12SupportAgent
         /// The answers, each made from its decision, as <c>decision.Approve()</c> makes one, or by its id.
         /// </param>
         /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
-        /// <param name="ct">Cancels the run.</param>
+        /// <param name="cancellationToken">Cancels the run.</param>
         /// <returns>
         /// The run, which streams its updates, each with the agent's name as its author, and then holds its response.
         /// </returns>
@@ -505,8 +505,8 @@ public static class Tshost_4Demo12SupportAgent
         public global::Typeshift.StreamingRun AnswerStreamingAsync(
             global::System.Collections.Generic.IReadOnlyList<global::Typeshift.DecisionAnswer> answers,
             global::Demo.SupportAgent.Settings? settings = null,
-            global::System.Threading.CancellationToken ct = default) =>
-            global::Typeshift.Generated.AgentRuns.AnswerStreamingAsync(host, answers, settings, ct);
+            global::System.Threading.CancellationToken cancellationToken = default) =>
+            global::Typeshift.Generated.AgentRuns.AnswerStreamingAsync(host, answers, settings, cancellationToken);
 
         /// <summary>
         /// Records your app's answers to decisions of the host's conversation, from <c>WithConversationId</c>, and,
@@ -521,7 +521,7 @@ public static class Tshost_4Demo12SupportAgent
         /// The answers, each made from its decision, as <c>decision.Approve()</c> makes one, or by its id.
         /// </param>
         /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
-        /// <param name="ct">Cancels the run.</param>
+        /// <param name="cancellationToken">Cancels the run.</param>
         /// <returns>The run, which streams its updates and then holds the result.</returns>
         /// <exception cref="global::Typeshift.DecisionClosedException">
         /// An answer names a decision that is not open: answered already, passed by a new message, or unknown. Nothing
@@ -559,8 +559,8 @@ public static class Tshost_4Demo12SupportAgent
         public global::Typeshift.StreamingRun<TResult> AnswerStreamingAsync<TResult>(
             global::System.Collections.Generic.IReadOnlyList<global::Typeshift.DecisionAnswer> answers,
             global::Demo.SupportAgent.Settings? settings = null,
-            global::System.Threading.CancellationToken ct = default) =>
-            global::Typeshift.Generated.AgentRuns.AnswerStreamingAsync<global::Demo.SupportAgent, TResult>(host, answers, settings, ct);
+            global::System.Threading.CancellationToken cancellationToken = default) =>
+            global::Typeshift.Generated.AgentRuns.AnswerStreamingAsync<global::Demo.SupportAgent, TResult>(host, answers, settings, cancellationToken);
 
         /// <summary>
         /// Continues the host's conversation, from <c>WithConversationId</c>, without new input: the run that was
@@ -569,7 +569,7 @@ public static class Tshost_4Demo12SupportAgent
         /// <see href="https://weboost-at.github.io/Typeshift/guide/conversations#resuming">Resuming</see>.
         /// </summary>
         /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
-        /// <param name="ct">Cancels the run.</param>
+        /// <param name="cancellationToken">Cancels the run.</param>
         /// <returns>The response.</returns>
         /// <exception cref="global::Typeshift.NothingToResumeException">
         /// The conversation has nothing to continue: its last run ended, and no decision your app answered or withdrew
@@ -597,8 +597,8 @@ public static class Tshost_4Demo12SupportAgent
         /// <exception cref="global::System.Text.Json.JsonException">
         /// The stored settings were written under a newer schema version than this code's.
         /// </exception>
-        public global::System.Threading.Tasks.Task<global::Microsoft.Extensions.AI.ChatResponse> ResumeAsync(global::Demo.SupportAgent.Settings? settings = null, global::System.Threading.CancellationToken ct = default) =>
-            global::Typeshift.Generated.AgentRuns.ResumeAsync(host, settings, ct);
+        public global::System.Threading.Tasks.Task<global::Microsoft.Extensions.AI.ChatResponse> ResumeAsync(global::Demo.SupportAgent.Settings? settings = null, global::System.Threading.CancellationToken cancellationToken = default) =>
+            global::Typeshift.Generated.AgentRuns.ResumeAsync(host, settings, cancellationToken);
 
         /// <summary>
         /// Continues the host's conversation, from <c>WithConversationId</c>, without new input: the run that was
@@ -607,7 +607,7 @@ public static class Tshost_4Demo12SupportAgent
         /// <see href="https://weboost-at.github.io/Typeshift/guide/conversations#resuming">Resuming</see>.
         /// </summary>
         /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
-        /// <param name="ct">Cancels the run.</param>
+        /// <param name="cancellationToken">Cancels the run.</param>
         /// <returns>The run, which streams its updates and then holds its response.</returns>
         /// <exception cref="global::Typeshift.NothingToResumeException">
         /// The conversation has nothing to continue: its last run ended, and no decision your app answered or withdrew
@@ -635,8 +635,8 @@ public static class Tshost_4Demo12SupportAgent
         /// <exception cref="global::System.Text.Json.JsonException">
         /// The stored settings were written under a newer schema version than this code's.
         /// </exception>
-        public global::Typeshift.StreamingRun ResumeStreamingAsync(global::Demo.SupportAgent.Settings? settings = null, global::System.Threading.CancellationToken ct = default) =>
-            global::Typeshift.Generated.AgentRuns.ResumeStreamingAsync(host, settings, ct);
+        public global::Typeshift.StreamingRun ResumeStreamingAsync(global::Demo.SupportAgent.Settings? settings = null, global::System.Threading.CancellationToken cancellationToken = default) =>
+            global::Typeshift.Generated.AgentRuns.ResumeStreamingAsync(host, settings, cancellationToken);
 
         /// <summary>
         /// Continues the host's conversation, from <c>WithConversationId</c>, without new input: the run that was
@@ -647,7 +647,7 @@ public static class Tshost_4Demo12SupportAgent
         /// </summary>
         /// <typeparam name="TResult">The result's type.</typeparam>
         /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
-        /// <param name="ct">Cancels the run.</param>
+        /// <param name="cancellationToken">Cancels the run.</param>
         /// <returns>
         /// The response, with the result; while decisions are open, one that lists them and has none.
         /// </returns>
@@ -677,8 +677,8 @@ public static class Tshost_4Demo12SupportAgent
         /// <exception cref="global::System.Text.Json.JsonException">
         /// The stored settings were written under a newer schema version than this code's.
         /// </exception>
-        public global::System.Threading.Tasks.Task<global::Microsoft.Extensions.AI.ChatResponse<TResult>> ResumeAsync<TResult>(global::Demo.SupportAgent.Settings? settings = null, global::System.Threading.CancellationToken ct = default) =>
-            global::Typeshift.Generated.AgentRuns.ResumeAsync<global::Demo.SupportAgent, TResult>(host, settings, ct);
+        public global::System.Threading.Tasks.Task<global::Microsoft.Extensions.AI.ChatResponse<TResult>> ResumeAsync<TResult>(global::Demo.SupportAgent.Settings? settings = null, global::System.Threading.CancellationToken cancellationToken = default) =>
+            global::Typeshift.Generated.AgentRuns.ResumeAsync<global::Demo.SupportAgent, TResult>(host, settings, cancellationToken);
 
         /// <summary>
         /// Continues the host's conversation, from <c>WithConversationId</c>, without new input: the run that was
@@ -689,7 +689,7 @@ public static class Tshost_4Demo12SupportAgent
         /// </summary>
         /// <typeparam name="TResult">The result's type.</typeparam>
         /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
-        /// <param name="ct">Cancels the run.</param>
+        /// <param name="cancellationToken">Cancels the run.</param>
         /// <returns>The run, which streams its updates and then holds the result.</returns>
         /// <exception cref="global::Typeshift.NothingToResumeException">
         /// The conversation has nothing to continue: its last run ended, and no decision your app answered or withdrew
@@ -717,8 +717,8 @@ public static class Tshost_4Demo12SupportAgent
         /// <exception cref="global::System.Text.Json.JsonException">
         /// The stored settings were written under a newer schema version than this code's.
         /// </exception>
-        public global::Typeshift.StreamingRun<TResult> ResumeStreamingAsync<TResult>(global::Demo.SupportAgent.Settings? settings = null, global::System.Threading.CancellationToken ct = default) =>
-            global::Typeshift.Generated.AgentRuns.ResumeStreamingAsync<global::Demo.SupportAgent, TResult>(host, settings, ct);
+        public global::Typeshift.StreamingRun<TResult> ResumeStreamingAsync<TResult>(global::Demo.SupportAgent.Settings? settings = null, global::System.Threading.CancellationToken cancellationToken = default) =>
+            global::Typeshift.Generated.AgentRuns.ResumeStreamingAsync<global::Demo.SupportAgent, TResult>(host, settings, cancellationToken);
 
         /// <summary>
         /// Continues the host's conversation as <c>ResumeAsync</c> does, and also when its last run failed, was
@@ -728,7 +728,7 @@ public static class Tshost_4Demo12SupportAgent
         /// failed run</see>.
         /// </summary>
         /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
-        /// <param name="ct">Cancels the run.</param>
+        /// <param name="cancellationToken">Cancels the run.</param>
         /// <returns>The response.</returns>
         /// <exception cref="global::Typeshift.NothingToResumeException">
         /// The conversation has nothing to retry: its last run answered or waits for your app, and no decision your app
@@ -756,8 +756,8 @@ public static class Tshost_4Demo12SupportAgent
         /// <exception cref="global::System.Text.Json.JsonException">
         /// The stored settings were written under a newer schema version than this code's.
         /// </exception>
-        public global::System.Threading.Tasks.Task<global::Microsoft.Extensions.AI.ChatResponse> RetryAsync(global::Demo.SupportAgent.Settings? settings = null, global::System.Threading.CancellationToken ct = default) =>
-            global::Typeshift.Generated.AgentRuns.RetryAsync(host, settings, ct);
+        public global::System.Threading.Tasks.Task<global::Microsoft.Extensions.AI.ChatResponse> RetryAsync(global::Demo.SupportAgent.Settings? settings = null, global::System.Threading.CancellationToken cancellationToken = default) =>
+            global::Typeshift.Generated.AgentRuns.RetryAsync(host, settings, cancellationToken);
 
         /// <summary>
         /// Continues the host's conversation as <c>ResumeAsync</c> does, and also when its last run failed, was
@@ -767,7 +767,7 @@ public static class Tshost_4Demo12SupportAgent
         /// failed run</see>.
         /// </summary>
         /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
-        /// <param name="ct">Cancels the run.</param>
+        /// <param name="cancellationToken">Cancels the run.</param>
         /// <returns>The run, which streams its updates and then holds its response.</returns>
         /// <exception cref="global::Typeshift.NothingToResumeException">
         /// The conversation has nothing to retry: its last run answered or waits for your app, and no decision your app
@@ -795,8 +795,8 @@ public static class Tshost_4Demo12SupportAgent
         /// <exception cref="global::System.Text.Json.JsonException">
         /// The stored settings were written under a newer schema version than this code's.
         /// </exception>
-        public global::Typeshift.StreamingRun RetryStreamingAsync(global::Demo.SupportAgent.Settings? settings = null, global::System.Threading.CancellationToken ct = default) =>
-            global::Typeshift.Generated.AgentRuns.RetryStreamingAsync(host, settings, ct);
+        public global::Typeshift.StreamingRun RetryStreamingAsync(global::Demo.SupportAgent.Settings? settings = null, global::System.Threading.CancellationToken cancellationToken = default) =>
+            global::Typeshift.Generated.AgentRuns.RetryStreamingAsync(host, settings, cancellationToken);
 
         /// <summary>
         /// Continues the host's conversation as <c>ResumeAsync</c> does, and also when its last run failed, was
@@ -808,7 +808,7 @@ public static class Tshost_4Demo12SupportAgent
         /// </summary>
         /// <typeparam name="TResult">The result's type.</typeparam>
         /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
-        /// <param name="ct">Cancels the run.</param>
+        /// <param name="cancellationToken">Cancels the run.</param>
         /// <returns>
         /// The response, with the result; while decisions are open, one that lists them and has none.
         /// </returns>
@@ -838,8 +838,8 @@ public static class Tshost_4Demo12SupportAgent
         /// <exception cref="global::System.Text.Json.JsonException">
         /// The stored settings were written under a newer schema version than this code's.
         /// </exception>
-        public global::System.Threading.Tasks.Task<global::Microsoft.Extensions.AI.ChatResponse<TResult>> RetryAsync<TResult>(global::Demo.SupportAgent.Settings? settings = null, global::System.Threading.CancellationToken ct = default) =>
-            global::Typeshift.Generated.AgentRuns.RetryAsync<global::Demo.SupportAgent, TResult>(host, settings, ct);
+        public global::System.Threading.Tasks.Task<global::Microsoft.Extensions.AI.ChatResponse<TResult>> RetryAsync<TResult>(global::Demo.SupportAgent.Settings? settings = null, global::System.Threading.CancellationToken cancellationToken = default) =>
+            global::Typeshift.Generated.AgentRuns.RetryAsync<global::Demo.SupportAgent, TResult>(host, settings, cancellationToken);
 
         /// <summary>
         /// Continues the host's conversation as <c>ResumeAsync</c> does, and also when its last run failed, was
@@ -851,7 +851,7 @@ public static class Tshost_4Demo12SupportAgent
         /// </summary>
         /// <typeparam name="TResult">The result's type.</typeparam>
         /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
-        /// <param name="ct">Cancels the run.</param>
+        /// <param name="cancellationToken">Cancels the run.</param>
         /// <returns>The run, which streams its updates and then holds the result.</returns>
         /// <exception cref="global::Typeshift.NothingToResumeException">
         /// The conversation has nothing to retry: its last run answered or waits for your app, and no decision your app
@@ -879,8 +879,8 @@ public static class Tshost_4Demo12SupportAgent
         /// <exception cref="global::System.Text.Json.JsonException">
         /// The stored settings were written under a newer schema version than this code's.
         /// </exception>
-        public global::Typeshift.StreamingRun<TResult> RetryStreamingAsync<TResult>(global::Demo.SupportAgent.Settings? settings = null, global::System.Threading.CancellationToken ct = default) =>
-            global::Typeshift.Generated.AgentRuns.RetryStreamingAsync<global::Demo.SupportAgent, TResult>(host, settings, ct);
+        public global::Typeshift.StreamingRun<TResult> RetryStreamingAsync<TResult>(global::Demo.SupportAgent.Settings? settings = null, global::System.Threading.CancellationToken cancellationToken = default) =>
+            global::Typeshift.Generated.AgentRuns.RetryStreamingAsync<global::Demo.SupportAgent, TResult>(host, settings, cancellationToken);
 
         /// <summary>
         /// Resolves the options of a run, for the raw path: <c>CreateChatClientAsync</c>, then the client. The options
@@ -889,7 +889,7 @@ public static class Tshost_4Demo12SupportAgent
         /// <see href="https://weboost-at.github.io/Typeshift/guide/running-agents#the-raw-path">The raw path</see>.
         /// </summary>
         /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
-        /// <param name="ct">Cancels the resolution.</param>
+        /// <param name="cancellationToken">Cancels the resolution.</param>
         /// <returns>The options, with the agent's tools.</returns>
         /// <exception cref="global::System.InvalidOperationException">
         /// Something the options need is not registered: a store for the type of the host's settings id, or an
@@ -900,8 +900,8 @@ public static class Tshost_4Demo12SupportAgent
         /// </exception>
         public global::System.Threading.Tasks.Task<global::Microsoft.Extensions.AI.ChatOptions> ResolveOptionsAsync(
             global::Demo.SupportAgent.Settings? settings = null,
-            global::System.Threading.CancellationToken ct = default) =>
-            global::Typeshift.Generated.AgentRuns.ResolveOptionsAsync(host, settings, ct);
+            global::System.Threading.CancellationToken cancellationToken = default) =>
+            global::Typeshift.Generated.AgentRuns.ResolveOptionsAsync(host, settings, cancellationToken);
 
         /// <summary>
         /// Creates the client of the raw path from the options of a run, as <c>ResolveOptionsAsync</c> resolves them,
@@ -911,7 +911,7 @@ public static class Tshost_4Demo12SupportAgent
         /// <see href="https://weboost-at.github.io/Typeshift/guide/running-agents#the-raw-path">The raw path</see>.
         /// </summary>
         /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
-        /// <param name="ct">Cancels the creation.</param>
+        /// <param name="cancellationToken">Cancels the creation.</param>
         /// <returns>The client; disposing it leaves the provider's client alone.</returns>
         /// <exception cref="global::System.InvalidOperationException">
         /// No chat client serves the options, the agent's chat client runs a tool loop of its own, or something the
@@ -923,8 +923,8 @@ public static class Tshost_4Demo12SupportAgent
         /// </exception>
         public global::System.Threading.Tasks.Task<global::Microsoft.Extensions.AI.IChatClient> CreateChatClientAsync(
             global::Demo.SupportAgent.Settings? settings = null,
-            global::System.Threading.CancellationToken ct = default) =>
-            global::Typeshift.Generated.AgentRuns.CreateChatClientAsync(host, settings, ct);
+            global::System.Threading.CancellationToken cancellationToken = default) =>
+            global::Typeshift.Generated.AgentRuns.CreateChatClientAsync(host, settings, cancellationToken);
 
         /// <summary>
         /// Loads the agent's own settings, which every run applies, or, on a host from <c>WithSettingsId</c>, the
@@ -932,7 +932,7 @@ public static class Tshost_4Demo12SupportAgent
         /// <see href="https://weboost-at.github.io/Typeshift/guide/settings-and-stores#agent-settings">Agent
         /// settings</see>.
         /// </summary>
-        /// <param name="ct">Cancels the load.</param>
+        /// <param name="cancellationToken">Cancels the load.</param>
         /// <returns>
         /// The settings and the version <c>SaveSettingsAsync</c> takes; empty settings at version 0 when none are
         /// stored.
@@ -945,8 +945,8 @@ public static class Tshost_4Demo12SupportAgent
         /// The stored settings were written under a newer schema version than this code's.
         /// </exception>
         public global::System.Threading.Tasks.Task<global::Typeshift.Stored<global::Demo.SupportAgent.Settings>> LoadSettingsAsync(
-            global::System.Threading.CancellationToken ct = default) =>
-            global::Typeshift.Generated.AgentRuns.LoadSettingsAsync<global::Demo.SupportAgent, global::Demo.SupportAgent.Settings>(host, ct);
+            global::System.Threading.CancellationToken cancellationToken = default) =>
+            global::Typeshift.Generated.AgentRuns.LoadSettingsAsync<global::Demo.SupportAgent, global::Demo.SupportAgent.Settings>(host, cancellationToken);
 
         /// <summary>
         /// Saves the agent's own settings, or, on a host from <c>WithSettingsId</c>, those under its id, unless another
@@ -958,7 +958,7 @@ public static class Tshost_4Demo12SupportAgent
         /// <param name="loadedVersion">
         /// The version <c>LoadSettingsAsync</c> or <c>UpdateSettingsAsync</c> returned, 0 when it loaded none.
         /// </param>
-        /// <param name="ct">Cancels the save.</param>
+        /// <param name="cancellationToken">Cancels the save.</param>
         /// <returns>The new version, to pass to the next save.</returns>
         /// <exception cref="global::Typeshift.StoreConflictException">Another save came first.</exception>
         /// <exception cref="global::System.InvalidOperationException">
@@ -972,8 +972,8 @@ public static class Tshost_4Demo12SupportAgent
         public global::System.Threading.Tasks.Task<long> SaveSettingsAsync(
             global::Demo.SupportAgent.Settings settings,
             long loadedVersion,
-            global::System.Threading.CancellationToken ct = default) =>
-            global::Typeshift.Generated.AgentRuns.SaveSettingsAsync<global::Demo.SupportAgent, global::Demo.SupportAgent.Settings>(host, settings, loadedVersion, ct);
+            global::System.Threading.CancellationToken cancellationToken = default) =>
+            global::Typeshift.Generated.AgentRuns.SaveSettingsAsync<global::Demo.SupportAgent, global::Demo.SupportAgent.Settings>(host, settings, loadedVersion, cancellationToken);
 
         /// <summary>
         /// Updates the agent's own settings, or, on a host from <c>WithSettingsId</c>, those under its id: loads them,
@@ -983,7 +983,7 @@ public static class Tshost_4Demo12SupportAgent
         /// settings</see>.
         /// </summary>
         /// <param name="update">Returns the changed settings; called again after a lost save.</param>
-        /// <param name="ct">Cancels the update.</param>
+        /// <param name="cancellationToken">Cancels the update.</param>
         /// <returns>The settings saved and their version, which the next save takes.</returns>
         /// <exception cref="global::Typeshift.StoreConflictException">
         /// Another save came first ten times in a row.
@@ -1002,8 +1002,8 @@ public static class Tshost_4Demo12SupportAgent
         /// </exception>
         public global::System.Threading.Tasks.Task<global::Typeshift.Stored<global::Demo.SupportAgent.Settings>> UpdateSettingsAsync(
             global::System.Func<global::Demo.SupportAgent.Settings, global::Demo.SupportAgent.Settings> update,
-            global::System.Threading.CancellationToken ct = default) =>
-            global::Typeshift.Generated.AgentRuns.UpdateSettingsAsync<global::Demo.SupportAgent, global::Demo.SupportAgent.Settings>(host, update, ct);
+            global::System.Threading.CancellationToken cancellationToken = default) =>
+            global::Typeshift.Generated.AgentRuns.UpdateSettingsAsync<global::Demo.SupportAgent, global::Demo.SupportAgent.Settings>(host, update, cancellationToken);
     }
 }
 
@@ -1340,7 +1340,7 @@ namespace System.Runtime.CompilerServices
 #nullable enable
 #pragma warning disable CS0612, CS0618
 
-[assembly: global::Typeshift.Generated.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule), 24)]
+[assembly: global::Typeshift.Generated.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule), 25)]
 
 namespace Typeshift.Generated;
 

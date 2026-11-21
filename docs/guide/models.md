@@ -171,7 +171,7 @@ One class of yours turns a document into a client, an `IChatProviderConnector`:
 ```cs
 internal sealed class Connectors : IChatProviderConnector
 {
-    public ValueTask<IChatClient> ConnectAsync(ChatProvider provider, CancellationToken ct) =>
+    public ValueTask<IChatClient> ConnectAsync(ChatProvider provider, CancellationToken cancellationToken) =>
         ValueTask.FromResult(provider.Kind switch
         {
             "openai" => OpenAi(provider),
@@ -468,7 +468,7 @@ For one agent, set it in a [run middleware](./middleware.md), which sees the run
 ```cs
 internal sealed class UnstoredBilling : IRunMiddleware
 {
-    public Task InvokeAsync(AgentRun run, Func<Task> next, CancellationToken ct)
+    public Task InvokeAsync(AgentRun run, Func<Task> next, CancellationToken cancellationToken)
     {
         if (run.Agent is BillingAgent)
             run.Options.RawRepresentationFactory = _ => new ChatCompletionOptions { StoredOutputEnabled = false };

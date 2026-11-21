@@ -15,7 +15,7 @@ public class StreamingResultTests : AgentTestBase
         var expected = new ProbeSettings { Limit = Data.Tool.Limit, Verbose = true };
         ChatClient.Reply(Text(JsonSerializer.Serialize(expected, Json.GetTypeInfo<ProbeSettings>())));
 
-        var run = Host<ProbeAgent>().RunStreamingAsync<ProbeSettings>(Data.Tool.Question, ct: Ct);
+        var run = Host<ProbeAgent>().RunStreamingAsync<ProbeSettings>(Data.Tool.Question, cancellationToken: Ct);
 
         // Act
         await run.ToListAsync(Ct);
@@ -32,7 +32,7 @@ public class StreamingResultTests : AgentTestBase
         var json = JsonSerializer.Serialize(expected, Json.GetTypeInfo<ProbeSettings>());
         ChatClient.Reply(Text(json[..5]), Text(json[5..]));
 
-        var run = Host<ProbeAgent>().RunStreamingAsync<ProbeSettings>(Data.Tool.Question, ct: Ct);
+        var run = Host<ProbeAgent>().RunStreamingAsync<ProbeSettings>(Data.Tool.Question, cancellationToken: Ct);
 
         // Act
         var updates = await run.ToListAsync(Ct);
@@ -48,7 +48,9 @@ public class StreamingResultTests : AgentTestBase
         ChatClient.Reply(Text(JsonSerializer.Serialize(new ProbeSettings(), Json.GetTypeInfo<ProbeSettings>())));
 
         // Act
-        await Host<ProbeAgent>().RunStreamingAsync<ProbeSettings>(Data.Tool.Question, ct: Ct).ToListAsync(Ct);
+        await Host<ProbeAgent>().RunStreamingAsync<ProbeSettings>(
+            Data.Tool.Question,
+            cancellationToken: Ct).ToListAsync(Ct);
 
         // Assert
         ResponseSchema().Assert.Properties("limit", "verbose");
@@ -61,7 +63,7 @@ public class StreamingResultTests : AgentTestBase
         var json = JsonSerializer.Serialize(new { data = Data.Tool.Lives }, Json.SerializerOptions);
         ChatClient.Reply(Text(json[..4]), Text(json[4..]));
 
-        var run = Host<ProbeAgent>().RunStreamingAsync<int>(Data.Tool.Question, ct: Ct);
+        var run = Host<ProbeAgent>().RunStreamingAsync<int>(Data.Tool.Question, cancellationToken: Ct);
 
         // Act
         await run.ToListAsync(Ct);
@@ -79,7 +81,9 @@ public class StreamingResultTests : AgentTestBase
             .Reply(Text(JsonSerializer.Serialize(new ProbeSettings(), Json.GetTypeInfo<ProbeSettings>())));
 
         // Act
-        await Host<ProbeAgent>().RunStreamingAsync<ProbeSettings>(Data.Tool.Question, ct: Ct).ToListAsync(Ct);
+        await Host<ProbeAgent>().RunStreamingAsync<ProbeSettings>(
+            Data.Tool.Question,
+            cancellationToken: Ct).ToListAsync(Ct);
 
         // Assert
         ChatClient.Options[1]!.ResponseFormat.Should().BeOfType<ChatResponseFormatJson>();
@@ -94,7 +98,7 @@ public class StreamingResultTests : AgentTestBase
 
         var run = Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId).RunStreamingAsync<ProbeSettings>(
             Data.Tool.Question,
-            ct: Ct);
+            cancellationToken: Ct);
 
         // Act
         await run.ToListAsync(Ct);
@@ -109,7 +113,7 @@ public class StreamingResultTests : AgentTestBase
     {
         // Arrange
         ChatClient.Reply(Text("{"), Text("}"));
-        var run = Host<ProbeAgent>().RunStreamingAsync<ProbeSettings>(Data.Tool.Question, ct: Ct);
+        var run = Host<ProbeAgent>().RunStreamingAsync<ProbeSettings>(Data.Tool.Question, cancellationToken: Ct);
 
         await foreach (var _ in run.WithCancellation(Ct))
         {
@@ -127,7 +131,7 @@ public class StreamingResultTests : AgentTestBase
     public void Given_A_Streaming_Run_Not_Read_Yet_Its_Response_Throws()
     {
         // Arrange
-        var run = Host<ProbeAgent>().RunStreamingAsync<ProbeSettings>(Data.Tool.Question, ct: Ct);
+        var run = Host<ProbeAgent>().RunStreamingAsync<ProbeSettings>(Data.Tool.Question, cancellationToken: Ct);
 
         // Act
         var read = () => run.Response;
@@ -141,7 +145,7 @@ public class StreamingResultTests : AgentTestBase
     {
         // Arrange
         ChatClient.Reply(Text(JsonSerializer.Serialize(new ProbeSettings(), Json.GetTypeInfo<ProbeSettings>())));
-        var run = Host<ProbeAgent>().RunStreamingAsync<ProbeSettings>(Data.Tool.Question, ct: Ct);
+        var run = Host<ProbeAgent>().RunStreamingAsync<ProbeSettings>(Data.Tool.Question, cancellationToken: Ct);
         await run.ToListAsync(Ct);
 
         // Act

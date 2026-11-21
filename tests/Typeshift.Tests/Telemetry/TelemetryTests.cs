@@ -78,8 +78,8 @@ public sealed class TelemetryTests : AgentTestBase
         var front = Host<FrontAgent>().WithConversationId(Data.Agent.ConversationId);
 
         // Act
-        if (streaming) await front.RunStreamingAsync(Data.Tool.Question, ct: Ct).ToListAsync(Ct);
-        else await front.RunAsync(Data.Tool.Question, ct: Ct);
+        if (streaming) await front.RunStreamingAsync(Data.Tool.Question, cancellationToken: Ct).ToListAsync(Ct);
+        else await front.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         var handing = Activities.Runs(Data.Agent.ConversationId)
             .Single(run => run.DisplayName == "invoke_agent front_agent");
@@ -101,12 +101,12 @@ public sealed class TelemetryTests : AgentTestBase
             .Reply(Text(Data.Agent.Reason));
 
         var front = Host<FrontAgent>().WithConversationId(Data.Agent.ConversationId);
-        await front.RunAsync(Data.Tool.Question, ct: Ct);
+        await front.RunAsync(Data.Tool.Question, cancellationToken: Ct);
         var before = Activities.Runs(Data.Agent.ConversationId).Count;
 
         // Act
-        if (streaming) await front.RunStreamingAsync(Data.Agent.FollowUp, ct: Ct).ToListAsync(Ct);
-        else await front.RunAsync(Data.Agent.FollowUp, ct: Ct);
+        if (streaming) await front.RunStreamingAsync(Data.Agent.FollowUp, cancellationToken: Ct).ToListAsync(Ct);
+        else await front.RunAsync(Data.Agent.FollowUp, cancellationToken: Ct);
 
         var later = Activities.Runs(Data.Agent.ConversationId).Skip(before);
 
@@ -185,7 +185,7 @@ public sealed class TelemetryTests : AgentTestBase
 
         var updates = Host<ProbeAgent>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunStreamingAsync(Data.Tool.Question, ct: Ct);
+            .RunStreamingAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Act
         await foreach (var _ in updates)
@@ -400,7 +400,7 @@ public sealed class TelemetryTests : AgentTestBase
         var host = Host<FailingAgent>().WithConversationId(Data.Agent.ConversationId);
 
         // Act
-        await host.RunAsync(Data.Tool.Question, ct: Ct);
+        await host.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         var span = Activities.Under(Activities.Run(Data.Agent.ConversationId))
@@ -417,7 +417,9 @@ public sealed class TelemetryTests : AgentTestBase
         ChatClient.Reply(Call(Data.Tool.CallId, "close_ticket", ("number", Data.Agent.Ticket.Default)));
 
         // Act
-        await Host<GuardedAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<GuardedAgent>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         var run = Activities.Run(Data.Agent.ConversationId);
@@ -430,7 +432,7 @@ public sealed class TelemetryTests : AgentTestBase
     {
         // Arrange
         var host = Host<ProbeAgent>();
-        var options = await host.ResolveOptionsAsync(ct: Ct);
+        var options = await host.ResolveOptionsAsync(cancellationToken: Ct);
         options.ConversationId = Data.Persistence.ChatName;
         using var client = await host.CreateChatClientAsync(options, Ct);
 
@@ -459,7 +461,7 @@ public sealed class TelemetryTests : AgentTestBase
         // Act
         await Record.ExceptionAsync(() => scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunAsync(Data.Tool.Question, ct: Ct));
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct));
 
         // Assert
         Activities.Run(Data.Agent.ConversationId).Events.Select(@event => @event.Name).Should().Contain("exception");
@@ -487,7 +489,7 @@ public sealed class TelemetryTests : AgentTestBase
         // Act
         await scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunAsync(Data.Tool.Question, ct: Ct);
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         Activities.Run(Data.Agent.ConversationId).Status.Should().Be(ActivityStatusCode.Error);
@@ -509,7 +511,7 @@ public sealed class TelemetryTests : AgentTestBase
             .RunAsync(
                 Data.Tool.Question,
                 settings: new() { MaxInputTokens = 1_000, SummaryModel = Data.Agent.Model },
-                ct: Ct);
+                cancellationToken: Ct);
 
         // Assert
         Activities.Run(Data.Agent.ConversationId).Events.Select(@event => @event.Name).Should().Contain("exception");
@@ -557,8 +559,8 @@ public sealed class TelemetryTests : AgentTestBase
             .Reply(Text(Data.Tool.Answer));
 
         // Act
-        await host.RunAsync(Data.Tool.Question, ct: Ct);
-        await host.RunAsync(Data.Tool.Question, ct: Ct);
+        await host.RunAsync(Data.Tool.Question, cancellationToken: Ct);
+        await host.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         Activities.Runs(Data.Agent.ConversationId)
@@ -591,7 +593,7 @@ public sealed class TelemetryTests : AgentTestBase
         // Act
         foreach (var model in Data.Telemetry.Models)
         {
-            await host.RunAsync(Data.Tool.Question, settings: new() { Model = model }, ct: Ct);
+            await host.RunAsync(Data.Tool.Question, settings: new() { Model = model }, cancellationToken: Ct);
         }
 
         // Assert
@@ -619,8 +621,8 @@ public sealed class TelemetryTests : AgentTestBase
             .Reply(Text(Data.Tool.Answer));
 
         // Act
-        await host.RunAsync(Data.Tool.Question, ct: Ct);
-        await host.RunAsync(Data.Tool.Question, ct: Ct);
+        await host.RunAsync(Data.Tool.Question, cancellationToken: Ct);
+        await host.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         Activities.Runs(Data.Agent.ConversationId)
@@ -645,7 +647,7 @@ public sealed class TelemetryTests : AgentTestBase
         // Act
         await scope.ServiceProvider.GetRequiredService<AgentHost<SchemaAgent>>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunAsync(Data.Tool.Question, ct: Ct);
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         var run = Activities.Run(Data.Agent.ConversationId);
@@ -705,7 +707,7 @@ public sealed class TelemetryTests : AgentTestBase
         await scope.ServiceProvider.GetRequiredService<AgentHost<SchemaAgent>>()
             .WithConversationId(Data.Agent.ConversationId)
             .WithProvider(document)
-            .RunAsync(Data.Tool.Question, ct: Ct);
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         var run = Activities.Run(Data.Agent.ConversationId);
@@ -727,7 +729,7 @@ public sealed class TelemetryTests : AgentTestBase
         // Act
         await scope.ServiceProvider.GetRequiredService<AgentHost<SchemaAgent>>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunAsync(Data.Tool.Question, ct: Ct);
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         var run = Activities.Run(Data.Agent.ConversationId);
@@ -745,7 +747,7 @@ public sealed class TelemetryTests : AgentTestBase
         // Act
         await Host<FrontDeskAgent>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunAsync(Data.Tool.Question, ct: Ct);
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         Activities.Runs(Data.Agent.ConversationId)
@@ -766,11 +768,11 @@ public sealed class TelemetryTests : AgentTestBase
             .Reply(Text(Data.Agent.Reason));
 
         var front = Host<FrontDeskAgent>().WithConversationId(Data.Agent.ConversationId);
-        await front.RunAsync(Data.Tool.Question, ct: Ct);
+        await front.RunAsync(Data.Tool.Question, cancellationToken: Ct);
         var before = Activities.Runs(Data.Agent.ConversationId).Count;
 
         // Act
-        await front.RunAsync(Data.Agent.FollowUp, ct: Ct);
+        await front.RunAsync(Data.Agent.FollowUp, cancellationToken: Ct);
         var later = Activities.Runs(Data.Agent.ConversationId).Skip(before);
 
         // Assert
@@ -788,7 +790,7 @@ public sealed class TelemetryTests : AgentTestBase
         await using (var scope = provider.CreateAsyncScope())
         {
             var host = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>();
-            await host.RunAsync(Data.Tool.Question, ct: Ct);
+            await host.RunAsync(Data.Tool.Question, cancellationToken: Ct);
         }
 
         // Act
@@ -805,13 +807,15 @@ public sealed class TelemetryTests : AgentTestBase
     }
 
     private Task<ChatResponse> RunAsync() =>
-        Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Tool.Question, ct: Ct);
+        Host<ProbeAgent>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
     private Task<ChatResponse> RunAsync(ModelPolicy policy) =>
         Host<ProbeAgent>()
             .WithConversationId(Data.Agent.ConversationId)
             .WithModelPolicy(policy)
-            .RunAsync(Data.Tool.Question, ct: Ct);
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
     private HttpRequestException Unavailable() =>
         new(Data.Agent.Reason, null, HttpStatusCode.ServiceUnavailable);
@@ -832,20 +836,20 @@ public sealed class TelemetryTests : AgentTestBase
     private ValueTask<List<ChatResponseUpdate>> RunStreamingAsync() =>
         Host<ProbeAgent>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunStreamingAsync(Data.Tool.Question, ct: Ct)
+            .RunStreamingAsync(Data.Tool.Question, cancellationToken: Ct)
             .ToListAsync(Ct);
 
     private ValueTask<List<ChatResponseUpdate>> RunTypedStreamingAsync() =>
         Host<ProbeAgent>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunStreamingAsync<ProbeSettings>(Data.Tool.Question, ct: Ct)
+            .RunStreamingAsync<ProbeSettings>(Data.Tool.Question, cancellationToken: Ct)
             .ToListAsync(Ct);
 
     // Capture as OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT sets it for a process, here for this test's host
     private async Task CaptureMessagesAsync(bool capture)
     {
         var host = Host<ProbeAgent>();
-        var options = await host.ResolveOptionsAsync(ct: Ct);
+        var options = await host.ResolveOptionsAsync(cancellationToken: Ct);
         using var client = await host.CreateChatClientAsync(options, Ct);
 
         client.GetService<OpenTelemetryChatClient>()!.EnableSensitiveData = capture;

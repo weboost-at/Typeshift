@@ -353,8 +353,8 @@ public class ContextProviderTests : MiddlewareTestBase
         var host = Host<LookupContextAgent>();
 
         // Act
-        if (streaming) await host.RunStreamingAsync(Data.Tool.Question, ct: Ct).ToListAsync(Ct);
-        else await host.RunAsync(Data.Tool.Question, ct: Ct);
+        if (streaming) await host.RunStreamingAsync(Data.Tool.Question, cancellationToken: Ct).ToListAsync(Ct);
+        else await host.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         Script.Lifetimes.Should().Equal("lookup created", "lookup called", "lookup disposed");
@@ -371,8 +371,8 @@ public class ContextProviderTests : MiddlewareTestBase
         var host = Host<LookupContextAgent>();
 
         // Act
-        await host.RunAsync(Data.Tool.Question, ct: Ct);
-        await host.RunAsync(Data.Agent.FollowUp, ct: Ct);
+        await host.RunAsync(Data.Tool.Question, cancellationToken: Ct);
+        await host.RunAsync(Data.Agent.FollowUp, cancellationToken: Ct);
 
         // Assert
         Script.Lifetimes.Should().Equal("lookup created", "lookup disposed", "lookup created", "lookup disposed");
@@ -389,8 +389,8 @@ public class ContextProviderTests : MiddlewareTestBase
         var host = Host<ProfileContextAgent>();
 
         // Act
-        await host.RunAsync(Data.Tool.Question, ct: Ct);
-        await host.RunAsync(Data.Agent.FollowUp, ct: Ct);
+        await host.RunAsync(Data.Tool.Question, cancellationToken: Ct);
+        await host.RunAsync(Data.Agent.FollowUp, cancellationToken: Ct);
 
         // Assert
         Script.Lifetimes.Should().Equal("profile created");

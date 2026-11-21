@@ -580,7 +580,7 @@ public class CompactionTests : AgentTestBase
 
         var run = Host<CompactingAgent>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunAsync(Data.Agent.FollowUp, settings: settings, ct: stopping.Token);
+            .RunAsync(Data.Agent.FollowUp, settings: settings, cancellationToken: stopping.Token);
 
         await ChatClient.RequestedAsync(2);
 
@@ -616,7 +616,7 @@ public class CompactionTests : AgentTestBase
         await host.RunAsync(
             Data.Tool.Question,
             settings: new() { MaxInputTokens = 1_000, SummaryModel = SummaryModel },
-            ct: Ct);
+            cancellationToken: Ct);
 
         // Assert
         logs.Warnings.Should().ContainSingle();
@@ -694,7 +694,7 @@ public class CompactionTests : AgentTestBase
             .RunStreamingAsync(
                 Data.Tool.Question,
                 settings: settings,
-                ct: Ct)
+                cancellationToken: Ct)
             .ToListAsync(Ct);
 
         await ChatClient.RequestedAsync(3);
@@ -963,7 +963,7 @@ public class CompactionTests : AgentTestBase
             .RunStreamingAsync(
                 Data.Tool.Question,
                 settings: new() { MaxInputTokens = 1_500, TargetInputTokens = 1_000 },
-                ct: Ct)
+                cancellationToken: Ct)
             .ToListAsync(Ct);
 
         // Assert
@@ -1001,13 +1001,13 @@ public class CompactionTests : AgentTestBase
     private Task<ChatResponse> RunAsync(string input, CompactingAgent.Settings? settings = null) =>
         Host<CompactingAgent>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunAsync(input, settings: settings, ct: Ct);
+            .RunAsync(input, settings: settings, cancellationToken: Ct);
 
     private Task<ChatResponse> RunAsync(string input, CompactingAgent.Settings settings, ModelPolicy policy) =>
         Host<CompactingAgent>()
             .WithConversationId(Data.Agent.ConversationId)
             .WithModelPolicy(policy)
-            .RunAsync(input, settings: settings, ct: Ct);
+            .RunAsync(input, settings: settings, cancellationToken: Ct);
 
     private HttpRequestException Unavailable() =>
         new(Data.Agent.Reason, null, HttpStatusCode.ServiceUnavailable);
@@ -1020,7 +1020,7 @@ public class CompactionTests : AgentTestBase
             .Reply(Read(Data.Tool.SecondCallId, Page))
             .Reply(Text(Data.Tool.Answer));
 
-        await Host<CompactingAgent>().RunAsync(Data.Tool.Question, settings: settings, ct: Ct);
+        await Host<CompactingAgent>().RunAsync(Data.Tool.Question, settings: settings, cancellationToken: Ct);
     }
 
     private ChatResponseUpdate Read(string callId, int length) => Call(callId, "read", ("length", length));

@@ -19,7 +19,7 @@ public static class AgentRuns
     /// <param name="host">The host, with the run's services and ids.</param>
     /// <param name="input">The message.</param>
     /// <param name="settings">The run's settings, over the stored ones.</param>
-    /// <param name="ct">Cancels the run.</param>
+    /// <param name="cancellationToken">Cancels the run.</param>
     /// <returns>The response.</returns>
     /// <exception cref="ConversationBusyException">
     /// A run of the host's conversation is going on, or the store refused the run because another container extends
@@ -32,9 +32,9 @@ public static class AgentRuns
         AgentHost<TAgent> host,
         ChatMessage input,
         object? settings,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
         where TAgent : Agent =>
-        host.RunCoreAsync(input, settings, ct);
+        host.RunCoreAsync(input, settings, cancellationToken);
 
     /// <summary>
     /// Runs the agent on one message, asking for JSON of <typeparamref name="TResult"/>'s schema.
@@ -44,7 +44,7 @@ public static class AgentRuns
     /// <param name="host">The host, with the run's services and ids.</param>
     /// <param name="input">The message.</param>
     /// <param name="settings">The run's settings, over the stored ones.</param>
-    /// <param name="ct">Cancels the run.</param>
+    /// <param name="cancellationToken">Cancels the run.</param>
     /// <returns>The response, with the result.</returns>
     /// <exception cref="ConversationBusyException">
     /// A run of the host's conversation is going on, or the store refused the run because another container extends
@@ -57,9 +57,9 @@ public static class AgentRuns
         AgentHost<TAgent> host,
         ChatMessage input,
         object? settings,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
         where TAgent : Agent =>
-        host.RunCoreAsync<TResult>(input, settings, ct);
+        host.RunCoreAsync<TResult>(input, settings, cancellationToken);
 
     /// <summary>
     /// Runs the agent on one message, streaming the updates and asking for JSON of <typeparamref name="TResult"/>'s
@@ -70,7 +70,7 @@ public static class AgentRuns
     /// <param name="host">The host, with the run's services and ids.</param>
     /// <param name="input">The message.</param>
     /// <param name="settings">The run's settings, over the stored ones.</param>
-    /// <param name="ct">Cancels the run.</param>
+    /// <param name="cancellationToken">Cancels the run.</param>
     /// <returns>The run, which streams its updates and then holds the result.</returns>
     /// <exception cref="ConversationBusyException">
     /// A run of the host's conversation is going on, or the store refused the run because another container extends
@@ -83,9 +83,9 @@ public static class AgentRuns
         AgentHost<TAgent> host,
         ChatMessage input,
         object? settings,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
         where TAgent : Agent =>
-        host.RunStreamingCoreAsync<TResult>(input, settings, ct);
+        host.RunStreamingCoreAsync<TResult>(input, settings, cancellationToken);
 
     /// <summary>
     /// Runs the agent on one message, streaming the updates.
@@ -94,7 +94,7 @@ public static class AgentRuns
     /// <param name="host">The host, with the run's services and ids.</param>
     /// <param name="input">The message.</param>
     /// <param name="settings">The run's settings, over the stored ones.</param>
-    /// <param name="ct">Cancels the run.</param>
+    /// <param name="cancellationToken">Cancels the run.</param>
     /// <returns>The run, which streams its updates and then holds its response.</returns>
     /// <exception cref="ConversationBusyException">
     /// A run of the host's conversation is going on, or the store refused the run because another container extends
@@ -107,9 +107,9 @@ public static class AgentRuns
         AgentHost<TAgent> host,
         ChatMessage input,
         object? settings,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
         where TAgent : Agent =>
-        host.RunStreamingCoreAsync(input, settings, ct);
+        host.RunStreamingCoreAsync(input, settings, cancellationToken);
 
     /// <summary>
     /// Records answers to decisions of the host's conversation and, once no decision is left open, carries them out
@@ -119,7 +119,7 @@ public static class AgentRuns
     /// <param name="host">The host, with the run's services and ids.</param>
     /// <param name="answers">The answers.</param>
     /// <param name="settings">The run's settings, over the stored ones.</param>
-    /// <param name="ct">Cancels the run.</param>
+    /// <param name="cancellationToken">Cancels the run.</param>
     /// <returns>The response; with decisions left open, one that lists them and called no model.</returns>
     /// <exception cref="DecisionClosedException">An answer names a decision that is not open.</exception>
     /// <exception cref="ArgumentException">An answer does not fit its decision, or there is none.</exception>
@@ -135,9 +135,9 @@ public static class AgentRuns
         AgentHost<TAgent> host,
         IReadOnlyList<DecisionAnswer> answers,
         object? settings,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
         where TAgent : Agent =>
-        host.AnswerCoreAsync(answers, settings, ct);
+        host.AnswerCoreAsync(answers, settings, cancellationToken);
 
     /// <summary>
     /// Records answers to decisions of the host's conversation and, once no decision is left open, carries them out
@@ -148,7 +148,7 @@ public static class AgentRuns
     /// <param name="host">The host, with the run's services and ids.</param>
     /// <param name="answers">The answers.</param>
     /// <param name="settings">The run's settings, over the stored ones.</param>
-    /// <param name="ct">Cancels the run.</param>
+    /// <param name="cancellationToken">Cancels the run.</param>
     /// <returns>The response, with the result; with decisions left open, one that lists them and has none.</returns>
     /// <exception cref="DecisionClosedException">An answer names a decision that is not open.</exception>
     /// <exception cref="ArgumentException">An answer does not fit its decision, or there is none.</exception>
@@ -164,9 +164,9 @@ public static class AgentRuns
         AgentHost<TAgent> host,
         IReadOnlyList<DecisionAnswer> answers,
         object? settings,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
         where TAgent : Agent =>
-        host.AnswerCoreAsync<TResult>(answers, settings, ct);
+        host.AnswerCoreAsync<TResult>(answers, settings, cancellationToken);
 
     /// <summary>
     /// Records answers to decisions of the host's conversation and, once no decision is left open, carries them out
@@ -176,7 +176,7 @@ public static class AgentRuns
     /// <param name="host">The host, with the run's services and ids.</param>
     /// <param name="answers">The answers.</param>
     /// <param name="settings">The run's settings, over the stored ones.</param>
-    /// <param name="ct">Cancels the run.</param>
+    /// <param name="cancellationToken">Cancels the run.</param>
     /// <returns>The run; with decisions left open, one update that lists them.</returns>
     /// <exception cref="ConversationBusyException">
     /// A run of the host's conversation is going on, or the store refused the run because another container extends
@@ -189,9 +189,9 @@ public static class AgentRuns
         AgentHost<TAgent> host,
         IReadOnlyList<DecisionAnswer> answers,
         object? settings,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
         where TAgent : Agent =>
-        host.AnswerStreamingCoreAsync(answers, settings, ct);
+        host.AnswerStreamingCoreAsync(answers, settings, cancellationToken);
 
     /// <summary>
     /// Records answers to decisions of the host's conversation and, once no decision is left open, carries them out
@@ -203,7 +203,7 @@ public static class AgentRuns
     /// <param name="host">The host, with the run's services and ids.</param>
     /// <param name="answers">The answers.</param>
     /// <param name="settings">The run's settings, over the stored ones.</param>
-    /// <param name="ct">Cancels the run.</param>
+    /// <param name="cancellationToken">Cancels the run.</param>
     /// <returns>The run, which streams its updates and then holds the result.</returns>
     /// <exception cref="ConversationBusyException">
     /// A run of the host's conversation is going on, or the store refused the run because another container extends
@@ -216,9 +216,9 @@ public static class AgentRuns
         AgentHost<TAgent> host,
         IReadOnlyList<DecisionAnswer> answers,
         object? settings,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
         where TAgent : Agent =>
-        host.AnswerStreamingCoreAsync<TResult>(answers, settings, ct);
+        host.AnswerStreamingCoreAsync<TResult>(answers, settings, cancellationToken);
 
     /// <summary>
     /// Continues the host's conversation without new input: its interrupted run from the last stored step, or the
@@ -227,7 +227,7 @@ public static class AgentRuns
     /// <typeparam name="TAgent">The agent.</typeparam>
     /// <param name="host">The host, with the run's services and ids.</param>
     /// <param name="settings">The run's settings, over the stored ones.</param>
-    /// <param name="ct">Cancels the run.</param>
+    /// <param name="cancellationToken">Cancels the run.</param>
     /// <returns>The response.</returns>
     /// <exception cref="InvalidOperationException">The host has no conversation.</exception>
     /// <exception cref="NothingToResumeException">The conversation has nothing to continue.</exception>
@@ -241,9 +241,9 @@ public static class AgentRuns
     public static Task<ChatResponse> ResumeAsync<TAgent>(
         AgentHost<TAgent> host,
         object? settings,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
         where TAgent : Agent =>
-        host.RunCoreAsync(null, settings, ct);
+        host.RunCoreAsync(null, settings, cancellationToken);
 
     /// <summary>
     /// Continues the host's conversation without new input, streaming the updates: its interrupted run from the last
@@ -253,7 +253,7 @@ public static class AgentRuns
     /// <typeparam name="TAgent">The agent.</typeparam>
     /// <param name="host">The host, with the run's services and ids.</param>
     /// <param name="settings">The run's settings, over the stored ones.</param>
-    /// <param name="ct">Cancels the run.</param>
+    /// <param name="cancellationToken">Cancels the run.</param>
     /// <returns>The run, which streams its updates and then holds its response.</returns>
     /// <exception cref="InvalidOperationException">The host has no conversation.</exception>
     /// <exception cref="NothingToResumeException">The conversation has nothing to continue.</exception>
@@ -267,9 +267,9 @@ public static class AgentRuns
     public static StreamingRun ResumeStreamingAsync<TAgent>(
         AgentHost<TAgent> host,
         object? settings,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
         where TAgent : Agent =>
-        host.RunStreamingCoreAsync(null, settings, ct);
+        host.RunStreamingCoreAsync(null, settings, cancellationToken);
 
     /// <summary>
     /// Continues the host's conversation without new input, asking for JSON of <typeparamref name="TResult"/>'s
@@ -279,7 +279,7 @@ public static class AgentRuns
     /// <typeparam name="TResult">The result.</typeparam>
     /// <param name="host">The host, with the run's services and ids.</param>
     /// <param name="settings">The run's settings, over the stored ones.</param>
-    /// <param name="ct">Cancels the run.</param>
+    /// <param name="cancellationToken">Cancels the run.</param>
     /// <returns>The response, with the result.</returns>
     /// <exception cref="InvalidOperationException">The host has no conversation.</exception>
     /// <exception cref="NothingToResumeException">The conversation has nothing to continue.</exception>
@@ -293,9 +293,9 @@ public static class AgentRuns
     public static Task<ChatResponse<TResult>> ResumeAsync<TAgent, TResult>(
         AgentHost<TAgent> host,
         object? settings,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
         where TAgent : Agent =>
-        host.RunCoreAsync<TResult>(null, settings, ct);
+        host.RunCoreAsync<TResult>(null, settings, cancellationToken);
 
     /// <summary>
     /// Continues the host's conversation without new input, streaming the updates and asking for JSON of
@@ -305,7 +305,7 @@ public static class AgentRuns
     /// <typeparam name="TResult">The result.</typeparam>
     /// <param name="host">The host, with the run's services and ids.</param>
     /// <param name="settings">The run's settings, over the stored ones.</param>
-    /// <param name="ct">Cancels the run.</param>
+    /// <param name="cancellationToken">Cancels the run.</param>
     /// <returns>The run, which streams its updates and then holds the result.</returns>
     /// <exception cref="InvalidOperationException">The host has no conversation.</exception>
     /// <exception cref="NothingToResumeException">The conversation has nothing to continue.</exception>
@@ -319,9 +319,9 @@ public static class AgentRuns
     public static StreamingRun<TResult> ResumeStreamingAsync<TAgent, TResult>(
         AgentHost<TAgent> host,
         object? settings,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
         where TAgent : Agent =>
-        host.RunStreamingCoreAsync<TResult>(null, settings, ct);
+        host.RunStreamingCoreAsync<TResult>(null, settings, cancellationToken);
 
     /// <summary>
     /// Continues the host's conversation as a resume does, and also when its last run failed, was cancelled or
@@ -330,7 +330,7 @@ public static class AgentRuns
     /// <typeparam name="TAgent">The agent.</typeparam>
     /// <param name="host">The host, with the run's services and ids.</param>
     /// <param name="settings">The run's settings, over the stored ones.</param>
-    /// <param name="ct">Cancels the run.</param>
+    /// <param name="cancellationToken">Cancels the run.</param>
     /// <returns>The response.</returns>
     /// <exception cref="InvalidOperationException">The host has no conversation.</exception>
     /// <exception cref="NothingToResumeException">The conversation has nothing to retry.</exception>
@@ -344,9 +344,9 @@ public static class AgentRuns
     public static Task<ChatResponse> RetryAsync<TAgent>(
         AgentHost<TAgent> host,
         object? settings,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
         where TAgent : Agent =>
-        host.RunCoreAsync(null, settings, ct, retries: true);
+        host.RunCoreAsync(null, settings, cancellationToken, retries: true);
 
     /// <summary>
     /// Continues the host's conversation as a retry does, streaming the updates.
@@ -354,7 +354,7 @@ public static class AgentRuns
     /// <typeparam name="TAgent">The agent.</typeparam>
     /// <param name="host">The host, with the run's services and ids.</param>
     /// <param name="settings">The run's settings, over the stored ones.</param>
-    /// <param name="ct">Cancels the run.</param>
+    /// <param name="cancellationToken">Cancels the run.</param>
     /// <returns>The run, which streams its updates and then holds its response.</returns>
     /// <exception cref="InvalidOperationException">The host has no conversation.</exception>
     /// <exception cref="NothingToResumeException">The conversation has nothing to retry.</exception>
@@ -368,9 +368,9 @@ public static class AgentRuns
     public static StreamingRun RetryStreamingAsync<TAgent>(
         AgentHost<TAgent> host,
         object? settings,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
         where TAgent : Agent =>
-        host.RunStreamingCoreAsync(null, settings, ct, retries: true);
+        host.RunStreamingCoreAsync(null, settings, cancellationToken, retries: true);
 
     /// <summary>
     /// Continues the host's conversation as a retry does, asking for JSON of <typeparamref name="TResult"/>'s schema.
@@ -379,7 +379,7 @@ public static class AgentRuns
     /// <typeparam name="TResult">The result.</typeparam>
     /// <param name="host">The host, with the run's services and ids.</param>
     /// <param name="settings">The run's settings, over the stored ones.</param>
-    /// <param name="ct">Cancels the run.</param>
+    /// <param name="cancellationToken">Cancels the run.</param>
     /// <returns>The response, with the result.</returns>
     /// <exception cref="InvalidOperationException">The host has no conversation.</exception>
     /// <exception cref="NothingToResumeException">The conversation has nothing to retry.</exception>
@@ -393,9 +393,9 @@ public static class AgentRuns
     public static Task<ChatResponse<TResult>> RetryAsync<TAgent, TResult>(
         AgentHost<TAgent> host,
         object? settings,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
         where TAgent : Agent =>
-        host.RunCoreAsync<TResult>(null, settings, ct, retries: true);
+        host.RunCoreAsync<TResult>(null, settings, cancellationToken, retries: true);
 
     /// <summary>
     /// Continues the host's conversation as a retry does, streaming the updates and asking for JSON of
@@ -405,7 +405,7 @@ public static class AgentRuns
     /// <typeparam name="TResult">The result.</typeparam>
     /// <param name="host">The host, with the run's services and ids.</param>
     /// <param name="settings">The run's settings, over the stored ones.</param>
-    /// <param name="ct">Cancels the run.</param>
+    /// <param name="cancellationToken">Cancels the run.</param>
     /// <returns>The run, which streams its updates and then holds the result.</returns>
     /// <exception cref="InvalidOperationException">The host has no conversation.</exception>
     /// <exception cref="NothingToResumeException">The conversation has nothing to retry.</exception>
@@ -419,9 +419,9 @@ public static class AgentRuns
     public static StreamingRun<TResult> RetryStreamingAsync<TAgent, TResult>(
         AgentHost<TAgent> host,
         object? settings,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
         where TAgent : Agent =>
-        host.RunStreamingCoreAsync<TResult>(null, settings, ct, retries: true);
+        host.RunStreamingCoreAsync<TResult>(null, settings, cancellationToken, retries: true);
 
     /// <summary>
     /// Resolves the options of a run: the agent's code, its stored settings, the run's settings, then its tools.
@@ -429,16 +429,16 @@ public static class AgentRuns
     /// <typeparam name="TAgent">The agent.</typeparam>
     /// <param name="host">The host, with the run's services and ids.</param>
     /// <param name="settings">The run's settings, over the stored ones.</param>
-    /// <param name="ct">Cancels the resolution.</param>
+    /// <param name="cancellationToken">Cancels the resolution.</param>
     /// <returns>
     /// The options, for <see cref="AgentHost{TAgent}.CreateChatClientAsync(ChatOptions, CancellationToken)"/>.
     /// </returns>
     public static Task<ChatOptions> ResolveOptionsAsync<TAgent>(
         AgentHost<TAgent> host,
         object? settings,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
         where TAgent : Agent =>
-        host.ResolveOptionsCoreAsync(host.SettingsId, settings, ct);
+        host.ResolveOptionsCoreAsync(host.SettingsId, settings, cancellationToken);
 
     /// <summary>
     /// Creates the client of the raw path from the options of a run, which it keeps.
@@ -446,16 +446,20 @@ public static class AgentRuns
     /// <typeparam name="TAgent">The agent.</typeparam>
     /// <param name="host">The host, with the run's services and ids.</param>
     /// <param name="settings">The run's settings, over the stored ones.</param>
-    /// <param name="ct">Cancels the creation.</param>
+    /// <param name="cancellationToken">Cancels the creation.</param>
     /// <returns>The client.</returns>
     public static async Task<IChatClient> CreateChatClientAsync<TAgent>(
         AgentHost<TAgent> host,
         object? settings,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
         where TAgent : Agent
     {
-        var options = await host.ResolveOptionsCoreAsync(host.SettingsId, settings, ct).ConfigureAwait(false);
-        return await host.CreateChatClientAsync(options, ct).ConfigureAwait(false);
+        var options = await host.ResolveOptionsCoreAsync(
+            host.SettingsId,
+            settings,
+            cancellationToken).ConfigureAwait(false);
+
+        return await host.CreateChatClientAsync(options, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -464,19 +468,19 @@ public static class AgentRuns
     /// <typeparam name="TAgent">The agent.</typeparam>
     /// <typeparam name="TSettings">The agent's settings record.</typeparam>
     /// <param name="host">The host, with the run's services and ids.</param>
-    /// <param name="ct">Cancels the load.</param>
+    /// <param name="cancellationToken">Cancels the load.</param>
     /// <returns>The settings and their version; empty settings at version 0 when none are stored.</returns>
     public static async Task<Stored<TSettings>> LoadSettingsAsync<TAgent, TSettings>(
         AgentHost<TAgent> host,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
         where TAgent : Agent
         where TSettings : class, IStorable<TSettings>, new()
     {
         SynchronizationContexts.Leave();
 
         return (host.SettingsId is { } id
-                ? await host.Store.LoadAsync<TSettings>(id, ct).ConfigureAwait(false)
-                : await host.Store.LoadAgentSettingsAsync<TSettings>(ct).ConfigureAwait(false))
+                ? await host.Store.LoadAsync<TSettings>(id, cancellationToken).ConfigureAwait(false)
+                : await host.Store.LoadAgentSettingsAsync<TSettings>(cancellationToken).ConfigureAwait(false))
             ?? new Stored<TSettings>(new TSettings(), 0);
     }
 
@@ -491,7 +495,7 @@ public static class AgentRuns
     /// <param name="loadedVersion">
     /// The version <c>LoadSettingsAsync</c> or <c>UpdateSettingsAsync</c> returned, 0 when it loaded none.
     /// </param>
-    /// <param name="ct">Cancels the save.</param>
+    /// <param name="cancellationToken">Cancels the save.</param>
     /// <returns>The new version, to pass to the next save.</returns>
     /// <exception cref="ArgumentException">
     /// The settings set a value no run can go with, such as a blank model or no round of tool calls; nothing is saved.
@@ -500,12 +504,12 @@ public static class AgentRuns
         AgentHost<TAgent> host,
         TSettings settings,
         long loadedVersion,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
         where TAgent : Agent
         where TSettings : class, IStorable<TSettings>
     {
         EnsureRuns(host.Agent, settings);
-        return SaveAsync(host, settings, loadedVersion, ct);
+        return SaveAsync(host, settings, loadedVersion, cancellationToken);
     }
 
     private static async Task<long> SaveAsync<TAgent, TSettings>(
@@ -550,7 +554,7 @@ public static class AgentRuns
     /// <typeparam name="TSettings">The agent's settings record.</typeparam>
     /// <param name="host">The host, with the run's services and ids.</param>
     /// <param name="update">Returns the changed settings; called again after a lost save.</param>
-    /// <param name="ct">Cancels the update.</param>
+    /// <param name="cancellationToken">Cancels the update.</param>
     /// <returns>The settings saved and their version, which the next save takes.</returns>
     /// <exception cref="StoreConflictException">Another save came first ten times in a row.</exception>
     /// <exception cref="InvalidOperationException">
@@ -562,7 +566,7 @@ public static class AgentRuns
     public static async Task<Stored<TSettings>> UpdateSettingsAsync<TAgent, TSettings>(
         AgentHost<TAgent> host,
         Func<TSettings, TSettings> update,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
         where TAgent : Agent
         where TSettings : class, IStorable<TSettings>, new()
     {
@@ -571,7 +575,7 @@ public static class AgentRuns
         // D41: each conflict means another save won, so the loop ends once no other save comes between
         for (var attempt = 1; ; attempt++)
         {
-            var stored = await LoadSettingsAsync<TAgent, TSettings>(host, ct).ConfigureAwait(false);
+            var stored = await LoadSettingsAsync<TAgent, TSettings>(host, cancellationToken).ConfigureAwait(false);
 
             // A null would fail the save with an exception that names neither the agent nor the function
             var updated = update(stored.Data)
@@ -581,12 +585,17 @@ public static class AgentRuns
 
             try
             {
-                var version = await SaveSettingsAsync(host, updated, stored.Version, ct).ConfigureAwait(false);
+                var version = await SaveSettingsAsync(
+                    host,
+                    updated,
+                    stored.Version,
+                    cancellationToken).ConfigureAwait(false);
+
                 return new Stored<TSettings>(updated, version);
             }
             catch (StoreConflictException) when (attempt < MaxUpdateAttempts)
             {
-                ct.ThrowIfCancellationRequested();
+                cancellationToken.ThrowIfCancellationRequested();
             }
         }
     }

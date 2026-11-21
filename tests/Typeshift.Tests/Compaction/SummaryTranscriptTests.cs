@@ -67,5 +67,5 @@ public class SummaryTranscriptTests : AgentTestBase
     private Task<ChatResponse> RunAsync(string input, CompactingAgent.Settings settings) =>
         Host<CompactingAgent>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunAsync(input, settings: settings, ct: Ct);
+            .RunAsync(input, settings: settings, cancellationToken: Ct);
 }

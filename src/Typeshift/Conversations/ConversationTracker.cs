@@ -49,13 +49,13 @@ public sealed class ConversationTracker<TId> where TId : notnull
     /// The runs of conversations under ids of <typeparamref name="TId"/> going on now, then each run as it starts and
     /// as it ends, until cancelled. A watcher that falls behind loses its oldest changes.
     /// </summary>
-    /// <param name="ct">Ends the watch.</param>
+    /// <param name="cancellationToken">Ends the watch.</param>
     /// <returns>The runs; one that ended has <see cref="LiveRun{TId}.Ended"/> set.</returns>
     /// <exception cref="InvalidOperationException">
     /// Your app registered stores, and none keeps conversations under ids of <typeparamref name="TId"/>.
     /// </exception>
-    public IAsyncEnumerable<LiveRun<TId>> WatchRunsAsync(CancellationToken ct) =>
-        _runs.Value.WatchRunsAsync(ct)
+    public IAsyncEnumerable<LiveRun<TId>> WatchRunsAsync(CancellationToken cancellationToken) =>
+        _runs.Value.WatchRunsAsync(cancellationToken)
             .Where(change => IsOfIdType(change.Run))
             .Select(change => Live(change.Run) with { Ended = change.Ended });
 
@@ -68,13 +68,13 @@ public sealed class ConversationTracker<TId> where TId : notnull
     /// <see href="https://weboost-at.github.io/Typeshift/guide/conversations#live-updates">Live updates</see>.
     /// </summary>
     /// <param name="conversation">The conversation's id.</param>
-    /// <param name="ct">Ends the watch.</param>
+    /// <param name="cancellationToken">Ends the watch.</param>
     /// <returns>The updates.</returns>
     /// <exception cref="InvalidOperationException">
     /// Your app registered stores, and none keeps conversations under ids of <typeparamref name="TId"/>.
     /// </exception>
-    public IAsyncEnumerable<ChatResponseUpdate> WatchAsync(TId conversation, CancellationToken ct) =>
-        _runs.Value.WatchAsync(new StoreId<TId>(conversation), ct);
+    public IAsyncEnumerable<ChatResponseUpdate> WatchAsync(TId conversation, CancellationToken cancellationToken) =>
+        _runs.Value.WatchAsync(new StoreId<TId>(conversation), cancellationToken);
 
     /// <summary>
     /// Hands input to the conversation's run going on in this container. The run's middleware sees it first and may

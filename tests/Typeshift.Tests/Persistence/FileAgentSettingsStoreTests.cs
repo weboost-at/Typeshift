@@ -257,7 +257,8 @@ public sealed class FileAgentSettingsStoreTests : AgentTestBase
         await using var run = second.CreateAsyncScope();
 
         // Act
-        var applied = await run.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>().ResolveOptionsAsync(ct: Ct);
+        var applied = await run.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>().ResolveOptionsAsync(
+            cancellationToken: Ct);
 
         // Assert
         applied.Temperature.Should().Be(Data.Agent.Temperature);

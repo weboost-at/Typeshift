@@ -5,7 +5,7 @@ namespace Typeshift.Samples.Hosting;
 // begin-snippet: run-middleware
 internal sealed class BlockedTopics : IRunMiddleware
 {
-    public Task InvokeAsync(AgentRun run, Func<Task> next, CancellationToken ct)
+    public Task InvokeAsync(AgentRun run, Func<Task> next, CancellationToken cancellationToken)
     {
         if (IsBlocked(run.Messages[^1]))
         {
@@ -16,7 +16,10 @@ internal sealed class BlockedTopics : IRunMiddleware
         return next();
     }
 
-    public ValueTask<ChatMessage?> OnSteeringAsync(AgentRun run, ChatMessage input, CancellationToken ct) =>
+    public ValueTask<ChatMessage?> OnSteeringAsync(
+        AgentRun run,
+        ChatMessage input,
+        CancellationToken cancellationToken) =>
         ValueTask.FromResult(IsBlocked(input) ? null : input);
 
     private static bool IsBlocked(ChatMessage message) =>

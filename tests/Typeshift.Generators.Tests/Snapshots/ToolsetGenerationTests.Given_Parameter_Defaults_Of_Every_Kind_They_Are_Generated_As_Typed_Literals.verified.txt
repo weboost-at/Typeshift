@@ -234,7 +234,7 @@ partial class GreetingToolset
             protected override global::System.Threading.Tasks.ValueTask<object?> InvokeToolAsync(
                 global::Microsoft.Extensions.AI.AIFunctionArguments arguments,
                 global::System.IServiceProvider services,
-                global::System.Threading.CancellationToken ct) =>
+                global::System.Threading.CancellationToken cancellationToken) =>
                 new(GetResult(global::Demo.GreetingToolset.Greet(
                     GetArgument<string>(arguments, "greeting", "say \"hi\""),
                     GetArgument<bool>(arguments, "loud", true),
@@ -307,7 +307,7 @@ partial class GreetingToolset
             protected override global::System.Threading.Tasks.ValueTask<object?> InvokeToolAsync(
                 global::Microsoft.Extensions.AI.AIFunctionArguments arguments,
                 global::System.IServiceProvider services,
-                global::System.Threading.CancellationToken ct) =>
+                global::System.Threading.CancellationToken cancellationToken) =>
                 new(GetResult(global::Demo.GreetingToolset.Sign(
                     GetArgument<string>(arguments, "name", null!),
                     GetArgument<global::System.Collections.Generic.List<string>>(arguments, "titles", null!))));
@@ -320,7 +320,7 @@ partial class GreetingToolset
 #nullable enable
 #pragma warning disable CS0612, CS0618
 
-[assembly: global::Typeshift.Generated.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule), 24)]
+[assembly: global::Typeshift.Generated.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule), 25)]
 
 namespace Typeshift.Generated;
 

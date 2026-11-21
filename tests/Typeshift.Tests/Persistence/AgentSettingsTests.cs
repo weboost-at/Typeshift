@@ -21,7 +21,7 @@ public class AgentSettingsTests : AgentTestBase
             Ct);
 
         // Act
-        await host.RunAsync(Data.Tool.Question, ct: Ct);
+        await host.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         Models.Should().Equal(new ProvidedModel(Data.Agent.Provider, Data.Agent.Model));
@@ -41,7 +41,7 @@ public class AgentSettingsTests : AgentTestBase
         await host.WithSettingsId(Data.Persistence.SettingsId).SaveSettingsAsync(customer, 0, Ct);
 
         // Act
-        await host.WithSettingsId(Data.Persistence.SettingsId).RunAsync(Data.Tool.Question, ct: Ct);
+        await host.WithSettingsId(Data.Persistence.SettingsId).RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         Models.Should().Equal(new ProvidedModel(ProbeAgent.ModelProvider, Data.Agent.Model));
@@ -99,7 +99,7 @@ public class AgentSettingsTests : AgentTestBase
         await host.UpdateSettingsAsync(settings => settings with { Temperature = Data.Agent.Temperature }, Ct);
 
         // Act
-        var options = await host.ResolveOptionsAsync(ct: Ct);
+        var options = await host.ResolveOptionsAsync(cancellationToken: Ct);
 
         // Assert
         options.Temperature.Should().Be(Data.Agent.Temperature);
@@ -285,7 +285,7 @@ public class AgentSettingsTests : AgentTestBase
             Ct);
 
         // Act
-        await host.RunAsync(Data.Tool.Question, ct: Ct);
+        await host.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         Models.Should().Equal(new ProvidedModel(Data.Agent.Provider, Data.Agent.Model));
@@ -307,7 +307,7 @@ public class AgentSettingsTests : AgentTestBase
         await host.UpdateSettingsAsync(settings => settings with { Model = Data.Agent.Model }, Ct);
 
         // Act
-        await host.RunAsync(Data.Tool.Question, ct: Ct);
+        await host.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         Models.Should().Equal(new ProvidedModel(ProbeAgent.ModelProvider, Data.Agent.Model));
@@ -349,7 +349,7 @@ public class AgentSettingsTests : AgentTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act
-        await host.RunAsync(Data.Tool.Question, ct: Ct);
+        await host.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         Models.Should().Equal(new ProvidedModel(ProbeAgent.ModelProvider, ProbeAgent.Model));

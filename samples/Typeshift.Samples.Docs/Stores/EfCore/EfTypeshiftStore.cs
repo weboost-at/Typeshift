@@ -6,24 +6,29 @@ namespace Typeshift.Samples.Stores.EfCore;
 internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts)
     : ITypeshiftStore<int>, IAgentSettingsStore
 {
-    public async Task<StoredDocument?> LoadAsync(int id, string kind, CancellationToken ct)
+    public async Task<StoredDocument?> LoadAsync(int id, string kind, CancellationToken cancellationToken)
     {
-        await using var db = await contexts.CreateDbContextAsync(ct);
+        await using var db = await contexts.CreateDbContextAsync(cancellationToken);
 
-        return await db.Documents.FindAsync([id, kind], ct) is { } row
+        return await db.Documents.FindAsync([id, kind], cancellationToken) is { } row
             ? new StoredDocument(row.Json, row.Version)
             : null;
     }
     // end-snippet
 
     // begin-snippet: ef-core-save
-    public async Task<long> SaveAsync(int id, string kind, string json, long loadedVersion, CancellationToken ct)
+    public async Task<long> SaveAsync(
+        int id,
+        string kind,
+        string json,
+        long loadedVersion,
+        CancellationToken cancellationToken)
     {
-        await using var db = await contexts.CreateDbContextAsync(ct);
+        await using var db = await contexts.CreateDbContextAsync(cancellationToken);
 
         var rows = loadedVersion == 0
-            ? await InsertAsync(db, id, kind, json, ct)
-            : await UpdateAsync(db, id, kind, json, loadedVersion, ct);
+            ? await InsertAsync(db, id, kind, json, cancellationToken)
+            : await UpdateAsync(db, id, kind, json, loadedVersion, cancellationToken);
 
         // Each statement checks and writes in one step, so a save that changed no row lost to another save
         return rows == 1
@@ -57,18 +62,18 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts)
     // end-snippet
 
     // begin-snippet: ef-agent-settings
-    public async Task<StoredDocument?> LoadAsync(string kind, CancellationToken ct)
+    public async Task<StoredDocument?> LoadAsync(string kind, CancellationToken cancellationToken)
     {
-        await using var db = await contexts.CreateDbContextAsync(ct);
+        await using var db = await contexts.CreateDbContextAsync(cancellationToken);
 
-        return await db.AgentDocuments.FindAsync([kind], ct) is { } row
+        return await db.AgentDocuments.FindAsync([kind], cancellationToken) is { } row
             ? new StoredDocument(row.Json, row.Version)
             : null;
     }
 
-    public async Task<long> SaveAsync(string kind, string json, long loadedVersion, CancellationToken ct)
+    public async Task<long> SaveAsync(string kind, string json, long loadedVersion, CancellationToken cancellationToken)
     {
-        await using var db = await contexts.CreateDbContextAsync(ct);
+        await using var db = await contexts.CreateDbContextAsync(cancellationToken);
 
         var rows = loadedVersion == 0
             ? await db.Database.ExecuteSqlAsync(
@@ -77,14 +82,14 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts)
                 VALUES ({kind}, 1, {json})
                 ON CONFLICT ("Kind") DO NOTHING
                 """,
-                ct)
+                cancellationToken)
             : await db.AgentDocuments
                 .Where(row => row.Kind == kind && row.Version == loadedVersion)
                 .ExecuteUpdateAsync(
                     set => set
                         .SetProperty(row => row.Json, json)
                         .SetProperty(row => row.Version, loadedVersion + 1),
-                    ct);
+                    cancellationToken);
 
         return rows == 1
             ? loadedVersion + 1
@@ -93,14 +98,16 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts)
     // end-snippet
 
     // begin-snippet: ef-core-conversations
-    public async Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(int conversation, CancellationToken ct)
+    public async Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(
+        int conversation,
+        CancellationToken cancellationToken)
     {
-        await using var db = await contexts.CreateDbContextAsync(ct);
+        await using var db = await contexts.CreateDbContextAsync(cancellationToken);
 
         var rows = await db.Entries
             .Where(entry => entry.Conversation == conversation)
             .OrderBy(entry => entry.Id)
-            .ToListAsync(ct);
+            .ToListAsync(cancellationToken);
 
         return [.. rows.Select(row => ConversationEntry.Deserialize(row.Json))];
     }
@@ -108,28 +115,31 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts)
     // A run starts from the last summary, so the rows before it stay in the database
     public async Task<IReadOnlyList<ConversationEntry>> LoadConversationSinceCompactionAsync(
         int conversation,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
     {
-        await using var db = await contexts.CreateDbContextAsync(ct);
+        await using var db = await contexts.CreateDbContextAsync(cancellationToken);
         var entries = db.Entries.Where(entry => entry.Conversation == conversation);
 
         var start = await entries
             .Where(entry => entry.IsSummary)
-            .MaxAsync(entry => (long?)entry.Id, ct) ?? 0;
+            .MaxAsync(entry => (long?)entry.Id, cancellationToken) ?? 0;
 
         var rows = await entries
             .Where(entry => entry.Id >= start)
             .OrderBy(entry => entry.Id)
-            .ToListAsync(ct);
+            .ToListAsync(cancellationToken);
 
         return [.. rows.Select(row => ConversationEntry.Deserialize(row.Json))];
     }
     // end-snippet
 
     // begin-snippet: ef-core-append
-    public async Task AppendConversationAsync(int conversation, ConversationEntry entry, CancellationToken ct)
+    public async Task AppendConversationAsync(
+        int conversation,
+        ConversationEntry entry,
+        CancellationToken cancellationToken)
     {
-        await using var db = await contexts.CreateDbContextAsync(ct);
+        await using var db = await contexts.CreateDbContextAsync(cancellationToken);
 
         // An entry without a number, as an earlier version wrote it, keeps NULL, which the unique key allows twice
         long? sequence = entry.Sequence > 0 ? entry.Sequence : null;
@@ -140,7 +150,7 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts)
             VALUES ({conversation}, {sequence}, {entry.IsSummary}, {entry.Serialize()})
             ON CONFLICT ("Conversation", "Sequence") DO NOTHING
             """,
-            ct);
+            cancellationToken);
 
         // The unique key refused the number: a run of another instance of the app appended under it first
         if (rows == 0)
@@ -149,18 +159,22 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts)
     // end-snippet
 
     // begin-snippet: ef-core-decisions
-    public async Task<StoredDocument?> LoadDecisionsAsync(int conversation, CancellationToken ct)
+    public async Task<StoredDocument?> LoadDecisionsAsync(int conversation, CancellationToken cancellationToken)
     {
-        await using var db = await contexts.CreateDbContextAsync(ct);
+        await using var db = await contexts.CreateDbContextAsync(cancellationToken);
 
-        return await db.Decisions.FindAsync([conversation], ct) is { } row
+        return await db.Decisions.FindAsync([conversation], cancellationToken) is { } row
             ? new StoredDocument(row.Json, row.Version)
             : null;
     }
 
-    public async Task<long> SaveDecisionsAsync(int conversation, string json, long loadedVersion, CancellationToken ct)
+    public async Task<long> SaveDecisionsAsync(
+        int conversation,
+        string json,
+        long loadedVersion,
+        CancellationToken cancellationToken)
     {
-        await using var db = await contexts.CreateDbContextAsync(ct);
+        await using var db = await contexts.CreateDbContextAsync(cancellationToken);
 
         var rows = loadedVersion == 0
             ? await db.Database.ExecuteSqlAsync(
@@ -169,14 +183,14 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts)
                 VALUES ({conversation}, 1, {json})
                 ON CONFLICT ("Conversation") DO NOTHING
                 """,
-                ct)
+                cancellationToken)
             : await db.Decisions
                 .Where(row => row.Conversation == conversation && row.Version == loadedVersion)
                 .ExecuteUpdateAsync(
                     set => set
                         .SetProperty(row => row.Json, json)
                         .SetProperty(row => row.Version, loadedVersion + 1),
-                    ct);
+                    cancellationToken);
 
         // One statement checks the version and writes, which is what lets an approved call start only once
         return rows == 1

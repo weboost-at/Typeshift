@@ -7,7 +7,7 @@ public sealed record WorkspaceOptions(string Path);
 // every run sees the current state
 public sealed class WorkspaceContext(WorkspaceOptions options) : IContextProvider
 {
-    public ValueTask<AgentContext> GetContextAsync(AgentRun run, CancellationToken ct)
+    public ValueTask<AgentContext> GetContextAsync(AgentRun run, CancellationToken cancellationToken)
     {
         var entries = new DirectoryInfo(options.Path).EnumerateFileSystemInfos()
             .Select(entry => entry is DirectoryInfo ? $"{entry.Name}/" : entry.Name)

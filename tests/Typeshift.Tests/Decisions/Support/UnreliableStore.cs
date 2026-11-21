@@ -25,37 +25,51 @@ public sealed class UnreliableStore : ITypeshiftStore<Guid>
 
     public void BeforeNextSave(Func<Task> other) => _others.Enqueue(other);
 
-    public Task<StoredDocument?> LoadDecisionsAsync(Guid conversation, CancellationToken ct) =>
-        Inner.LoadDecisionsAsync(conversation, ct);
+    public Task<StoredDocument?> LoadDecisionsAsync(Guid conversation, CancellationToken cancellationToken) =>
+        Inner.LoadDecisionsAsync(conversation, cancellationToken);
 
-    public async Task<long> SaveDecisionsAsync(Guid conversation, string json, long loadedVersion, CancellationToken ct)
+    public async Task<long> SaveDecisionsAsync(
+        Guid conversation,
+        string json,
+        long loadedVersion,
+        CancellationToken cancellationToken)
     {
         if (++Saves == FailingSave) throw new IOException("The store timed out.");
 
         if (_others.TryDequeue(out var other)) await other();
-        if (LosesEverySave) await SaveAgainAsync(conversation, ct);
+        if (LosesEverySave) await SaveAgainAsync(conversation, cancellationToken);
 
-        return await Inner.SaveDecisionsAsync(conversation, json, loadedVersion, ct);
+        return await Inner.SaveDecisionsAsync(conversation, json, loadedVersion, cancellationToken);
     }
 
-    public Task<StoredDocument?> LoadAsync(Guid id, string kind, CancellationToken ct) =>
-        Inner.LoadAsync(id, kind, ct);
+    public Task<StoredDocument?> LoadAsync(Guid id, string kind, CancellationToken cancellationToken) =>
+        Inner.LoadAsync(id, kind, cancellationToken);
 
-    public Task<long> SaveAsync(Guid id, string kind, string json, long loadedVersion, CancellationToken ct) =>
-        Inner.SaveAsync(id, kind, json, loadedVersion, ct);
+    public Task<long> SaveAsync(
+        Guid id,
+        string kind,
+        string json,
+        long loadedVersion,
+        CancellationToken cancellationToken) =>
+        Inner.SaveAsync(id, kind, json, loadedVersion, cancellationToken);
 
-    public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(Guid conversation, CancellationToken ct) =>
-        Inner.LoadConversationAsync(conversation, ct);
+    public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(
+        Guid conversation,
+        CancellationToken cancellationToken) =>
+        Inner.LoadConversationAsync(conversation, cancellationToken);
 
     public Task<IReadOnlyList<ConversationEntry>> LoadConversationSinceCompactionAsync(
         Guid conversation,
-        CancellationToken ct) =>
-        Inner.LoadConversationSinceCompactionAsync(conversation, ct);
+        CancellationToken cancellationToken) =>
+        Inner.LoadConversationSinceCompactionAsync(conversation, cancellationToken);
 
-    public Task AppendConversationAsync(Guid conversation, ConversationEntry entry, CancellationToken ct) =>
+    public Task AppendConversationAsync(
+        Guid conversation,
+        ConversationEntry entry,
+        CancellationToken cancellationToken) =>
         Interlocked.Increment(ref _appends) == FailingAppend
             ? throw new IOException("The store timed out.")
-            : Inner.AppendConversationAsync(conversation, entry, ct);
+            : Inner.AppendConversationAsync(conversation, entry, cancellationToken);
 
     private async Task SaveAgainAsync(Guid conversation, CancellationToken ct)
     {

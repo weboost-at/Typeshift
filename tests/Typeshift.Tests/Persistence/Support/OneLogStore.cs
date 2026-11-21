@@ -5,14 +5,19 @@ public sealed class OneLogStore : IConversationStore<Guid>
 {
     private readonly InMemoryTypeshiftStore<Guid> _store = new();
 
-    public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(Guid conversation, CancellationToken ct) =>
-        _store.LoadConversationAsync(Guid.Empty, ct);
+    public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(
+        Guid conversation,
+        CancellationToken cancellationToken) =>
+        _store.LoadConversationAsync(Guid.Empty, cancellationToken);
 
     public Task<IReadOnlyList<ConversationEntry>> LoadConversationSinceCompactionAsync(
         Guid conversation,
-        CancellationToken ct) =>
-        _store.LoadConversationSinceCompactionAsync(Guid.Empty, ct);
+        CancellationToken cancellationToken) =>
+        _store.LoadConversationSinceCompactionAsync(Guid.Empty, cancellationToken);
 
-    public Task AppendConversationAsync(Guid conversation, ConversationEntry entry, CancellationToken ct) =>
-        _store.AppendConversationAsync(Guid.Empty, entry, ct);
+    public Task AppendConversationAsync(
+        Guid conversation,
+        ConversationEntry entry,
+        CancellationToken cancellationToken) =>
+        _store.AppendConversationAsync(Guid.Empty, entry, cancellationToken);
 }

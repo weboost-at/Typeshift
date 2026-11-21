@@ -16,9 +16,9 @@ public interface IMcpToolProvider
     /// Returns the tools of a server. Their descriptions and results are untrusted input.
     /// </summary>
     /// <param name="server">The server's name, as the agent names it.</param>
-    /// <param name="ct">Cancels the connection.</param>
+    /// <param name="cancellationToken">Cancels the connection.</param>
     /// <returns>The server's tools.</returns>
-    ValueTask<IReadOnlyList<AITool>> GetToolsAsync(string server, CancellationToken ct);
+    ValueTask<IReadOnlyList<AITool>> GetToolsAsync(string server, CancellationToken cancellationToken);
 }
 
 /// <summary>

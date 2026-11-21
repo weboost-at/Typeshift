@@ -130,7 +130,7 @@ public class ToolMiddlewareTests : MiddlewareTestBase
         var seenWhileWaiting = Script.Log.Count(entry => entry.StartsWith("tool"));
 
         // Act
-        await chat.AnswerAsync([DecisionAnswer.Approve(asked.Decisions[0].Id)], ct: Ct);
+        await chat.AnswerAsync([DecisionAnswer.Approve(asked.Decisions[0].Id)], cancellationToken: Ct);
 
         // Assert
         seenWhileWaiting.Should().Be(0);
@@ -149,7 +149,7 @@ public class ToolMiddlewareTests : MiddlewareTestBase
         var asked = await RunAsync(Data.Tool.Question);
 
         // Act
-        await chat.AnswerAsync([asked.Decisions[0].Reject(Data.Agent.Reason)], ct: Ct);
+        await chat.AnswerAsync([asked.Decisions[0].Reject(Data.Agent.Reason)], cancellationToken: Ct);
 
         // Assert
         Script.Log.Where(entry => entry.StartsWith("tool")).Should().BeEmpty();

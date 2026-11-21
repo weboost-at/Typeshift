@@ -10,20 +10,25 @@ public sealed class CountingLoadStore : IConversationStore<Guid>
 
     public int Loads { get; private set; }
 
-    public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(Guid conversation, CancellationToken ct)
+    public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(
+        Guid conversation,
+        CancellationToken cancellationToken)
     {
         WholeLoads++;
-        return _store.LoadConversationAsync(conversation, ct);
+        return _store.LoadConversationAsync(conversation, cancellationToken);
     }
 
     public Task<IReadOnlyList<ConversationEntry>> LoadConversationSinceCompactionAsync(
         Guid conversation,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
     {
         Loads++;
-        return _store.LoadConversationSinceCompactionAsync(conversation, ct);
+        return _store.LoadConversationSinceCompactionAsync(conversation, cancellationToken);
     }
 
-    public Task AppendConversationAsync(Guid conversation, ConversationEntry entry, CancellationToken ct) =>
-        _store.AppendConversationAsync(conversation, entry, ct);
+    public Task AppendConversationAsync(
+        Guid conversation,
+        ConversationEntry entry,
+        CancellationToken cancellationToken) =>
+        _store.AppendConversationAsync(conversation, entry, cancellationToken);
 }

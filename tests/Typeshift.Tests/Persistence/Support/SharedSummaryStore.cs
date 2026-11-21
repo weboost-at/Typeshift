@@ -6,12 +6,14 @@ public sealed class SharedSummaryStore : IConversationStore<Guid>
 {
     private readonly List<(Guid Conversation, string Json)> _rows = [];
 
-    public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(Guid conversation, CancellationToken ct) =>
+    public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(
+        Guid conversation,
+        CancellationToken cancellationToken) =>
         Task.FromResult(Load(conversation, start: 0));
 
     public Task<IReadOnlyList<ConversationEntry>> LoadConversationSinceCompactionAsync(
         Guid conversation,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
     {
         lock (_rows)
         {
@@ -20,7 +22,7 @@ public sealed class SharedSummaryStore : IConversationStore<Guid>
         }
     }
 
-    public Task AppendConversationAsync(Guid conversation, ConversationEntry entry, CancellationToken ct)
+    public Task AppendConversationAsync(Guid conversation, ConversationEntry entry, CancellationToken cancellationToken)
     {
         lock (_rows)
         {

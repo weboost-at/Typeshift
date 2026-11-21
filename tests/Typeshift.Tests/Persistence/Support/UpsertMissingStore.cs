@@ -8,10 +8,15 @@ public sealed class UpsertMissingStore : ISettingsStore<Guid>
 {
     private readonly ConcurrentDictionary<(Guid Id, string Kind), StoredDocument> _rows = [];
 
-    public Task<StoredDocument?> LoadAsync(Guid id, string kind, CancellationToken ct) =>
+    public Task<StoredDocument?> LoadAsync(Guid id, string kind, CancellationToken cancellationToken) =>
         Task.FromResult(_rows.GetValueOrDefault((id, kind)));
 
-    public Task<long> SaveAsync(Guid id, string kind, string json, long loadedVersion, CancellationToken ct)
+    public Task<long> SaveAsync(
+        Guid id,
+        string kind,
+        string json,
+        long loadedVersion,
+        CancellationToken cancellationToken)
     {
         if (_rows.GetValueOrDefault((id, kind)) is { } stored && stored.Version != loadedVersion)
             throw new StoreConflictException($"{kind} {id} was saved after version {loadedVersion}.");

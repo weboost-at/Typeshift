@@ -34,7 +34,7 @@ public class ToolFailureTests : AgentTestBase
             .Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Host<FailingAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<FailingAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         SentResult().Should().Be($"{Read} {Data.Agent.Reason}");
@@ -49,7 +49,7 @@ public class ToolFailureTests : AgentTestBase
             .Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Host<FailingAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<FailingAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         SentResult().Should().Be(Failed);
@@ -64,7 +64,7 @@ public class ToolFailureTests : AgentTestBase
             .Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Host<FailingAgent>().RunStreamingAsync(Data.Tool.Question, ct: Ct).ToListAsync(Ct);
+        await Host<FailingAgent>().RunStreamingAsync(Data.Tool.Question, cancellationToken: Ct).ToListAsync(Ct);
 
         // Assert
         SentResult().Should().Be(Failed);
@@ -79,7 +79,7 @@ public class ToolFailureTests : AgentTestBase
             .Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Host<FailingAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<FailingAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         SentResult().Should().Be($"{Read} The tool 'crash' requires the argument 'message'.");
@@ -94,7 +94,7 @@ public class ToolFailureTests : AgentTestBase
             .Reply(Text(Data.Tool.Answer));
 
         // Act
-        var response = await Host<FailingAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        var response = await Host<FailingAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         response.Assert.ToolResult(Data.Tool.CallId).Result.Should().Be(Failed);
@@ -111,7 +111,7 @@ public class ToolFailureTests : AgentTestBase
         var host = Host<FailingAgent>().WithConversationId(Data.Agent.ConversationId);
 
         // Act
-        await host.RunAsync(Data.Tool.Question, ct: Ct);
+        await host.RunAsync(Data.Tool.Question, cancellationToken: Ct);
         var entries = await EntriesAsync(Data.Agent.ConversationId);
 
         var stored = entries
@@ -133,7 +133,7 @@ public class ToolFailureTests : AgentTestBase
             .Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Host<FailingAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<FailingAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         Log.Errors.Should().ContainSingle(error => error.Exception.Message == Data.Agent.Reason);
@@ -148,7 +148,7 @@ public class ToolFailureTests : AgentTestBase
             .Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Host<FailingAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<FailingAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         Log.Errors.Select(error => error.Category).Should().Equal(typeof(FunctionInvokingChatClient).FullName);
@@ -163,7 +163,7 @@ public class ToolFailureTests : AgentTestBase
             .Reply(Text(Data.Tool.Answer));
 
         // Act
-        var response = await Host<FailingAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        var response = await Host<FailingAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         response.Assert.ToolResult(Data.Tool.CallId).Exception!.Message.Should().Be(Data.Agent.Reason);
@@ -178,7 +178,7 @@ public class ToolFailureTests : AgentTestBase
             .Reply(Call(Data.Tool.SecondCallId, "crash", ("message", Data.Agent.Reason)));
 
         // Act
-        var run = () => Host<FailingAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        var run = () => Host<FailingAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         await run.Should().ThrowExactlyAsync<InvalidOperationException>().WithMessage(Data.Agent.Reason);
@@ -193,7 +193,7 @@ public class ToolFailureTests : AgentTestBase
             .Reply(Call(Data.Tool.SecondCallId, "refuse", ("hint", Data.Agent.Reason)));
 
         // Act
-        var run = () => Host<FailingAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        var run = () => Host<FailingAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         await run.Should().ThrowExactlyAsync<ToolException>().WithMessage(Data.Agent.Reason);

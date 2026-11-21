@@ -19,25 +19,41 @@ public sealed class JsonFileStore(string directory, TimeProvider time) : ITypesh
     // a conversation is guarded against a second process, by its lock file
     private readonly SemaphoreSlim _files = new(1, 1);
 
-    public Task<StoredDocument?> LoadAsync(Guid id, string kind, CancellationToken ct) =>
-        LoadDocumentAsync(DocumentPath(kind, id), ct);
+    public Task<StoredDocument?> LoadAsync(Guid id, string kind, CancellationToken cancellationToken) =>
+        LoadDocumentAsync(DocumentPath(kind, id), cancellationToken);
 
-    public Task<long> SaveAsync(Guid id, string kind, string json, long loadedVersion, CancellationToken ct) =>
-        SaveDocumentAsync(DocumentPath(kind, id), $"{kind} {id}", json, loadedVersion, ct);
+    public Task<long> SaveAsync(
+        Guid id,
+        string kind,
+        string json,
+        long loadedVersion,
+        CancellationToken cancellationToken) =>
+        SaveDocumentAsync(DocumentPath(kind, id), $"{kind} {id}", json, loadedVersion, cancellationToken);
 
-    public Task<StoredDocument?> LoadDecisionsAsync(Guid conversation, CancellationToken ct) =>
-        LoadDocumentAsync(DecisionsPath(conversation), ct);
+    public Task<StoredDocument?> LoadDecisionsAsync(Guid conversation, CancellationToken cancellationToken) =>
+        LoadDocumentAsync(DecisionsPath(conversation), cancellationToken);
 
-    public Task<long> SaveDecisionsAsync(Guid conversation, string json, long loadedVersion, CancellationToken ct) =>
-        SaveDocumentAsync(DecisionsPath(conversation), $"The decisions of {conversation}", json, loadedVersion, ct);
+    public Task<long> SaveDecisionsAsync(
+        Guid conversation,
+        string json,
+        long loadedVersion,
+        CancellationToken cancellationToken) =>
+        SaveDocumentAsync(
+            DecisionsPath(conversation),
+            $"The decisions of {conversation}",
+            json,
+            loadedVersion,
+            cancellationToken);
 
-    public async Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(Guid conversation, CancellationToken ct)
+    public async Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(
+        Guid conversation,
+        CancellationToken cancellationToken)
     {
-        await _files.WaitAsync(ct);
+        await _files.WaitAsync(cancellationToken);
 
         try
         {
-            return await ReadEntriesAsync(ConversationPath(conversation), ct);
+            return await ReadEntriesAsync(ConversationPath(conversation), cancellationToken);
         }
         finally
         {
@@ -48,8 +64,8 @@ public sealed class JsonFileStore(string directory, TimeProvider time) : ITypesh
     // A file of lines reads whole, so the entries from the last summary on are kept after the read
     public async Task<IReadOnlyList<ConversationEntry>> LoadConversationSinceCompactionAsync(
         Guid conversation,
-        CancellationToken ct) =>
-        (await LoadConversationAsync(conversation, ct)).SinceLastSummary();
+        CancellationToken cancellationToken) =>
+        (await LoadConversationAsync(conversation, cancellationToken)).SinceLastSummary();
 
     // Of two runs that loaded a conversation at the same point, the one that appends second is refused, as a unique
     // key on the conversation and the number would refuse it, also in another process: the number is checked and the
@@ -57,19 +73,22 @@ public sealed class JsonFileStore(string directory, TimeProvider time) : ITypesh
     // append of every process using this store, as Windows refuses a second open and .NET takes an advisory lock on
     // Linux and macOS. A program that writes the file without that lock, or a network share that keeps no locks, can
     // still slip an entry in between
-    public async Task AppendConversationAsync(Guid conversation, ConversationEntry entry, CancellationToken ct)
+    public async Task AppendConversationAsync(
+        Guid conversation,
+        ConversationEntry entry,
+        CancellationToken cancellationToken)
     {
         var path = ConversationPath(conversation);
         var line = System.Text.Encoding.UTF8.GetBytes(entry.Serialize() + "\n");
-        await _files.WaitAsync(ct);
+        await _files.WaitAsync(cancellationToken);
 
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-            await using var held = await LockAsync($"{path}.lock", ct);
+            await using var held = await LockAsync($"{path}.lock", cancellationToken);
 
             // A demo's conversations are short, so the file is read whole to find the number
-            var entries = entry.Sequence > 0 ? await ReadEntriesAsync(path, ct) : [];
+            var entries = entry.Sequence > 0 ? await ReadEntriesAsync(path, cancellationToken) : [];
 
             if (entries.Any(stored => stored.Sequence == entry.Sequence))
                 throw new StoreConflictException($"Conversation {conversation} holds entry {entry.Sequence} already.");
@@ -82,7 +101,7 @@ public sealed class JsonFileStore(string directory, TimeProvider time) : ITypesh
                 bufferSize: 1);
 
             DropTornLine(file);
-            await file.WriteAsync(line, ct);
+            await file.WriteAsync(line, cancellationToken);
         }
         finally
         {

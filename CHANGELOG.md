@@ -312,6 +312,13 @@ All notable changes to this project are documented here. The format follows
   `StoreConflictException` name their inner exception `innerException`, as .NET's exceptions and `ToolException` do.
   Only a named argument changes: write `new StoreConflictException(message, innerException: conflict)` for
   `new StoreConflictException(message, inner: conflict)`.
+- **Breaking:** every public and protected member of the library, every member of its public interfaces and every
+  member the generator writes takes its token as `cancellationToken`, as .NET's and Microsoft.Extensions.AI's APIs do,
+  where it took `ct`. A call that passes the token by position is unchanged; one that names it changes: write
+  `support.RunAsync(question, settings: run, cancellationToken: ct)` for
+  `support.RunAsync(question, settings: run, ct: ct)`. Your implementations of `IConversationStore<TId>`,
+  `IRunMiddleware` and the other interfaces compile as they are, and their parameters may follow the new name. Module
+  stamps are at version 25, so a referenced project built with an earlier Typeshift is TSH020 until it is rebuilt.
 - **Breaking:** a run that names no model, on a client that reports no model of its own in its `ChatClientMetadata`,
   throws an `InvalidOperationException` before it stores anything, naming the ways to name one. It sent the provider
   no model, which rejected the call. Name a model, or build the client with one, as `GetChatClient("gpt-5-mini")`

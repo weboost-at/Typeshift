@@ -286,7 +286,7 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// <see href="https://weboost-at.github.io/Typeshift/guide/running-agents">Running an agent</see>.
     /// </summary>
     /// <param name="input">The user's message.</param>
-    /// <param name="ct">Cancels the run.</param>
+    /// <param name="cancellationToken">Cancels the run.</param>
     /// <returns>The response; its messages carry the agent's name as their author.</returns>
     /// <exception cref="DecisionUnavailableException">
     /// A call would need a decision of your app, and the run has no conversation to keep it in. The run throws
@@ -311,14 +311,14 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// <exception cref="System.Text.Json.JsonException">
     /// The stored settings were written under a newer schema version than this code's.
     /// </exception>
-    public Task<ChatResponse> RunAsync(string input, CancellationToken ct = default) =>
-        RunCoreAsync(new ChatMessage(ChatRole.User, input), null, ct);
+    public Task<ChatResponse> RunAsync(string input, CancellationToken cancellationToken = default) =>
+        RunCoreAsync(new ChatMessage(ChatRole.User, input), null, cancellationToken);
 
     /// <summary>
     /// Runs the agent on a message, which may carry images, as <see cref="RunAsync(string, CancellationToken)"/> does.
     /// </summary>
     /// <param name="input">The user's message.</param>
-    /// <param name="ct">Cancels the run.</param>
+    /// <param name="cancellationToken">Cancels the run.</param>
     /// <returns>The response; its messages carry the agent's name as their author.</returns>
     /// <exception cref="ArgumentException">
     /// The message carries approval contents, which a run does not take: answers go through <c>AnswerAsync</c>.
@@ -345,8 +345,8 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// <exception cref="System.Text.Json.JsonException">
     /// The stored settings were written under a newer schema version than this code's.
     /// </exception>
-    public Task<ChatResponse> RunAsync(ChatMessage input, CancellationToken ct = default) =>
-        RunCoreAsync(input, null, ct);
+    public Task<ChatResponse> RunAsync(ChatMessage input, CancellationToken cancellationToken = default) =>
+        RunCoreAsync(input, null, cancellationToken);
 
     /// <summary>
     /// Runs the agent on a message as <see cref="RunAsync(string, CancellationToken)"/> does, asking the model for JSON
@@ -354,7 +354,7 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// </summary>
     /// <typeparam name="TResult">The result's type.</typeparam>
     /// <param name="input">The user's message.</param>
-    /// <param name="ct">Cancels the run.</param>
+    /// <param name="cancellationToken">Cancels the run.</param>
     /// <returns>The response, with the result.</returns>
     /// <exception cref="DecisionUnavailableException">
     /// A call would need a decision of your app, and the run has no conversation to keep it in. The run throws
@@ -378,8 +378,8 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// <exception cref="System.Text.Json.JsonException">
     /// The stored settings were written under a newer schema version than this code's.
     /// </exception>
-    public Task<ChatResponse<TResult>> RunAsync<TResult>(string input, CancellationToken ct = default) =>
-        RunCoreAsync<TResult>(new ChatMessage(ChatRole.User, input), null, ct);
+    public Task<ChatResponse<TResult>> RunAsync<TResult>(string input, CancellationToken cancellationToken = default) =>
+        RunCoreAsync<TResult>(new ChatMessage(ChatRole.User, input), null, cancellationToken);
 
     /// <summary>
     /// Runs the agent on a message, which may carry images, as
@@ -387,7 +387,7 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// </summary>
     /// <typeparam name="TResult">The result's type.</typeparam>
     /// <param name="input">The user's message.</param>
-    /// <param name="ct">Cancels the run.</param>
+    /// <param name="cancellationToken">Cancels the run.</param>
     /// <returns>The response, with the result.</returns>
     /// <exception cref="ArgumentException">
     /// The message carries approval contents, which a run does not take: answers go through <c>AnswerAsync</c>.
@@ -414,15 +414,17 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// <exception cref="System.Text.Json.JsonException">
     /// The stored settings were written under a newer schema version than this code's.
     /// </exception>
-    public Task<ChatResponse<TResult>> RunAsync<TResult>(ChatMessage input, CancellationToken ct = default) =>
-        RunCoreAsync<TResult>(input, null, ct);
+    public Task<ChatResponse<TResult>> RunAsync<TResult>(
+        ChatMessage input,
+        CancellationToken cancellationToken = default) =>
+        RunCoreAsync<TResult>(input, null, cancellationToken);
 
     /// <summary>
     /// Runs the agent on a message as <see cref="RunAsync(string, CancellationToken)"/> does, streaming the updates.
     /// The agent's generated <c>RunStreamingAsync</c> also takes the run's <c>Settings</c>.
     /// </summary>
     /// <param name="input">The user's message.</param>
-    /// <param name="ct">Cancels the run.</param>
+    /// <param name="cancellationToken">Cancels the run.</param>
     /// <returns>
     /// The run, which streams its updates, each with the agent's name as its author, and then holds its response.
     /// </returns>
@@ -441,15 +443,15 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// A model call sent no answer within the timeout of the run's model policy, and no rule of the policy
     /// handles a timeout.
     /// </exception>
-    public StreamingRun RunStreamingAsync(string input, CancellationToken ct = default) =>
-        RunStreamingCoreAsync(new ChatMessage(ChatRole.User, input), null, ct);
+    public StreamingRun RunStreamingAsync(string input, CancellationToken cancellationToken = default) =>
+        RunStreamingCoreAsync(new ChatMessage(ChatRole.User, input), null, cancellationToken);
 
     /// <summary>
     /// Runs the agent on a message, which may carry images, as
     /// <see cref="RunStreamingAsync(string, CancellationToken)"/> does.
     /// </summary>
     /// <param name="input">The user's message.</param>
-    /// <param name="ct">Cancels the run.</param>
+    /// <param name="cancellationToken">Cancels the run.</param>
     /// <returns>
     /// The run, which streams its updates, each with the agent's name as its author, and then holds its response.
     /// </returns>
@@ -468,8 +470,8 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// A model call sent no answer within the timeout of the run's model policy, and no rule of the policy
     /// handles a timeout.
     /// </exception>
-    public StreamingRun RunStreamingAsync(ChatMessage input, CancellationToken ct = default) =>
-        RunStreamingCoreAsync(input, null, ct);
+    public StreamingRun RunStreamingAsync(ChatMessage input, CancellationToken cancellationToken = default) =>
+        RunStreamingCoreAsync(input, null, cancellationToken);
 
     /// <summary>
     /// Runs the agent on a message as <see cref="RunStreamingAsync(string, CancellationToken)"/> does, asking the model
@@ -478,7 +480,7 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// </summary>
     /// <typeparam name="TResult">The result's type.</typeparam>
     /// <param name="input">The user's message.</param>
-    /// <param name="ct">Cancels the run.</param>
+    /// <param name="cancellationToken">Cancels the run.</param>
     /// <returns>The run, which streams its updates and then holds the result.</returns>
     /// <exception cref="ConversationBusyException">
     /// A run of the host's conversation is going on in this container, or the store refused a step of this run
@@ -495,8 +497,10 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// A model call sent no answer within the timeout of the run's model policy, and no rule of the policy
     /// handles a timeout.
     /// </exception>
-    public StreamingRun<TResult> RunStreamingAsync<TResult>(string input, CancellationToken ct = default) =>
-        RunStreamingCoreAsync<TResult>(new ChatMessage(ChatRole.User, input), null, ct);
+    public StreamingRun<TResult> RunStreamingAsync<TResult>(
+        string input,
+        CancellationToken cancellationToken = default) =>
+        RunStreamingCoreAsync<TResult>(new ChatMessage(ChatRole.User, input), null, cancellationToken);
 
     /// <summary>
     /// Runs the agent on a message, which may carry images, as
@@ -504,7 +508,7 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// </summary>
     /// <typeparam name="TResult">The result's type.</typeparam>
     /// <param name="input">The user's message.</param>
-    /// <param name="ct">Cancels the run.</param>
+    /// <param name="cancellationToken">Cancels the run.</param>
     /// <returns>The run, which streams its updates and then holds the result.</returns>
     /// <exception cref="ConversationBusyException">
     /// A run of the host's conversation is going on in this container, or the store refused a step of this run
@@ -521,8 +525,10 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// A model call sent no answer within the timeout of the run's model policy, and no rule of the policy
     /// handles a timeout.
     /// </exception>
-    public StreamingRun<TResult> RunStreamingAsync<TResult>(ChatMessage input, CancellationToken ct = default) =>
-        RunStreamingCoreAsync<TResult>(input, null, ct);
+    public StreamingRun<TResult> RunStreamingAsync<TResult>(
+        ChatMessage input,
+        CancellationToken cancellationToken = default) =>
+        RunStreamingCoreAsync<TResult>(input, null, cancellationToken);
 
     /// <summary>
     /// Records your app's answers to decisions of the host's conversation, from <c>WithConversationId</c>, and, once
@@ -533,7 +539,7 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// rejecting</see>.
     /// </summary>
     /// <param name="answers">The answers, each made from its decision, as <c>decision.Approve()</c> makes one.</param>
-    /// <param name="ct">Cancels the run.</param>
+    /// <param name="cancellationToken">Cancels the run.</param>
     /// <returns>The response; with decisions left open, one that lists them.</returns>
     /// <exception cref="DecisionClosedException">
     /// An answer names a decision that is not open. Nothing of the call is recorded.
@@ -563,8 +569,10 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// handles a timeout.
     /// </exception>
     /// <exception cref="ArgumentNullException"><paramref name="answers"/> is null.</exception>
-    public Task<ChatResponse> AnswerAsync(IReadOnlyList<DecisionAnswer> answers, CancellationToken ct = default) =>
-        AnswerCoreAsync(answers, null, ct);
+    public Task<ChatResponse> AnswerAsync(
+        IReadOnlyList<DecisionAnswer> answers,
+        CancellationToken cancellationToken = default) =>
+        AnswerCoreAsync(answers, null, cancellationToken);
 
     /// <summary>
     /// Records your app's answers and continues the run as
@@ -573,7 +581,7 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// </summary>
     /// <typeparam name="TResult">The result's type.</typeparam>
     /// <param name="answers">The answers, each made from its decision.</param>
-    /// <param name="ct">Cancels the run.</param>
+    /// <param name="cancellationToken">Cancels the run.</param>
     /// <returns>The response, with the result; with decisions left open, one that lists them and has none.</returns>
     /// <exception cref="DecisionClosedException">An answer names a decision that is not open.</exception>
     /// <exception cref="ArgumentException">An answer does not fit its decision, or there is none.</exception>
@@ -599,8 +607,8 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// <exception cref="ArgumentNullException"><paramref name="answers"/> is null.</exception>
     public Task<ChatResponse<TResult>> AnswerAsync<TResult>(
         IReadOnlyList<DecisionAnswer> answers,
-        CancellationToken ct = default) =>
-        AnswerCoreAsync<TResult>(answers, null, ct);
+        CancellationToken cancellationToken = default) =>
+        AnswerCoreAsync<TResult>(answers, null, cancellationToken);
 
     /// <summary>
     /// Records your app's answers and continues the run as
@@ -608,7 +616,7 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// answers are recorded when the updates are read.
     /// </summary>
     /// <param name="answers">The answers, each made from its decision.</param>
-    /// <param name="ct">Cancels the run.</param>
+    /// <param name="cancellationToken">Cancels the run.</param>
     /// <returns>
     /// The run, which streams its updates and then holds its response; with decisions left open, one update that lists
     /// them.
@@ -631,8 +639,8 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// </exception>
     public StreamingRun AnswerStreamingAsync(
         IReadOnlyList<DecisionAnswer> answers,
-        CancellationToken ct = default) =>
-        AnswerStreamingCoreAsync(answers, null, ct);
+        CancellationToken cancellationToken = default) =>
+        AnswerStreamingCoreAsync(answers, null, cancellationToken);
 
     /// <summary>
     /// Records your app's answers and continues the run as
@@ -641,7 +649,7 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// </summary>
     /// <typeparam name="TResult">The result's type.</typeparam>
     /// <param name="answers">The answers, each made from its decision.</param>
-    /// <param name="ct">Cancels the run.</param>
+    /// <param name="cancellationToken">Cancels the run.</param>
     /// <returns>The run, which streams its updates and then holds the result.</returns>
     /// <exception cref="ConversationBusyException">
     /// A run of the host's conversation is going on in this container, or the store refused a step of this run
@@ -661,8 +669,8 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// </exception>
     public StreamingRun<TResult> AnswerStreamingAsync<TResult>(
         IReadOnlyList<DecisionAnswer> answers,
-        CancellationToken ct = default) =>
-        AnswerStreamingCoreAsync<TResult>(answers, null, ct);
+        CancellationToken cancellationToken = default) =>
+        AnswerStreamingCoreAsync<TResult>(answers, null, cancellationToken);
 
     /// <summary>
     /// Continues the host's conversation, from <c>WithConversationId</c>, without new input: the run that was
@@ -672,7 +680,7 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// More in the guide:
     /// <see href="https://weboost-at.github.io/Typeshift/guide/conversations#resuming">Resuming</see>.
     /// </summary>
-    /// <param name="ct">Cancels the run.</param>
+    /// <param name="cancellationToken">Cancels the run.</param>
     /// <returns>The response.</returns>
     /// <exception cref="NothingToResumeException">
     /// The conversation has nothing to continue: its last run ended, and no decision your app answered or withdrew
@@ -697,12 +705,13 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// <exception cref="System.Text.Json.JsonException">
     /// The stored settings were written under a newer schema version than this code's.
     /// </exception>
-    public Task<ChatResponse> ResumeAsync(CancellationToken ct = default) => RunCoreAsync(null, null, ct);
+    public Task<ChatResponse> ResumeAsync(CancellationToken cancellationToken = default) =>
+        RunCoreAsync(null, null, cancellationToken);
 
     /// <summary>
     /// Continues the host's conversation as <see cref="ResumeAsync(CancellationToken)"/> does, streaming the updates.
     /// </summary>
-    /// <param name="ct">Cancels the run.</param>
+    /// <param name="cancellationToken">Cancels the run.</param>
     /// <returns>The run, which streams its updates and then holds its response.</returns>
     /// <exception cref="NothingToResumeException">
     /// The conversation has nothing to continue, when the updates are read.
@@ -723,8 +732,8 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// A model call sent no answer within the timeout of the run's model policy, and no rule of the policy
     /// handles a timeout.
     /// </exception>
-    public StreamingRun ResumeStreamingAsync(CancellationToken ct = default) =>
-        RunStreamingCoreAsync(null, null, ct);
+    public StreamingRun ResumeStreamingAsync(CancellationToken cancellationToken = default) =>
+        RunStreamingCoreAsync(null, null, cancellationToken);
 
     // D64: a typed run a crash cut off resumes typed, so its answer is read as the run that began it asked
     /// <summary>
@@ -732,7 +741,7 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// JSON of <typeparamref name="TResult"/>'s schema, as the typed run that was interrupted did.
     /// </summary>
     /// <typeparam name="TResult">The result's type.</typeparam>
-    /// <param name="ct">Cancels the run.</param>
+    /// <param name="cancellationToken">Cancels the run.</param>
     /// <returns>The response, with the result; while decisions are open, one that lists them and has none.</returns>
     /// <exception cref="NothingToResumeException">
     /// The conversation has nothing to continue: its last run ended, and no decision your app answered or withdrew
@@ -757,15 +766,15 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// <exception cref="System.Text.Json.JsonException">
     /// The stored settings were written under a newer schema version than this code's.
     /// </exception>
-    public Task<ChatResponse<TResult>> ResumeAsync<TResult>(CancellationToken ct = default) =>
-        RunCoreAsync<TResult>(null, null, ct);
+    public Task<ChatResponse<TResult>> ResumeAsync<TResult>(CancellationToken cancellationToken = default) =>
+        RunCoreAsync<TResult>(null, null, cancellationToken);
 
     /// <summary>
     /// Continues the host's conversation as <see cref="ResumeAsync{TResult}(CancellationToken)"/> does, streaming the
     /// updates. Once they are read to the end, its <c>Response</c> holds the result.
     /// </summary>
     /// <typeparam name="TResult">The result's type.</typeparam>
-    /// <param name="ct">Cancels the run.</param>
+    /// <param name="cancellationToken">Cancels the run.</param>
     /// <returns>The run, which streams its updates and then holds the result.</returns>
     /// <exception cref="NothingToResumeException">
     /// The conversation has nothing to continue, when the updates are read.
@@ -786,8 +795,8 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// A model call sent no answer within the timeout of the run's model policy, and no rule of the policy
     /// handles a timeout.
     /// </exception>
-    public StreamingRun<TResult> ResumeStreamingAsync<TResult>(CancellationToken ct = default) =>
-        RunStreamingCoreAsync<TResult>(null, null, ct);
+    public StreamingRun<TResult> ResumeStreamingAsync<TResult>(CancellationToken cancellationToken = default) =>
+        RunStreamingCoreAsync<TResult>(null, null, cancellationToken);
 
     // D50: the input of a run that failed is stored, so a retry sends it once more without storing it again
     /// <summary>
@@ -800,7 +809,7 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// <see href="https://weboost-at.github.io/Typeshift/guide/conversations#retrying-a-failed-run">Retrying a
     /// failed run</see>.
     /// </summary>
-    /// <param name="ct">Cancels the run.</param>
+    /// <param name="cancellationToken">Cancels the run.</param>
     /// <returns>The response.</returns>
     /// <exception cref="NothingToResumeException">
     /// The conversation has nothing to retry: its last run answered or waits for your app, and no decision your app
@@ -825,12 +834,13 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// <exception cref="System.Text.Json.JsonException">
     /// The stored settings were written under a newer schema version than this code's.
     /// </exception>
-    public Task<ChatResponse> RetryAsync(CancellationToken ct = default) => RunCoreAsync(null, null, ct, retries: true);
+    public Task<ChatResponse> RetryAsync(CancellationToken cancellationToken = default) =>
+        RunCoreAsync(null, null, cancellationToken, retries: true);
 
     /// <summary>
     /// Continues the host's conversation as <see cref="RetryAsync(CancellationToken)"/> does, streaming the updates.
     /// </summary>
-    /// <param name="ct">Cancels the run.</param>
+    /// <param name="cancellationToken">Cancels the run.</param>
     /// <returns>The run, which streams its updates and then holds its response.</returns>
     /// <exception cref="NothingToResumeException">
     /// The conversation has nothing to retry, when the updates are read.
@@ -851,15 +861,15 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// A model call sent no answer within the timeout of the run's model policy, and no rule of the policy
     /// handles a timeout.
     /// </exception>
-    public StreamingRun RetryStreamingAsync(CancellationToken ct = default) =>
-        RunStreamingCoreAsync(null, null, ct, retries: true);
+    public StreamingRun RetryStreamingAsync(CancellationToken cancellationToken = default) =>
+        RunStreamingCoreAsync(null, null, cancellationToken, retries: true);
 
     /// <summary>
     /// Continues the host's conversation as <see cref="RetryAsync(CancellationToken)"/> does, asking the model for
     /// JSON of <typeparamref name="TResult"/>'s schema, as the typed run that failed did.
     /// </summary>
     /// <typeparam name="TResult">The result's type.</typeparam>
-    /// <param name="ct">Cancels the run.</param>
+    /// <param name="cancellationToken">Cancels the run.</param>
     /// <returns>The response, with the result; while decisions are open, one that lists them and has none.</returns>
     /// <exception cref="NothingToResumeException">
     /// The conversation has nothing to retry: its last run answered or waits for your app, and no decision your app
@@ -884,15 +894,15 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// <exception cref="System.Text.Json.JsonException">
     /// The stored settings were written under a newer schema version than this code's.
     /// </exception>
-    public Task<ChatResponse<TResult>> RetryAsync<TResult>(CancellationToken ct = default) =>
-        RunCoreAsync<TResult>(null, null, ct, retries: true);
+    public Task<ChatResponse<TResult>> RetryAsync<TResult>(CancellationToken cancellationToken = default) =>
+        RunCoreAsync<TResult>(null, null, cancellationToken, retries: true);
 
     /// <summary>
     /// Continues the host's conversation as <see cref="RetryAsync{TResult}(CancellationToken)"/> does, streaming the
     /// updates. Once they are read to the end, its <c>Response</c> holds the result.
     /// </summary>
     /// <typeparam name="TResult">The result's type.</typeparam>
-    /// <param name="ct">Cancels the run.</param>
+    /// <param name="cancellationToken">Cancels the run.</param>
     /// <returns>The run, which streams its updates and then holds the result.</returns>
     /// <exception cref="NothingToResumeException">
     /// The conversation has nothing to retry, when the updates are read.
@@ -913,8 +923,8 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// A model call sent no answer within the timeout of the run's model policy, and no rule of the policy
     /// handles a timeout.
     /// </exception>
-    public StreamingRun<TResult> RetryStreamingAsync<TResult>(CancellationToken ct = default) =>
-        RunStreamingCoreAsync<TResult>(null, null, ct, retries: true);
+    public StreamingRun<TResult> RetryStreamingAsync<TResult>(CancellationToken cancellationToken = default) =>
+        RunStreamingCoreAsync<TResult>(null, null, cancellationToken, retries: true);
 
     /// <summary>
     /// Resolves the options of a run, for the raw path:
@@ -923,7 +933,7 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// More in the guide:
     /// <see href="https://weboost-at.github.io/Typeshift/guide/running-agents#the-raw-path">The raw path</see>.
     /// </summary>
-    /// <param name="ct">Cancels the resolution.</param>
+    /// <param name="cancellationToken">Cancels the resolution.</param>
     /// <returns>The options, with the agent's tools.</returns>
     /// <exception cref="InvalidOperationException">
     /// Something the options need is not registered: a store for the type of the host's settings id, or an
@@ -932,8 +942,8 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// <exception cref="System.Text.Json.JsonException">
     /// The stored settings were written under a newer schema version than this code's.
     /// </exception>
-    public Task<ChatOptions> ResolveOptionsAsync(CancellationToken ct = default) =>
-        ResolveOptionsCoreAsync(_settingsId, null, ct);
+    public Task<ChatOptions> ResolveOptionsAsync(CancellationToken cancellationToken = default) =>
+        ResolveOptionsCoreAsync(_settingsId, null, cancellationToken);
 
     // The settings id WithSettingsId gave, which the settings members use in place of the agent's own settings
     internal StoreId? SettingsId => _settingsId;
@@ -962,12 +972,13 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// More in the guide:
     /// <see href="https://weboost-at.github.io/Typeshift/guide/conversations#what-is-stored">What is stored</see>.
     /// </summary>
-    /// <param name="ct">Cancels the load.</param>
+    /// <param name="cancellationToken">Cancels the load.</param>
     /// <returns>The entries; none for a conversation that never ran.</returns>
     /// <exception cref="InvalidOperationException">
     /// The host has no conversation, or stores are registered and none keeps conversations under its id's type.
     /// </exception>
-    public async Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(CancellationToken ct = default)
+    public async Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(
+        CancellationToken cancellationToken = default)
     {
         SynchronizationContexts.Leave();
 
@@ -975,7 +986,7 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
             ?? throw new InvalidOperationException(
                 "A conversation's history needs a conversation: load it on a host from WithConversationId(id).");
 
-        return await conversation.LoadConversationAsync(Store, ct).ConfigureAwait(false);
+        return await conversation.LoadConversationAsync(Store, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -983,13 +994,13 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// answered yet, whether the answered ones are ready to be carried out, the tools approved for the conversation
     /// and its mode. It reads the conversation's decisions and none of its history, and starts no run.
     /// </summary>
-    /// <param name="ct">Cancels the load.</param>
+    /// <param name="cancellationToken">Cancels the load.</param>
     /// <returns>The decisions; none open for a conversation that never asked.</returns>
     /// <exception cref="InvalidOperationException">The host has no conversation.</exception>
-    public async Task<ConversationDecisions> GetDecisionsAsync(CancellationToken ct = default)
+    public async Task<ConversationDecisions> GetDecisionsAsync(CancellationToken cancellationToken = default)
     {
         SynchronizationContexts.Leave();
-        return (await Ledger.LoadAsync(DecidedConversation, ct).ConfigureAwait(false)).ToDecisions();
+        return (await Ledger.LoadAsync(DecidedConversation, cancellationToken).ConfigureAwait(false)).ToDecisions();
     }
 
     /// <summary>
@@ -998,7 +1009,7 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// A decision may be answered alone, and the same answer again changes nothing.
     /// </summary>
     /// <param name="answers">The answers, at most one for each decision.</param>
-    /// <param name="ct">Cancels the save.</param>
+    /// <param name="cancellationToken">Cancels the save.</param>
     /// <returns>The conversation's decisions after the answers.</returns>
     /// <exception cref="DecisionClosedException">
     /// An answer names a decision that is not open; nothing of the call is recorded.
@@ -1012,12 +1023,14 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// <exception cref="ArgumentNullException"><paramref name="answers"/> is null.</exception>
     public async Task<ConversationDecisions> RecordAnswersAsync(
         IReadOnlyList<DecisionAnswer> answers,
-        CancellationToken ct = default)
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(answers);
 
         SynchronizationContexts.Leave();
-        return (await Ledger.RecordAsync(DecidedConversation, answers, ct).ConfigureAwait(false)).ToDecisions();
+
+        var recorded = await Ledger.RecordAsync(DecidedConversation, answers, cancellationToken).ConfigureAwait(false);
+        return recorded.ToDecisions();
     }
 
     /// <summary>
@@ -1026,14 +1039,14 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// with new input or from <c>ResumeAsync</c>, tells the model so, and an answer to a withdrawn decision throws
     /// <see cref="DecisionClosedException"/>. Nothing changes when nothing waits. It starts no run.
     /// </summary>
-    /// <param name="ct">Cancels the save.</param>
+    /// <param name="cancellationToken">Cancels the save.</param>
     /// <returns>The conversation's decisions after the withdrawal, none of them open.</returns>
     /// <exception cref="StoreConflictException">Other saves came first ten times in a row.</exception>
     /// <exception cref="InvalidOperationException">The host has no conversation.</exception>
-    public async Task<ConversationDecisions> CancelDecisionsAsync(CancellationToken ct = default)
+    public async Task<ConversationDecisions> CancelDecisionsAsync(CancellationToken cancellationToken = default)
     {
         SynchronizationContexts.Leave();
-        return (await Ledger.CancelAsync(DecidedConversation, ct).ConfigureAwait(false)).ToDecisions();
+        return (await Ledger.CancelAsync(DecidedConversation, cancellationToken).ConfigureAwait(false)).ToDecisions();
     }
 
     /// <summary>
@@ -1043,16 +1056,16 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// <c>Mode</c>. It starts no run, and a run going on stays in the mode it began in.
     /// </summary>
     /// <param name="mode">The mode the conversation's next runs are in.</param>
-    /// <param name="ct">Cancels the save.</param>
+    /// <param name="cancellationToken">Cancels the save.</param>
     /// <returns>The save.</returns>
     /// <exception cref="StoreConflictException">Other saves came first ten times in a row.</exception>
     /// <exception cref="InvalidOperationException">
     /// The host has no conversation, or stores are registered and none keeps the decisions of its id type.
     /// </exception>
-    public async Task SetModeAsync(AgentMode mode, CancellationToken ct = default)
+    public async Task SetModeAsync(AgentMode mode, CancellationToken cancellationToken = default)
     {
         SynchronizationContexts.Leave();
-        await Ledger.SetModeAsync(DecidedConversation, mode, ct).ConfigureAwait(false);
+        await Ledger.SetModeAsync(DecidedConversation, mode, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -1065,17 +1078,20 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// The MCP server that offers the tool, as <see cref="StandingApproval.Server"/> lists it; null for every other
     /// tool.
     /// </param>
-    /// <param name="ct">Cancels the save.</param>
+    /// <param name="cancellationToken">Cancels the save.</param>
     /// <returns>The save.</returns>
     /// <exception cref="StoreConflictException">Other saves came first ten times in a row.</exception>
     /// <exception cref="InvalidOperationException">The host has no conversation.</exception>
     /// <exception cref="ArgumentNullException"><paramref name="tool"/> is null.</exception>
-    public async Task RevokeStandingApprovalAsync(string tool, string? server = null, CancellationToken ct = default)
+    public async Task RevokeStandingApprovalAsync(
+        string tool,
+        string? server = null,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(tool);
 
         SynchronizationContexts.Leave();
-        await Ledger.RevokeAsync(DecidedConversation, tool, server, ct).ConfigureAwait(false);
+        await Ledger.RevokeAsync(DecidedConversation, tool, server, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -1086,7 +1102,7 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// More in the guide:
     /// <see href="https://weboost-at.github.io/Typeshift/guide/running-agents#the-raw-path">The raw path</see>.
     /// </summary>
-    /// <param name="ct">Cancels the creation.</param>
+    /// <param name="cancellationToken">Cancels the creation.</param>
     /// <returns>The client; disposing it leaves the provider's client alone.</returns>
     /// <exception cref="InvalidOperationException">
     /// No chat client serves the options, the client runs a tool loop of its own, or something the options need is
@@ -1096,8 +1112,10 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// <exception cref="System.Text.Json.JsonException">
     /// The stored settings were written under a newer schema version than this code's.
     /// </exception>
-    public async Task<IChatClient> CreateChatClientAsync(CancellationToken ct = default) =>
-        await CreateChatClientAsync(await ResolveOptionsAsync(ct).ConfigureAwait(false), ct).ConfigureAwait(false);
+    public async Task<IChatClient> CreateChatClientAsync(CancellationToken cancellationToken = default) =>
+        await CreateChatClientAsync(
+            await ResolveOptionsAsync(cancellationToken).ConfigureAwait(false),
+            cancellationToken).ConfigureAwait(false);
 
     /// <summary>
     /// The raw path: creates the client of a run whose options <c>ResolveOptionsAsync</c> resolved. For options that
@@ -1111,7 +1129,7 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// <see href="https://weboost-at.github.io/Typeshift/guide/running-agents#the-raw-path">The raw path</see>.
     /// </summary>
     /// <param name="options">The options <c>ResolveOptionsAsync</c> resolved.</param>
-    /// <param name="ct">Cancels the creation.</param>
+    /// <param name="cancellationToken">Cancels the creation.</param>
     /// <returns>The client; disposing it leaves the provider's client alone.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="options"/> is null.</exception>
     /// <exception cref="ArgumentException">
@@ -1125,7 +1143,9 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// provider nothing serves, an agent the run may call or hand off to names one, or the client runs a tool loop of
     /// its own, as one registered with <c>UseFunctionInvocation()</c> does.
     /// </exception>
-    public async Task<IChatClient> CreateChatClientAsync(ChatOptions options, CancellationToken ct = default)
+    public async Task<IChatClient> CreateChatClientAsync(
+        ChatOptions options,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(options);
 
@@ -1143,11 +1163,11 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
         var provider = resolved.Provider;
         var model = resolved.ModelId;
         var run = resolved.RunOptions;
-        var clients = await GetClientsAsync(resolved, ct).ConfigureAwait(false);
+        var clients = await GetClientsAsync(resolved, cancellationToken).ConfigureAwait(false);
 
         try
         {
-            await EnsureServedAsync(resolved, ct).ConfigureAwait(false);
+            await EnsureServedAsync(resolved, cancellationToken).ConfigureAwait(false);
         }
         catch
         {

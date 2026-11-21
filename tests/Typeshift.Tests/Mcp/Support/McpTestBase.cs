@@ -29,7 +29,7 @@ public sealed class ScriptedServers : Dictionary<string, List<AITool>>;
 
 public sealed class ScriptedMcpToolProvider(ScriptedServers servers) : IMcpToolProvider
 {
-    public ValueTask<IReadOnlyList<AITool>> GetToolsAsync(string server, CancellationToken ct) =>
+    public ValueTask<IReadOnlyList<AITool>> GetToolsAsync(string server, CancellationToken cancellationToken) =>
         ValueTask.FromResult<IReadOnlyList<AITool>>(servers.GetValueOrDefault(server) ?? []);
 }
 

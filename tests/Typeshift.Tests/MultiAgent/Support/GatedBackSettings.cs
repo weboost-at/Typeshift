@@ -4,12 +4,12 @@ namespace Typeshift.Tests.MultiAgent.Support;
 // passes the conversation on: the agent handed to has not begun its run yet. It keeps no settings
 public sealed class GatedBackSettings(BackGate gate) : IAgentSettingsStore
 {
-    public async Task<StoredDocument?> LoadAsync(string kind, CancellationToken ct)
+    public async Task<StoredDocument?> LoadAsync(string kind, CancellationToken cancellationToken)
     {
         if (kind == nameof(BackAgent) && gate.TakeHold())
         {
             gate.Holding.SetResult();
-            await gate.Release.Task.WaitAsync(ct);
+            await gate.Release.Task.WaitAsync(cancellationToken);
 
             if (gate.Failure is { } failure) throw failure;
         }
@@ -17,7 +17,7 @@ public sealed class GatedBackSettings(BackGate gate) : IAgentSettingsStore
         return null;
     }
 
-    public Task<long> SaveAsync(string kind, string json, long loadedVersion, CancellationToken ct) =>
+    public Task<long> SaveAsync(string kind, string json, long loadedVersion, CancellationToken cancellationToken) =>
         throw new InvalidOperationException("The gated store keeps no settings.");
 }
 

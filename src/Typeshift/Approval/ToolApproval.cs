@@ -15,9 +15,9 @@ public interface IToolApprovalRule
     /// </summary>
     /// <param name="call">The call, with the arguments the model sent.</param>
     /// <param name="run">The run, with its mode.</param>
-    /// <param name="ct">Cancels the decision.</param>
+    /// <param name="cancellationToken">Cancels the decision.</param>
     /// <returns>The verdict.</returns>
-    ValueTask<RuleVerdict> DecideAsync(FunctionCallContent call, AgentRun run, CancellationToken ct);
+    ValueTask<RuleVerdict> DecideAsync(FunctionCallContent call, AgentRun run, CancellationToken cancellationToken);
 }
 
 /// <summary>

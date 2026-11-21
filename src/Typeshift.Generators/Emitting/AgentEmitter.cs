@@ -666,7 +666,7 @@ internal static class AgentEmitter
             var typed = $"{agent.Type.FullName}, TResult";
             var answer = $"{Task}<{response}>";
             var typedAnswer = $"{Task}<{response}<TResult>>";
-            var call = "settings, ct);";
+            var call = "settings, cancellationToken);";
 
             run.Write(writer, Message, answer, Answer, "RunAsync", "string",
                 $"{Runs}.RunAsync(host, {user}, {call}");
@@ -777,7 +777,7 @@ internal static class AgentEmitter
                 + "names a conversation under a <see cref=\"string\"/> id."
                 + Docs.Guide("running-agents#the-raw-path", "The raw path"));
             Docs.WriteParam(writer, "settings", "What the run changes over the stored settings; null for nothing.");
-            Docs.WriteParam(writer, "ct", "Cancels the resolution.");
+            Docs.WriteParam(writer, "cancellationToken", "Cancels the resolution.");
             Docs.WriteReturns(writer, "The options, with the agent's tools.");
             Docs.WriteException(
                 writer,
@@ -789,8 +789,8 @@ internal static class AgentEmitter
                 $"""
                 public {Task}<{ChatOptions}> ResolveOptionsAsync(
                     {settings}? settings = null,
-                    {CancellationToken} ct = default) =>
-                    {Runs}.ResolveOptionsAsync(host, settings, ct);
+                    {CancellationToken} cancellationToken = default) =>
+                    {Runs}.ResolveOptionsAsync(host, settings, cancellationToken);
                 """);
             writer.Line();
 
@@ -803,7 +803,7 @@ internal static class AgentEmitter
                 + "response format and the tools it adds."
                 + Docs.Guide("running-agents#the-raw-path", "The raw path"));
             Docs.WriteParam(writer, "settings", "What the run changes over the stored settings; null for nothing.");
-            Docs.WriteParam(writer, "ct", "Cancels the creation.");
+            Docs.WriteParam(writer, "cancellationToken", "Cancels the creation.");
             Docs.WriteReturns(writer, "The client; disposing it leaves the provider's client alone.");
             Docs.WriteException(
                 writer,
@@ -816,8 +816,8 @@ internal static class AgentEmitter
                 $"""
                 public {Task}<global::Microsoft.Extensions.AI.IChatClient> CreateChatClientAsync(
                     {settings}? settings = null,
-                    {CancellationToken} ct = default) =>
-                    {Runs}.CreateChatClientAsync(host, settings, ct);
+                    {CancellationToken} cancellationToken = default) =>
+                    {Runs}.CreateChatClientAsync(host, settings, cancellationToken);
                 """);
             writer.Line();
 
@@ -832,7 +832,7 @@ internal static class AgentEmitter
                 "Loads the agent's own settings, which every run applies, or, on a host from <c>WithSettingsId</c>, "
                 + "the settings stored under its id."
                 + AgentSettings);
-            Docs.WriteParam(writer, "ct", "Cancels the load.");
+            Docs.WriteParam(writer, "cancellationToken", "Cancels the load.");
             Docs.WriteReturns(
                 writer,
                 "The settings and the version <c>SaveSettingsAsync</c> takes; empty settings at version 0 when none "
@@ -842,8 +842,8 @@ internal static class AgentEmitter
             writer.Lines(
                 $"""
                 public {Task}<global::Typeshift.Stored<{settings}>> LoadSettingsAsync(
-                    {CancellationToken} ct = default) =>
-                    {Runs}.LoadSettingsAsync<{types}>(host, ct);
+                    {CancellationToken} cancellationToken = default) =>
+                    {Runs}.LoadSettingsAsync<{types}>(host, cancellationToken);
                 """);
             writer.Line();
 
@@ -857,7 +857,7 @@ internal static class AgentEmitter
                 writer,
                 "loadedVersion",
                 "The version <c>LoadSettingsAsync</c> or <c>UpdateSettingsAsync</c> returned, 0 when it loaded none.");
-            Docs.WriteParam(writer, "ct", "Cancels the save.");
+            Docs.WriteParam(writer, "cancellationToken", "Cancels the save.");
             Docs.WriteReturns(writer, "The new version, to pass to the next save.");
             Docs.WriteException(writer, "global::Typeshift.StoreConflictException", "Another save came first.");
             Docs.WriteException(writer, InvalidOperation, NoSettingsStore);
@@ -867,8 +867,8 @@ internal static class AgentEmitter
                 public {Task}<long> SaveSettingsAsync(
                     {settings} settings,
                     long loadedVersion,
-                    {CancellationToken} ct = default) =>
-                    {Runs}.SaveSettingsAsync<{types}>(host, settings, loadedVersion, ct);
+                    {CancellationToken} cancellationToken = default) =>
+                    {Runs}.SaveSettingsAsync<{types}>(host, settings, loadedVersion, cancellationToken);
                 """);
             writer.Line();
 
@@ -879,7 +879,7 @@ internal static class AgentEmitter
                 + "whenever another save came first, up to ten times."
                 + AgentSettings);
             Docs.WriteParam(writer, "update", "Returns the changed settings; called again after a lost save.");
-            Docs.WriteParam(writer, "ct", "Cancels the update.");
+            Docs.WriteParam(writer, "cancellationToken", "Cancels the update.");
             Docs.WriteReturns(writer, "The settings saved and their version, which the next save takes.");
             Docs.WriteException(
                 writer,
@@ -895,8 +895,8 @@ internal static class AgentEmitter
                 $"""
                 public {Task}<global::Typeshift.Stored<{settings}>> UpdateSettingsAsync(
                     global::System.Func<{settings}, {settings}> update,
-                    {CancellationToken} ct = default) =>
-                    {Runs}.UpdateSettingsAsync<{types}>(host, update, ct);
+                    {CancellationToken} cancellationToken = default) =>
+                    {Runs}.UpdateSettingsAsync<{types}>(host, update, cancellationToken);
                 """);
         }
     }
@@ -951,7 +951,7 @@ internal static class AgentEmitter
             Docs.WriteTypeParam(writer, "TResult", "The result's type.");
 
         Docs.WriteParam(writer, "settings", "What the run changes over the stored settings; null for nothing.");
-        Docs.WriteParam(writer, "ct", "Cancels the run.");
+        Docs.WriteParam(writer, "cancellationToken", "Cancels the run.");
         Docs.WriteReturns(writer, returnsDoc);
         Docs.WriteException(
             writer,
@@ -968,8 +968,8 @@ internal static class AgentEmitter
         WriteNewerSettings(writer);
         writer.Lines(
             $"""
-            public {returns} {name}({settings}? settings = null, {CancellationToken} ct = default) =>
-                {Runs}.{call}(host, settings, ct);
+            public {returns} {name}({settings}? settings = null, {CancellationToken} cancellationToken = default) =>
+                {Runs}.{call}(host, settings, cancellationToken);
             """);
     }
 
@@ -993,7 +993,7 @@ internal static class AgentEmitter
             Docs.WriteTypeParam(writer, "TResult", "The result's type.");
 
         Docs.WriteParam(writer, "settings", "What the run changes over the stored settings; null for nothing.");
-        Docs.WriteParam(writer, "ct", "Cancels the run.");
+        Docs.WriteParam(writer, "cancellationToken", "Cancels the run.");
         Docs.WriteReturns(writer, returnsDoc);
         Docs.WriteException(
             writer,
@@ -1010,8 +1010,8 @@ internal static class AgentEmitter
         WriteNewerSettings(writer);
         writer.Lines(
             $"""
-            public {returns} {name}({settings}? settings = null, {CancellationToken} ct = default) =>
-                {Runs}.{call}(host, settings, ct);
+            public {returns} {name}({settings}? settings = null, {CancellationToken} cancellationToken = default) =>
+                {Runs}.{call}(host, settings, cancellationToken);
             """);
     }
 
@@ -1043,7 +1043,7 @@ internal static class AgentEmitter
                 "answers",
                 "The answers, each made from its decision, as <c>decision.Approve()</c> makes one, or by its id.");
             Docs.WriteParam(writer, "settings", "What the run changes over the stored settings; null for nothing.");
-            Docs.WriteParam(writer, "ct", "Cancels the run.");
+            Docs.WriteParam(writer, "cancellationToken", "Cancels the run.");
             Docs.WriteReturns(writer, returnsDoc);
             Docs.WriteException(
                 writer,
@@ -1076,7 +1076,7 @@ internal static class AgentEmitter
                 public {returns} {name}(
                     {Answers} answers,
                     {settings}? settings = null,
-                    {CancellationToken} ct = default) =>
+                    {CancellationToken} cancellationToken = default) =>
                     {call}
                 """);
         }
@@ -1105,7 +1105,7 @@ internal static class AgentEmitter
 
             Docs.WriteParam(writer, "input", "The user's message.");
             Docs.WriteParam(writer, "settings", "What the run changes over the stored settings; null for nothing.");
-            Docs.WriteParam(writer, "ct", "Cancels the run.");
+            Docs.WriteParam(writer, "cancellationToken", "Cancels the run.");
             Docs.WriteReturns(writer, returnsDoc);
             Docs.WriteException(
                 writer,
@@ -1125,7 +1125,7 @@ internal static class AgentEmitter
                 public {returns} {name}(
                     {input} input,
                     {settings}? settings = null,
-                    {CancellationToken} ct = default) =>
+                    {CancellationToken} cancellationToken = default) =>
                     {call}
                 """);
         }

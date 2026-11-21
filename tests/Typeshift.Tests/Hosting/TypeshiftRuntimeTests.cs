@@ -39,7 +39,7 @@ public class TypeshiftRuntimeTests : AgentTestBase
         await using var agent = runtime.CreateHost<ModelOnlyAgent>();
 
         // Act
-        var response = await agent.RunAsync(Data.Tool.Question, ct: Ct);
+        var response = await agent.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         response.Text.Should().Be(Data.Tool.Answer);
@@ -53,7 +53,7 @@ public class TypeshiftRuntimeTests : AgentTestBase
         await using var probe = runtime.CreateHost<ProbeAgent>();
 
         // Act
-        var run = () => probe.RunAsync(Data.Tool.Question, ct: Ct);
+        var run = () => probe.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         await run.Should().ThrowAsync<InvalidOperationException>().WithMessage($"*'{ProbeAgent.ModelProvider}'*");
@@ -74,7 +74,7 @@ public class TypeshiftRuntimeTests : AgentTestBase
         await using var probe = runtime.CreateHost<ProbeAgent>();
 
         // Act
-        var response = await probe.RunAsync(Data.Tool.Question, ct: Ct);
+        var response = await probe.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         response.Text.Should().Be(Data.Tool.Answer);
@@ -97,7 +97,8 @@ public class TypeshiftRuntimeTests : AgentTestBase
             Ct);
 
         // Act
-        var options = await probe.WithSettingsId(Data.Persistence.SettingsId).ResolveOptionsAsync(ct: Ct);
+        var options = await probe.WithSettingsId(Data.Persistence.SettingsId).ResolveOptionsAsync(
+            cancellationToken: Ct);
 
         // Assert
         options.Temperature.Should().Be(Data.Agent.Temperature);
@@ -110,7 +111,7 @@ public class TypeshiftRuntimeTests : AgentTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
         var runtime = TypeshiftRuntime.Create(ChatClient);
         await using var agent = runtime.CreateHost<ModelOnlyAgent>();
-        await agent.RunAsync(Data.Tool.Question, ct: Ct);
+        await agent.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Act
         await runtime.DisposeAsync();
@@ -131,7 +132,7 @@ public class TypeshiftRuntimeTests : AgentTestBase
 
         await using var agent = runtime.CreateHost<ModelOnlyAgent>();
         var store = runtime.Services.GetRequiredService<DisposableStore>();
-        await agent.RunAsync(Data.Tool.Question, ct: Ct);
+        await agent.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Act
         await runtime.DisposeAsync();
@@ -152,7 +153,7 @@ public class TypeshiftRuntimeTests : AgentTestBase
 
         await using var agent = runtime.CreateHost<ModelOnlyAgent>();
         var store = runtime.Services.GetRequiredService<DisposableStore>();
-        await agent.RunAsync(Data.Tool.Question, ct: Ct);
+        await agent.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Act
         runtime.Dispose();
@@ -218,7 +219,7 @@ public class TypeshiftRuntimeTests : AgentTestBase
         await using var probe = runtime.CreateHost<ProbeAgent>();
 
         // Act
-        var response = await probe.RunAsync(Data.Tool.Question, ct: Ct);
+        var response = await probe.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         response.Assert.ToolResult<ProbeResult>(Data.Tool.CallId, Json).Scope.Should().NotBeNull();
@@ -246,7 +247,7 @@ public class TypeshiftRuntimeTests : AgentTestBase
         // Act
         await Record.ExceptionAsync(() => agent.WithConversationId(Data.Agent.ConversationId).RunAsync(
             Data.Tool.Question,
-            ct: Ct));
+            cancellationToken: Ct));
 
         // Assert
         log.Errors.Should().Contain(error => error.Exception is IOException);
@@ -273,7 +274,7 @@ public class TypeshiftRuntimeTests : AgentTestBase
         await using var failing = runtime.CreateHost<FailingAgent>();
 
         // Act
-        await failing.RunAsync(Data.Tool.Question, ct: Ct);
+        await failing.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         log.Errors.Should().ContainSingle(error => error.Exception.Message == Data.Agent.Reason);
@@ -293,7 +294,7 @@ public class TypeshiftRuntimeTests : AgentTestBase
         await using var agent = runtime.CreateHost<ModelOnlyAgent>();
 
         // Act
-        await agent.WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Tool.Question, ct: Ct);
+        await agent.WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         log.Warnings.Should().ContainSingle(warning => warning.Contains("WithStore"));
@@ -381,7 +382,7 @@ public class TypeshiftRuntimeTests : AgentTestBase
         await using var probe = Runtime.CreateHost<ProbeAgent>();
 
         // Act
-        var response = await probe.RunAsync(Data.Tool.Question, ct: Ct);
+        var response = await probe.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         response.Text.Should().Be(Data.Tool.Answer);
@@ -419,8 +420,8 @@ public class TypeshiftRuntimeTests : AgentTestBase
         await using var second = Runtime.CreateHost<ProbeAgent>();
 
         // Act
-        var firstRun = await first.RunAsync(Data.Tool.Question, ct: Ct);
-        var secondRun = await second.RunAsync(Data.Tool.Question, ct: Ct);
+        var firstRun = await first.RunAsync(Data.Tool.Question, cancellationToken: Ct);
+        var secondRun = await second.RunAsync(Data.Tool.Question, cancellationToken: Ct);
         var firstScope = firstRun.Assert.ToolResult<ProbeResult>(Data.Tool.CallId, Json).Scope;
         var secondScope = secondRun.Assert.ToolResult<ProbeResult>(Data.Tool.SecondCallId, Json).Scope;
 
@@ -442,8 +443,8 @@ public class TypeshiftRuntimeTests : AgentTestBase
         await using var probe = Runtime.CreateHost<ProbeAgent>();
 
         // Act
-        var firstRun = await probe.RunAsync(Data.Tool.Question, ct: Ct);
-        var secondRun = await probe.RunAsync(Data.Tool.Question, ct: Ct);
+        var firstRun = await probe.RunAsync(Data.Tool.Question, cancellationToken: Ct);
+        var secondRun = await probe.RunAsync(Data.Tool.Question, cancellationToken: Ct);
         var firstScope = firstRun.Assert.ToolResult<ProbeResult>(Data.Tool.CallId, Json).Scope;
         var secondScope = secondRun.Assert.ToolResult<ProbeResult>(Data.Tool.SecondCallId, Json).Scope;
 
@@ -458,7 +459,7 @@ public class TypeshiftRuntimeTests : AgentTestBase
         // Arrange
         ChatClient.Reply(Text(Data.Tool.Answer));
         var probe = Runtime.CreateHost<ProbeAgent>();
-        await probe.RunAsync(Data.Tool.Question, ct: Ct);
+        await probe.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Act
         await probe.DisposeAsync();
@@ -474,7 +475,7 @@ public class TypeshiftRuntimeTests : AgentTestBase
         // Arrange
         ChatClient.Reply(Text(Data.Tool.Answer));
         var probe = Runtime.CreateHost<ProbeAgent>();
-        await probe.RunAsync(Data.Tool.Question, ct: Ct);
+        await probe.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Act
         probe.Dispose();
@@ -490,7 +491,7 @@ public class TypeshiftRuntimeTests : AgentTestBase
         // Arrange
         ChatClient.Reply(Text(Data.Tool.Answer));
         var probe = Runtime.CreateHost<ProbeAgent>();
-        await probe.RunAsync(Data.Tool.Question, ct: Ct);
+        await probe.RunAsync(Data.Tool.Question, cancellationToken: Ct);
         await probe.DisposeAsync();
 
         // Act
@@ -506,7 +507,7 @@ public class TypeshiftRuntimeTests : AgentTestBase
         // Arrange
         ChatClient.Reply(Text(Data.Tool.Answer));
         var probe = Host<ProbeAgent>();
-        await probe.RunAsync(Data.Tool.Question, ct: Ct);
+        await probe.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Act
         await probe.DisposeAsync();
@@ -522,7 +523,7 @@ public class TypeshiftRuntimeTests : AgentTestBase
         // Arrange
         ChatClient.Reply(Text(Data.Tool.Answer));
         var chat = Runtime.CreateHost<ProbeAgent>().WithConversationId(Data.Agent.ConversationId);
-        await chat.RunAsync(Data.Tool.Question, ct: Ct);
+        await chat.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Act
         await chat.DisposeAsync();
@@ -540,7 +541,7 @@ public class TypeshiftRuntimeTests : AgentTestBase
         await probe.WithConversationId(Data.Agent.ConversationId).DisposeAsync();
 
         // Act
-        var run = async () => await probe.RunAsync(Data.Tool.Question, ct: Ct);
+        var run = async () => await probe.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         await run.Should().ThrowAsync<ObjectDisposedException>();
@@ -552,7 +553,7 @@ public class TypeshiftRuntimeTests : AgentTestBase
         // Arrange
         ChatClient.Reply(Text(Data.Tool.Answer));
         var chat = Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId);
-        await chat.RunAsync(Data.Tool.Question, ct: Ct);
+        await chat.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Act
         await chat.DisposeAsync();
@@ -569,7 +570,7 @@ public class TypeshiftRuntimeTests : AgentTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
         var probe = Runtime.CreateHost<ProbeAgent>();
         var copy = probe.WithConversationId(Data.Agent.ConversationId);
-        await copy.RunAsync(Data.Tool.Question, ct: Ct);
+        await copy.RunAsync(Data.Tool.Question, cancellationToken: Ct);
         await copy.DisposeAsync();
 
         // Act
@@ -590,7 +591,7 @@ public class TypeshiftRuntimeTests : AgentTestBase
         await Runtime.DisposeAsync();
 
         await using var probe = Runtime.CreateHost<ProbeAgent>();
-        var response = await probe.RunAsync(Data.Tool.Question, ct: Ct);
+        var response = await probe.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         response.Text.Should().Be(Data.Tool.Answer);
@@ -613,7 +614,7 @@ public class TypeshiftRuntimeTests : AgentTestBase
         // Act
         for (var run = 0; run < 3; run++)
         {
-            await lead.RunAsync(Data.Tool.Question, ct: Ct);
+            await lead.RunAsync(Data.Tool.Question, cancellationToken: Ct);
         }
 
         // Assert
@@ -634,7 +635,9 @@ public class TypeshiftRuntimeTests : AgentTestBase
         // Act
         for (var run = 0; run < 3; run++)
         {
-            await front.WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Tool.Question, ct: Ct);
+            await front.WithConversationId(Data.Agent.ConversationId).RunAsync(
+                Data.Tool.Question,
+                cancellationToken: Ct);
         }
 
         // Assert

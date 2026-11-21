@@ -36,7 +36,7 @@ public class ModeTests : ApprovalTestBase
         await Host<GuardedAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(
             Data.Tool.Question,
             settings: new() { Mode = AgentMode.Auto, MaxToolIterations = 2 },
-            ct: Ct);
+            cancellationToken: Ct);
 
         // Assert
         ChatClient.Requests.Should().HaveCount(3);
@@ -55,7 +55,7 @@ public class ModeTests : ApprovalTestBase
             .Reply(Note(Data.Tool.SecondCallId, Data.Tool.Query))
             .Reply(Note($"{Data.Tool.SecondCallId}_left", Data.Tool.Query));
 
-        var run = Chat.RunAsync(Data.Tool.Question, settings: new() { MaxToolIterations = 2 }, ct: Ct);
+        var run = Chat.RunAsync(Data.Tool.Question, settings: new() { MaxToolIterations = 2 }, cancellationToken: Ct);
         await ChatClient.RequestedAsync(2).WaitAsync(Ct);
         Tracker.TrySteer(Data.Agent.ConversationId, Data.Agent.Steering);
 
@@ -126,7 +126,7 @@ public class ModeTests : ApprovalTestBase
         await Host<ResearchingAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(
             Data.Tool.Question,
             settings: new() { Mode = AgentMode.Plan },
-            ct: Ct);
+            cancellationToken: Ct);
 
         // Assert
         ChatClient.Options[0]!.Tools!.Select(tool => tool.Name)
@@ -144,7 +144,7 @@ public class ModeTests : ApprovalTestBase
         await Host<ResearchingAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(
             Data.Tool.Question,
             settings: new() { Mode = AgentMode.Plan },
-            ct: Ct);
+            cancellationToken: Ct);
 
         // Assert
         ChatClient.Options[0]!.Tools!.Should().NotContain(tool => tool is HostedCodeInterpreterTool);
@@ -160,7 +160,7 @@ public class ModeTests : ApprovalTestBase
         await Host<ResearchingAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(
             Data.Tool.Question,
             settings: new() { Mode = AgentMode.Plan },
-            ct: Ct);
+            cancellationToken: Ct);
 
         // Assert
         ChatClient.Options[0]!.Tools!.Should().ContainSingle(tool => tool is HostedWebSearchTool);
@@ -189,7 +189,7 @@ public class ModeTests : ApprovalTestBase
         await probe.SetModeAsync(AgentMode.Plan, Ct);
 
         // Act
-        await probe.RunAsync(Data.Tool.Question, ct: Ct);
+        await probe.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         ChatClient.Assert.Request(0).Options!.Instructions.Should().StartWith(ProbeAgent.Prompt);
@@ -275,7 +275,7 @@ public class ModeTests : ApprovalTestBase
             .Reply(Text(Data.Tool.Answer));
 
         await RunAsync(new string('x', Page), AgentMode.Plan);
-        await Chat.RunAsync(Data.Agent.FollowUp, settings: new() { MaxInputTokens = 1_000 }, ct: Ct);
+        await Chat.RunAsync(Data.Agent.FollowUp, settings: new() { MaxInputTokens = 1_000 }, cancellationToken: Ct);
 
         // Act
         await RunAsync(Data.Agent.Steering);
@@ -296,7 +296,7 @@ public class ModeTests : ApprovalTestBase
         await RunAsync(new string('x', Page), AgentMode.Plan);
 
         // Act
-        await Chat.RunAsync(Data.Agent.FollowUp, settings: new() { MaxInputTokens = 1_000 }, ct: Ct);
+        await Chat.RunAsync(Data.Agent.FollowUp, settings: new() { MaxInputTokens = 1_000 }, cancellationToken: Ct);
         var entries = await EntriesAsync(Data.Agent.ConversationId);
 
         // Assert
@@ -381,7 +381,7 @@ public class ModeTests : ApprovalTestBase
 
         // Act
         await chat.SetModeAsync(AgentMode.Default, Ct);
-        await chat.RunAsync(Data.Tool.Question, ct: Ct);
+        await chat.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         ChatClient.Options[0]!.Tools!.Select(tool => tool.Name).Should().Equal("close_ticket", "read_ticket", "note");
@@ -445,7 +445,7 @@ public class ModeTests : ApprovalTestBase
         await RunAsync(Data.Tool.Question, AgentMode.Plan);
 
         // Act
-        await Chat.RunAsync(Data.Agent.FollowUp, settings: new() { MaxToolIterations = 5 }, ct: Ct);
+        await Chat.RunAsync(Data.Agent.FollowUp, settings: new() { MaxToolIterations = 5 }, cancellationToken: Ct);
 
         // Assert
         ChatClient.Options[1]!.Tools!.Select(tool => tool.Name).Should().Equal("read_ticket", "exit_plan_mode");
@@ -460,7 +460,7 @@ public class ModeTests : ApprovalTestBase
             .Reply(Text(Data.Tool.Answer));
 
         await RunAsync(Data.Tool.Question, AgentMode.Plan);
-        var options = await Chat.ResolveOptionsAsync(settings: new() { MaxToolIterations = 5 }, ct: Ct);
+        var options = await Chat.ResolveOptionsAsync(settings: new() { MaxToolIterations = 5 }, cancellationToken: Ct);
         using var client = await Chat.CreateChatClientAsync(options, Ct);
 
         // Act
@@ -522,7 +522,7 @@ public class ModeTests : ApprovalTestBase
         var response = await Host<GuardedAgent>().RunAsync(
             Data.Tool.Question,
             settings: new() { Mode = AgentMode.Auto },
-            ct: Ct);
+            cancellationToken: Ct);
 
         // Assert
         response.Text.Should().Be(Data.Tool.Answer);
@@ -532,7 +532,7 @@ public class ModeTests : ApprovalTestBase
     public async Task Given_Plan_Mode_And_No_Conversation_The_Run_Throws_Before_The_Model_Is_Called()
     {
         // Act
-        var run = () => Host<PlanningAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        var run = () => Host<PlanningAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         await run.Should()

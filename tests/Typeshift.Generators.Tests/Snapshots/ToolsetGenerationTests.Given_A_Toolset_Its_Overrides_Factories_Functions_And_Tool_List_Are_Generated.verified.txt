@@ -210,13 +210,13 @@ partial class TicketToolset
             protected override async global::System.Threading.Tasks.ValueTask<object?> InvokeToolAsync(
                 global::Microsoft.Extensions.AI.AIFunctionArguments arguments,
                 global::System.IServiceProvider services,
-                global::System.Threading.CancellationToken ct) =>
+                global::System.Threading.CancellationToken cancellationToken) =>
                 GetResult(await global::Demo.TicketToolset.SearchTicketsAsync(
                     GetArgument<string>(arguments, "query"),
                     GetArgument<string?>(arguments, "author"),
                     settings,
                     services,
-                    ct).ConfigureAwait(false));
+                    cancellationToken).ConfigureAwait(false));
         }
 
         /// <summary>
@@ -265,7 +265,7 @@ partial class TicketToolset
             protected override global::System.Threading.Tasks.ValueTask<object?> InvokeToolAsync(
                 global::Microsoft.Extensions.AI.AIFunctionArguments arguments,
                 global::System.IServiceProvider services,
-                global::System.Threading.CancellationToken ct)
+                global::System.Threading.CancellationToken cancellationToken)
             {
                 global::Demo.TicketToolset.CloseTicket(
                     GetArgument<int>(arguments, "number"),
@@ -306,7 +306,7 @@ partial class TicketToolset
             protected override async global::System.Threading.Tasks.ValueTask<object?> InvokeToolAsync(
                 global::Microsoft.Extensions.AI.AIFunctionArguments arguments,
                 global::System.IServiceProvider services,
-                global::System.Threading.CancellationToken ct)
+                global::System.Threading.CancellationToken cancellationToken)
             {
                 await global::Demo.TicketToolset.Forget(arguments).ConfigureAwait(false);
                 return null;
@@ -320,7 +320,7 @@ partial class TicketToolset
 #nullable enable
 #pragma warning disable CS0612, CS0618
 
-[assembly: global::Typeshift.Generated.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule), 24)]
+[assembly: global::Typeshift.Generated.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule), 25)]
 
 namespace Typeshift.Generated;
 

@@ -10,19 +10,24 @@ public sealed class AgentLoadFallbackStore : ISettingsStore<Guid>, IAgentSetting
 
     private readonly ConcurrentDictionary<string, Guid> _ids = [];
 
-    public Task<StoredDocument?> LoadAsync(Guid id, string kind, CancellationToken ct) =>
-        _store.LoadAsync(id, kind, ct);
+    public Task<StoredDocument?> LoadAsync(Guid id, string kind, CancellationToken cancellationToken) =>
+        _store.LoadAsync(id, kind, cancellationToken);
 
-    public Task<long> SaveAsync(Guid id, string kind, string json, long loadedVersion, CancellationToken ct)
+    public Task<long> SaveAsync(
+        Guid id,
+        string kind,
+        string json,
+        long loadedVersion,
+        CancellationToken cancellationToken)
     {
         _ids[kind] = id;
-        return _store.SaveAsync(id, kind, json, loadedVersion, ct);
+        return _store.SaveAsync(id, kind, json, loadedVersion, cancellationToken);
     }
 
-    public async Task<StoredDocument?> LoadAsync(string kind, CancellationToken ct) =>
-        await _store.LoadAsync(kind, ct)
-        ?? (_ids.TryGetValue(kind, out var id) ? await _store.LoadAsync(id, kind, ct) : null);
+    public async Task<StoredDocument?> LoadAsync(string kind, CancellationToken cancellationToken) =>
+        await _store.LoadAsync(kind, cancellationToken)
+        ?? (_ids.TryGetValue(kind, out var id) ? await _store.LoadAsync(id, kind, cancellationToken) : null);
 
-    public Task<long> SaveAsync(string kind, string json, long loadedVersion, CancellationToken ct) =>
-        _store.SaveAsync(kind, json, loadedVersion, ct);
+    public Task<long> SaveAsync(string kind, string json, long loadedVersion, CancellationToken cancellationToken) =>
+        _store.SaveAsync(kind, json, loadedVersion, cancellationToken);
 }

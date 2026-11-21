@@ -15,7 +15,7 @@ public class UnionResultTests : AgentTestBase
         ChatClient.Reply(Text(JsonSerializer.Serialize(new { data = cat }, Json.SerializerOptions)));
 
         // Act
-        await Host<ProbeAgent>().RunAsync<Pet>(Data.Tool.Question, ct: Ct);
+        await Host<ProbeAgent>().RunAsync<Pet>(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         ResponseSchema().Assert.ParameterCaseTypes("data", "object", "object");
@@ -29,7 +29,7 @@ public class UnionResultTests : AgentTestBase
         ChatClient.Reply(Text(JsonSerializer.Serialize(new { data = cat }, Json.SerializerOptions)));
 
         // Act
-        var response = await Host<ProbeAgent>().RunAsync<Pet>(Data.Tool.Question, ct: Ct);
+        var response = await Host<ProbeAgent>().RunAsync<Pet>(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         response.Result.Value.Should().Be(cat);
@@ -43,7 +43,7 @@ public class UnionResultTests : AgentTestBase
         ChatClient.Reply(Text(JsonSerializer.Serialize(adoption, Json.GetTypeInfo<Adoption>())));
 
         // Act
-        await Host<ProbeAgent>().RunAsync<Adoption>(Data.Tool.Question, ct: Ct);
+        await Host<ProbeAgent>().RunAsync<Adoption>(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         ResponseSchema().Assert.ParameterCaseTypes("pet", "object", "object");

@@ -132,7 +132,7 @@ public class ProviderClientsTests : AgentTestBase
         ChatClient.Reply(Text(Data.Tool.Answer)).Reply(Text(Data.Tool.Answer));
         await using (var host = runtime.CreateHost<ModelOnlyAgent>())
         {
-            await host.WithProvider(Vendor.Other).RunAsync(Data.Tool.Question, ct: Ct);
+            await host.WithProvider(Vendor.Other).RunAsync(Data.Tool.Question, cancellationToken: Ct);
         }
 
         Time.Advance(IdleTime);
@@ -154,7 +154,9 @@ public class ProviderClientsTests : AgentTestBase
             .Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Host<LeadAgent>().WithProvider(Document(Data.Agent.Provider)).RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<LeadAgent>()
+            .WithProvider(Document(Data.Agent.Provider))
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         Connections.Should().ContainSingle();
@@ -163,11 +165,11 @@ public class ProviderClientsTests : AgentTestBase
     private static ChatProvider Document(string key) => new() { Kind = "scripted", ApiKey = key };
 
     private Task<ChatResponse> RunAsync(ChatProvider provider) =>
-        Host<ModelOnlyAgent>().WithProvider(provider).RunAsync(Data.Tool.Question, ct: Ct);
+        Host<ModelOnlyAgent>().WithProvider(provider).RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
     private async Task RunAsync(ITypeshiftRuntime runtime, ChatProvider provider)
     {
         await using var host = runtime.CreateHost<ModelOnlyAgent>();
-        await host.WithProvider(provider).RunAsync(Data.Tool.Question, ct: Ct);
+        await host.WithProvider(provider).RunAsync(Data.Tool.Question, cancellationToken: Ct);
     }
 }

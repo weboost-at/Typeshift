@@ -22,8 +22,8 @@ public class SubAgentUsageTests : MultiAgentTestBase
 
         // Act
         var response = streaming
-            ? (await lead.RunStreamingAsync(Data.Tool.Question, ct: Ct).ToListAsync(Ct)).ToChatResponse()
-            : await lead.RunAsync(Data.Tool.Question, ct: Ct);
+            ? (await lead.RunStreamingAsync(Data.Tool.Question, cancellationToken: Ct).ToListAsync(Ct)).ToChatResponse()
+            : await lead.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         response.Usage!.InputTokenCount.Should().Be(3 * Data.Agent.InputTokens);
@@ -40,7 +40,10 @@ public class SubAgentUsageTests : MultiAgentTestBase
         HelperClient.Reply(Text(Data.Agent.Reason), Reported());
 
         // Act
-        await Host<LeadAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<LeadAgent>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
+
         var entries = await EntriesAsync(Data.Agent.ConversationId);
 
         // Assert
@@ -63,7 +66,7 @@ public class SubAgentUsageTests : MultiAgentTestBase
         // Act
         var running = Host<BackgroundLeadAgent>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunAsync(Data.Tool.Question, settings: new() { MaxInputTokens = 100_000 }, ct: Ct);
+            .RunAsync(Data.Tool.Question, settings: new() { MaxInputTokens = 100_000 }, cancellationToken: Ct);
 
         await ChatClient.RequestedAsync(2);
         gate.SetResult();
@@ -91,7 +94,7 @@ public class SubAgentUsageTests : MultiAgentTestBase
         HelperClient.Reply(gate, Text(Data.Agent.Reason), Reported());
 
         // Act
-        var running = Host<BackgroundLeadAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        var running = Host<BackgroundLeadAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
         await ChatClient.RequestedAsync(2);
         gate.SetResult();
         var response = await running;

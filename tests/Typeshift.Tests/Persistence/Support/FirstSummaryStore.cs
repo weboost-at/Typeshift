@@ -5,17 +5,22 @@ public sealed class FirstSummaryStore : IConversationStore<Guid>
 {
     private readonly InMemoryTypeshiftStore<Guid> _store = new();
 
-    public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(Guid conversation, CancellationToken ct) =>
-        _store.LoadConversationAsync(conversation, ct);
+    public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(
+        Guid conversation,
+        CancellationToken cancellationToken) =>
+        _store.LoadConversationAsync(conversation, cancellationToken);
 
     public async Task<IReadOnlyList<ConversationEntry>> LoadConversationSinceCompactionAsync(
         Guid conversation,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
     {
-        var entries = await _store.LoadConversationAsync(conversation, ct);
+        var entries = await _store.LoadConversationAsync(conversation, cancellationToken);
         return entries.Any(entry => entry.IsSummary) ? [.. entries.SkipWhile(entry => !entry.IsSummary)] : entries;
     }
 
-    public Task AppendConversationAsync(Guid conversation, ConversationEntry entry, CancellationToken ct) =>
-        _store.AppendConversationAsync(conversation, entry, ct);
+    public Task AppendConversationAsync(
+        Guid conversation,
+        ConversationEntry entry,
+        CancellationToken cancellationToken) =>
+        _store.AppendConversationAsync(conversation, entry, cancellationToken);
 }

@@ -23,15 +23,17 @@ public sealed class TakenNumberStore(TakenNumber fault) : IConversationStore<Gui
 {
     private readonly ConcurrentDictionary<Guid, List<ConversationEntry>> _rows = [];
 
-    public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(Guid conversation, CancellationToken ct) =>
+    public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(
+        Guid conversation,
+        CancellationToken cancellationToken) =>
         Task.FromResult<IReadOnlyList<ConversationEntry>>([.. _rows.GetValueOrDefault(conversation) ?? []]);
 
     public async Task<IReadOnlyList<ConversationEntry>> LoadConversationSinceCompactionAsync(
         Guid conversation,
-        CancellationToken ct) =>
-        (await LoadConversationAsync(conversation, ct)).SinceLastSummary();
+        CancellationToken cancellationToken) =>
+        (await LoadConversationAsync(conversation, cancellationToken)).SinceLastSummary();
 
-    public Task AppendConversationAsync(Guid conversation, ConversationEntry entry, CancellationToken ct)
+    public Task AppendConversationAsync(Guid conversation, ConversationEntry entry, CancellationToken cancellationToken)
     {
         var taken = Taken(conversation, entry.Sequence);
 

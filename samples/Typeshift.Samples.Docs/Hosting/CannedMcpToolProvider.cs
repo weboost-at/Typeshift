@@ -8,6 +8,6 @@ internal sealed class CannedMcpToolProvider : IMcpToolProvider
     private static readonly AIFunction Status =
         AIFunctionFactory.Create(() => "All systems operational.", "service_status", "The status of our services.");
 
-    public ValueTask<IReadOnlyList<AITool>> GetToolsAsync(string server, CancellationToken ct) =>
+    public ValueTask<IReadOnlyList<AITool>> GetToolsAsync(string server, CancellationToken cancellationToken) =>
         ValueTask.FromResult<IReadOnlyList<AITool>>([Status]);
 }

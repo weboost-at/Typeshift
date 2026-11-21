@@ -30,7 +30,7 @@ public sealed class DecisionTelemetryTests : QuestionTestBase
             Note($"{Data.Tool.CallId}_note", Data.Tool.Query)));
 
         // Act
-        var response = await Asking.RunAsync(Data.Tool.Question, ct: Ct);
+        var response = await Asking.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         var run = Activities.Run(Data.Agent.ConversationId);
@@ -49,7 +49,7 @@ public sealed class DecisionTelemetryTests : QuestionTestBase
         ChatClient.Reply(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket));
 
         // Act
-        await Asking.RunAsync(Data.Tool.Question, ct: Ct);
+        await Asking.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         var asked = Activities.Run(Data.Agent.ConversationId).Events.Single(@event => @event.Name == Asked);
@@ -64,7 +64,7 @@ public sealed class DecisionTelemetryTests : QuestionTestBase
         ChatClient.Reply(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket));
 
         // Act
-        await Asking.RunAsync(Data.Tool.Question, ct: Ct);
+        await Asking.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         Tags(Activities.Run(Data.Agent.ConversationId), Asked, "gen_ai.tool.call.arguments")
@@ -84,7 +84,7 @@ public sealed class DecisionTelemetryTests : QuestionTestBase
                 Note($"{Data.Tool.CallId}_note", Data.Tool.Query)))
             .Reply(Text(Data.Tool.Answer));
 
-        var asked = await Asking.RunAsync(Data.Tool.Question, ct: Ct);
+        var asked = await Asking.RunAsync(Data.Tool.Question, cancellationToken: Ct);
         var question = (QuestionDecision)asked.Decisions[0];
 
         // Act
@@ -110,7 +110,7 @@ public sealed class DecisionTelemetryTests : QuestionTestBase
             .Reply(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket))
             .Reply(Text(Data.Tool.Answer));
 
-        var asked = await Asking.RunAsync(Data.Tool.Question, ct: Ct);
+        var asked = await Asking.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Act
         await AnswerQuestionsAsync(asked.Decisions[0].Reject(Data.Agent.Reason));
@@ -145,10 +145,10 @@ public sealed class DecisionTelemetryTests : QuestionTestBase
             .Reply(Calls(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket), note))
             .Reply(Text(Data.Tool.Answer));
 
-        await Asking.RunAsync(Data.Tool.Question, ct: Ct);
+        await Asking.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Act
-        await Asking.RunAsync(Data.Agent.FollowUp, ct: Ct);
+        await Asking.RunAsync(Data.Agent.FollowUp, cancellationToken: Ct);
 
         // Assert
         Tags(Activities.Runs(Data.Agent.ConversationId)[^1], Settled, Outcome).Should().Equal("expired", "expired");
@@ -164,10 +164,10 @@ public sealed class DecisionTelemetryTests : QuestionTestBase
             .Reply(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket))
             .Reply(Text(Data.Tool.Answer));
 
-        await Asking.RunAsync(Data.Tool.Question, ct: Ct);
+        await Asking.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Act
-        await Asking.RunAsync(Data.Agent.FollowUp, ct: Ct);
+        await Asking.RunAsync(Data.Agent.FollowUp, cancellationToken: Ct);
 
         // Assert
         Tags(Activities.Runs(Data.Agent.ConversationId)[^1], Settled, "gen_ai.tool.call.result").Should().BeEmpty();
@@ -183,11 +183,11 @@ public sealed class DecisionTelemetryTests : QuestionTestBase
             .Reply(Calls(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket), note))
             .Reply(Text(Data.Tool.Answer));
 
-        await Asking.RunAsync(Data.Tool.Question, ct: Ct);
+        await Asking.RunAsync(Data.Tool.Question, cancellationToken: Ct);
         await Asking.CancelDecisionsAsync(Ct);
 
         // Act
-        await Asking.RunAsync(Data.Agent.FollowUp, ct: Ct);
+        await Asking.RunAsync(Data.Agent.FollowUp, cancellationToken: Ct);
 
         // Assert
         Tags(Activities.Runs(Data.Agent.ConversationId)[^1], Settled, Outcome).Should().Equal("cancelled", "cancelled");
@@ -201,7 +201,7 @@ public sealed class DecisionTelemetryTests : QuestionTestBase
             .Reply(Calls(Ask(Data.Tool.CallId), CloseTicket(Data.Tool.SecondCallId, Data.Agent.Ticket)))
             .Reply(Text(Data.Tool.Answer));
 
-        var asked = await Asking.RunAsync(Data.Tool.Question, ct: Ct);
+        var asked = await Asking.RunAsync(Data.Tool.Question, cancellationToken: Ct);
         var question = (QuestionDecision)asked.Decisions[0];
         var approval = DecisionAnswer.Approve(asked.Decisions[1].Id);
 
@@ -209,7 +209,7 @@ public sealed class DecisionTelemetryTests : QuestionTestBase
         await StartAsync();
 
         // Act
-        await Asking.RunAsync(Data.Agent.FollowUp, ct: Ct);
+        await Asking.RunAsync(Data.Agent.FollowUp, cancellationToken: Ct);
 
         // Assert
         Tags(Activities.Runs(Data.Agent.ConversationId)[^1], Settled, Outcome).Should().Equal("answered", "unknown");
@@ -226,7 +226,7 @@ public sealed class DecisionTelemetryTests : QuestionTestBase
             .Reply(gate, CloseTicket(Data.Tool.CallId, Data.Agent.Ticket))
             .Reply(Text(Data.Tool.Answer));
 
-        var running = Asking.RunAsync(Data.Tool.Question, ct: Ct);
+        var running = Asking.RunAsync(Data.Tool.Question, cancellationToken: Ct);
         await ChatClient.Requested.WaitAsync(Ct);
         Tracker.TrySteer(Data.Agent.ConversationId, Data.Agent.Steering);
 
@@ -250,7 +250,7 @@ public sealed class DecisionTelemetryTests : QuestionTestBase
             .Reply(gate, CloseTicket(Data.Tool.CallId, Data.Agent.Ticket))
             .Reply(CloseTicket(Data.Tool.SecondCallId, Data.Agent.Ticket.Updated));
 
-        var running = Asking.RunAsync(Data.Tool.Question, ct: Ct);
+        var running = Asking.RunAsync(Data.Tool.Question, cancellationToken: Ct);
         await ChatClient.Requested.WaitAsync(Ct);
         Tracker.TrySteer(Data.Agent.ConversationId, Data.Agent.Steering);
 
@@ -282,7 +282,7 @@ public sealed class DecisionTelemetryTests : QuestionTestBase
             .WithConversationId(Data.Agent.ConversationId);
 
         // Act
-        var failure = await Record.ExceptionAsync(() => host.RunAsync(Data.Tool.Question, ct: Ct));
+        var failure = await Record.ExceptionAsync(() => host.RunAsync(Data.Tool.Question, cancellationToken: Ct));
 
         // Assert
         var run = Activities.Run(Data.Agent.ConversationId);
@@ -318,7 +318,7 @@ public sealed class DecisionTelemetryTests : QuestionTestBase
     private async Task CaptureMessagesAsync(bool capture)
     {
         var host = Host<AskingAgent>();
-        var options = await host.ResolveOptionsAsync(ct: Ct);
+        var options = await host.ResolveOptionsAsync(cancellationToken: Ct);
         using var client = await host.CreateChatClientAsync(options, Ct);
 
         client.GetService<OpenTelemetryChatClient>()!.EnableSensitiveData = capture;

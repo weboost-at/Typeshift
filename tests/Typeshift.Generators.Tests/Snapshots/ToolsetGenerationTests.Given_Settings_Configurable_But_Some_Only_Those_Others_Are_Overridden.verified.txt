@@ -174,7 +174,7 @@ partial class KnowledgeToolset
             protected override global::System.Threading.Tasks.ValueTask<object?> InvokeToolAsync(
                 global::Microsoft.Extensions.AI.AIFunctionArguments arguments,
                 global::System.IServiceProvider services,
-                global::System.Threading.CancellationToken ct) =>
+                global::System.Threading.CancellationToken cancellationToken) =>
                 new(GetResult(global::Demo.KnowledgeToolset.SearchArticles(
                     GetArgument<string>(arguments, "query"),
                     settings)));
@@ -187,7 +187,7 @@ partial class KnowledgeToolset
 #nullable enable
 #pragma warning disable CS0612, CS0618
 
-[assembly: global::Typeshift.Generated.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule), 24)]
+[assembly: global::Typeshift.Generated.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule), 25)]
 
 namespace Typeshift.Generated;
 

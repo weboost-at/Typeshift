@@ -49,95 +49,99 @@ public interface IAgentHost : IAsyncDisposable, IDisposable
     IAgentHost WithModelPolicy(ModelPolicy policy);
 
     /// <inheritdoc cref="AgentHost{TAgent}.RunAsync(string, CancellationToken)"/>
-    Task<ChatResponse> RunAsync(string input, CancellationToken ct = default);
+    Task<ChatResponse> RunAsync(string input, CancellationToken cancellationToken = default);
 
     /// <inheritdoc cref="AgentHost{TAgent}.RunAsync(ChatMessage, CancellationToken)"/>
-    Task<ChatResponse> RunAsync(ChatMessage input, CancellationToken ct = default);
+    Task<ChatResponse> RunAsync(ChatMessage input, CancellationToken cancellationToken = default);
 
     /// <inheritdoc cref="AgentHost{TAgent}.RunAsync{TResult}(string, CancellationToken)"/>
-    Task<ChatResponse<TResult>> RunAsync<TResult>(string input, CancellationToken ct = default);
+    Task<ChatResponse<TResult>> RunAsync<TResult>(string input, CancellationToken cancellationToken = default);
 
     /// <inheritdoc cref="AgentHost{TAgent}.RunAsync{TResult}(ChatMessage, CancellationToken)"/>
-    Task<ChatResponse<TResult>> RunAsync<TResult>(ChatMessage input, CancellationToken ct = default);
+    Task<ChatResponse<TResult>> RunAsync<TResult>(ChatMessage input, CancellationToken cancellationToken = default);
 
     /// <inheritdoc cref="AgentHost{TAgent}.RunStreamingAsync(string, CancellationToken)"/>
-    StreamingRun RunStreamingAsync(string input, CancellationToken ct = default);
+    StreamingRun RunStreamingAsync(string input, CancellationToken cancellationToken = default);
 
     /// <inheritdoc cref="AgentHost{TAgent}.RunStreamingAsync(ChatMessage, CancellationToken)"/>
-    StreamingRun RunStreamingAsync(ChatMessage input, CancellationToken ct = default);
+    StreamingRun RunStreamingAsync(ChatMessage input, CancellationToken cancellationToken = default);
 
     /// <inheritdoc cref="AgentHost{TAgent}.RunStreamingAsync{TResult}(string, CancellationToken)"/>
-    StreamingRun<TResult> RunStreamingAsync<TResult>(string input, CancellationToken ct = default);
+    StreamingRun<TResult> RunStreamingAsync<TResult>(string input, CancellationToken cancellationToken = default);
 
     /// <inheritdoc cref="AgentHost{TAgent}.RunStreamingAsync{TResult}(ChatMessage, CancellationToken)"/>
-    StreamingRun<TResult> RunStreamingAsync<TResult>(ChatMessage input, CancellationToken ct = default);
+    StreamingRun<TResult> RunStreamingAsync<TResult>(ChatMessage input, CancellationToken cancellationToken = default);
 
     /// <inheritdoc cref="AgentHost{TAgent}.AnswerAsync(IReadOnlyList{DecisionAnswer}, CancellationToken)"/>
-    Task<ChatResponse> AnswerAsync(IReadOnlyList<DecisionAnswer> answers, CancellationToken ct = default);
+    Task<ChatResponse> AnswerAsync(
+        IReadOnlyList<DecisionAnswer> answers,
+        CancellationToken cancellationToken = default);
 
     /// <inheritdoc cref="AgentHost{TAgent}.AnswerAsync{TResult}(IReadOnlyList{DecisionAnswer}, CancellationToken)"/>
     Task<ChatResponse<TResult>> AnswerAsync<TResult>(
         IReadOnlyList<DecisionAnswer> answers,
-        CancellationToken ct = default);
+        CancellationToken cancellationToken = default);
 
     /// <inheritdoc cref="AgentHost{TAgent}.AnswerStreamingAsync(IReadOnlyList{DecisionAnswer}, CancellationToken)"/>
-    StreamingRun AnswerStreamingAsync(IReadOnlyList<DecisionAnswer> answers, CancellationToken ct = default);
+    StreamingRun AnswerStreamingAsync(
+        IReadOnlyList<DecisionAnswer> answers,
+        CancellationToken cancellationToken = default);
 
     /// <inheritdoc
     ///     cref="AgentHost{TAgent}.AnswerStreamingAsync{TResult}(IReadOnlyList{DecisionAnswer}, CancellationToken)"/>
     StreamingRun<TResult> AnswerStreamingAsync<TResult>(
         IReadOnlyList<DecisionAnswer> answers,
-        CancellationToken ct = default);
+        CancellationToken cancellationToken = default);
 
     /// <inheritdoc cref="AgentHost{TAgent}.ResumeAsync(CancellationToken)"/>
-    Task<ChatResponse> ResumeAsync(CancellationToken ct = default);
+    Task<ChatResponse> ResumeAsync(CancellationToken cancellationToken = default);
 
     /// <inheritdoc cref="AgentHost{TAgent}.ResumeStreamingAsync(CancellationToken)"/>
-    StreamingRun ResumeStreamingAsync(CancellationToken ct = default);
+    StreamingRun ResumeStreamingAsync(CancellationToken cancellationToken = default);
 
     /// <inheritdoc cref="AgentHost{TAgent}.ResumeAsync{TResult}(CancellationToken)"/>
-    Task<ChatResponse<TResult>> ResumeAsync<TResult>(CancellationToken ct = default);
+    Task<ChatResponse<TResult>> ResumeAsync<TResult>(CancellationToken cancellationToken = default);
 
     /// <inheritdoc cref="AgentHost{TAgent}.ResumeStreamingAsync{TResult}(CancellationToken)"/>
-    StreamingRun<TResult> ResumeStreamingAsync<TResult>(CancellationToken ct = default);
+    StreamingRun<TResult> ResumeStreamingAsync<TResult>(CancellationToken cancellationToken = default);
 
     /// <inheritdoc cref="AgentHost{TAgent}.RetryAsync(CancellationToken)"/>
-    Task<ChatResponse> RetryAsync(CancellationToken ct = default);
+    Task<ChatResponse> RetryAsync(CancellationToken cancellationToken = default);
 
     /// <inheritdoc cref="AgentHost{TAgent}.RetryStreamingAsync(CancellationToken)"/>
-    StreamingRun RetryStreamingAsync(CancellationToken ct = default);
+    StreamingRun RetryStreamingAsync(CancellationToken cancellationToken = default);
 
     /// <inheritdoc cref="AgentHost{TAgent}.RetryAsync{TResult}(CancellationToken)"/>
-    Task<ChatResponse<TResult>> RetryAsync<TResult>(CancellationToken ct = default);
+    Task<ChatResponse<TResult>> RetryAsync<TResult>(CancellationToken cancellationToken = default);
 
     /// <inheritdoc cref="AgentHost{TAgent}.RetryStreamingAsync{TResult}(CancellationToken)"/>
-    StreamingRun<TResult> RetryStreamingAsync<TResult>(CancellationToken ct = default);
+    StreamingRun<TResult> RetryStreamingAsync<TResult>(CancellationToken cancellationToken = default);
 
     /// <inheritdoc cref="AgentHost{TAgent}.ResolveOptionsAsync(CancellationToken)"/>
-    Task<ChatOptions> ResolveOptionsAsync(CancellationToken ct = default);
+    Task<ChatOptions> ResolveOptionsAsync(CancellationToken cancellationToken = default);
 
     /// <inheritdoc cref="AgentHost{TAgent}.CreateChatClientAsync(ChatOptions, CancellationToken)"/>
-    Task<IChatClient> CreateChatClientAsync(ChatOptions options, CancellationToken ct = default);
+    Task<IChatClient> CreateChatClientAsync(ChatOptions options, CancellationToken cancellationToken = default);
 
     /// <inheritdoc cref="AgentHost{TAgent}.LoadConversationAsync(CancellationToken)"/>
-    Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(CancellationToken ct = default);
+    Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(CancellationToken cancellationToken = default);
 
     /// <inheritdoc cref="AgentHost{TAgent}.GetDecisionsAsync(CancellationToken)"/>
-    Task<ConversationDecisions> GetDecisionsAsync(CancellationToken ct = default);
+    Task<ConversationDecisions> GetDecisionsAsync(CancellationToken cancellationToken = default);
 
     /// <inheritdoc cref="AgentHost{TAgent}.RecordAnswersAsync(IReadOnlyList{DecisionAnswer}, CancellationToken)"/>
     Task<ConversationDecisions> RecordAnswersAsync(
         IReadOnlyList<DecisionAnswer> answers,
-        CancellationToken ct = default);
+        CancellationToken cancellationToken = default);
 
     /// <inheritdoc cref="AgentHost{TAgent}.CancelDecisionsAsync(CancellationToken)"/>
-    Task<ConversationDecisions> CancelDecisionsAsync(CancellationToken ct = default);
+    Task<ConversationDecisions> CancelDecisionsAsync(CancellationToken cancellationToken = default);
 
     /// <inheritdoc cref="AgentHost{TAgent}.SetModeAsync(AgentMode, CancellationToken)"/>
-    Task SetModeAsync(AgentMode mode, CancellationToken ct = default);
+    Task SetModeAsync(AgentMode mode, CancellationToken cancellationToken = default);
 
     /// <inheritdoc cref="AgentHost{TAgent}.RevokeStandingApprovalAsync(string, string, CancellationToken)"/>
-    Task RevokeStandingApprovalAsync(string tool, string? server = null, CancellationToken ct = default);
+    Task RevokeStandingApprovalAsync(string tool, string? server = null, CancellationToken cancellationToken = default);
 
     // Runs with the stored settings of the handover's settings id only, and with what else it was handed
     internal Task<ChatResponse> RunAsync(IEnumerable<ChatMessage> messages, RunHandover handover, CancellationToken ct);

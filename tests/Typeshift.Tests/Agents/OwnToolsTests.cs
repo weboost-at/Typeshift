@@ -13,7 +13,7 @@ public class OwnToolsTests : AgentTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Host<OwnToolsAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<OwnToolsAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         ChatClient.Options[0]!.Tools!.Select(tool => tool.Name).Should().Equal("probe", "recall");
@@ -30,7 +30,11 @@ public class OwnToolsTests : AgentTestBase
             .Reply(Text(Data.Tool.Answer));
 
         // Act
-        var response = await Host<OwnToolsAgent>().RunAsync(Data.Tool.Question, settings: settings, ct: Ct);
+        var response = await Host<OwnToolsAgent>().RunAsync(
+            Data.Tool.Question,
+            settings: settings,
+            cancellationToken: Ct);
+
         var result = response.Assert.ToolResult<ProbeResult>(Data.Tool.CallId, Json);
 
         // Assert

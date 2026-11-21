@@ -9,7 +9,7 @@ public sealed class AuditToolCalls(TimeProvider time) : IToolMiddleware
     public async ValueTask<object?> InvokeAsync(
         FunctionInvocationContext call,
         Func<ValueTask<object?>> next,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
     {
         var arguments = call.CallContent.Arguments is { } sent
             ? Demo.Arguments(new FunctionCallContent(call.CallContent.CallId, call.Function.Name, sent))

@@ -7,7 +7,7 @@ public sealed class LateAnswerMiddleware : IRunMiddleware
 {
     public const string Answer = "An answer after the model's.";
 
-    public async Task InvokeAsync(AgentRun run, Func<Task> next, CancellationToken ct)
+    public async Task InvokeAsync(AgentRun run, Func<Task> next, CancellationToken cancellationToken)
     {
         await next();
         run.Response = new ChatResponse(new ChatMessage(ChatRole.Assistant, Answer));

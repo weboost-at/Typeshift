@@ -65,7 +65,7 @@ public class CancelledDecisionTests : DecisionTestBase
         await Chat.CancelDecisionsAsync(Ct);
 
         // Act
-        var resumed = await Chat.ResumeAsync(ct: Ct);
+        var resumed = await Chat.ResumeAsync(cancellationToken: Ct);
 
         // Assert
         resumed.Text.Should().Be(Data.Tool.Answer);

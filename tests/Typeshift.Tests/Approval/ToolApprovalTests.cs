@@ -33,7 +33,7 @@ public class ToolApprovalTests : ApprovalTestBase
         // Act
         var response = await Host<ArchiveAgent>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunAsync(Data.Tool.Question, ct: Ct);
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         response.Decisions.OfType<ApprovalDecision>()
@@ -69,7 +69,7 @@ public class ToolApprovalTests : ApprovalTestBase
             .Reply(CloseTicket(Data.Tool.SecondCallId, Data.Agent.Ticket))
             .Reply(Text(Data.Tool.Answer));
 
-        var asked = await Chat.RunAsync(Data.Tool.Question, settings: settings, ct: Ct);
+        var asked = await Chat.RunAsync(Data.Tool.Question, settings: settings, cancellationToken: Ct);
 
         // Act
         var response = await Chat.AnswerAsync([DecisionAnswer.Approve(asked.Decisions[0].Id)], settings, Ct);
@@ -90,7 +90,7 @@ public class ToolApprovalTests : ApprovalTestBase
             .Reply(Note(Data.Tool.SecondCallId, Data.Tool.Query))
             .Reply(Text(Data.Tool.Answer));
 
-        var asked = await Chat.RunAsync(Data.Tool.Question, settings: settings, ct: Ct);
+        var asked = await Chat.RunAsync(Data.Tool.Question, settings: settings, cancellationToken: Ct);
 
         // Act
         await Chat.AnswerAsync([DecisionAnswer.Approve(asked.Decisions[0].Id)], settings, Ct);
@@ -142,10 +142,12 @@ public class ToolApprovalTests : ApprovalTestBase
             .Reply(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket))
             .Reply(Text(lives));
 
-        var asked = await Chat.RunAsync<int>(Data.Tool.Question, ct: Ct);
+        var asked = await Chat.RunAsync<int>(Data.Tool.Question, cancellationToken: Ct);
 
         // Act
-        var response = await Chat.AnswerAsync<int>([DecisionAnswer.Approve(asked.Decisions[0].Id)], ct: Ct);
+        var response = await Chat.AnswerAsync<int>(
+            [DecisionAnswer.Approve(asked.Decisions[0].Id)],
+            cancellationToken: Ct);
 
         // Assert
         ChatClient.Options[1]!.ResponseFormat.Should().BeOfType<ChatResponseFormatJson>();
@@ -159,7 +161,7 @@ public class ToolApprovalTests : ApprovalTestBase
         ChatClient.Reply(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket));
 
         // Act
-        var asked = await Chat.RunAsync<int>(Data.Tool.Question, ct: Ct);
+        var asked = await Chat.RunAsync<int>(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         asked.TryGetResult(out _).Should().BeFalse();
@@ -245,7 +247,7 @@ public class ToolApprovalTests : ApprovalTestBase
         ChatClient.Reply(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket));
 
         // Act
-        var run = () => Host<GuardedAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        var run = () => Host<GuardedAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         await run.Should()
@@ -263,7 +265,7 @@ public class ToolApprovalTests : ApprovalTestBase
 
         // Act
         var run = () => scope.ServiceProvider.GetRequiredService<AgentHost<GuardedAgent>>()
-            .RunAsync(Data.Tool.Question, ct: Ct);
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         await run.Should()
@@ -281,7 +283,7 @@ public class ToolApprovalTests : ApprovalTestBase
 
         // Act
         var run = () => scope.ServiceProvider.GetRequiredService<AgentHost<GuardedAgent>>()
-            .RunAsync(Data.Tool.Question, ct: Ct);
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         await run.Should()
@@ -296,7 +298,7 @@ public class ToolApprovalTests : ApprovalTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act
-        var response = await Host<GuardedAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        var response = await Host<GuardedAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         response.Text.Should().Be(Data.Tool.Answer);
@@ -312,7 +314,7 @@ public class ToolApprovalTests : ApprovalTestBase
 
         // Act
         var response = await scope.ServiceProvider.GetRequiredService<AgentHost<GuardedAgent>>()
-            .RunAsync(Data.Tool.Question, settings: new() { Mode = AgentMode.Auto }, ct: Ct);
+            .RunAsync(Data.Tool.Question, settings: new() { Mode = AgentMode.Auto }, cancellationToken: Ct);
 
         // Assert
         response.Text.Should().Be(Data.Tool.Answer);
@@ -497,7 +499,7 @@ public class ToolApprovalTests : ApprovalTestBase
         var answer = new ToolApprovalRequestContent(Data.Tool.CallId, call).CreateResponse(approved: true);
 
         // Act
-        var run = () => Chat.RunAsync(new ChatMessage(ChatRole.User, [answer]), ct: Ct);
+        var run = () => Chat.RunAsync(new ChatMessage(ChatRole.User, [answer]), cancellationToken: Ct);
 
         // Assert
         await run.Should().ThrowAsync<ArgumentException>().WithMessage("*AnswerAsync*");
@@ -544,7 +546,7 @@ public class ToolApprovalTests : ApprovalTestBase
             .Reply(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket))
             .Reply(Text(Data.Tool.Answer));
 
-        var updates = await Chat.RunStreamingAsync(Data.Tool.Question, ct: Ct).ToListAsync(Ct);
+        var updates = await Chat.RunStreamingAsync(Data.Tool.Question, cancellationToken: Ct).ToListAsync(Ct);
 
         // Act
         var response = await StreamAnswerAsync(DecisionAnswer.Approve(updates[^1].Decisions.Single().Id));
@@ -562,7 +564,7 @@ public class ToolApprovalTests : ApprovalTestBase
             .Reply(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket))
             .Reply(Text(Data.Tool.Answer));
 
-        await foreach (var update in Chat.RunStreamingAsync(Data.Tool.Question, ct: Ct))
+        await foreach (var update in Chat.RunStreamingAsync(Data.Tool.Question, cancellationToken: Ct))
         {
             if (update.Contents.Any(content => content is FunctionCallContent)) break;
         }
@@ -587,7 +589,7 @@ public class ToolApprovalTests : ApprovalTestBase
         ChatClient.Reply(call);
 
         // Act
-        var updates = await Chat.RunStreamingAsync(Data.Tool.Question, ct: Ct).ToListAsync(Ct);
+        var updates = await Chat.RunStreamingAsync(Data.Tool.Question, cancellationToken: Ct).ToListAsync(Ct);
         var response = updates.ToChatResponse();
 
         // Assert
@@ -715,7 +717,7 @@ public class ToolApprovalTests : ApprovalTestBase
         var first = await RunAsync(Data.Tool.Question);
         var stale = DecisionAnswer.Approve(first.Decisions[0].Id);
         await AnswerAsync(stale);
-        await Chat.RunAsync(new string('x', Page), settings: new() { MaxInputTokens = 1_000 }, ct: Ct);
+        await Chat.RunAsync(new string('x', Page), settings: new() { MaxInputTokens = 1_000 }, cancellationToken: Ct);
         var second = await RunAsync(Data.Agent.FollowUp);
 
         // Act
@@ -740,11 +742,11 @@ public class ToolApprovalTests : ApprovalTestBase
             .Reply(Text(Data.Tool.Answer))
             .Reply(Text(Data.Tool.Answer));
 
-        await Chat.RunAsync(Data.Tool.Question, settings: settings, ct: Ct);
-        await Chat.RunAsync(Data.Agent.FollowUp, settings: settings, ct: Ct);
+        await Chat.RunAsync(Data.Tool.Question, settings: settings, cancellationToken: Ct);
+        await Chat.RunAsync(Data.Agent.FollowUp, settings: settings, cancellationToken: Ct);
 
         // Act
-        await Chat.RunAsync(Data.Agent.Steering, settings: settings, ct: Ct);
+        await Chat.RunAsync(Data.Agent.Steering, settings: settings, cancellationToken: Ct);
 
         // Assert
         var sent = ChatClient.Requests[^1].SelectMany(message => message.Contents).ToList();
@@ -770,11 +772,11 @@ public class ToolApprovalTests : ApprovalTestBase
             .Reply(Text(Data.Tool.Answer))
             .Reply(Text(Data.Tool.Answer));
 
-        var asked = await chat.RunAsync(Data.Tool.Question, ct: Ct);
-        await chat.AnswerAsync([DecisionAnswer.Approve(asked.Decisions[0].Id)], ct: Ct);
+        var asked = await chat.RunAsync(Data.Tool.Question, cancellationToken: Ct);
+        await chat.AnswerAsync([DecisionAnswer.Approve(asked.Decisions[0].Id)], cancellationToken: Ct);
 
         // Act
-        await chat.RunAsync(Data.Agent.FollowUp, ct: Ct);
+        await chat.RunAsync(Data.Agent.FollowUp, cancellationToken: Ct);
         var sent = ChatClient.Requests[^1].SelectMany(message => message.Contents).ToList();
 
         // Assert
@@ -819,7 +821,7 @@ public class ToolApprovalTests : ApprovalTestBase
         ChatClient.Reply(Note(Data.Tool.CallId, Data.Tool.Query));
 
         // Act
-        var asked = await Marking.RunAsync(Data.Tool.Question, ct: Ct);
+        var asked = await Marking.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         asked.Decisions.OfType<ApprovalDecision>()
@@ -835,7 +837,7 @@ public class ToolApprovalTests : ApprovalTestBase
         ChatClient.Reply(Note(Data.Tool.CallId, Data.Tool.Query));
 
         // Act
-        await Marking.RunAsync(Data.Tool.Question, ct: Ct);
+        await Marking.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         ToolCalls.Should().BeEmpty();
@@ -849,10 +851,12 @@ public class ToolApprovalTests : ApprovalTestBase
             .Reply(Note(Data.Tool.CallId, Data.Tool.Query))
             .Reply(Text(Data.Tool.Answer));
 
-        var asked = await Marking.RunAsync(Data.Tool.Question, ct: Ct);
+        var asked = await Marking.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Act
-        await Marking.AnswerAsync([asked.Decisions.OfType<ApprovalDecision>().Single().Approve()], ct: Ct);
+        await Marking.AnswerAsync(
+            [asked.Decisions.OfType<ApprovalDecision>().Single().Approve()],
+            cancellationToken: Ct);
 
         // Assert
         ToolCalls.Should().Equal($"note {Data.Tool.Query}");

@@ -13,7 +13,9 @@ public sealed class StoredJsonStore : IConversationStore<Guid>
         lock (entries) entries.Add(json);
     }
 
-    public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(Guid conversation, CancellationToken ct)
+    public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(
+        Guid conversation,
+        CancellationToken cancellationToken)
     {
         var entries = _entries.GetValueOrDefault(conversation) ?? [];
 
@@ -26,11 +28,11 @@ public sealed class StoredJsonStore : IConversationStore<Guid>
 
     public async Task<IReadOnlyList<ConversationEntry>> LoadConversationSinceCompactionAsync(
         Guid conversation,
-        CancellationToken ct) =>
-        (await LoadConversationAsync(conversation, ct)).SinceLastSummary();
+        CancellationToken cancellationToken) =>
+        (await LoadConversationAsync(conversation, cancellationToken)).SinceLastSummary();
 
     // As a unique key on the conversation and the number would, over the numbers the stored JSON holds
-    public Task AppendConversationAsync(Guid conversation, ConversationEntry entry, CancellationToken ct)
+    public Task AppendConversationAsync(Guid conversation, ConversationEntry entry, CancellationToken cancellationToken)
     {
         var entries = _entries.GetOrAdd(conversation, _ => []);
 

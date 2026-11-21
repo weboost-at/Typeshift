@@ -30,23 +30,25 @@ public abstract class GeneratedToolFunction(ToolJson json) : AIFunction
 
     /// <inheritdoc />
     /// <exception cref="InvalidOperationException">The arguments carry no services.</exception>
-    protected sealed override ValueTask<object?> InvokeCoreAsync(AIFunctionArguments arguments, CancellationToken ct) =>
+    protected sealed override ValueTask<object?> InvokeCoreAsync(
+        AIFunctionArguments arguments,
+        CancellationToken cancellationToken) =>
         // D25: the run's services, those of the scope its host was resolved from
-        InvokeToolAsync(arguments, arguments.Services ?? throw NoServices(), ct);
+        InvokeToolAsync(arguments, arguments.Services ?? throw NoServices(), cancellationToken);
 
     /// <summary>
     /// Binds the arguments and calls the tool method.
     /// </summary>
     /// <param name="arguments">The model's arguments.</param>
     /// <param name="services">The run's services.</param>
-    /// <param name="ct">Cancels the call.</param>
+    /// <param name="cancellationToken">Cancels the call.</param>
     /// <returns>
     /// The tool's result as JSON, the content it returns as it is, or null for a tool that returns nothing.
     /// </returns>
     protected abstract ValueTask<object?> InvokeToolAsync(
         AIFunctionArguments arguments,
         IServiceProvider services,
-        CancellationToken ct);
+        CancellationToken cancellationToken);
 
     /// <summary>
     /// Reads a required argument.
@@ -106,17 +108,19 @@ public abstract class GeneratedToolFunction(ToolJson json) : AIFunction
     /// </summary>
     /// <typeparam name="T">The type of the stream's items.</typeparam>
     /// <param name="stream">The stream the tool method returned.</param>
-    /// <param name="ct">Cancels the reading, also of a stream that takes no token itself.</param>
+    /// <param name="cancellationToken">Cancels the reading, also of a stream that takes no token itself.</param>
     /// <returns>The items as a <see cref="JsonElement"/>, serialized through the contract of their list.</returns>
     /// <exception cref="OperationCanceledException">The call was cancelled before the stream ended.</exception>
-    protected async ValueTask<object?> GetResultAsync<T>(IAsyncEnumerable<T> stream, CancellationToken ct)
+    protected async ValueTask<object?> GetResultAsync<T>(
+        IAsyncEnumerable<T> stream,
+        CancellationToken cancellationToken)
     {
         var items = new List<T>();
 
-        await foreach (var item in stream.WithCancellation(ct).ConfigureAwait(false))
+        await foreach (var item in stream.WithCancellation(cancellationToken).ConfigureAwait(false))
         {
             // An iterator without [EnumeratorCancellation] never sees the token
-            ct.ThrowIfCancellationRequested();
+            cancellationToken.ThrowIfCancellationRequested();
             items.Add(item);
         }
 

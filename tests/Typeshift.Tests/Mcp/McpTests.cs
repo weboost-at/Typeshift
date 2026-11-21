@@ -53,10 +53,10 @@ public class McpTests : McpTestBase
             .Reply(Text(Data.Tool.Answer));
 
         var chat = Host<McpAgent>().WithConversationId(Data.Agent.ConversationId);
-        var asked = await chat.RunAsync(Data.Tool.Question, ct: Ct);
+        var asked = await chat.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Act
-        await chat.AnswerAsync([DecisionAnswer.ApproveForConversation(asked.Decisions[0].Id)], ct: Ct);
+        await chat.AnswerAsync([DecisionAnswer.ApproveForConversation(asked.Decisions[0].Id)], cancellationToken: Ct);
         var decisions = await chat.GetDecisionsAsync(Ct);
 
         // Assert
@@ -76,13 +76,13 @@ public class McpTests : McpTestBase
             .Reply(Call(Data.Tool.SecondCallId, "close_ticket", ("number", Data.Agent.Ticket.Default)));
 
         var chat = Host<McpAgent>().WithConversationId(Data.Agent.ConversationId);
-        var asked = await chat.RunAsync(Data.Tool.Question, ct: Ct);
-        await chat.AnswerAsync([DecisionAnswer.ApproveForConversation(asked.Decisions[0].Id)], ct: Ct);
+        var asked = await chat.RunAsync(Data.Tool.Question, cancellationToken: Ct);
+        await chat.AnswerAsync([DecisionAnswer.ApproveForConversation(asked.Decisions[0].Id)], cancellationToken: Ct);
 
         // Act
         var later = await Host<GuardedAgent>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunAsync(Data.Agent.FollowUp, ct: Ct);
+            .RunAsync(Data.Agent.FollowUp, cancellationToken: Ct);
 
         // Assert
         later.Decisions.Should().ContainSingle();
@@ -103,10 +103,10 @@ public class McpTests : McpTestBase
             .Reply(Text(Data.Tool.Answer));
 
         var lead = Host<McpLeadAgent>().WithConversationId(Data.Agent.ConversationId);
-        var asked = await lead.RunAsync(Data.Tool.Question, ct: Ct);
+        var asked = await lead.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Act
-        await lead.AnswerAsync([DecisionAnswer.ApproveForConversation(asked.Decisions[0].Id)], ct: Ct);
+        await lead.AnswerAsync([DecisionAnswer.ApproveForConversation(asked.Decisions[0].Id)], cancellationToken: Ct);
 
         // Assert
         ToolCalls.Should().Equal($"close_ticket {Data.Agent.Ticket.Default}");
@@ -124,10 +124,12 @@ public class McpTests : McpTestBase
             .Reply(Call($"{Data.Tool.CallId}_back", "close_ticket"));
 
         var front = Host<McpFrontAgent>().WithConversationId(Data.Agent.ConversationId);
-        var asked = await front.RunAsync(Data.Tool.Question, ct: Ct);
+        var asked = await front.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Act
-        var handed = await front.AnswerAsync([DecisionAnswer.ApproveForConversation(asked.Decisions[0].Id)], ct: Ct);
+        var handed = await front.AnswerAsync(
+            [DecisionAnswer.ApproveForConversation(asked.Decisions[0].Id)],
+            cancellationToken: Ct);
 
         // Assert
         handed.Decisions.OfType<ApprovalDecision>().Select(decision => decision.Server).Should().Equal("deploy");
@@ -141,7 +143,7 @@ public class McpTests : McpTestBase
         var chat = await ApprovedForTheConversationAsync();
 
         // Act
-        await chat.RevokeStandingApprovalAsync("deploy", ct: Ct);
+        await chat.RevokeStandingApprovalAsync("deploy", cancellationToken: Ct);
         var decisions = await chat.GetDecisionsAsync(Ct);
 
         // Assert
@@ -157,7 +159,7 @@ public class McpTests : McpTestBase
 
         // Act
         await chat.RevokeStandingApprovalAsync("deploy", "deploy", Ct);
-        var later = await chat.RunAsync(Data.Agent.FollowUp, ct: Ct);
+        var later = await chat.RunAsync(Data.Agent.FollowUp, cancellationToken: Ct);
 
         // Assert
         later.Decisions.Should().ContainSingle();
@@ -221,7 +223,7 @@ public class McpTests : McpTestBase
 
         // Act
         var host = scope.ServiceProvider.GetRequiredService<AgentHost<McpAgent>>();
-        var run = () => host.RunAsync(Data.Tool.Question, ct: Ct);
+        var run = () => host.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         await run.Should().ThrowAsync<InvalidOperationException>().WithMessage("*WithMcpToolProvider*");
@@ -237,8 +239,8 @@ public class McpTests : McpTestBase
             .Reply(Text(Data.Tool.Answer));
 
         var chat = Host<McpAgent>().WithConversationId(Data.Agent.ConversationId);
-        var asked = await chat.RunAsync(Data.Tool.Question, ct: Ct);
-        await chat.AnswerAsync([DecisionAnswer.ApproveForConversation(asked.Decisions[0].Id)], ct: Ct);
+        var asked = await chat.RunAsync(Data.Tool.Question, cancellationToken: Ct);
+        await chat.AnswerAsync([DecisionAnswer.ApproveForConversation(asked.Decisions[0].Id)], cancellationToken: Ct);
 
         return chat;
     }
@@ -249,8 +251,11 @@ public class McpTests : McpTestBase
         var chat = Host<McpAgent>().WithConversationId(Data.Agent.ConversationId);
 
         return streaming
-            ? (await chat.RunStreamingAsync(Data.Tool.Question, settings: settings, ct: Ct).ToListAsync(Ct))
+            ? (await chat.RunStreamingAsync(
+                Data.Tool.Question,
+                settings: settings,
+                cancellationToken: Ct).ToListAsync(Ct))
             .ToChatResponse()
-            : await chat.RunAsync(Data.Tool.Question, settings: settings, ct: Ct);
+            : await chat.RunAsync(Data.Tool.Question, settings: settings, cancellationToken: Ct);
     }
 }

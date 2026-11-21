@@ -27,12 +27,14 @@ public abstract class MiddlewareTestBase : AgentTestBase
     }
 
     protected Task<ChatResponse> RunAsync(string input, ContextAgent.Settings? settings = null) =>
-        Host<ContextAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(input, settings: settings, ct: Ct);
+        Host<ContextAgent>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync(input, settings: settings, cancellationToken: Ct);
 
     protected async Task<ChatResponse> StreamAsync(string input, ContextAgent.Settings? settings = null) =>
         (await Host<ContextAgent>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunStreamingAsync(input, settings: settings, ct: Ct)
+            .RunStreamingAsync(input, settings: settings, cancellationToken: Ct)
             .ToListAsync(Ct))
         .ToChatResponse();
 

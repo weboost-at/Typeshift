@@ -15,7 +15,7 @@ public sealed class LookupContext : IContextProvider, IAsyncDisposable
         script.Lifetimes.Add("lookup created");
     }
 
-    public ValueTask<AgentContext> GetContextAsync(AgentRun run, CancellationToken ct) =>
+    public ValueTask<AgentContext> GetContextAsync(AgentRun run, CancellationToken cancellationToken) =>
         ValueTask.FromResult(new AgentContext { Tools = [AIFunctionFactory.Create(Lookup, Tool)] });
 
     public ValueTask DisposeAsync()
@@ -42,7 +42,7 @@ public sealed class ProfileContext : IContextProvider, IDisposable
         script.Lifetimes.Add("profile created");
     }
 
-    public ValueTask<AgentContext> GetContextAsync(AgentRun run, CancellationToken ct) =>
+    public ValueTask<AgentContext> GetContextAsync(AgentRun run, CancellationToken cancellationToken) =>
         ValueTask.FromResult(new AgentContext());
 
     public void Dispose() => _script.Lifetimes.Add("profile disposed");

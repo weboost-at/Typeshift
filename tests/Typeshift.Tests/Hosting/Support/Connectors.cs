@@ -7,12 +7,12 @@ namespace Typeshift.Tests.Hosting.Support;
 // connected, in order. A test that holds the gate closed holds each connection until it opens
 public sealed class CountingConnector(ScriptedChatClient client, Connections connections) : IChatProviderConnector
 {
-    public async ValueTask<IChatClient> ConnectAsync(ChatProvider provider, CancellationToken ct)
+    public async ValueTask<IChatClient> ConnectAsync(ChatProvider provider, CancellationToken cancellationToken)
     {
         var connected = new ConnectedClient(client, provider);
         connections.Add(connected);
 
-        await connections.Gate.Task.WaitAsync(ct);
+        await connections.Gate.Task.WaitAsync(cancellationToken);
         return connected;
     }
 }
@@ -45,7 +45,7 @@ public sealed class FailingConnector : IChatProviderConnector
 {
     public const string Reason = "The vault refused the key.";
 
-    public ValueTask<IChatClient> ConnectAsync(ChatProvider provider, CancellationToken ct) =>
+    public ValueTask<IChatClient> ConnectAsync(ChatProvider provider, CancellationToken cancellationToken) =>
         throw new InvalidOperationException(Reason);
 }
 

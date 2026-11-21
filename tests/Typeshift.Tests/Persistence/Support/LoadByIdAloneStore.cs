@@ -10,12 +10,17 @@ public sealed class LoadByIdAloneStore : ISettingsStore<Guid>
 
     private readonly ConcurrentDictionary<Guid, string> _firstKinds = [];
 
-    public async Task<StoredDocument?> LoadAsync(Guid id, string kind, CancellationToken ct) =>
-        _firstKinds.TryGetValue(id, out var first) ? await _store.LoadAsync(id, first, ct) : null;
+    public async Task<StoredDocument?> LoadAsync(Guid id, string kind, CancellationToken cancellationToken) =>
+        _firstKinds.TryGetValue(id, out var first) ? await _store.LoadAsync(id, first, cancellationToken) : null;
 
-    public Task<long> SaveAsync(Guid id, string kind, string json, long loadedVersion, CancellationToken ct)
+    public Task<long> SaveAsync(
+        Guid id,
+        string kind,
+        string json,
+        long loadedVersion,
+        CancellationToken cancellationToken)
     {
         _firstKinds.TryAdd(id, kind);
-        return _store.SaveAsync(id, kind, json, loadedVersion, ct);
+        return _store.SaveAsync(id, kind, json, loadedVersion, cancellationToken);
     }
 }

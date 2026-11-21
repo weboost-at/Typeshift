@@ -13,7 +13,10 @@ public sealed partial class ShellGuard : IToolApprovalRule
     // Whole commands: one that only starts with or contains one of them is another command
     private static readonly string[] Tests = ["sh test.sh", "./test.sh"];
 
-    public ValueTask<RuleVerdict> DecideAsync(FunctionCallContent call, AgentRun run, CancellationToken ct)
+    public ValueTask<RuleVerdict> DecideAsync(
+        FunctionCallContent call,
+        AgentRun run,
+        CancellationToken cancellationToken)
     {
         if (call is not { Name: ShellToolset.ToolNames.RunCommand, Arguments: { } arguments }
             || !arguments.TryGetValue("command", out var sent)

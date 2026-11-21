@@ -10,7 +10,7 @@ public sealed class DisposableMiddleware : IRunMiddleware, IDisposable
 
     public bool Disposed => Disposals > 0;
 
-    public Task InvokeAsync(AgentRun run, Func<Task> next, CancellationToken ct) => next();
+    public Task InvokeAsync(AgentRun run, Func<Task> next, CancellationToken cancellationToken) => next();
 
     public void Dispose() => Disposals++;
 }

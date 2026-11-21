@@ -7,7 +7,7 @@ namespace Typeshift.Demos.Support.Hosting;
 // Every run of the agents that use it learns who the customer is; never stored, so a renamed customer shows at once
 public sealed class CustomerContext(CurrentCustomer customer) : IContextProvider
 {
-    public ValueTask<AgentContext> GetContextAsync(AgentRun run, CancellationToken ct) =>
+    public ValueTask<AgentContext> GetContextAsync(AgentRun run, CancellationToken cancellationToken) =>
         ValueTask.FromResult(new AgentContext
         {
             Instructions = $"The customer is {customer.Name} (id {customer.Id}) on the {customer.Plan} plan."
@@ -17,7 +17,7 @@ public sealed class CustomerContext(CurrentCustomer customer) : IContextProvider
 // A guardrail around every run of every agent: some topics are answered without a model
 public sealed class BlockedTopics : IRunMiddleware
 {
-    public Task InvokeAsync(AgentRun run, Func<Task> next, CancellationToken ct)
+    public Task InvokeAsync(AgentRun run, Func<Task> next, CancellationToken cancellationToken)
     {
         if (run.Messages[^1].Text.Contains("card number", StringComparison.OrdinalIgnoreCase))
         {
@@ -40,7 +40,7 @@ public sealed class StatusMcpProvider : IMcpToolProvider
         "service_status",
         "The current status of our services and recent incidents.");
 
-    public ValueTask<IReadOnlyList<AITool>> GetToolsAsync(string server, CancellationToken ct) =>
+    public ValueTask<IReadOnlyList<AITool>> GetToolsAsync(string server, CancellationToken cancellationToken) =>
         ValueTask.FromResult<IReadOnlyList<AITool>>(server == "status" ? [Status] : []);
 }
 
@@ -50,7 +50,7 @@ public sealed class AuditedCalls : IToolMiddleware
     public async ValueTask<object?> InvokeAsync(
         FunctionInvocationContext call,
         Func<ValueTask<object?>> next,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
     {
         var result = await next();
         Console.Error.WriteLine($"  [tool] {call.Function.Name} -> {Demo.Shorten(result?.ToString() ?? "", 80)}");

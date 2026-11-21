@@ -12,25 +12,34 @@ internal sealed class MinimalStore : ITypeshiftStore<int>, IAgentSettingsStore
     private readonly Dictionary<int, List<string>> _conversations = [];
     private readonly HashSet<(int Conversation, long Sequence)> _sequences = [];
 
-    public Task<StoredDocument?> LoadAsync(int id, string kind, CancellationToken ct) =>
+    public Task<StoredDocument?> LoadAsync(int id, string kind, CancellationToken cancellationToken) =>
         Load(_settings, (id, kind));
 
-    public Task<long> SaveAsync(int id, string kind, string json, long loadedVersion, CancellationToken ct) =>
+    public Task<long> SaveAsync(
+        int id,
+        string kind,
+        string json,
+        long loadedVersion,
+        CancellationToken cancellationToken) =>
         Save(_settings, (id, kind), json, loadedVersion);
 
-    public Task<StoredDocument?> LoadAsync(string kind, CancellationToken ct) =>
+    public Task<StoredDocument?> LoadAsync(string kind, CancellationToken cancellationToken) =>
         Load(_agentSettings, kind);
 
-    public Task<long> SaveAsync(string kind, string json, long loadedVersion, CancellationToken ct) =>
+    public Task<long> SaveAsync(string kind, string json, long loadedVersion, CancellationToken cancellationToken) =>
         Save(_agentSettings, kind, json, loadedVersion);
 
-    public Task<StoredDocument?> LoadDecisionsAsync(int conversation, CancellationToken ct) =>
+    public Task<StoredDocument?> LoadDecisionsAsync(int conversation, CancellationToken cancellationToken) =>
         Load(_decisions, conversation);
 
-    public Task<long> SaveDecisionsAsync(int conversation, string json, long loadedVersion, CancellationToken ct) =>
+    public Task<long> SaveDecisionsAsync(
+        int conversation,
+        string json,
+        long loadedVersion,
+        CancellationToken cancellationToken) =>
         Save(_decisions, conversation, json, loadedVersion);
 
-    public Task AppendConversationAsync(int conversation, ConversationEntry entry, CancellationToken ct)
+    public Task AppendConversationAsync(int conversation, ConversationEntry entry, CancellationToken cancellationToken)
     {
         lock (_gate)
         {
@@ -45,7 +54,9 @@ internal sealed class MinimalStore : ITypeshiftStore<int>, IAgentSettingsStore
         return Task.CompletedTask;
     }
 
-    public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(int conversation, CancellationToken ct)
+    public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(
+        int conversation,
+        CancellationToken cancellationToken)
     {
         lock (_gate)
         {
@@ -59,8 +70,8 @@ internal sealed class MinimalStore : ITypeshiftStore<int>, IAgentSettingsStore
     // The whole conversation, cut at its last summary
     public async Task<IReadOnlyList<ConversationEntry>> LoadConversationSinceCompactionAsync(
         int conversation,
-        CancellationToken ct) =>
-        (await LoadConversationAsync(conversation, ct)).SinceLastSummary();
+        CancellationToken cancellationToken) =>
+        (await LoadConversationAsync(conversation, cancellationToken)).SinceLastSummary();
 
     private Task<StoredDocument?> Load<TKey>(Dictionary<TKey, StoredDocument> documents, TKey key)
         where TKey : notnull

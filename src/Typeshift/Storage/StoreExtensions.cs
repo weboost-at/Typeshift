@@ -30,15 +30,21 @@ public static class StoreExtensions
         /// A second such id. What the check stores under it must stay as it is while the check writes under the first,
         /// which tells a store that forgets the id.
         /// </param>
-        /// <param name="ct">Cancels the check.</param>
+        /// <param name="cancellationToken">Cancels the check.</param>
         /// <returns>A task that completes once the store passed.</returns>
         /// <exception cref="InvalidOperationException">
         /// The store broke a rule, or something is stored under one of the ids already; the message says which.
         /// </exception>
         /// <exception cref="ArgumentException">The two ids are equal.</exception>
         [OverloadResolutionPriority(2)]
-        public Task VerifyAsync(TId id, TId otherId, CancellationToken ct = default) =>
-            VerifyEveryInterfaceAsync(store, store, (id, otherId), store as IConversationStore<TId>, (id, otherId), ct);
+        public Task VerifyAsync(TId id, TId otherId, CancellationToken cancellationToken = default) =>
+            VerifyEveryInterfaceAsync(
+                store,
+                store,
+                (id, otherId),
+                store as IConversationStore<TId>,
+                (id, otherId),
+                cancellationToken);
 
         /// <summary>
         /// Runs the rules for settings and for conversations against a store whose conversation ids are of another
@@ -53,7 +59,7 @@ public static class StoreExtensions
         /// </param>
         /// <param name="conversationId">A conversation id nothing is stored under yet.</param>
         /// <param name="otherConversationId">A second such conversation id, as for the settings ids.</param>
-        /// <param name="ct">Cancels the check.</param>
+        /// <param name="cancellationToken">Cancels the check.</param>
         /// <returns>A task that completes once the store passed.</returns>
         /// <exception cref="InvalidOperationException">
         /// The store broke a rule, something is stored under one of the ids already, or the store keeps no
@@ -65,7 +71,7 @@ public static class StoreExtensions
             TId otherSettingsId,
             TConversationId conversationId,
             TConversationId otherConversationId,
-            CancellationToken ct = default)
+            CancellationToken cancellationToken = default)
             where TConversationId : notnull =>
             VerifyEveryInterfaceAsync(
                 store,
@@ -73,7 +79,7 @@ public static class StoreExtensions
                 (settingsId, otherSettingsId),
                 store as IConversationStore<TConversationId> ?? throw NoConversations<TConversationId>(store),
                 (conversationId, otherConversationId),
-                ct);
+                cancellationToken);
     }
 
     extension<TId>(IConversationStore<TId> store) where TId : notnull
@@ -88,15 +94,21 @@ public static class StoreExtensions
         /// A second such id. What the check stores under it must stay as it is while the check writes under the first,
         /// which tells a store that forgets the id.
         /// </param>
-        /// <param name="ct">Cancels the check.</param>
+        /// <param name="cancellationToken">Cancels the check.</param>
         /// <returns>A task that completes once the store passed.</returns>
         /// <exception cref="InvalidOperationException">
         /// The store broke a rule, or something is stored under one of the ids already; the message says which.
         /// </exception>
         /// <exception cref="ArgumentException">The two ids are equal.</exception>
         [OverloadResolutionPriority(1)]
-        public Task VerifyAsync(TId id, TId otherId, CancellationToken ct = default) =>
-            VerifyEveryInterfaceAsync(store, store as ISettingsStore<TId>, (id, otherId), store, (id, otherId), ct);
+        public Task VerifyAsync(TId id, TId otherId, CancellationToken cancellationToken = default) =>
+            VerifyEveryInterfaceAsync(
+                store,
+                store as ISettingsStore<TId>,
+                (id, otherId),
+                store,
+                (id, otherId),
+                cancellationToken);
     }
 
     extension<TId>(IDecisionStore<TId> store) where TId : notnull
@@ -111,20 +123,20 @@ public static class StoreExtensions
         /// A second such id. What the check stores under it must stay as it is while the check writes under the first,
         /// which tells a store that forgets the id.
         /// </param>
-        /// <param name="ct">Cancels the check.</param>
+        /// <param name="cancellationToken">Cancels the check.</param>
         /// <returns>A task that completes once the store passed.</returns>
         /// <exception cref="InvalidOperationException">
         /// The store broke a rule, or something is stored under one of the ids already; the message says which.
         /// </exception>
         /// <exception cref="ArgumentException">The two ids are equal.</exception>
-        public Task VerifyAsync(TId id, TId otherId, CancellationToken ct = default) =>
+        public Task VerifyAsync(TId id, TId otherId, CancellationToken cancellationToken = default) =>
             VerifyEveryInterfaceAsync(
                 store,
                 store as ISettingsStore<TId>,
                 (id, otherId),
                 store as IConversationStore<TId>,
                 (id, otherId),
-                ct);
+                cancellationToken);
     }
 
     extension(IAgentSettingsStore store)
@@ -136,13 +148,13 @@ public static class StoreExtensions
         /// too, for a store that also keeps settings ids or conversations.
         /// </summary>
         /// <param name="kind">A kind nothing is stored under yet.</param>
-        /// <param name="ct">Cancels the check.</param>
+        /// <param name="cancellationToken">Cancels the check.</param>
         /// <returns>A task that completes once the store passed.</returns>
         /// <exception cref="InvalidOperationException">
         /// The store broke a rule, or something is stored under the kind already; the message says which.
         /// </exception>
-        public Task VerifyAgentSettingsAsync(string kind, CancellationToken ct = default) =>
-            VerifyAgentDocumentsAsync(store, kind, ct);
+        public Task VerifyAgentSettingsAsync(string kind, CancellationToken cancellationToken = default) =>
+            VerifyAgentDocumentsAsync(store, kind, cancellationToken);
     }
 
     // D72: settings and conversations may have ids of two types, each with a second id of its type

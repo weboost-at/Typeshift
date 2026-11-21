@@ -9,28 +9,39 @@ public sealed class TwoIdTypesStore(bool newestFirst = false)
 
     private readonly InMemoryTypeshiftStore<Guid> _conversations = new();
 
-    public Task<StoredDocument?> LoadAsync(string id, string kind, CancellationToken ct) =>
-        _settings.LoadAsync(id, kind, ct);
+    public Task<StoredDocument?> LoadAsync(string id, string kind, CancellationToken cancellationToken) =>
+        _settings.LoadAsync(id, kind, cancellationToken);
 
-    public Task<long> SaveAsync(string id, string kind, string json, long loadedVersion, CancellationToken ct) =>
-        _settings.SaveAsync(id, kind, json, loadedVersion, ct);
+    public Task<long> SaveAsync(
+        string id,
+        string kind,
+        string json,
+        long loadedVersion,
+        CancellationToken cancellationToken) =>
+        _settings.SaveAsync(id, kind, json, loadedVersion, cancellationToken);
 
-    public Task<StoredDocument?> LoadAsync(string kind, CancellationToken ct) => _settings.LoadAsync(kind, ct);
+    public Task<StoredDocument?> LoadAsync(string kind, CancellationToken cancellationToken) =>
+        _settings.LoadAsync(kind, cancellationToken);
 
-    public Task<long> SaveAsync(string kind, string json, long loadedVersion, CancellationToken ct) =>
-        _settings.SaveAsync(kind, json, loadedVersion, ct);
+    public Task<long> SaveAsync(string kind, string json, long loadedVersion, CancellationToken cancellationToken) =>
+        _settings.SaveAsync(kind, json, loadedVersion, cancellationToken);
 
-    public async Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(Guid conversation, CancellationToken ct)
+    public async Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(
+        Guid conversation,
+        CancellationToken cancellationToken)
     {
-        var entries = await _conversations.LoadConversationAsync(conversation, ct);
+        var entries = await _conversations.LoadConversationAsync(conversation, cancellationToken);
         return newestFirst ? [.. entries.Reverse()] : entries;
     }
 
     public async Task<IReadOnlyList<ConversationEntry>> LoadConversationSinceCompactionAsync(
         Guid conversation,
-        CancellationToken ct) =>
-        (await LoadConversationAsync(conversation, ct)).SinceLastSummary();
+        CancellationToken cancellationToken) =>
+        (await LoadConversationAsync(conversation, cancellationToken)).SinceLastSummary();
 
-    public Task AppendConversationAsync(Guid conversation, ConversationEntry entry, CancellationToken ct) =>
-        _conversations.AppendConversationAsync(conversation, entry, ct);
+    public Task AppendConversationAsync(
+        Guid conversation,
+        ConversationEntry entry,
+        CancellationToken cancellationToken) =>
+        _conversations.AppendConversationAsync(conversation, entry, cancellationToken);
 }

@@ -29,19 +29,25 @@ public sealed class MiddlewareScript
 
 public sealed class FirstRunMiddleware(MiddlewareScript script) : IRunMiddleware
 {
-    public Task InvokeAsync(AgentRun run, Func<Task> next, CancellationToken ct) =>
-        ScriptedRunMiddleware.InvokeAsync(script, 0, run, next, ct);
+    public Task InvokeAsync(AgentRun run, Func<Task> next, CancellationToken cancellationToken) =>
+        ScriptedRunMiddleware.InvokeAsync(script, 0, run, next, cancellationToken);
 
-    public ValueTask<ChatMessage?> OnSteeringAsync(AgentRun run, ChatMessage input, CancellationToken ct) =>
+    public ValueTask<ChatMessage?> OnSteeringAsync(
+        AgentRun run,
+        ChatMessage input,
+        CancellationToken cancellationToken) =>
         ScriptedRunMiddleware.OnSteeringAsync(script, 0, input);
 }
 
 public sealed class SecondRunMiddleware(MiddlewareScript script) : IRunMiddleware
 {
-    public Task InvokeAsync(AgentRun run, Func<Task> next, CancellationToken ct) =>
-        ScriptedRunMiddleware.InvokeAsync(script, 1, run, next, ct);
+    public Task InvokeAsync(AgentRun run, Func<Task> next, CancellationToken cancellationToken) =>
+        ScriptedRunMiddleware.InvokeAsync(script, 1, run, next, cancellationToken);
 
-    public ValueTask<ChatMessage?> OnSteeringAsync(AgentRun run, ChatMessage input, CancellationToken ct) =>
+    public ValueTask<ChatMessage?> OnSteeringAsync(
+        AgentRun run,
+        ChatMessage input,
+        CancellationToken cancellationToken) =>
         ScriptedRunMiddleware.OnSteeringAsync(script, 1, input);
 }
 
@@ -50,7 +56,7 @@ public sealed class FirstToolMiddleware(MiddlewareScript script) : IToolMiddlewa
     public ValueTask<object?> InvokeAsync(
         FunctionInvocationContext call,
         Func<ValueTask<object?>> next,
-        CancellationToken ct) =>
+        CancellationToken cancellationToken) =>
         ScriptedToolMiddleware.InvokeAsync(script, 0, call, next);
 }
 
@@ -59,13 +65,13 @@ public sealed class SecondToolMiddleware(MiddlewareScript script) : IToolMiddlew
     public ValueTask<object?> InvokeAsync(
         FunctionInvocationContext call,
         Func<ValueTask<object?>> next,
-        CancellationToken ct) =>
+        CancellationToken cancellationToken) =>
         ScriptedToolMiddleware.InvokeAsync(script, 1, call, next);
 }
 
 public sealed class ScriptedContext(MiddlewareScript script) : IContextProvider
 {
-    public ValueTask<AgentContext> GetContextAsync(AgentRun run, CancellationToken ct)
+    public ValueTask<AgentContext> GetContextAsync(AgentRun run, CancellationToken cancellationToken)
     {
         script.ContextRuns.Add(run);
         return ValueTask.FromResult(script.Context);

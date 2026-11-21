@@ -8,7 +8,9 @@ public sealed class TimeOrderedStore : IConversationStore<Guid>
 {
     private readonly ConcurrentDictionary<Guid, List<ConversationEntry>> _rows = [];
 
-    public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(Guid conversation, CancellationToken ct)
+    public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(
+        Guid conversation,
+        CancellationToken cancellationToken)
     {
         var rows = _rows.GetValueOrDefault(conversation) ?? [];
 
@@ -26,10 +28,10 @@ public sealed class TimeOrderedStore : IConversationStore<Guid>
 
     public async Task<IReadOnlyList<ConversationEntry>> LoadConversationSinceCompactionAsync(
         Guid conversation,
-        CancellationToken ct) =>
-        (await LoadConversationAsync(conversation, ct)).SinceLastSummary();
+        CancellationToken cancellationToken) =>
+        (await LoadConversationAsync(conversation, cancellationToken)).SinceLastSummary();
 
-    public Task AppendConversationAsync(Guid conversation, ConversationEntry entry, CancellationToken ct)
+    public Task AppendConversationAsync(Guid conversation, ConversationEntry entry, CancellationToken cancellationToken)
     {
         var rows = _rows.GetOrAdd(conversation, _ => []);
 

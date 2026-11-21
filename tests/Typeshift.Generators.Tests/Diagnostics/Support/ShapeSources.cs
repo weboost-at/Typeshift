@@ -955,28 +955,31 @@ public static class ShapeSources
         {
             public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(
                 int conversation,
-                CancellationToken ct) =>
+                CancellationToken cancellationToken) =>
                 throw new NotSupportedException();
 
             public Task<IReadOnlyList<ConversationEntry>> LoadConversationSinceCompactionAsync(
                 int conversation,
-                CancellationToken ct) =>
+                CancellationToken cancellationToken) =>
                 throw new NotSupportedException();
 
-            public Task AppendConversationAsync(int conversation, ConversationEntry entry, CancellationToken ct) =>
+            public Task AppendConversationAsync(
+                int conversation,
+                ConversationEntry entry,
+                CancellationToken cancellationToken) =>
                 throw new NotSupportedException();
         }
 
         internal sealed class WaitingStore : IDecisionStore<int>
         {
-            public Task<StoredDocument?> LoadDecisionsAsync(int conversation, CancellationToken ct) =>
+            public Task<StoredDocument?> LoadDecisionsAsync(int conversation, CancellationToken cancellationToken) =>
                 throw new NotSupportedException();
 
             public Task<long> SaveDecisionsAsync(
                 int conversation,
                 string json,
                 long loadedVersion,
-                CancellationToken ct) =>
+                CancellationToken cancellationToken) =>
                 throw new NotSupportedException();
         }
 
@@ -2859,7 +2862,10 @@ public static class ShapeSources
 
         internal sealed class ShellGuard : IToolApprovalRule
         {
-            public ValueTask<RuleVerdict> DecideAsync(FunctionCallContent call, AgentRun run, CancellationToken ct) =>
+            public ValueTask<RuleVerdict> DecideAsync(
+                FunctionCallContent call,
+                AgentRun run,
+                CancellationToken cancellationToken) =>
                 ValueTask.FromResult(call.Name switch
                 {
                     ShellToolset.ToolNames.RunCommand => RuleVerdict.Reject("No commands."),

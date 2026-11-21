@@ -5,8 +5,9 @@ public sealed class AgentSettingsOnlyStore : IAgentSettingsStore
 {
     private readonly InMemoryTypeshiftStore<Guid> _store = new();
 
-    public Task<StoredDocument?> LoadAsync(string kind, CancellationToken ct) => _store.LoadAsync(kind, ct);
+    public Task<StoredDocument?> LoadAsync(string kind, CancellationToken cancellationToken) =>
+        _store.LoadAsync(kind, cancellationToken);
 
-    public Task<long> SaveAsync(string kind, string json, long loadedVersion, CancellationToken ct) =>
-        _store.SaveAsync(kind, json, loadedVersion, ct);
+    public Task<long> SaveAsync(string kind, string json, long loadedVersion, CancellationToken cancellationToken) =>
+        _store.SaveAsync(kind, json, loadedVersion, cancellationToken);
 }

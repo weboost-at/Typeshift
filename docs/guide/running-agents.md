@@ -35,8 +35,8 @@ starts. [Models and providers](./models.md) shows how to register the clients an
 Every run takes a `CancellationToken` last, which reaches its model calls and its tools. Cancelling it stops the run
 with an `OperationCanceledException`, so pass the token of the request or job that waits for the answer. On the
 host's own members the token goes second, as in `RunAsync("Where is my refund?", ct)`, and a run with
-[run settings](#run-settings) passes it after them: `RunAsync(input, settings: run, ct: ct)`. A run with a
-conversation is stored up to where it stopped ([What is stored](./conversations.md#what-is-stored)).
+[run settings](#run-settings) passes it after them: `RunAsync(input, settings: run, cancellationToken: ct)`. A run
+with a conversation is stored up to where it stopped ([What is stored](./conversations.md#what-is-stored)).
 
 [How a run works](./how-a-run-works.md) follows the steps every run passes through, streaming or not, from resolving
 its options to the model's answer.

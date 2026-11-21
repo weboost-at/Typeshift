@@ -22,7 +22,7 @@ the typed runs and settings of each agent.
 ### Typed members
 
 In these signatures, `Settings` is the agent's [generated `Settings` record](#settings). Every member takes a
-`CancellationToken ct = default` last. None takes an id: each uses the host's, from
+`CancellationToken cancellationToken = default` last. None takes an id: each uses the host's, from
 [`WithSettingsId` and `WithConversationId`](#withsettingsid-and-withconversationid).
 
 | Member | Returns |
@@ -54,9 +54,10 @@ In these signatures, `Settings` is the agent's [generated `Settings` record](#se
 | `UpdateSettingsAsync(Func<Settings, Settings> update)` | `Task<Stored<Settings>>` |
 
 Each run, answer and resume of the table, `ResolveOptionsAsync` and `CreateChatClientAsync` are also members of
-`AgentHost<TAgent>` itself without `settings`, such as `RunAsync(string input, CancellationToken ct = default)`. Code
-generic over the agent calls those, so one method runs any agent ([Run any agent](./running-agents.md#run-any-agent)),
-and a token goes in second, as in `RunAsync(input, ct)`. A call that passes settings reaches the generated member, and both run alike.
+`AgentHost<TAgent>` itself without `settings`, such as
+`RunAsync(string input, CancellationToken cancellationToken = default)`. Code generic over the agent calls those, so
+one method runs any agent ([Run any agent](./running-agents.md#run-any-agent)), and a token goes in second, as in
+`RunAsync(input, ct)`. A call that passes settings reaches the generated member, and both run alike.
 
 ### `RunAsync`
 
@@ -215,9 +216,9 @@ handoffs and summary too, and throws an `ArgumentNullException` for a null polic
 
 ### `CreateChatClientAsync`
 
-`Task<IChatClient> CreateChatClientAsync(Settings? settings = null, CancellationToken ct = default)`
+`Task<IChatClient> CreateChatClientAsync(Settings? settings = null, CancellationToken cancellationToken = default)`
 
-`Task<IChatClient> CreateChatClientAsync(ChatOptions options, CancellationToken ct = default)`
+`Task<IChatClient> CreateChatClientAsync(ChatOptions options, CancellationToken cancellationToken = default)`
 
 `CreateChatClientAsync` creates the client of the [raw path](./running-agents.md#the-raw-path). The first form
 resolves the options as `ResolveOptionsAsync` does and creates the client from them in one call; the second creates it
@@ -238,7 +239,7 @@ model.
 
 ### `LoadConversationAsync`
 
-`Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(CancellationToken ct = default)`
+`Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(CancellationToken cancellationToken = default)`
 
 `LoadConversationAsync` loads every entry of the host's conversation, the one `WithConversationId(id)` gave it, in
 order ([What is stored](./conversations.md#what-is-stored)). It reads through the store of the id's type, or the
@@ -249,8 +250,8 @@ conversations under the id's type.
 ### Decisions of the conversation
 
 These members work on the decisions of the host's conversation, the one `WithConversationId(id)` gave it. None
-starts a run, each takes a `CancellationToken ct = default` last, and each throws an `InvalidOperationException` on
-a host without a conversation id.
+starts a run, each takes a `CancellationToken cancellationToken = default` last, and each throws an
+`InvalidOperationException` on a host without a conversation id.
 
 | Member | Returns |
 |---|---|

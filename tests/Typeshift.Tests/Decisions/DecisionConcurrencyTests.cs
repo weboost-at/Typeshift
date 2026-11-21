@@ -58,10 +58,10 @@ public class DecisionConcurrencyTests : DecisionTestBase
         var asked = await RunAsync(Data.Tool.Question);
         var other = OtherProcess<GuardedAgent>();
         await Chat.RecordAnswersAsync([DecisionAnswer.Approve(asked.Decisions[0].Id)], Ct);
-        Store.BeforeNextSave(() => other.ResumeAsync(ct: Ct));
+        Store.BeforeNextSave(() => other.ResumeAsync(cancellationToken: Ct));
 
         // Act
-        var resume = () => Chat.ResumeAsync(ct: Ct);
+        var resume = () => Chat.ResumeAsync(cancellationToken: Ct);
 
         // Assert
         await resume.Should().ThrowAsync<DecisionClosedException>();
@@ -78,18 +78,18 @@ public class DecisionConcurrencyTests : DecisionTestBase
             .Reply(CloseTicket(Data.Tool.SecondCallId, Data.Agent.Ticket.Updated));
 
         var other = OtherProcess<GuardedAgent>();
-        var asked = await Chat.RunAsync(Data.Tool.Question, ct: Ct);
+        var asked = await Chat.RunAsync(Data.Tool.Question, cancellationToken: Ct);
         await Chat.RecordAnswersAsync([DecisionAnswer.Approve(asked.Decisions[0].Id)], Ct);
 
         Store.BeforeNextSave(async () =>
         {
-            await other.ResumeAsync(ct: Ct);
-            var next = await other.RunAsync(Data.Agent.FollowUp, ct: Ct);
+            await other.ResumeAsync(cancellationToken: Ct);
+            var next = await other.RunAsync(Data.Agent.FollowUp, cancellationToken: Ct);
             await other.RecordAnswersAsync([DecisionAnswer.Approve(next.Decisions[0].Id)], Ct);
         });
 
         // Act
-        var resume = () => Chat.ResumeAsync(ct: Ct);
+        var resume = () => Chat.ResumeAsync(cancellationToken: Ct);
 
         // Assert
         await resume.Should().ThrowAsync<DecisionClosedException>();
@@ -103,10 +103,10 @@ public class DecisionConcurrencyTests : DecisionTestBase
             .Reply(SendRefund(Data.Tool.CallId))
             .Reply(Text(Data.Tool.Answer));
 
-        var asked = await Held.RunAsync(Data.Tool.Question, ct: Ct);
-        var carrying = Held.AnswerAsync([DecisionAnswer.Approve(asked.Decisions[0].Id)], ct: Ct);
+        var asked = await Held.RunAsync(Data.Tool.Question, cancellationToken: Ct);
+        var carrying = Held.AnswerAsync([DecisionAnswer.Approve(asked.Decisions[0].Id)], cancellationToken: Ct);
         await Hold.Running.Task.WaitAsync(Ct);
-        await OtherProcess<HeldAgent>().RunAsync(Data.Agent.FollowUp, ct: Ct);
+        await OtherProcess<HeldAgent>().RunAsync(Data.Agent.FollowUp, cancellationToken: Ct);
 
         // Act
         Hold.Release.SetResult();

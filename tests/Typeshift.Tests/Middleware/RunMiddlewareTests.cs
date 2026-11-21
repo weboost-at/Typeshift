@@ -84,7 +84,7 @@ public class RunMiddlewareTests : MiddlewareTestBase
         // Act
         await Host<FrontDeskAgent>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunAsync(Data.Tool.Question, ct: Ct);
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         providers.Should().Equal(FrontDeskAgent.ModelProvider, BackOfficeAgent.ModelProvider);
@@ -247,7 +247,7 @@ public class RunMiddlewareTests : MiddlewareTestBase
 
         // Act
         var run = () => scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
-            .RunAsync(Data.Tool.Question, ct: Ct);
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         await run.Should().ThrowAsync<InvalidOperationException>().WithMessage("*after next was called*");
@@ -298,10 +298,10 @@ public class RunMiddlewareTests : MiddlewareTestBase
 
         // Act
         var response = streaming
-            ? (await chat.RunStreamingAsync(Data.Tool.Question, ct: Ct).ToListAsync(Ct)).ToChatResponse()
-            : await chat.RunAsync(Data.Tool.Question, ct: Ct);
+            ? (await chat.RunStreamingAsync(Data.Tool.Question, cancellationToken: Ct).ToListAsync(Ct)).ToChatResponse()
+            : await chat.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
-        await chat.RunAsync(Data.Agent.FollowUp, ct: Ct);
+        await chat.RunAsync(Data.Agent.FollowUp, cancellationToken: Ct);
 
         var stored = await provider.GetRequiredService<IConversationStore<Guid>>()
             .LoadConversationAsync(Data.Agent.ConversationId, Ct);
@@ -352,7 +352,7 @@ public class RunMiddlewareTests : MiddlewareTestBase
 
         var updates = Host<ContextAgent>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunStreamingAsync(Data.Tool.Question, ct: Ct)
+            .RunStreamingAsync(Data.Tool.Question, cancellationToken: Ct)
             .GetAsyncEnumerator(Ct);
 
         await updates.MoveNextAsync();
@@ -603,7 +603,9 @@ public class RunMiddlewareTests : MiddlewareTestBase
         var approval = DecisionAnswer.Approve(asked.Decisions[0].Id);
 
         // Act
-        await Host<ContextAgent>().WithConversationId(Data.Agent.ConversationId).AnswerAsync([approval], ct: Ct);
+        await Host<ContextAgent>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .AnswerAsync([approval], cancellationToken: Ct);
 
         // Assert
         ToolCalls.Should().Equal($"close_ticket {Data.Agent.Ticket.Default}");
@@ -622,7 +624,7 @@ public class RunMiddlewareTests : MiddlewareTestBase
         var approval = DecisionAnswer.Approve(asked.Decisions[0].Id);
 
         Script.Runs[0] = (_, _) => throw new InvalidOperationException(Data.Agent.Reason);
-        var failed = await Record.ExceptionAsync(() => chat.AnswerAsync([approval], ct: Ct));
+        var failed = await Record.ExceptionAsync(() => chat.AnswerAsync([approval], cancellationToken: Ct));
         Script.Runs.Clear();
 
         // Act
@@ -667,7 +669,7 @@ public class RunMiddlewareTests : MiddlewareTestBase
         // Act
         await Host<GuardedFrontAgent>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunAsync(Data.Tool.Question, ct: Ct);
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         authors.Should().Equal("guarded_front_agent", "guarded_back_agent", "guarded_back_agent");

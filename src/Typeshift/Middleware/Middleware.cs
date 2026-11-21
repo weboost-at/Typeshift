@@ -15,9 +15,9 @@ public interface IRunMiddleware
     /// </summary>
     /// <param name="run">The run; <see cref="AgentRun.Response"/> is set once <paramref name="next"/> returns.</param>
     /// <param name="next">Runs the rest of the pipeline.</param>
-    /// <param name="ct">Cancels the run.</param>
+    /// <param name="cancellationToken">Cancels the run.</param>
     /// <returns>A task that completes with the run.</returns>
-    Task InvokeAsync(AgentRun run, Func<Task> next, CancellationToken ct);
+    Task InvokeAsync(AgentRun run, Func<Task> next, CancellationToken cancellationToken);
 
     /// <summary>
     /// Sees input steered into a run, with <c>ConversationTracker.TrySteer</c>, before the run takes it: no model
@@ -26,11 +26,12 @@ public interface IRunMiddleware
     /// </summary>
     /// <param name="run">The run the input was steered into.</param>
     /// <param name="input">The input, a user message.</param>
-    /// <param name="ct">Cancels the run.</param>
+    /// <param name="cancellationToken">Cancels the run.</param>
     /// <returns>
     /// The message the run takes, which the model receives and the conversation stores; null when it takes none.
     /// </returns>
-    ValueTask<ChatMessage?> OnSteeringAsync(AgentRun run, ChatMessage input, CancellationToken ct) => new(input);
+    ValueTask<ChatMessage?> OnSteeringAsync(AgentRun run, ChatMessage input, CancellationToken cancellationToken) =>
+        new(input);
 }
 
 /// <summary>
@@ -46,7 +47,10 @@ public interface IToolMiddleware
     /// </summary>
     /// <param name="call">The call: the function, its arguments, the messages so far.</param>
     /// <param name="next">Calls the tool.</param>
-    /// <param name="ct">Cancels the call.</param>
+    /// <param name="cancellationToken">Cancels the call.</param>
     /// <returns>The result the model receives.</returns>
-    ValueTask<object?> InvokeAsync(FunctionInvocationContext call, Func<ValueTask<object?>> next, CancellationToken ct);
+    ValueTask<object?> InvokeAsync(
+        FunctionInvocationContext call,
+        Func<ValueTask<object?>> next,
+        CancellationToken cancellationToken);
 }

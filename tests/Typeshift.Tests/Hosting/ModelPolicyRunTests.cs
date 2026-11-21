@@ -39,7 +39,7 @@ public class ModelPolicyRunTests : AgentTestBase
         ChatClient.Reply(Unavailable()).Reply(Text(Data.Tool.Answer));
 
         // Act
-        var response = await Host<PolicyAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        var response = await Host<PolicyAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         response.Text.Should().Be(Data.Tool.Answer);
@@ -52,7 +52,7 @@ public class ModelPolicyRunTests : AgentTestBase
         ChatClient.Reply(Unavailable()).Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Conversation().RunAsync(Data.Tool.Question, ct: Ct);
+        await Conversation().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         var entries = await EntriesAsync(Data.Agent.ConversationId);
@@ -68,7 +68,7 @@ public class ModelPolicyRunTests : AgentTestBase
         ChatClient.Reply(Unavailable()).Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Conversation().RunAsync(Data.Tool.Question, ct: Ct);
+        await Conversation().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         var entries = await EntriesAsync(Data.Agent.ConversationId);
@@ -84,7 +84,7 @@ public class ModelPolicyRunTests : AgentTestBase
         ChatClient.Reply(Rejected()).Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Host<PolicyAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<PolicyAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         Models.Should().Equal(
@@ -100,7 +100,7 @@ public class ModelPolicyRunTests : AgentTestBase
         ChatClient.Reply(Unavailable()).Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Host<PolicyAgent>().WithModelPolicy(policy).RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<PolicyAgent>().WithModelPolicy(policy).RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         Models.Should().Equal(
@@ -116,7 +116,7 @@ public class ModelPolicyRunTests : AgentTestBase
         ChatClient.Reply(Failed(HttpStatusCode.Unauthorized)).Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Host<PolicyAgent>().WithModelPolicy(policy).RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<PolicyAgent>().WithModelPolicy(policy).RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         Models[^1].Should().Be(new ProvidedModel(OtherProvider, OtherModel));
@@ -133,7 +133,7 @@ public class ModelPolicyRunTests : AgentTestBase
         ChatClient.Reply(Unavailable()).Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Host<PolicyAgent>().WithModelPolicy(policy).RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<PolicyAgent>().WithModelPolicy(policy).RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         Models[^1].Should().Be(new ProvidedModel(PolicyAgent.ModelProvider, OtherModel));
@@ -150,7 +150,7 @@ public class ModelPolicyRunTests : AgentTestBase
             .Or(ModelFailure.Unavailable | ModelFailure.Rejected).FallbackToModel(OtherModel);
 
         // Act
-        await Host<PolicyAgent>().WithModelPolicy(policy).RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<PolicyAgent>().WithModelPolicy(policy).RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         Models.Select(model => model.Model)
@@ -166,7 +166,8 @@ public class ModelPolicyRunTests : AgentTestBase
         ChatClient.Reply(failure);
 
         // Act
-        var thrown = await Record.ExceptionAsync(() => Host<PolicyAgent>().RunAsync(Data.Tool.Question, ct: Ct));
+        var thrown = await Record.ExceptionAsync(
+            () => Host<PolicyAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct));
 
         // Assert
         thrown.Should().BeSameAs(failure);
@@ -180,7 +181,8 @@ public class ModelPolicyRunTests : AgentTestBase
         ChatClient.Reply(Unavailable()).Reply(last);
 
         // Act
-        var thrown = await Record.ExceptionAsync(() => Host<PolicyAgent>().RunAsync(Data.Tool.Question, ct: Ct));
+        var thrown = await Record.ExceptionAsync(
+            () => Host<PolicyAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct));
 
         // Assert
         thrown.Should().BeSameAs(last);
@@ -195,7 +197,7 @@ public class ModelPolicyRunTests : AgentTestBase
 
         // Act
         var thrown = await Record.ExceptionAsync(async () =>
-            await Host<PolicyAgent>().RunStreamingAsync(Data.Tool.Question, ct: Ct).ToListAsync(Ct));
+            await Host<PolicyAgent>().RunStreamingAsync(Data.Tool.Question, cancellationToken: Ct).ToListAsync(Ct));
 
         // Assert
         thrown.Should().BeSameAs(failure);
@@ -208,7 +210,9 @@ public class ModelPolicyRunTests : AgentTestBase
         ChatClient.Reply(Unavailable()).Reply(Text(Data.Tool.Answer));
 
         // Act
-        var updates = await Host<PolicyAgent>().RunStreamingAsync(Data.Tool.Question, ct: Ct).ToListAsync(Ct);
+        var updates = await Host<PolicyAgent>().RunStreamingAsync(
+            Data.Tool.Question,
+            cancellationToken: Ct).ToListAsync(Ct);
 
         // Assert
         updates.ToChatResponse().Text.Should().Be(Data.Tool.Answer);
@@ -221,7 +225,7 @@ public class ModelPolicyRunTests : AgentTestBase
         var policy = ModelPolicy.Handle(ModelFailure.Timeout).Retry(1).Timeout(Patience);
         ChatClient.Reply(new TaskCompletionSource()).Reply(Text(Data.Tool.Answer));
 
-        var running = Host<PolicyAgent>().WithModelPolicy(policy).RunAsync(Data.Tool.Question, ct: Ct);
+        var running = Host<PolicyAgent>().WithModelPolicy(policy).RunAsync(Data.Tool.Question, cancellationToken: Ct);
         await ChatClient.Requested;
 
         // Act
@@ -241,7 +245,7 @@ public class ModelPolicyRunTests : AgentTestBase
 
         var running = Host<PolicyAgent>()
             .WithModelPolicy(policy)
-            .RunStreamingAsync(Data.Tool.Question, ct: Ct)
+            .RunStreamingAsync(Data.Tool.Question, cancellationToken: Ct)
             .ToListAsync(Ct);
 
         await ChatClient.Requested;
@@ -263,7 +267,7 @@ public class ModelPolicyRunTests : AgentTestBase
         ChatClient.Reply(Unavailable()).Reply(Text(Data.Tool.Answer));
 
         // Act
-        var response = await host.RunAsync(Data.Tool.Question, ct: Ct);
+        var response = await host.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         response.Text.Should().Be(Data.Tool.Answer);
@@ -276,7 +280,7 @@ public class ModelPolicyRunTests : AgentTestBase
         var policy = ModelPolicy.None.Timeout(Patience);
         ChatClient.Reply(new TaskCompletionSource());
 
-        var running = Host<PolicyAgent>().WithModelPolicy(policy).RunAsync(Data.Tool.Question, ct: Ct);
+        var running = Host<PolicyAgent>().WithModelPolicy(policy).RunAsync(Data.Tool.Question, cancellationToken: Ct);
         await ChatClient.Requested;
 
         // Act
@@ -299,7 +303,7 @@ public class ModelPolicyRunTests : AgentTestBase
 
         await using var updates = Host<PolicyAgent>()
             .WithModelPolicy(policy)
-            .RunStreamingAsync(Data.Tool.Question, ct: Ct)
+            .RunStreamingAsync(Data.Tool.Question, cancellationToken: Ct)
             .GetAsyncEnumerator(Ct);
 
         await updates.MoveNextAsync();
@@ -326,7 +330,10 @@ public class ModelPolicyRunTests : AgentTestBase
         var policy = ModelPolicy.Handle(ModelFailure.Any).Retry(3);
         ChatClient.Reply(new TaskCompletionSource());
 
-        var running = Host<PolicyAgent>().WithModelPolicy(policy).RunAsync(Data.Tool.Question, ct: cancel.Token);
+        var running = Host<PolicyAgent>()
+            .WithModelPolicy(policy)
+            .RunAsync(Data.Tool.Question, cancellationToken: cancel.Token);
+
         await ChatClient.Requested;
 
         // Act
@@ -347,7 +354,7 @@ public class ModelPolicyRunTests : AgentTestBase
             .Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Host<PolicyAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<PolicyAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         Models.Select(model => model.Model)
@@ -367,7 +374,8 @@ public class ModelPolicyRunTests : AgentTestBase
             .Reply(again);
 
         // Act
-        var thrown = await Record.ExceptionAsync(() => Host<PolicyAgent>().RunAsync(Data.Tool.Question, ct: Ct));
+        var thrown = await Record.ExceptionAsync(
+            () => Host<PolicyAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct));
 
         // Assert
         thrown.Should().BeSameAs(again);
@@ -381,7 +389,7 @@ public class ModelPolicyRunTests : AgentTestBase
         ChatClient.Reply(Unavailable()).Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Conversation().WithModelPolicy(policy).RunAsync(Data.Tool.Question, ct: Ct);
+        await Conversation().WithModelPolicy(policy).RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         var entries = await EntriesAsync(Data.Agent.ConversationId);
@@ -400,7 +408,7 @@ public class ModelPolicyRunTests : AgentTestBase
         var policy = ModelPolicy.Handle(ModelFailure.Unavailable).Retry(1, Patience);
         ChatClient.Reply(Unavailable()).Reply(Text(Data.Tool.Answer));
 
-        var running = Host<PolicyAgent>().WithModelPolicy(policy).RunAsync(Data.Tool.Question, ct: Ct);
+        var running = Host<PolicyAgent>().WithModelPolicy(policy).RunAsync(Data.Tool.Question, cancellationToken: Ct);
         await clock.Started.WaitAsync(Ct);
 
         // Act
@@ -422,7 +430,7 @@ public class ModelPolicyRunTests : AgentTestBase
 
         // Act
         var thrown = await Record.ExceptionAsync(() =>
-            Host<PolicyAgent>().WithModelPolicy(ModelPolicy.None).RunAsync(Data.Tool.Question, ct: Ct));
+            Host<PolicyAgent>().WithModelPolicy(ModelPolicy.None).RunAsync(Data.Tool.Question, cancellationToken: Ct));
 
         // Assert
         thrown.Should().BeSameAs(failure);
@@ -448,7 +456,7 @@ public class ModelPolicyRunTests : AgentTestBase
         ChatClient.Reply(new VendorException()).Reply(Text(Data.Tool.Answer));
 
         // Act
-        var response = await Host<PolicyAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        var response = await Host<PolicyAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         response.Text.Should().Be(Data.Tool.Answer);
@@ -461,7 +469,7 @@ public class ModelPolicyRunTests : AgentTestBase
         ChatClient.Reply(new VendorException());
 
         // Act
-        await Record.ExceptionAsync(() => Host<PolicyAgent>().RunAsync(Data.Tool.Question, ct: Ct));
+        await Record.ExceptionAsync(() => Host<PolicyAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct));
 
         // Assert
         Warnings.Warnings.Should().Equal(
@@ -477,8 +485,8 @@ public class ModelPolicyRunTests : AgentTestBase
         ChatClient.Reply(new VendorException()).Reply(new VendorException());
 
         // Act
-        await Record.ExceptionAsync(() => Host<PolicyAgent>().RunAsync(Data.Tool.Question, ct: Ct));
-        await Record.ExceptionAsync(() => Host<PolicyAgent>().RunAsync(Data.Tool.Question, ct: Ct));
+        await Record.ExceptionAsync(() => Host<PolicyAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct));
+        await Record.ExceptionAsync(() => Host<PolicyAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct));
 
         // Assert
         Warnings.Warnings.Should().ContainSingle();
@@ -491,7 +499,7 @@ public class ModelPolicyRunTests : AgentTestBase
         var policy = ModelPolicy.Handle(ModelFailure.Unavailable).FallbackToProvider(Vendor.Other);
 
         // Act
-        var run = () => Conversation().WithModelPolicy(policy).RunAsync(Data.Tool.Question, ct: Ct);
+        var run = () => Conversation().WithModelPolicy(policy).RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         await run.Should().ThrowAsync<InvalidOperationException>().WithMessage(
@@ -505,7 +513,9 @@ public class ModelPolicyRunTests : AgentTestBase
         var policy = ModelPolicy.Handle(ModelFailure.Unavailable).FallbackToProvider(Vendor.Other);
 
         // Act
-        await Record.ExceptionAsync(() => Conversation().WithModelPolicy(policy).RunAsync(Data.Tool.Question, ct: Ct));
+        await Record.ExceptionAsync(() => Conversation()
+            .WithModelPolicy(policy)
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct));
 
         // Assert
         (await EntriesAsync(Data.Agent.ConversationId)).Should().BeEmpty();

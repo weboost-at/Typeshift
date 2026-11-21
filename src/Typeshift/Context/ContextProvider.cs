@@ -13,9 +13,9 @@ public interface IContextProvider
     /// Returns what to add to a run, after the conversation is resumed and before the model is called.
     /// </summary>
     /// <param name="run">The run.</param>
-    /// <param name="ct">Cancels the run.</param>
+    /// <param name="cancellationToken">Cancels the run.</param>
     /// <returns>What to add.</returns>
-    ValueTask<AgentContext> GetContextAsync(AgentRun run, CancellationToken ct);
+    ValueTask<AgentContext> GetContextAsync(AgentRun run, CancellationToken cancellationToken);
 }
 
 /// <summary>

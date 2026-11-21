@@ -140,7 +140,7 @@ public class ToolLoopGuardTests : ApprovalTestBase
         // Act
         await scope.ServiceProvider.GetRequiredService<AgentHost<GuardedAgent>>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunAsync(Data.Tool.Question, ct: Ct);
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         calls.Should().BeEmpty();

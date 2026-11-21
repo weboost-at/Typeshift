@@ -16,7 +16,7 @@ internal sealed record TenantProvider(string Tenant) : ChatProvider;
 // A real app builds the client of each kind from the document's key and endpoint here
 internal sealed class ScriptedConnector : IChatProviderConnector
 {
-    public ValueTask<IChatClient> ConnectAsync(ChatProvider provider, CancellationToken ct) =>
+    public ValueTask<IChatClient> ConnectAsync(ChatProvider provider, CancellationToken cancellationToken) =>
         provider.Kind == "scripted"
             ? ValueTask.FromResult<IChatClient>(new ScriptedChatClient())
             : throw new InvalidOperationException($"No client for the provider kind '{provider.Kind}'.");

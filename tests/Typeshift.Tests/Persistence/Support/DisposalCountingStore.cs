@@ -5,10 +5,11 @@ public sealed class DisposalCountingStore(IAgentSettingsStore inner) : IAgentSet
 {
     public int Disposed { get; private set; }
 
-    public Task<StoredDocument?> LoadAsync(string kind, CancellationToken ct) => inner.LoadAsync(kind, ct);
+    public Task<StoredDocument?> LoadAsync(string kind, CancellationToken cancellationToken) =>
+        inner.LoadAsync(kind, cancellationToken);
 
-    public Task<long> SaveAsync(string kind, string json, long loadedVersion, CancellationToken ct) =>
-        inner.SaveAsync(kind, json, loadedVersion, ct);
+    public Task<long> SaveAsync(string kind, string json, long loadedVersion, CancellationToken cancellationToken) =>
+        inner.SaveAsync(kind, json, loadedVersion, cancellationToken);
 
     public void Dispose() => Disposed++;
 }

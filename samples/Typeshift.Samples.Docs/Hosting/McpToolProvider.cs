@@ -9,12 +9,12 @@ internal sealed class McpToolProvider : IMcpToolProvider, IAsyncDisposable
 {
     private readonly ConcurrentDictionary<string, McpClient> _clients = [];
 
-    public async ValueTask<IReadOnlyList<AITool>> GetToolsAsync(string server, CancellationToken ct)
+    public async ValueTask<IReadOnlyList<AITool>> GetToolsAsync(string server, CancellationToken cancellationToken)
     {
         if (!_clients.TryGetValue(server, out var client))
         {
             var transport = new HttpClientTransport(new() { Endpoint = new Uri($"https://mcp.example.com/{server}") });
-            var connected = await McpClient.CreateAsync(transport, cancellationToken: ct);
+            var connected = await McpClient.CreateAsync(transport, cancellationToken: cancellationToken);
 
             // Two sub-agents may connect a server at the same time: the first connection stays, the other closes
             client = _clients.GetOrAdd(server, connected);
@@ -22,7 +22,7 @@ internal sealed class McpToolProvider : IMcpToolProvider, IAsyncDisposable
             if (client != connected) await connected.DisposeAsync();
         }
 
-        return [.. await client.ListToolsAsync(cancellationToken: ct)];
+        return [.. await client.ListToolsAsync(cancellationToken: cancellationToken)];
     }
 
     // The scope that resolved the provider disposes it, and its connections with it

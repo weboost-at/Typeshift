@@ -818,7 +818,7 @@ internal partial class TellAgent : Agent
     }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L2072-L2092' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh026' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L2078-L2098' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh026' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Break the circle by removing one of these `UseAgent<T>()` calls, or by replacing one with `UseHandoff<T>()`, because
@@ -853,7 +853,7 @@ internal static class Startup
         services.AddTypeshift().WithStore<Clock>();
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L2704-L2712' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh028' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L2710-L2718' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh028' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Implement one of them, or pass the store you meant. A store's id type picks the ids it serves, as
@@ -878,7 +878,7 @@ public partial class HelpAgent : Agent
             .Configurable(o => o.ModelId);
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L2974-L2985' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh029' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L2996-L3007' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh029' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Name providers by a string, a number, a `Guid` or an enum, or keep the model out of the settings: an agent whose
@@ -1045,7 +1045,7 @@ internal partial class DeskAgent : Agent
     }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L1812-L1831' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh037' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L1818-L1837' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh037' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Remove the pick, so that only your code sets the mode: `WithMode(...)` for the agent's runs, an approved plan, and
@@ -1148,7 +1148,7 @@ internal static class Startup
         Create(client);
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L3657-L3667' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh040' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L3679-L3689' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh040' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The analyzer reports these spellings:
@@ -1183,7 +1183,7 @@ internal sealed class RefundDesk(AgentHost<SupportAgent> support)
     }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L3748-L3759' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh041' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L3770-L3781' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh041' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Run the copy, as in `support.WithSettingsId(customer).RunAsync(question)`, or keep it in a variable and run that
@@ -1214,7 +1214,7 @@ internal sealed class TicketFollowUp(ITypeshiftRuntime runtime)
     }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L3833-L3847' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh042' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L3855-L3869' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh042' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Take the copy without `using`, and dispose the host where its work ends. The analyzer reports nothing for
@@ -1240,7 +1240,7 @@ internal partial class DeskAgent : Agent
     }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L3981-L3991' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh043' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L4003-L4013' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh043' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Remove the `Exclude`, include the tool, or remove the mark. To make a tool ask your app, it has to be offered
@@ -1265,7 +1265,7 @@ internal partial class EchoAgent : Agent
         : this() => WithInstructions(instructions);
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L4122-L4130' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh044' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L4144-L4152' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh044' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The constructor takes the instructions, but `new EchoAgent()` never calls it. Move the declaration into the

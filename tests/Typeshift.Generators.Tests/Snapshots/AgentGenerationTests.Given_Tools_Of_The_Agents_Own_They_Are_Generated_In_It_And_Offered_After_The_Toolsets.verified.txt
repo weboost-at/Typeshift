@@ -203,7 +203,7 @@ partial class DeskAgent
                 protected override global::System.Threading.Tasks.ValueTask<object?> InvokeToolAsync(
                     global::Microsoft.Extensions.AI.AIFunctionArguments arguments,
                     global::System.IServiceProvider services,
-                    global::System.Threading.CancellationToken ct) =>
+                    global::System.Threading.CancellationToken cancellationToken) =>
                     new(GetResult(global::Demo.DeskAgent.LookUpCustomer(
                         GetArgument<string>(arguments, "email"),
                         settings)));
@@ -242,7 +242,7 @@ partial class DeskAgent
                 protected override global::System.Threading.Tasks.ValueTask<object?> InvokeToolAsync(
                     global::Microsoft.Extensions.AI.AIFunctionArguments arguments,
                     global::System.IServiceProvider services,
-                    global::System.Threading.CancellationToken ct)
+                    global::System.Threading.CancellationToken cancellationToken)
                 {
                     global::Demo.DeskAgent.RefundOrder(GetArgument<int>(arguments, "order"));
                     return default;
@@ -340,7 +340,7 @@ partial class DeskAgent
 #nullable enable
 #pragma warning disable CS0612, CS0618
 
-[assembly: global::Typeshift.Generated.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule), 24)]
+[assembly: global::Typeshift.Generated.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule), 25)]
 
 namespace Typeshift.Generated;
 

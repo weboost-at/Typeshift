@@ -27,23 +27,27 @@ public abstract class ApprovalTestBase : AgentTestBase
     }
 
     protected Task<ChatResponse> RunAsync(string input, AgentMode? mode = null) =>
-        Chat.RunAsync(input, settings: mode is null ? null : new() { Mode = mode }, ct: Ct);
+        Chat.RunAsync(input, settings: mode is null ? null : new() { Mode = mode }, cancellationToken: Ct);
 
     // The same run on either path, a streamed one as the response its updates make
     protected async Task<ChatResponse> RunAsync(string input, AgentMode? mode, bool streaming) =>
         streaming
-            ? (await Chat.RunStreamingAsync(input, settings: mode is null ? null : new() { Mode = mode }, ct: Ct)
+            ? (await Chat.RunStreamingAsync(
+                input,
+                settings: mode is null ? null : new() { Mode = mode },
+                cancellationToken: Ct)
                 .ToListAsync(Ct))
             .ToChatResponse()
             : await RunAsync(input, mode);
 
-    protected Task<ChatResponse> AnswerAsync(params DecisionAnswer[] answers) => Chat.AnswerAsync(answers, ct: Ct);
+    protected Task<ChatResponse> AnswerAsync(params DecisionAnswer[] answers) =>
+        Chat.AnswerAsync(answers, cancellationToken: Ct);
 
     protected async Task<ChatResponse> StreamAsync(string input) =>
-        (await Chat.RunStreamingAsync(input, ct: Ct).ToListAsync(Ct)).ToChatResponse();
+        (await Chat.RunStreamingAsync(input, cancellationToken: Ct).ToListAsync(Ct)).ToChatResponse();
 
     protected async Task<ChatResponse> StreamAnswerAsync(params DecisionAnswer[] answers) =>
-        (await Chat.AnswerStreamingAsync(answers, ct: Ct).ToListAsync(Ct)).ToChatResponse();
+        (await Chat.AnswerStreamingAsync(answers, cancellationToken: Ct).ToListAsync(Ct)).ToChatResponse();
 
     protected Task<ConversationDecisions> DecisionsAsync() => Chat.GetDecisionsAsync(Ct);
 

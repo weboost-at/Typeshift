@@ -46,7 +46,7 @@ public class HandoffTests : MultiAgentTestBase
         await Host<FrontAgent>()
             .WithConversationId(Data.Agent.ConversationId)
             .WithProvider(Vendor.Other)
-            .RunAsync(Data.Tool.Question, ct: Ct);
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         CallSite.Options[1]!.ModelId.Should().Be("back-model");
@@ -67,7 +67,7 @@ public class HandoffTests : MultiAgentTestBase
         var response = await Host<FrontAgent>()
             .WithConversationId(Data.Agent.ConversationId)
             .WithModelPolicy(policy)
-            .RunAsync(Data.Tool.Question, ct: Ct);
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         response.Text.Should().EndWith(Data.Tool.Answer);
@@ -88,7 +88,7 @@ public class HandoffTests : MultiAgentTestBase
         var response = await Host<FrontAgent>()
             .WithConversationId(Data.Agent.ConversationId)
             .WithProvider(Vendor.Other)
-            .RunAsync(Data.Agent.FollowUp, ct: Ct);
+            .RunAsync(Data.Agent.FollowUp, cancellationToken: Ct);
 
         // Assert
         response.Messages[^1].AuthorName.Should().Be("back_agent");
@@ -100,7 +100,7 @@ public class HandoffTests : MultiAgentTestBase
         // Act
         var run = () => Host<UnservedFrontAgent>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunAsync(Data.Tool.Question, ct: Ct);
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         await run.Should().ThrowAsync<InvalidOperationException>().WithMessage("*'unserved_back_agent'*");
@@ -156,7 +156,7 @@ public class HandoffTests : MultiAgentTestBase
         // Act
         await Host<FrontDeskAgent>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunAsync(Data.Tool.Question, ct: Ct);
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         var responses = (await EntriesAsync(Data.Agent.ConversationId)).Where(entry => entry.Model is not null);
 
@@ -176,10 +176,10 @@ public class HandoffTests : MultiAgentTestBase
             .Reply(Text(Data.Agent.Reason));
 
         var front = Host<FrontDeskAgent>().WithConversationId(Data.Agent.ConversationId);
-        await front.RunAsync(Data.Tool.Question, ct: Ct);
+        await front.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Act
-        await front.RunAsync(Data.Agent.FollowUp, ct: Ct);
+        await front.RunAsync(Data.Agent.FollowUp, cancellationToken: Ct);
         var last = (await EntriesAsync(Data.Agent.ConversationId)).Last(entry => entry.Model is not null);
 
         // Assert
@@ -197,10 +197,10 @@ public class HandoffTests : MultiAgentTestBase
             .Reply(Text(Data.Agent.Reason));
 
         var entry = Host<EntryAgent>().WithConversationId(Data.Agent.ConversationId);
-        await entry.RunAsync(Data.Tool.Question, ct: Ct);
+        await entry.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Act
-        var response = await entry.RunAsync(Data.Agent.FollowUp, ct: Ct);
+        var response = await entry.RunAsync(Data.Agent.FollowUp, cancellationToken: Ct);
 
         // Assert
         Models[^1].Model.Should().Be("back-model");
@@ -341,7 +341,7 @@ public class HandoffTests : MultiAgentTestBase
             .Reply(Text(Data.Tool.Answer))
             .Reply(Text(Data.Agent.Reason));
 
-        await front.RunAsync(Data.Tool.Question, ct: Ct);
+        await front.RunAsync(Data.Tool.Question, cancellationToken: Ct);
         var loads = store.Loads;
         Models.Clear();
 
@@ -375,11 +375,17 @@ public class HandoffTests : MultiAgentTestBase
             .Reply(Call(Data.Tool.CallId, "handoff_to_back_agent"))
             .Reply(answering, Text(Data.Tool.Answer));
 
-        var first = front.WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Tool.Question, ct: Ct);
+        var first = front.WithConversationId(Data.Agent.ConversationId).RunAsync(
+            Data.Tool.Question,
+            cancellationToken: Ct);
+
         await gate.Holding.Task.WaitAsync(Ct);
 
         // Act
-        var second = front.WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Agent.FollowUp, ct: Ct);
+        var second = front.WithConversationId(Data.Agent.ConversationId).RunAsync(
+            Data.Agent.FollowUp,
+            cancellationToken: Ct);
+
         gate.Release.SetResult();
 
         var settled = await Task.WhenAny(first, second);
@@ -415,14 +421,14 @@ public class HandoffTests : MultiAgentTestBase
             .Reply(handing, Call(Data.Tool.CallId, "handoff_to_back_agent"))
             .Reply(answering, Text(Data.Tool.Answer));
 
-        var first = front.RunAsync(Data.Tool.Question, ct: Ct);
+        var first = front.RunAsync(Data.Tool.Question, cancellationToken: Ct);
         await ChatClient.Requested;
         tracker.TrySteer(Data.Agent.ConversationId, Data.Agent.Steering);
         handing.SetResult();
         await store.Ending.Task.WaitAsync(Ct);
 
         // Act
-        var second = front.RunAsync(Data.Agent.FollowUp, ct: Ct);
+        var second = front.RunAsync(Data.Agent.FollowUp, cancellationToken: Ct);
         store.Gate.SetResult();
         var refused = await Record.ExceptionAsync(() => second);
 
@@ -455,14 +461,17 @@ public class HandoffTests : MultiAgentTestBase
 
         var first = front
             .WithConversationId(Data.Agent.ConversationId)
-            .RunStreamingAsync(Data.Tool.Question, ct: Ct)
+            .RunStreamingAsync(Data.Tool.Question, cancellationToken: Ct)
             .ToListAsync(Ct)
             .AsTask();
 
         await gate.Holding.Task.WaitAsync(Ct);
 
         // Act
-        var second = front.WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Agent.FollowUp, ct: Ct);
+        var second = front.WithConversationId(Data.Agent.ConversationId).RunAsync(
+            Data.Agent.FollowUp,
+            cancellationToken: Ct);
+
         gate.Release.SetResult();
 
         var settled = await Task.WhenAny(first, second);
@@ -495,11 +504,17 @@ public class HandoffTests : MultiAgentTestBase
             .Reply(Call(Data.Tool.CallId, "handoff_to_back_agent"))
             .Reply(Text(Data.Tool.Answer));
 
-        var first = front.WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Tool.Question, ct: Ct);
+        var first = front.WithConversationId(Data.Agent.ConversationId).RunAsync(
+            Data.Tool.Question,
+            cancellationToken: Ct);
+
         await gate.Holding.Task.WaitAsync(Ct);
 
         // Act
-        var second = front.WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Agent.FollowUp, ct: Ct);
+        var second = front.WithConversationId(Data.Agent.ConversationId).RunAsync(
+            Data.Agent.FollowUp,
+            cancellationToken: Ct);
+
         gate.Release.SetResult();
 
         // Assert
@@ -549,7 +564,7 @@ public class HandoffTests : MultiAgentTestBase
         var chat = Host<ModeFrontAgent>().WithConversationId(Data.Agent.ConversationId);
 
         // Act
-        await chat.RunAsync(Data.Tool.Question, settings: new() { Mode = AgentMode.Plan }, ct: Ct);
+        await chat.RunAsync(Data.Tool.Question, settings: new() { Mode = AgentMode.Plan }, cancellationToken: Ct);
 
         // Assert
         ChatClient.Options[0]!.Tools!.Select(tool => tool.Name).Should().Equal("exit_plan_mode");
@@ -562,7 +577,7 @@ public class HandoffTests : MultiAgentTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Host<FrontAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<FrontAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         ChatClient.Options[0]!.Tools.Should().BeNullOrEmpty();
@@ -579,7 +594,7 @@ public class HandoffTests : MultiAgentTestBase
         // Act
         var updates = await Host<FrontAgent>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunStreamingAsync(Data.Tool.Question, ct: Ct)
+            .RunStreamingAsync(Data.Tool.Question, cancellationToken: Ct)
             .ToListAsync(Ct);
 
         // Assert
@@ -622,16 +637,16 @@ public class HandoffTests : MultiAgentTestBase
 
         var asked = await Host<GuardedFrontAgent>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunAsync(Data.Tool.Question, ct: Ct);
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         await Host<GuardedFrontAgent>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunAsync(Data.Agent.FollowUp, ct: Ct);
+            .RunAsync(Data.Agent.FollowUp, cancellationToken: Ct);
 
         // Act
         var answer = () => Host<GuardedFrontAgent>().WithConversationId(Data.Agent.ConversationId).AnswerAsync(
             [DecisionAnswer.Approve(asked.Decisions.Single().Id)],
-            ct: Ct);
+            cancellationToken: Ct);
 
         // Assert
         await answer.Should().ThrowAsync<DecisionClosedException>();
@@ -649,10 +664,12 @@ public class HandoffTests : MultiAgentTestBase
             .Reply(Text(Data.Tool.Answer));
 
         var front = Host<GuardedFrontAgent>().WithConversationId(Data.Agent.ConversationId);
-        var asked = await front.RunAsync(Data.Tool.Question, ct: Ct);
+        var asked = await front.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Act
-        var response = await front.AnswerAsync([DecisionAnswer.Approve(asked.Decisions.Single().Id)], ct: Ct);
+        var response = await front.AnswerAsync(
+            [DecisionAnswer.Approve(asked.Decisions.Single().Id)],
+            cancellationToken: Ct);
 
         // Assert
         Models[^1].Model.Should().Be("back-model");
@@ -674,10 +691,10 @@ public class HandoffTests : MultiAgentTestBase
             .Reply(Text(Data.Tool.Answer));
 
         var front = Host<GuardedFrontAgent>().WithConversationId(Data.Agent.ConversationId);
-        var asked = await front.RunAsync(Data.Tool.Question, ct: Ct);
+        var asked = await front.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Act
-        await front.AnswerAsync([DecisionAnswer.Approve(asked.Decisions.Single().Id)], ct: Ct);
+        await front.AnswerAsync([DecisionAnswer.Approve(asked.Decisions.Single().Id)], cancellationToken: Ct);
 
         var refused = ChatClient.Requests[^1]
             .SelectMany(message => message.Contents)
@@ -706,7 +723,7 @@ public class HandoffTests : MultiAgentTestBase
         var front = Host<GuardedFrontAgent>().WithConversationId(Data.Agent.ConversationId);
 
         // Act
-        var updates = await front.RunStreamingAsync(Data.Tool.Question, ct: Ct).ToListAsync(Ct);
+        var updates = await front.RunStreamingAsync(Data.Tool.Question, cancellationToken: Ct).ToListAsync(Ct);
 
         // Assert
         ResultsOf(updates.ToChatResponse().Messages)[handingBack].Should().Be(DecisionResults.NotHandedOff);
@@ -733,8 +750,8 @@ public class HandoffTests : MultiAgentTestBase
 
         // Act
         var response = streaming
-            ? (await chat.RunStreamingAsync(Data.Tool.Question, ct: Ct).ToListAsync(Ct)).ToChatResponse()
-            : await chat.RunAsync(Data.Tool.Question, ct: Ct);
+            ? (await chat.RunStreamingAsync(Data.Tool.Question, cancellationToken: Ct).ToListAsync(Ct)).ToChatResponse()
+            : await chat.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         ToolCalls.Should().BeEmpty();
@@ -778,8 +795,8 @@ public class HandoffTests : MultiAgentTestBase
 
         // Act
         var response = streaming
-            ? (await chat.RunStreamingAsync(Data.Tool.Question, ct: Ct).ToListAsync(Ct)).ToChatResponse()
-            : await chat.RunAsync(Data.Tool.Question, ct: Ct);
+            ? (await chat.RunStreamingAsync(Data.Tool.Question, cancellationToken: Ct).ToListAsync(Ct)).ToChatResponse()
+            : await chat.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         var results = ResultsOf(ChatClient.Requests[1]);
 
@@ -837,11 +854,14 @@ public class HandoffTests : MultiAgentTestBase
 
         var chat = Host<ModeFrontAgent>().WithConversationId(Data.Agent.ConversationId);
 
-        await chat.RunAsync(Data.Tool.Question, settings: new() { Mode = AgentMode.Auto }, ct: Ct);
-        await chat.RunAsync(Data.Agent.FollowUp, ct: Ct);
+        await chat.RunAsync(Data.Tool.Question, settings: new() { Mode = AgentMode.Auto }, cancellationToken: Ct);
+        await chat.RunAsync(Data.Agent.FollowUp, cancellationToken: Ct);
 
         // Act
-        var response = await chat.RunAsync(Data.Agent.Steering, settings: new() { Mode = AgentMode.Default }, ct: Ct);
+        var response = await chat.RunAsync(
+            Data.Agent.Steering,
+            settings: new() { Mode = AgentMode.Default },
+            cancellationToken: Ct);
 
         // Assert
         Models[^1].Model.Should().Be("back-model");
@@ -859,10 +879,10 @@ public class HandoffTests : MultiAgentTestBase
             .Reply(Text(Data.Tool.Answer));
 
         var chat = Host<ModeFrontAgent>().WithConversationId(Data.Agent.ConversationId);
-        await chat.RunAsync(Data.Tool.Question, ct: Ct);
+        await chat.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Act
-        await chat.RunAsync(Data.Agent.FollowUp, settings: new() { Mode = AgentMode.Plan }, ct: Ct);
+        await chat.RunAsync(Data.Agent.FollowUp, settings: new() { Mode = AgentMode.Plan }, cancellationToken: Ct);
 
         // Assert
         Models[^1].Model.Should().Be("back-model");
@@ -883,7 +903,7 @@ public class HandoffTests : MultiAgentTestBase
         var chat = Host<ModeFrontAgent>().WithConversationId(Data.Agent.ConversationId);
         var named = new ModeFrontAgent.Settings { Mode = AgentMode.Default };
 
-        await chat.RunAsync(Data.Tool.Question, settings: new() { Mode = AgentMode.Auto }, ct: Ct);
+        await chat.RunAsync(Data.Tool.Question, settings: new() { Mode = AgentMode.Auto }, cancellationToken: Ct);
 
         // Act
         var response = streaming
@@ -906,12 +926,16 @@ public class HandoffTests : MultiAgentTestBase
             .Reply(Text(Data.Tool.Answer));
 
         var chat = Host<ModeFrontAgent>().WithConversationId(Data.Agent.ConversationId);
-        var planned = await chat.RunAsync(Data.Tool.Question, settings: new() { Mode = AgentMode.Plan }, ct: Ct);
+
+        var planned = await chat.RunAsync(
+            Data.Tool.Question,
+            settings: new() { Mode = AgentMode.Plan },
+            cancellationToken: Ct);
 
         // Act
         var response = await chat.AnswerAsync(
             [planned.Decisions.OfType<PlanDecision>().Single().Approve(AgentMode.Auto)],
-            ct: Ct);
+            cancellationToken: Ct);
 
         // Assert
         response.Decisions.Should().BeEmpty();
@@ -930,7 +954,7 @@ public class HandoffTests : MultiAgentTestBase
         // Act
         var response = await Host<FrontAgent>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunAsync<int>(Data.Tool.Question, ct: Ct);
+            .RunAsync<int>(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         ChatClient.Options[1]!.ResponseFormat.Should().BeOfType<ChatResponseFormatJson>();
@@ -947,7 +971,7 @@ public class HandoffTests : MultiAgentTestBase
 
         var run = Host<FrontAgent>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunStreamingAsync<int>(Data.Tool.Question, ct: Ct);
+            .RunStreamingAsync<int>(Data.Tool.Question, cancellationToken: Ct);
 
         // Act
         await run.ToListAsync(Ct);
@@ -971,7 +995,7 @@ public class HandoffTests : MultiAgentTestBase
         // Act
         var response = await Host<FrontAgent>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunAsync<int>(Data.Agent.FollowUp, ct: Ct);
+            .RunAsync<int>(Data.Agent.FollowUp, cancellationToken: Ct);
 
         // Assert
         ChatClient.Options[2]!.ResponseFormat.Should().BeOfType<ChatResponseFormatJson>();
@@ -1037,7 +1061,7 @@ public class HandoffTests : MultiAgentTestBase
         messages.SelectMany(message => message.Contents).OfType<FunctionCallContent>().Select(call => call.Name);
 
     private Task<ChatResponse> RunAsync(string input) =>
-        Host<FrontAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(input, ct: Ct);
+        Host<FrontAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(input, cancellationToken: Ct);
 
     private Task<ChatResponse> RunAsync(string input, bool streaming) =>
         RunAsync(Host<FrontAgent>().WithConversationId(Data.Agent.ConversationId), input, streaming);
@@ -1045,8 +1069,8 @@ public class HandoffTests : MultiAgentTestBase
     // The same run on either path, a streamed one as the response its updates make
     private async Task<ChatResponse> RunAsync(AgentHost<FrontAgent> front, string input, bool streaming) =>
         streaming
-            ? (await front.RunStreamingAsync(input, ct: Ct).ToListAsync(Ct)).ToChatResponse()
-            : await front.RunAsync(input, ct: Ct);
+            ? (await front.RunStreamingAsync(input, cancellationToken: Ct).ToListAsync(Ct)).ToChatResponse()
+            : await front.RunAsync(input, cancellationToken: Ct);
 }
 
 #pragma warning restore TYPESHIFT001

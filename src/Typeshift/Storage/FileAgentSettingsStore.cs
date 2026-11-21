@@ -43,17 +43,20 @@ internal sealed class FileAgentSettingsStore : IAgentSettingsStore
         _logger = logger ?? NullLogger.Instance;
     }
 
-    public async Task<StoredDocument?> LoadAsync(string kind, CancellationToken ct)
+    public async Task<StoredDocument?> LoadAsync(string kind, CancellationToken cancellationToken)
     {
         var path = PathOf(kind);
-        return await TryReadAsync(path, ct).ConfigureAwait(false) is { } file ? Read(path, kind, file) : null;
+
+        return await TryReadAsync(path, cancellationToken).ConfigureAwait(false) is { } file
+            ? Read(path, kind, file)
+            : null;
     }
 
-    public async Task<long> SaveAsync(string kind, string json, long loadedVersion, CancellationToken ct)
+    public async Task<long> SaveAsync(string kind, string json, long loadedVersion, CancellationToken cancellationToken)
     {
         var path = PathOf(kind);
         var saves = _saves.GetOrAdd(path, _ => new SemaphoreSlim(1, 1));
-        await saves.WaitAsync(ct).ConfigureAwait(false);
+        await saves.WaitAsync(cancellationToken).ConfigureAwait(false);
 
         try
         {
@@ -63,17 +66,19 @@ internal sealed class FileAgentSettingsStore : IAgentSettingsStore
             // the first save says where the settings are
             if (Interlocked.Exchange(ref _announced, 1) == 0) LogEvents.FileStoreFolder(_logger, _directory);
 
-            await using var held = (await LockAsync($"{path}.lock", ct).ConfigureAwait(false)).ConfigureAwait(false);
+            await using var held = (await LockAsync($"{path}.lock", cancellationToken).ConfigureAwait(false))
+                .ConfigureAwait(false);
+
             DeleteUnfinished(path);
 
-            var stored = await TryReadAsync(path, ct).ConfigureAwait(false) is { } file
+            var stored = await TryReadAsync(path, cancellationToken).ConfigureAwait(false) is { } file
                 ? Read(path, kind, file).Version
                 : 0;
 
             if (stored != loadedVersion)
                 throw new StoreConflictException($"The agent's {kind} was saved since version {loadedVersion}.");
 
-            await ReplaceAsync(path, Write(kind, json, loadedVersion + 1), ct).ConfigureAwait(false);
+            await ReplaceAsync(path, Write(kind, json, loadedVersion + 1), cancellationToken).ConfigureAwait(false);
             return loadedVersion + 1;
         }
         finally

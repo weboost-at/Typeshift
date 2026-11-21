@@ -35,7 +35,7 @@ public class SubAgentTests : MultiAgentTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Host<LeadAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<LeadAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         var tool = ChatClient.Options[0]!.Tools!.OfType<AIFunctionDeclaration>().Single();
@@ -58,7 +58,7 @@ public class SubAgentTests : MultiAgentTestBase
             .Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Host<LeadAgent>().WithProvider(Vendor.Other).RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<LeadAgent>().WithProvider(Vendor.Other).RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         CallSite.Options[1]!.ModelId.Should().Be(HelperAgent.Model);
@@ -79,7 +79,7 @@ public class SubAgentTests : MultiAgentTestBase
             .Reply(Text(Data.Agent.Reason));
 
         // Act
-        await Host<LeadAgent>().WithModelPolicy(policy).RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<LeadAgent>().WithModelPolicy(policy).RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         HelperClient.Requests.Should().HaveCount(2);
@@ -96,7 +96,7 @@ public class SubAgentTests : MultiAgentTestBase
         HelperClient.Reply(Text(Data.Agent.Reason));
 
         // Act
-        await Host<LeadAgent>().WithModel(Data.Agent.Model).RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<LeadAgent>().WithModel(Data.Agent.Model).RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         HelperClient.Options[0]!.ModelId.Should().Be(HelperAgent.Model);
@@ -106,7 +106,7 @@ public class SubAgentTests : MultiAgentTestBase
     public async Task Given_A_Sub_Agent_Whose_Provider_Nothing_Serves_The_Run_Fails_Before_It_Calls_A_Model()
     {
         // Act
-        var run = () => Host<UnservedLeadAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        var run = () => Host<UnservedLeadAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         await run.Should().ThrowAsync<InvalidOperationException>().WithMessage(
@@ -126,7 +126,9 @@ public class SubAgentTests : MultiAgentTestBase
             .Reply(Text(Data.Tool.Answer));
 
         // Act
-        var response = await Host<UnservedLeadAgent>().WithProvider(Vendor.Other).RunAsync(Data.Tool.Question, ct: Ct);
+        var response = await Host<UnservedLeadAgent>()
+            .WithProvider(Vendor.Other)
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         response.Text.Should().Be(Data.Tool.Answer);
@@ -143,7 +145,7 @@ public class SubAgentTests : MultiAgentTestBase
         // Act
         var run = () => Host<SwitchableLeadAgent>()
             .WithSettingsId(Data.Persistence.SettingsId)
-            .RunAsync(Data.Tool.Question, ct: Ct);
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         await run.Should().ThrowAsync<InvalidOperationException>().WithMessage("*'switchable_helper_agent'*");
@@ -167,7 +169,7 @@ public class SubAgentTests : MultiAgentTestBase
         // Act
         var response = await Host<SwitchableLeadAgent>()
             .WithSettingsId(Data.Persistence.SettingsId)
-            .RunAsync(Data.Tool.Question, ct: Ct);
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         response.Text.Should().Be(Data.Tool.Answer);
@@ -186,7 +188,7 @@ public class SubAgentTests : MultiAgentTestBase
             .UpdateSettingsAsync(settings => settings with { Temperature = Data.Agent.Temperature }, Ct);
 
         // Act
-        await Host<LeadAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<LeadAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         HelperClient.Options[0]!.Temperature.Should().Be(Data.Agent.Temperature);
@@ -206,7 +208,9 @@ public class SubAgentTests : MultiAgentTestBase
             .UpdateSettingsAsync(settings => settings with { Temperature = Data.Agent.Temperature }, Ct);
 
         // Act
-        await Host<LeadAgent>().WithSettingsId(Data.Persistence.SettingsId).RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<LeadAgent>()
+            .WithSettingsId(Data.Persistence.SettingsId)
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         HelperClient.Assert.Request(0).Options!.Temperature.Should().Be(Data.Agent.Temperature);
@@ -226,8 +230,8 @@ public class SubAgentTests : MultiAgentTestBase
 
         // Act
         var response = streaming
-            ? (await Host<LeadAgent>().RunStreamingAsync(Data.Tool.Question, ct: Ct).ToListAsync(Ct)).ToChatResponse()
-            : await Host<LeadAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+            ? (await Host<LeadAgent>().RunStreamingAsync(Data.Tool.Question, Ct).ToListAsync(Ct)).ToChatResponse()
+            : await Host<LeadAgent>().RunAsync(Data.Tool.Question, Ct);
 
         // Assert
         response.Text.Should().Be(Data.Tool.Answer);
@@ -248,7 +252,7 @@ public class SubAgentTests : MultiAgentTestBase
             .Reply(Text(Data.Agent.Reason));
 
         // Act
-        await Host<LeadAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<LeadAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         ToolCalls.Should().BeEmpty();
@@ -269,11 +273,15 @@ public class SubAgentTests : MultiAgentTestBase
             .Reply(Text(Data.Agent.Reason));
 
         var lead = Host<TrustingLeadAgent>();
-        var asked = await lead.WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Tool.Question, ct: Ct);
+
+        var asked = await lead.WithConversationId(Data.Agent.ConversationId).RunAsync(
+            Data.Tool.Question,
+            cancellationToken: Ct);
+
         var always = DecisionAnswer.ApproveForConversation(asked.Decisions[0].Id);
 
         // Act
-        await lead.WithConversationId(Data.Agent.ConversationId).AnswerAsync([always], ct: Ct);
+        await lead.WithConversationId(Data.Agent.ConversationId).AnswerAsync([always], cancellationToken: Ct);
 
         // Assert
         ToolCalls.Should().Equal(
@@ -294,7 +302,10 @@ public class SubAgentTests : MultiAgentTestBase
             .Reply(Text(Data.Agent.Reason));
 
         // Act
-        await Host<LeadAgent>().RunAsync(Data.Tool.Question, settings: new() { Mode = AgentMode.Auto }, ct: Ct);
+        await Host<LeadAgent>().RunAsync(
+            Data.Tool.Question,
+            settings: new() { Mode = AgentMode.Auto },
+            cancellationToken: Ct);
 
         // Assert
         ToolCalls.Should().Equal($"close_ticket {Data.Agent.Ticket.Default}");
@@ -304,7 +315,7 @@ public class SubAgentTests : MultiAgentTestBase
     public async Task Given_A_Tool_Of_The_Chat_Options_Named_Like_A_Sub_Agent_The_Run_Fails_Naming_Both()
     {
         // Act
-        var run = () => Host<ShadowedLeadAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        var run = () => Host<ShadowedLeadAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         await run.Should()
@@ -322,7 +333,7 @@ public class SubAgentTests : MultiAgentTestBase
         // Act
         await Host<LeadAgent>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunAsync(Data.Tool.Question, settings: new() { Mode = AgentMode.Plan }, ct: Ct);
+            .RunAsync(Data.Tool.Question, settings: new() { Mode = AgentMode.Plan }, cancellationToken: Ct);
 
         // Assert
         ChatClient.Options[0]!.Tools!.Select(tool => tool.Name).Should().Equal("helper_agent", "exit_plan_mode");
@@ -341,7 +352,7 @@ public class SubAgentTests : MultiAgentTestBase
         // Act
         await Host<LeadAgent>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunAsync(Data.Tool.Question, settings: new() { Mode = AgentMode.Plan }, ct: Ct);
+            .RunAsync(Data.Tool.Question, settings: new() { Mode = AgentMode.Plan }, cancellationToken: Ct);
 
         // Assert
         HelperClient.Options[0]!.Tools!.Select(tool => tool.Name).Should().Equal("read_ticket");
@@ -361,7 +372,7 @@ public class SubAgentTests : MultiAgentTestBase
         HelperClient.Reply(gate, Text(Data.Agent.Reason));
 
         // Act
-        var running = Host<BackgroundLeadAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        var running = Host<BackgroundLeadAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
         await ChatClient.RequestedAsync(2);
         gate.SetResult();
         var response = await running.WaitAsync(Ct);
@@ -387,7 +398,7 @@ public class SubAgentTests : MultiAgentTestBase
         // Act
         var running = Host<BackgroundLeadAgent>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunAsync(Data.Tool.Question, ct: Ct);
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         await ChatClient.RequestedAsync(2);
         gate.SetResult();
@@ -413,7 +424,7 @@ public class SubAgentTests : MultiAgentTestBase
         HelperClient.Reply(gate, Text(Data.Agent.Reason));
 
         // Act
-        var running = Host<BackgroundLeadAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        var running = Host<BackgroundLeadAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
         await ChatClient.RequestedAsync(2);
         gate.SetResult();
         await running.WaitAsync(Ct);
@@ -437,7 +448,7 @@ public class SubAgentTests : MultiAgentTestBase
 
         HelperClient.Reply(gate, Text(Data.Agent.Reason));
 
-        var running = Host<BackgroundLeadAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        var running = Host<BackgroundLeadAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
         await ChatClient.RequestedAsync(2);
 
         // Act
@@ -460,7 +471,7 @@ public class SubAgentTests : MultiAgentTestBase
         HelperClient.Reply(new InvalidOperationException(Data.Agent.Reason));
 
         // Act
-        await Host<LeadAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<LeadAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         ChatClient.Assert.Request(1).Result.Should().Be($"Error: Function failed. {Undisclosed}");
@@ -479,7 +490,7 @@ public class SubAgentTests : MultiAgentTestBase
 
         HelperClient.Reply(failing, new InvalidOperationException(Data.Agent.Reason));
 
-        var running = Host<BackgroundLeadAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        var running = Host<BackgroundLeadAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
         await ChatClient.RequestedAsync(2);
 
         // Act
@@ -505,13 +516,13 @@ public class SubAgentTests : MultiAgentTestBase
         HelperClient.Reply(gate, Text(Data.Agent.Reason));
 
         var chat = Host<BackgroundLeadAgent>().WithConversationId(Data.Agent.ConversationId);
-        var running = chat.RunAsync(Data.Tool.Question, ct: Ct);
+        var running = chat.RunAsync(Data.Tool.Question, cancellationToken: Ct);
         await ChatClient.RequestedAsync(2);
         gate.SetResult();
         await running.WaitAsync(Ct);
 
         // Act
-        await chat.RunAsync(Data.Agent.FollowUp, ct: Ct);
+        await chat.RunAsync(Data.Agent.FollowUp, cancellationToken: Ct);
         var sent = ChatClient.Requests[^1].Select(message => message.Text).ToList();
 
         // Assert
@@ -541,7 +552,7 @@ public class SubAgentTests : MultiAgentTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Host<BackgroundLeadAgent>().WithConversationId(conversation).ResumeAsync(ct: Ct);
+        await Host<BackgroundLeadAgent>().WithConversationId(conversation).ResumeAsync(cancellationToken: Ct);
 
         // Assert
         ChatClient.Requests[0][^1].Text.Should().Contain("helper_agent was lost");
@@ -577,7 +588,9 @@ public class SubAgentTests : MultiAgentTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Host<BackgroundLeadAgent>().WithConversationId(conversation).RunAsync(Data.Agent.FollowUp, ct: Ct);
+        await Host<BackgroundLeadAgent>()
+            .WithConversationId(conversation)
+            .RunAsync(Data.Agent.FollowUp, cancellationToken: Ct);
 
         // Assert
         ChatClient.Requests[0].Select(message => message.Text).Should().Contain(text => text.Contains("was lost"));
@@ -595,7 +608,7 @@ public class SubAgentTests : MultiAgentTestBase
 
         HelperClient.Reply(new TaskCompletionSource(), Text(Data.Agent.Reason));
 
-        var running = Host<BackgroundLeadAgent>().RunAsync(Data.Tool.Question, ct: cancel.Token);
+        var running = Host<BackgroundLeadAgent>().RunAsync(Data.Tool.Question, cancellationToken: cancel.Token);
         await ChatClient.RequestedAsync(2);
         await HelperClient.Requested;
 
@@ -619,8 +632,8 @@ public class SubAgentTests : MultiAgentTestBase
         var chat = Host<BackgroundFrontAgent>().WithConversationId(Data.Agent.ConversationId);
 
         Task running = streaming
-            ? chat.RunStreamingAsync(Data.Tool.Question, ct: Ct).ToListAsync(Ct).AsTask()
-            : chat.RunAsync(Data.Tool.Question, ct: Ct);
+            ? chat.RunStreamingAsync(Data.Tool.Question, cancellationToken: Ct).ToListAsync(Ct).AsTask()
+            : chat.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         await HelperClient.Requested;
 
@@ -641,7 +654,7 @@ public class SubAgentTests : MultiAgentTestBase
 
         var running = Host<BackgroundFrontAgent>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunAsync(Data.Tool.Question, ct: Ct);
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         await HelperClient.Requested;
 
@@ -673,7 +686,7 @@ public class SubAgentTests : MultiAgentTestBase
 
         var running = Host<BackgroundFrontAgent>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunAsync(Data.Tool.Question, ct: Ct);
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         await ChatClient.RequestedAsync(2);
 
@@ -705,7 +718,7 @@ public class SubAgentTests : MultiAgentTestBase
         var running = Host<BackgroundLeadAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(
             new string('x', Page),
             settings: new() { MaxInputTokens = 1_000 },
-            ct: Ct);
+            cancellationToken: Ct);
 
         await ChatClient.RequestedAsync(3);
         gate.SetResult();
@@ -744,7 +757,9 @@ public class SubAgentTests : MultiAgentTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Host<BackgroundLeadAgent>().WithConversationId(conversation).RunAsync(Data.Agent.FollowUp, ct: Ct);
+        await Host<BackgroundLeadAgent>()
+            .WithConversationId(conversation)
+            .RunAsync(Data.Agent.FollowUp, cancellationToken: Ct);
 
         // Assert
         ChatClient.Requests[0]
@@ -768,7 +783,7 @@ public class SubAgentTests : MultiAgentTestBase
 
         var running = Host<GuardedBackgroundLeadAgent>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunAsync(Data.Tool.Question, ct: Ct);
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         await ChatClient.RequestedAsync(2);
         gate.SetResult();
@@ -777,7 +792,7 @@ public class SubAgentTests : MultiAgentTestBase
         // Act
         await Host<GuardedBackgroundLeadAgent>().WithConversationId(Data.Agent.ConversationId).AnswerAsync(
             [DecisionAnswer.Approve(asked.Decisions.Single().Id)],
-            ct: Ct);
+            cancellationToken: Ct);
 
         // Assert
         ToolCalls.Should().Equal($"close_ticket {Data.Agent.Ticket.Default}");

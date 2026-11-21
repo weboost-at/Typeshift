@@ -16,7 +16,7 @@ public class ToolResultWireTests : AgentTestBase
             .Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Host<ProbeAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<ProbeAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         Sent().Should().BeOfType<string>();
@@ -31,7 +31,7 @@ public class ToolResultWireTests : AgentTestBase
             .Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Host<ProbeAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<ProbeAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         $"{Sent()}".Should().NotContain("\n");
@@ -46,7 +46,7 @@ public class ToolResultWireTests : AgentTestBase
             .Reply(Text(Data.Tool.Answer));
 
         // Act
-        var response = await Host<ProbeAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        var response = await Host<ProbeAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
         var result = (JsonElement)response.Assert.ToolResult(Data.Tool.CallId).Result!;
 
         // Assert
@@ -62,7 +62,7 @@ public class ToolResultWireTests : AgentTestBase
             .Reply(Text(Data.Tool.Answer));
 
         // Act
-        var response = await Host<ProbeAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        var response = await Host<ProbeAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         response.Assert.ToolResult(Data.Tool.CallId).Result.Should().BeOfType<JsonElement>();
@@ -77,7 +77,7 @@ public class ToolResultWireTests : AgentTestBase
             .Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Host<ProbeAgent>().RunStreamingAsync(Data.Tool.Question, ct: Ct).ToListAsync(Ct);
+        await Host<ProbeAgent>().RunStreamingAsync(Data.Tool.Question, cancellationToken: Ct).ToListAsync(Ct);
 
         // Assert
         Sent().Should().BeOfType<string>();

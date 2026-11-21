@@ -19,9 +19,9 @@ public interface IDecisionStore<TId> where TId : notnull
     /// Loads the decisions document of a conversation.
     /// </summary>
     /// <param name="conversation">The conversation's id.</param>
-    /// <param name="ct">Cancels the load.</param>
+    /// <param name="cancellationToken">Cancels the load.</param>
     /// <returns>The document, or null when none is stored.</returns>
-    Task<StoredDocument?> LoadDecisionsAsync(TId conversation, CancellationToken ct);
+    Task<StoredDocument?> LoadDecisionsAsync(TId conversation, CancellationToken cancellationToken);
 
     /// <summary>
     /// Saves the decisions document of a conversation if the stored version is still
@@ -34,11 +34,15 @@ public interface IDecisionStore<TId> where TId : notnull
     /// The version <see cref="LoadDecisionsAsync"/> returned to the caller, 0 when it found none: the old version,
     /// which the stored one must still equal, never the version to write.
     /// </param>
-    /// <param name="ct">Cancels the save.</param>
+    /// <param name="cancellationToken">Cancels the save.</param>
     /// <returns>
     /// The new version the store wrote, which the caller passes to its next save: never 0 and never a version this
     /// document had before.
     /// </returns>
     /// <exception cref="StoreConflictException">Another save came first.</exception>
-    Task<long> SaveDecisionsAsync(TId conversation, string json, long loadedVersion, CancellationToken ct);
+    Task<long> SaveDecisionsAsync(
+        TId conversation,
+        string json,
+        long loadedVersion,
+        CancellationToken cancellationToken);
 }

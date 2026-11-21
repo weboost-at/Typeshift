@@ -10,7 +10,7 @@ internal sealed class AuditToolCalls(ILogger<AuditToolCalls> logger) : IToolMidd
     public async ValueTask<object?> InvokeAsync(
         FunctionInvocationContext call,
         Func<ValueTask<object?>> next,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
     {
         var run = call.Run;
         int? customer = run.TryGetSettingsId<int>(out var id) ? id : null;

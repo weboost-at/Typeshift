@@ -289,8 +289,9 @@ The code must read as if the owner wrote it: terse, intention-revealing, comment
 - Collection expressions, `var`, named arguments where positional ones blur.
 - Extension members use C# 14 `extension(...)` blocks, never `this` parameters. The one exception is the generated
   interceptor, whose signature must mirror the intercepted call.
-- Events are `On<EventName>`. A method that computes and returns something is `Get...`. A token is `ct` when the
-  signature puts one parameter per line.
+- Events are `On<EventName>`. A method that computes and returns something is `Get...`. Public and protected
+  members say `cancellationToken` for a token, and so do the members that implement or override them and the members
+  the generator writes; other code says `ct`.
 - Fluent chains one call per line; blank lines around multi-line statements; a statement-level object initializer
   is multi-line; no trailing commas.
 - Comments only where they earn their place: one thought, a few lines at most, saying why, never what.
@@ -316,10 +317,10 @@ The code must read as if the owner wrote it: terse, intention-revealing, comment
 
 The guard table lists what a check enforces; the build names such a break by its rule, `IDE0055: Fix formatting`
 for example, and `dotnet format Typeshift.slnx --include <file>` writes most fixes. The rest is review-only: sealing,
-braceless guards, a switch expression for an `if`/`else` chain, named arguments, naming (`On...`, `Get...`, `ct`),
-the layout of chains and initializers, trailing commas, what a comment says and how long it is, docs on private and
-internal members, guards for what cannot occur, dead code and duplicated helpers, reflection and static mutable
-state, and the commit format.
+braceless guards, a switch expression for an `if`/`else` chain, named arguments, naming (`On...`, `Get...`, a
+token's name), the layout of chains and initializers, trailing commas, what a comment says and how long it is, docs
+on private and internal members, guards for what cannot occur, dead code and duplicated helpers, reflection and
+static mutable state, and the commit format.
 
 ## Generator rules
 

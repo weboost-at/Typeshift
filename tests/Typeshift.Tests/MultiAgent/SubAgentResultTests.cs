@@ -18,7 +18,7 @@ public class SubAgentResultTests : MultiAgentTestBase
         HelperClient.Reply(Text(Finding()));
 
         // Act
-        await Host<TypedLeadAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<TypedLeadAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         var format = (ChatResponseFormatJson)HelperClient.Options[0]!.ResponseFormat!;
@@ -36,7 +36,7 @@ public class SubAgentResultTests : MultiAgentTestBase
         HelperClient.Reply(Text(Finding()));
 
         // Act
-        await Host<TypedLeadAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<TypedLeadAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         var result = JsonSerializer.Deserialize(ChatClient.Assert.Request(1).Result, Json.GetTypeInfo<HelperFinding>());
@@ -54,7 +54,7 @@ public class SubAgentResultTests : MultiAgentTestBase
         HelperClient.Reply(Text(Data.Agent.Reason));
 
         // Act
-        await Host<TypedLeadAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<TypedLeadAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         ChatClient.Assert.Request(1).Result.Should().Contain("did not answer in the JSON schema it was given");
@@ -71,7 +71,7 @@ public class SubAgentResultTests : MultiAgentTestBase
         HelperClient.Reply(Text(JsonSerializer.Serialize(new { data = Data.Tool.Lives }, Json.SerializerOptions)));
 
         // Act
-        await Host<CountingLeadAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<CountingLeadAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         var result = (JsonElement)ChatClient.Assert.Request(1).ResultValue!;
@@ -91,7 +91,7 @@ public class SubAgentResultTests : MultiAgentTestBase
 
         HelperClient.Reply(answering, Text(Finding()));
 
-        var run = Host<BackgroundTypedLeadAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        var run = Host<BackgroundTypedLeadAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
         await ChatClient.RequestedAsync(2);
 
         // Act
@@ -115,7 +115,7 @@ public class SubAgentResultTests : MultiAgentTestBase
 
         HelperClient.Reply(answering, Text(Data.Agent.Reason));
 
-        var run = Host<BackgroundTypedLeadAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        var run = Host<BackgroundTypedLeadAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
         await ChatClient.RequestedAsync(2);
 
         // Act

@@ -48,7 +48,7 @@ public class OpenDecisionBackgroundTests : MultiAgentTestBase
         var asked = await AskAsync();
 
         // Act
-        await Lead.AnswerAsync([DecisionAnswer.Approve(asked.Decisions.Single().Id)], ct: Ct);
+        await Lead.AnswerAsync([DecisionAnswer.Approve(asked.Decisions.Single().Id)], cancellationToken: Ct);
         var sent = ChatClient.Requests[^1];
 
         // Assert
@@ -63,13 +63,15 @@ public class OpenDecisionBackgroundTests : MultiAgentTestBase
         // Arrange
         ScriptADecisionWhileTheHelperWorks().Reply(Text(Data.Tool.Answer));
 
-        var running = Lead.RunStreamingAsync(Data.Tool.Question, ct: Ct).ToListAsync(Ct).AsTask();
+        var running = Lead.RunStreamingAsync(Data.Tool.Question, cancellationToken: Ct).ToListAsync(Ct).AsTask();
         await ChatClient.RequestedAsync(2).WaitAsync(Ct);
         _helper.SetResult();
         var asked = (await running).ToChatResponse();
 
         // Act
-        await Lead.AnswerStreamingAsync([DecisionAnswer.Approve(asked.Decisions.Single().Id)], ct: Ct).ToListAsync(Ct);
+        await Lead.AnswerStreamingAsync(
+            [DecisionAnswer.Approve(asked.Decisions.Single().Id)],
+            cancellationToken: Ct).ToListAsync(Ct);
 
         // Assert
         ToolCalls.Should().Equal($"close_ticket {Data.Agent.Ticket.Default}");
@@ -91,7 +93,7 @@ public class OpenDecisionBackgroundTests : MultiAgentTestBase
     // The helper answers once the model asked for close_ticket, so its answer finds the decision open
     private async Task<ChatResponse> AskAsync()
     {
-        var running = Lead.RunAsync(Data.Tool.Question, ct: Ct);
+        var running = Lead.RunAsync(Data.Tool.Question, cancellationToken: Ct);
         await ChatClient.RequestedAsync(2).WaitAsync(Ct);
         _helper.SetResult();
 

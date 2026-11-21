@@ -478,7 +478,9 @@ public class ToolsetGenerationTests : GeneratorTestBase
         // Assert
         run.Source("Demo.WordToolset.g.cs")
             .Should()
-            .Contain("GetResultAsync(global::Demo.WordToolset.Spell(GetArgument<string>(arguments, \"word\")), ct);");
+            .Contain(
+                "GetResultAsync(global::Demo.WordToolset.Spell(GetArgument<string>(arguments, \"word\")), "
+                + "cancellationToken);");
     }
 
     [Fact]

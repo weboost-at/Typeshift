@@ -20,7 +20,7 @@ public class QuestionTests : QuestionTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Asking.RunAsync(Data.Tool.Question, ct: Ct);
+        await Asking.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         ChatClient.Assert.Request(0).Tools.Should().Equal("close_ticket", "read_ticket", "note", "ask_user");
@@ -48,7 +48,7 @@ public class QuestionTests : QuestionTestBase
             .Reply(Text(Data.Tool.Answer));
 
         // Act
-        var response = await Host<AskingAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        var response = await Host<AskingAgent>().RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         ChatClient.Assert.Request(0).Tools.Should().NotContain("ask_user");
@@ -71,7 +71,7 @@ public class QuestionTests : QuestionTestBase
         // Act
         var response = await Host<AskingLeadAgent>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunAsync(Data.Tool.Question, ct: Ct);
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         HelperClient.Assert.Request(0).Tools.Should().BeEmpty();
@@ -96,7 +96,7 @@ public class QuestionTests : QuestionTestBase
 
         var running = Host<BackgroundAskingLeadAgent>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunAsync(Data.Tool.Question, ct: Ct);
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         await ChatClient.RequestedAsync(2);
 
@@ -117,7 +117,7 @@ public class QuestionTests : QuestionTestBase
         ChatClient.Reply(Ask(Data.Tool.CallId, Question(multiSelect: true), SecondQuestion()));
 
         // Act
-        var response = await Asking.RunAsync(Data.Tool.Question, ct: Ct);
+        var response = await Asking.RunAsync(Data.Tool.Question, cancellationToken: Ct);
         var asked = (QuestionDecision)response.Decisions.Single();
 
         // Assert
@@ -240,7 +240,7 @@ public class QuestionTests : QuestionTestBase
             .Reply(Text(Data.Tool.Answer));
 
         // Act
-        var response = await Asking.RunAsync(Data.Tool.Question, ct: Ct);
+        var response = await Asking.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         response.Decisions.Should().BeEmpty();
@@ -257,7 +257,7 @@ public class QuestionTests : QuestionTestBase
             .Reply(Text(Data.Tool.Answer));
 
         // Act
-        var response = await Asking.RunAsync(Data.Tool.Question, ct: Ct);
+        var response = await Asking.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         response.Decisions.Should().BeEmpty();
@@ -275,7 +275,7 @@ public class QuestionTests : QuestionTestBase
             .Reply(Calls(Malformed(Data.Tool.CallId, "{}"), CloseTicket(Data.Tool.SecondCallId, Data.Agent.Ticket)))
             .Reply(Text(Data.Tool.Answer));
 
-        var asked = await Asking.RunAsync(Data.Tool.Question, ct: Ct);
+        var asked = await Asking.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Act
         await AnswerQuestionsAsync(asked.Decisions.OfType<ApprovalDecision>().Single().Approve());
@@ -356,7 +356,7 @@ public class QuestionTests : QuestionTestBase
     {
         // Arrange
         ChatClient.Reply(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket));
-        var asked = await Asking.RunAsync(Data.Tool.Question, ct: Ct);
+        var asked = await Asking.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Act
         var answering = () => AnswerQuestionsAsync(DecisionAnswer.Answer(asked.Decisions[0].Id, Label.Default));
@@ -403,7 +403,7 @@ public class QuestionTests : QuestionTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Asking.RunAsync(Data.Tool.Question, settings: new() { Mode = AgentMode.Plan }, ct: Ct);
+        await Asking.RunAsync(Data.Tool.Question, settings: new() { Mode = AgentMode.Plan }, cancellationToken: Ct);
 
         // Assert
         ChatClient.Assert.Request(0).Tools.Should().Equal("read_ticket", "ask_user", "exit_plan_mode");
@@ -417,7 +417,11 @@ public class QuestionTests : QuestionTestBase
             .Reply(Ask(Data.Tool.CallId))
             .Reply(Call(Data.Tool.SecondCallId, "exit_plan_mode", ("plan", Data.Tool.Answer)));
 
-        var asked = await Asking.RunAsync(Data.Tool.Question, settings: new() { Mode = AgentMode.Plan }, ct: Ct);
+        var asked = await Asking.RunAsync(
+            Data.Tool.Question,
+            settings: new() { Mode = AgentMode.Plan },
+            cancellationToken: Ct);
+
         var question = asked.Decisions.OfType<QuestionDecision>().Single();
 
         // Act
@@ -434,7 +438,10 @@ public class QuestionTests : QuestionTestBase
         ChatClient.Reply(Ask(Data.Tool.CallId));
 
         // Act
-        var response = await Asking.RunAsync(Data.Tool.Question, settings: new() { Mode = AgentMode.Auto }, ct: Ct);
+        var response = await Asking.RunAsync(
+            Data.Tool.Question,
+            settings: new() { Mode = AgentMode.Auto },
+            cancellationToken: Ct);
 
         // Assert
         response.Decisions.OfType<QuestionDecision>().Should().ContainSingle();
@@ -448,7 +455,7 @@ public class QuestionTests : QuestionTestBase
             .Reply(Calls(Ask(Data.Tool.CallId), CloseTicket(Data.Tool.SecondCallId, Data.Agent.Ticket)))
             .Reply(Text(Data.Tool.Answer));
 
-        var asked = await Asking.RunAsync(Data.Tool.Question, ct: Ct);
+        var asked = await Asking.RunAsync(Data.Tool.Question, cancellationToken: Ct);
         var question = asked.Decisions.OfType<QuestionDecision>().Single();
         var approval = asked.Decisions.OfType<ApprovalDecision>().Single();
 
@@ -473,11 +480,11 @@ public class QuestionTests : QuestionTestBase
             .Reply(Ask(Data.Tool.CallId))
             .Reply(Text(lives));
 
-        var asked = await Asking.RunAsync<int>(Data.Tool.Question, ct: Ct);
+        var asked = await Asking.RunAsync<int>(Data.Tool.Question, cancellationToken: Ct);
         var answer = DecisionAnswer.Answer(asked.Decisions[0].Id, Label.Default);
 
         // Act
-        var response = await Asking.AnswerAsync<int>([answer], ct: Ct);
+        var response = await Asking.AnswerAsync<int>([answer], cancellationToken: Ct);
 
         // Assert
         asked.TryGetResult(out _).Should().BeFalse();
@@ -492,7 +499,7 @@ public class QuestionTests : QuestionTestBase
         ChatClient.Reply(Ask(Data.Tool.CallId));
 
         // Act
-        var updates = await Asking.RunStreamingAsync(Data.Tool.Question, ct: Ct).ToListAsync(Ct);
+        var updates = await Asking.RunStreamingAsync(Data.Tool.Question, cancellationToken: Ct).ToListAsync(Ct);
 
         // Assert
         updates.SkipLast(1).SelectMany(update => update.Decisions).Should().BeEmpty();
@@ -507,7 +514,10 @@ public class QuestionTests : QuestionTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act
-        var updates = await Asking.AnswerStreamingAsync([asked.Answer(Label.Default)], ct: Ct).ToListAsync(Ct);
+        var updates = await Asking.AnswerStreamingAsync(
+            [asked.Answer(Label.Default)],
+            cancellationToken: Ct).ToListAsync(Ct);
+
         var contents = updates.SelectMany(update => update.Contents).ToList();
 
         // Assert
@@ -527,10 +537,10 @@ public class QuestionTests : QuestionTestBase
 
         using var watching = CancellationTokenSource.CreateLinkedTokenSource(Ct);
         var watched = Tracker.WatchAsync(Data.Agent.ConversationId, watching.Token).Take(6).ToListAsync(Ct);
-        var asked = await Asking.RunStreamingAsync(Data.Tool.Question, ct: Ct).ToListAsync(Ct);
+        var asked = await Asking.RunStreamingAsync(Data.Tool.Question, cancellationToken: Ct).ToListAsync(Ct);
 
         // Act
-        await Asking.AnswerStreamingAsync([asked[^1].Decisions[0].Reject()], ct: Ct).ToListAsync(Ct);
+        await Asking.AnswerStreamingAsync([asked[^1].Decisions[0].Reject()], cancellationToken: Ct).ToListAsync(Ct);
         var updates = await watched;
 
         // Assert
@@ -548,11 +558,11 @@ public class QuestionTests : QuestionTestBase
             .Reply(Text(Data.Tool.Answer));
 
         var front = Host<AskingFrontAgent>().WithConversationId(Data.Agent.ConversationId);
-        var asked = await front.RunAsync(Data.Tool.Question, ct: Ct);
+        var asked = await front.RunAsync(Data.Tool.Question, cancellationToken: Ct);
         var question = asked.Decisions.OfType<QuestionDecision>().Single();
 
         // Act
-        var response = await front.AnswerAsync([question.Answer(Label.Default)], ct: Ct);
+        var response = await front.AnswerAsync([question.Answer(Label.Default)], cancellationToken: Ct);
 
         // Assert
         ChatClient.Assert.Request(0).Tools.Should().NotContain("ask_user");

@@ -18,34 +18,41 @@ public sealed class InMemoryTypeshiftStore<TId> : ITypeshiftStore<TId>, IAgentSe
     private readonly ConcurrentDictionary<TId, StoredDocument> _decisions = [];
 
     /// <inheritdoc />
-    public Task<StoredDocument?> LoadAsync(TId id, string kind, CancellationToken ct) =>
+    public Task<StoredDocument?> LoadAsync(TId id, string kind, CancellationToken cancellationToken) =>
         Task.FromResult(_documents.GetValueOrDefault((id, kind)));
 
     /// <inheritdoc />
-    public Task<long> SaveAsync(TId id, string kind, string json, long loadedVersion, CancellationToken ct) =>
+    public Task<long> SaveAsync(
+        TId id,
+        string kind,
+        string json,
+        long loadedVersion,
+        CancellationToken cancellationToken) =>
         Save(_documents, (id, kind), json, loadedVersion, $"The {kind} of {id}");
 
     /// <inheritdoc />
-    public Task<StoredDocument?> LoadAsync(string kind, CancellationToken ct) =>
+    public Task<StoredDocument?> LoadAsync(string kind, CancellationToken cancellationToken) =>
         Task.FromResult(_agentDocuments.GetValueOrDefault(kind));
 
     /// <inheritdoc />
-    public Task<long> SaveAsync(string kind, string json, long loadedVersion, CancellationToken ct) =>
+    public Task<long> SaveAsync(string kind, string json, long loadedVersion, CancellationToken cancellationToken) =>
         Save(_agentDocuments, kind, json, loadedVersion, $"The agent's {kind}");
 
     /// <inheritdoc />
-    public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(TId conversation, CancellationToken ct) =>
+    public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(
+        TId conversation,
+        CancellationToken cancellationToken) =>
         Task.FromResult(Load(conversation, sinceSummary: false));
 
     // D71: from the last summary on, as its index was kept when it was appended, so the rest is not read
     /// <inheritdoc />
     public Task<IReadOnlyList<ConversationEntry>> LoadConversationSinceCompactionAsync(
         TId conversation,
-        CancellationToken ct) =>
+        CancellationToken cancellationToken) =>
         Task.FromResult(Load(conversation, sinceSummary: true));
 
     /// <inheritdoc />
-    public Task AppendConversationAsync(TId conversation, ConversationEntry entry, CancellationToken ct)
+    public Task AppendConversationAsync(TId conversation, ConversationEntry entry, CancellationToken cancellationToken)
     {
         var entries = _conversations.GetOrAdd(conversation, _ => new());
 
@@ -67,11 +74,15 @@ public sealed class InMemoryTypeshiftStore<TId> : ITypeshiftStore<TId>, IAgentSe
     }
 
     /// <inheritdoc />
-    public Task<StoredDocument?> LoadDecisionsAsync(TId conversation, CancellationToken ct) =>
+    public Task<StoredDocument?> LoadDecisionsAsync(TId conversation, CancellationToken cancellationToken) =>
         Task.FromResult(_decisions.GetValueOrDefault(conversation));
 
     /// <inheritdoc />
-    public Task<long> SaveDecisionsAsync(TId conversation, string json, long loadedVersion, CancellationToken ct) =>
+    public Task<long> SaveDecisionsAsync(
+        TId conversation,
+        string json,
+        long loadedVersion,
+        CancellationToken cancellationToken) =>
         Save(_decisions, conversation, json, loadedVersion, $"The decisions of {conversation}");
 
     private IReadOnlyList<ConversationEntry> Load(TId conversation, bool sinceSummary)

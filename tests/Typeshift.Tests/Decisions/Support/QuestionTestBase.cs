@@ -52,13 +52,13 @@ public abstract class QuestionTestBase : ApprovalTestBase
     {
         ChatClient.Reply(Ask(Data.Tool.CallId, questions is [] ? [Question()] : questions));
 
-        var response = await Asking.RunAsync(Data.Tool.Question, ct: Ct);
+        var response = await Asking.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         return response.Decisions.OfType<QuestionDecision>().Single();
     }
 
     protected Task<ChatResponse> AnswerQuestionsAsync(params DecisionAnswer[] answers) =>
-        Asking.AnswerAsync(answers, ct: Ct);
+        Asking.AnswerAsync(answers, cancellationToken: Ct);
 }
 
 // Asks the user, beside a tool behind approval, one that reads and one that does neither. The tests name the mode

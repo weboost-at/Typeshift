@@ -34,7 +34,7 @@ public class HostSelectionTests : AgentTestBase
         CallSite.Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Host<ProbeAgent>().WithProvider(Vendor.Other).RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<ProbeAgent>().WithProvider(Vendor.Other).RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         Models.Should().BeEmpty();
@@ -89,7 +89,7 @@ public class HostSelectionTests : AgentTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Host<CompactingAgent>().WithModel(CallSiteModel).RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<CompactingAgent>().WithModel(CallSiteModel).RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         Models.Should().Equal(new ProvidedModel(CompactingAgent.ModelProvider, CallSiteModel));
@@ -105,8 +105,8 @@ public class HostSelectionTests : AgentTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act
-        await copy.RunAsync(Data.Tool.Question, ct: Ct);
-        await host.RunAsync(Data.Tool.Question, ct: Ct);
+        await copy.RunAsync(Data.Tool.Question, cancellationToken: Ct);
+        await host.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         Models.Should().Equal(new ProvidedModel(ProbeAgent.ModelProvider, ProbeAgent.Model));
@@ -123,7 +123,7 @@ public class HostSelectionTests : AgentTestBase
             .WithProvider(Vendor.Other)
             .WithModel(CallSiteModel)
             .WithSettingsId(Data.Persistence.SettingsId)
-            .RunAsync(Data.Tool.Question, ct: Ct);
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         CallSite.Options[0]!.ModelId.Should().Be(CallSiteModel);
@@ -139,7 +139,7 @@ public class HostSelectionTests : AgentTestBase
         await Host<ProbeAgent>()
             .WithConversationId(Data.Agent.ConversationId)
             .WithProvider(Vendor.Other)
-            .RunAsync(Data.Tool.Question, ct: Ct);
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         (await EntriesAsync(Data.Agent.ConversationId))[1].Provider.Should().Be(nameof(Vendor.Other));
@@ -177,7 +177,9 @@ public class HostSelectionTests : AgentTestBase
     public async Task Given_A_Provider_At_The_Call_Site_Nothing_Serves_The_Run_Fails_Naming_It()
     {
         // Act
-        var run = () => Host<ProbeAgent>().WithProvider(Vendor.Probe).RunAsync(Data.Tool.Question, ct: Ct);
+        var run = () => Host<ProbeAgent>()
+            .WithProvider(Vendor.Probe)
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         await run.Should()

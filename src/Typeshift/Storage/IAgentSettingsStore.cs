@@ -14,9 +14,9 @@ public interface IAgentSettingsStore
     /// Loads the document of a kind.
     /// </summary>
     /// <param name="kind">The document's kind, an agent's <c>Settings.Kind</c>.</param>
-    /// <param name="ct">Cancels the load.</param>
+    /// <param name="cancellationToken">Cancels the load.</param>
     /// <returns>The document, or null when none is stored.</returns>
-    Task<StoredDocument?> LoadAsync(string kind, CancellationToken ct);
+    Task<StoredDocument?> LoadAsync(string kind, CancellationToken cancellationToken);
 
     /// <summary>
     /// Saves the document of a kind if the stored version is still <paramref name="loadedVersion"/>, 0 for none.
@@ -27,11 +27,11 @@ public interface IAgentSettingsStore
     /// The version <see cref="LoadAsync"/> returned to the caller, 0 when it found none: the old version, which the
     /// stored one must still equal, never the version to write.
     /// </param>
-    /// <param name="ct">Cancels the save.</param>
+    /// <param name="cancellationToken">Cancels the save.</param>
     /// <returns>
     /// The new version the store wrote, which the caller passes to its next save: never 0 and never a version this
     /// document had before.
     /// </returns>
     /// <exception cref="StoreConflictException">Another save came first.</exception>
-    Task<long> SaveAsync(string kind, string json, long loadedVersion, CancellationToken ct);
+    Task<long> SaveAsync(string kind, string json, long loadedVersion, CancellationToken cancellationToken);
 }

@@ -350,8 +350,9 @@ The table lists every entry by its ID, with the section that holds it and whethe
   the function. A generated member has no cheap forwarder, so the old name went without an `[Obsolete]` twin.
 - **The host's own runs:** every run, answer and resume, `ResolveOptionsAsync` and `CreateChatClientAsync` are also
   instance members of `AgentHost<TAgent>` without the `Settings` parameter,
-  `RunAsync(string input, CancellationToken ct = default)` for example. Code generic over the agent, a helper for every agent's endpoint or test, calls those: an extension block
-  on the closed `AgentHost<SupportAgent>` is not in reach of an `AgentHost<TAgent>`, which was CS1929. An instance
+  `RunAsync(string input, CancellationToken cancellationToken = default)` for example. Code generic over the agent, a
+  helper for every agent's endpoint or test, calls those: an extension block on the closed `AgentHost<SupportAgent>`
+  is not in reach of an `AgentHost<TAgent>`, which was CS1929. An instance
   member wins where it applies, and a call with settings, by position or by name, reaches the generated one, so
   `RunAsync(input, ct)` takes the token second, where it was CS1503 and every call wrote `ct: ct`.
 - **Namespace:** the blocks live in the global namespace, in a file of their own per agent, so every file has them in

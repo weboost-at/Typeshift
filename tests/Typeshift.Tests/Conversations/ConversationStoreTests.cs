@@ -83,11 +83,11 @@ public class ConversationStoreTests : AgentTestBase
             .Reply(Text(Data.Tool.Answer))
             .Reply(Text(Data.Tool.Answer));
 
-        await host.RunAsync(new string('x', Page), ct: Ct);
-        await host.RunAsync(Data.Agent.FollowUp, settings: settings, ct: Ct);
+        await host.RunAsync(new string('x', Page), cancellationToken: Ct);
+        await host.RunAsync(Data.Agent.FollowUp, settings: settings, cancellationToken: Ct);
 
         // Act
-        await host.RunAsync(Data.Agent.Steering, ct: Ct);
+        await host.RunAsync(Data.Agent.Steering, cancellationToken: Ct);
 
         // Assert
         provider.GetRequiredService<CountingLoadStore>().WholeLoads.Should().Be(0);
@@ -111,11 +111,11 @@ public class ConversationStoreTests : AgentTestBase
         ChatClient.Reply(answering, Text(Data.Tool.Answer));
 
         store.HoldNextLoad();
-        var first = host.RunAsync(Data.Tool.Question, ct: Ct);
+        var first = host.RunAsync(Data.Tool.Question, cancellationToken: Ct);
         await store.Loading.Task.WaitAsync(Ct);
 
         // Act
-        var second = host.RunAsync(Data.Agent.FollowUp, ct: Ct);
+        var second = host.RunAsync(Data.Agent.FollowUp, cancellationToken: Ct);
         store.Gate.SetResult();
 
         // Assert
@@ -143,14 +143,14 @@ public class ConversationStoreTests : AgentTestBase
             .Reply(Text(Data.Tool.Answer))
             .Reply(Text(Data.Agent.Reason));
 
-        await host.RunAsync(Data.Tool.Question, ct: Ct);
+        await host.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         store.HoldNextLoad();
-        var resume = host.ResumeAsync(ct: Ct);
+        var resume = host.ResumeAsync(cancellationToken: Ct);
         await store.Loading.Task.WaitAsync(Ct);
 
         // Act
-        var second = host.RunAsync(Data.Agent.FollowUp, ct: Ct);
+        var second = host.RunAsync(Data.Agent.FollowUp, cancellationToken: Ct);
         store.Gate.SetResult();
 
         // Assert
@@ -172,10 +172,10 @@ public class ConversationStoreTests : AgentTestBase
             .WithConversationId(Data.Agent.ConversationId);
 
         ChatClient.Reply(Text(Data.Tool.Answer));
-        var failed = await Record.ExceptionAsync(() => host.RunAsync(Data.Tool.Question, ct: Ct));
+        var failed = await Record.ExceptionAsync(() => host.RunAsync(Data.Tool.Question, cancellationToken: Ct));
 
         // Act
-        var response = await host.RunAsync(Data.Agent.FollowUp, ct: Ct);
+        var response = await host.RunAsync(Data.Agent.FollowUp, cancellationToken: Ct);
 
         // Assert
         failed.Should().BeOfType<IOException>();
@@ -199,11 +199,11 @@ public class ConversationStoreTests : AgentTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         store.HoldNextLoad();
-        var first = host.RunAsync(Data.Tool.Question, ct: Ct);
+        var first = host.RunAsync(Data.Tool.Question, cancellationToken: Ct);
         await store.Loading.Task.WaitAsync(Ct);
 
         using var cancel = CancellationTokenSource.CreateLinkedTokenSource(Ct);
-        var second = host.RunAsync(Data.Agent.FollowUp, ct: cancel.Token);
+        var second = host.RunAsync(Data.Agent.FollowUp, cancellationToken: cancel.Token);
 
         // Act
         await cancel.CancelAsync();
@@ -233,8 +233,8 @@ public class ConversationStoreTests : AgentTestBase
         // Act
         var failed = await Record.ExceptionAsync(async () =>
         {
-            if (streaming) await chat.RunStreamingAsync(Data.Tool.Question, ct: Ct).ToListAsync(Ct);
-            else await chat.RunAsync(Data.Tool.Question, ct: Ct);
+            if (streaming) await chat.RunStreamingAsync(Data.Tool.Question, cancellationToken: Ct).ToListAsync(Ct);
+            else await chat.RunAsync(Data.Tool.Question, cancellationToken: Ct);
         });
 
         // Assert
@@ -259,8 +259,8 @@ public class ConversationStoreTests : AgentTestBase
 
         // Act
         var response = streaming
-            ? (await chat.RunStreamingAsync(Data.Tool.Question, ct: Ct).ToListAsync(Ct)).ToChatResponse()
-            : await chat.RunAsync(Data.Tool.Question, ct: Ct);
+            ? (await chat.RunStreamingAsync(Data.Tool.Question, cancellationToken: Ct).ToListAsync(Ct)).ToChatResponse()
+            : await chat.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         response.Text.Should().Be(Data.Tool.Answer);
@@ -276,7 +276,7 @@ public class ConversationStoreTests : AgentTestBase
         // Act
         var response = await Host<ProbeAgent>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunAsync(Data.Tool.Question, ct: Ct);
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         response.ConversationIncomplete.Should().BeFalse();
@@ -306,7 +306,7 @@ public class ConversationStoreTests : AgentTestBase
         // Act
         var response = await scope.ServiceProvider.GetRequiredService<AgentHost<MultiAgent.Support.FrontAgent>>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunAsync(Data.Tool.Question, ct: Ct);
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         response.ConversationIncomplete.Should().BeTrue();
@@ -328,7 +328,7 @@ public class ConversationStoreTests : AgentTestBase
         // Act
         await Record.ExceptionAsync(() => scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunAsync(Data.Tool.Question, ct: Ct));
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct));
 
         // Assert
         log.Errors.Should().Contain(error => error.Exception is IOException);
@@ -341,7 +341,9 @@ public class ConversationStoreTests : AgentTestBase
         ChatClient.Reply(Answer(new TextContent(Data.Tool.Answer), new VendorContent()));
 
         // Act
-        await Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<ProbeAgent>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
         var entries = await EntriesAsync(Data.Agent.ConversationId);
 
         // Assert
@@ -355,7 +357,9 @@ public class ConversationStoreTests : AgentTestBase
         ChatClient.Reply(Answer(new VendorContent()));
 
         // Act
-        await Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<ProbeAgent>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
         var entries = await EntriesAsync(Data.Agent.ConversationId);
 
         // Assert
@@ -384,7 +388,7 @@ public class ConversationStoreTests : AgentTestBase
         // Act
         await scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunAsync(Data.Tool.Question, ct: Ct);
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         logs.Warnings.Should().ContainSingle(warning => warning.Contains(typeof(VendorContent).FullName!));
@@ -402,7 +406,7 @@ public class ConversationStoreTests : AgentTestBase
         // Act
         await scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunAsync(Data.Agent.FollowUp, ct: Ct);
+            .RunAsync(Data.Agent.FollowUp, cancellationToken: Ct);
 
         // Assert
         ChatClient.Requests[0].Select(message => message.Text)
@@ -423,7 +427,7 @@ public class ConversationStoreTests : AgentTestBase
         // Act
         await scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunAsync(Data.Agent.FollowUp, ct: Ct);
+            .RunAsync(Data.Agent.FollowUp, cancellationToken: Ct);
 
         // Assert
         logs.Warnings.Should().ContainSingle(warning => warning.Contains("holds 2 contents"));
@@ -449,10 +453,10 @@ public class ConversationStoreTests : AgentTestBase
             .Reply(Text(Data.Tool.Answer))
             .Reply(Text(Data.Agent.Reason));
 
-        await Record.ExceptionAsync(() => host.RunAsync(Data.Tool.Question, ct: Ct));
+        await Record.ExceptionAsync(() => host.RunAsync(Data.Tool.Question, cancellationToken: Ct));
 
         // Act
-        await host.RunAsync(Data.Agent.FollowUp, ct: Ct);
+        await host.RunAsync(Data.Agent.FollowUp, cancellationToken: Ct);
         var sent = ChatClient.Requests[2].SelectMany(message => message.Contents).ToList();
 
         // Assert
@@ -471,10 +475,10 @@ public class ConversationStoreTests : AgentTestBase
             .Reply(Text(Data.Tool.Answer))
             .Reply(Text(Data.Agent.Reason));
 
-        await host.RunAsync(Data.Tool.Question, ct: Ct);
+        await host.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Act
-        await host.RunAsync(Data.Agent.FollowUp, ct: Ct);
+        await host.RunAsync(Data.Agent.FollowUp, cancellationToken: Ct);
         var sent = ChatClient.Requests[2].SelectMany(message => message.Contents).OfType<FunctionResultContent>();
 
         // Assert
@@ -492,9 +496,9 @@ public class ConversationStoreTests : AgentTestBase
         ChatClient.Reply(Call(Data.Tool.CallId, "probe", ("query", Data.Tool.Query)));
         other.Reply(Text(Data.Tool.Answer));
 
-        var held = Instance(store, ChatClient, hold).RunAsync(Data.Tool.Question, ct: Ct);
+        var held = Instance(store, ChatClient, hold).RunAsync(Data.Tool.Question, cancellationToken: Ct);
         await hold.Running.Task.WaitAsync(Ct);
-        await Instance(store, other).RunAsync(Data.Agent.FollowUp, ct: Ct);
+        await Instance(store, other).RunAsync(Data.Agent.FollowUp, cancellationToken: Ct);
 
         // Act
         hold.Release.SetResult();
@@ -514,9 +518,9 @@ public class ConversationStoreTests : AgentTestBase
         ChatClient.Reply(Call(Data.Tool.CallId, "probe", ("query", Data.Tool.Query)));
         other.Reply(Text(Data.Tool.Answer));
 
-        var held = Instance(store, ChatClient, hold).RunAsync(Data.Tool.Question, ct: Ct);
+        var held = Instance(store, ChatClient, hold).RunAsync(Data.Tool.Question, cancellationToken: Ct);
         await hold.Running.Task.WaitAsync(Ct);
-        await Instance(store, other).RunAsync(Data.Agent.FollowUp, ct: Ct);
+        await Instance(store, other).RunAsync(Data.Agent.FollowUp, cancellationToken: Ct);
 
         // Act
         hold.Release.SetResult();
@@ -542,9 +546,9 @@ public class ConversationStoreTests : AgentTestBase
 
         other.Reply(Text(Data.Tool.Answer));
 
-        var held = Instance(store, ChatClient).RunAsync(Data.Tool.Question, ct: Ct);
+        var held = Instance(store, ChatClient).RunAsync(Data.Tool.Question, cancellationToken: Ct);
         await store.Ending.Task.WaitAsync(Ct);
-        await Instance(store, other).RunAsync(Data.Agent.FollowUp, ct: Ct);
+        await Instance(store, other).RunAsync(Data.Agent.FollowUp, cancellationToken: Ct);
 
         // Act
         store.Gate.SetResult();
@@ -565,9 +569,9 @@ public class ConversationStoreTests : AgentTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
         other.Reply(Text(Data.Agent.Reason));
 
-        var ending = Instance(store, ChatClient).RunAsync(Data.Tool.Question, ct: Ct);
+        var ending = Instance(store, ChatClient).RunAsync(Data.Tool.Question, cancellationToken: Ct);
         await store.Ending.Task.WaitAsync(Ct);
-        await Instance(store, other).RunAsync(Data.Agent.FollowUp, ct: Ct);
+        await Instance(store, other).RunAsync(Data.Agent.FollowUp, cancellationToken: Ct);
 
         // Act
         store.Gate.SetResult();
@@ -598,7 +602,9 @@ public class ConversationStoreTests : AgentTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<ProbeAgent>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         (await EntriesAsync(Data.Agent.ConversationId))[3].Sequence.Should().Be(4);
@@ -616,7 +622,7 @@ public class ConversationStoreTests : AgentTestBase
         // Act
         await scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunAsync(Data.Agent.FollowUp, ct: Ct);
+            .RunAsync(Data.Agent.FollowUp, cancellationToken: Ct);
 
         // Assert
         (await store.LoadConversationAsync(Data.Agent.ConversationId, Ct))[3].Sequence.Should().Be(4);
@@ -651,7 +657,7 @@ public class ConversationStoreTests : AgentTestBase
         // Act
         await scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunAsync(Data.Agent.FollowUp, ct: Ct);
+            .RunAsync(Data.Agent.FollowUp, cancellationToken: Ct);
 
         // Assert
         (await store.LoadConversationAsync(Data.Agent.ConversationId, Ct))[4].Sequence.Should().Be(5);
@@ -675,7 +681,7 @@ public class ConversationStoreTests : AgentTestBase
         {
             await first.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
                 .WithConversationId(Data.Agent.ConversationId)
-                .RunAsync(Data.Tool.Question, ct: Ct);
+                .RunAsync(Data.Tool.Question, cancellationToken: Ct);
         }
 
         await using var second = provider.CreateAsyncScope();
@@ -683,7 +689,7 @@ public class ConversationStoreTests : AgentTestBase
         // Act
         await second.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunAsync(Data.Agent.FollowUp, ct: Ct);
+            .RunAsync(Data.Agent.FollowUp, cancellationToken: Ct);
 
         // Assert
         ChatClient.Requests[1].Select(message => message.Text).Should().Contain(Data.Tool.Answer);
@@ -708,8 +714,8 @@ public class ConversationStoreTests : AgentTestBase
             .Reply(Text(Data.Agent.Reason));
 
         // Act
-        await host.RunAsync(Data.Tool.Question, ct: Ct);
-        await host.RunAsync(Data.Agent.FollowUp, ct: Ct);
+        await host.RunAsync(Data.Tool.Question, cancellationToken: Ct);
+        await host.RunAsync(Data.Agent.FollowUp, cancellationToken: Ct);
 
         // Assert
         logs.Warnings.Should().ContainSingle();
@@ -735,10 +741,10 @@ public class ConversationStoreTests : AgentTestBase
             .Reply(Call(Data.Tool.CallId, "close_ticket", ("number", Data.Agent.Ticket.Default)))
             .Reply(Text(Data.Tool.Answer));
 
-        var asked = await host.RunAsync(Data.Tool.Question, ct: Ct);
+        var asked = await host.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Act
-        await host.AnswerAsync([DecisionAnswer.Approve(asked.Decisions[0].Id)], ct: Ct);
+        await host.AnswerAsync([DecisionAnswer.Approve(asked.Decisions[0].Id)], cancellationToken: Ct);
 
         // Assert
         calls.Should().Equal($"close_ticket {Data.Agent.Ticket.Default}");
@@ -763,7 +769,7 @@ public class ConversationStoreTests : AgentTestBase
         // Act
         var run = () => scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunAsync(Data.Tool.Question, ct: Ct);
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         await run.Should().ThrowAsync<InvalidOperationException>().WithMessage(
@@ -782,7 +788,7 @@ public class ConversationStoreTests : AgentTestBase
         // Act
         var run = () => scope.ServiceProvider.GetRequiredService<AgentHost<GuardedAgent>>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunAsync(Data.Tool.Question, ct: Ct);
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         await run.Should().ThrowAsync<InvalidOperationException>().WithMessage("*IDecisionStore*");
@@ -798,7 +804,7 @@ public class ConversationStoreTests : AgentTestBase
         // Act
         var run = () => scope.ServiceProvider.GetRequiredService<AgentHost<GuardedAgent>>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunAsync(Data.Tool.Question, settings: new() { Mode = AgentMode.Plan }, ct: Ct);
+            .RunAsync(Data.Tool.Question, settings: new() { Mode = AgentMode.Plan }, cancellationToken: Ct);
 
         // Assert
         await run.Should().ThrowAsync<InvalidOperationException>().WithMessage("*IDecisionStore*");
@@ -817,9 +823,9 @@ public class ConversationStoreTests : AgentTestBase
 
         // Act
         var refused = await Record.ExceptionAsync(() =>
-            host.RunAsync(Data.Tool.Question, settings: new() { Mode = AgentMode.Plan }, ct: Ct));
+            host.RunAsync(Data.Tool.Question, settings: new() { Mode = AgentMode.Plan }, cancellationToken: Ct));
 
-        var response = await host.RunAsync(Data.Tool.Question, ct: Ct);
+        var response = await host.RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         refused.Should().BeOfType<InvalidOperationException>();
@@ -840,7 +846,7 @@ public class ConversationStoreTests : AgentTestBase
         // Act
         var run = () => scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunAsync(Data.Tool.Question, ct: Ct);
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
         await run.Should().ThrowAsync<InvalidOperationException>().WithMessage("*IConversationStore*");
@@ -876,7 +882,7 @@ public class ConversationStoreTests : AgentTestBase
 
         // Act
         await host.WithConversationId(Data.Agent.ConversationId)
-            .RunAsync(Data.Tool.Question, ct: Ct);
+            .RunAsync(Data.Tool.Question, cancellationToken: Ct);
 
         var entries = await conversations.LoadConversationAsync(Data.Agent.ConversationId, Ct);
 
@@ -973,7 +979,7 @@ public class ConversationStoreTests : AgentTestBase
         // Act
         await scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunStreamingAsync(Data.Tool.Question, ct: Ct)
+            .RunStreamingAsync(Data.Tool.Question, cancellationToken: Ct)
             .ToListAsync(Ct);
 
         // Assert
@@ -1012,7 +1018,7 @@ public class ConversationStoreTests : AgentTestBase
 
         var run = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunStreamingAsync(Data.Tool.Question, ct: Ct)
+            .RunStreamingAsync(Data.Tool.Question, cancellationToken: Ct)
             .ToListAsync(Ct);
 
         await first;

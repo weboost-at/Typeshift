@@ -1704,15 +1704,18 @@ public static class DiagnosticSources
         {
             public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(
                 int conversation,
-                CancellationToken ct) =>
+                CancellationToken cancellationToken) =>
                 throw new NotSupportedException();
 
             public Task<IReadOnlyList<ConversationEntry>> LoadConversationSinceCompactionAsync(
                 int conversation,
-                CancellationToken ct) =>
+                CancellationToken cancellationToken) =>
                 throw new NotSupportedException();
 
-            public Task AppendConversationAsync(int conversation, ConversationEntry entry, CancellationToken ct) =>
+            public Task AppendConversationAsync(
+                int conversation,
+                ConversationEntry entry,
+                CancellationToken cancellationToken) =>
                 throw new NotSupportedException();
         }
 
@@ -1786,15 +1789,18 @@ public static class DiagnosticSources
         {
             public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(
                 int conversation,
-                CancellationToken ct) =>
+                CancellationToken cancellationToken) =>
                 throw new NotSupportedException();
 
             public Task<IReadOnlyList<ConversationEntry>> LoadConversationSinceCompactionAsync(
                 int conversation,
-                CancellationToken ct) =>
+                CancellationToken cancellationToken) =>
                 throw new NotSupportedException();
 
-            public Task AppendConversationAsync(int conversation, ConversationEntry entry, CancellationToken ct) =>
+            public Task AppendConversationAsync(
+                int conversation,
+                ConversationEntry entry,
+                CancellationToken cancellationToken) =>
                 throw new NotSupportedException();
         }
 
@@ -2737,15 +2743,18 @@ public static class DiagnosticSources
         {
             public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(
                 int conversation,
-                CancellationToken ct) =>
+                CancellationToken cancellationToken) =>
                 throw new NotSupportedException();
 
             public Task<IReadOnlyList<ConversationEntry>> LoadConversationSinceCompactionAsync(
                 int conversation,
-                CancellationToken ct) =>
+                CancellationToken cancellationToken) =>
                 throw new NotSupportedException();
 
-            public Task AppendConversationAsync(int conversation, ConversationEntry entry, CancellationToken ct) =>
+            public Task AppendConversationAsync(
+                int conversation,
+                ConversationEntry entry,
+                CancellationToken cancellationToken) =>
                 throw new NotSupportedException();
         }
 
@@ -2766,14 +2775,14 @@ public static class DiagnosticSources
 
         internal sealed class WaitingStore : IDecisionStore<int>
         {
-            public Task<StoredDocument?> LoadDecisionsAsync(int conversation, CancellationToken ct) =>
+            public Task<StoredDocument?> LoadDecisionsAsync(int conversation, CancellationToken cancellationToken) =>
                 throw new NotSupportedException();
 
             public Task<long> SaveDecisionsAsync(
                 int conversation,
                 string json,
                 long loadedVersion,
-                CancellationToken ct) =>
+                CancellationToken cancellationToken) =>
                 throw new NotSupportedException();
         }
 
@@ -2794,10 +2803,14 @@ public static class DiagnosticSources
 
         internal sealed class AgentStore : IAgentSettingsStore
         {
-            public Task<StoredDocument?> LoadAsync(string kind, CancellationToken ct) =>
+            public Task<StoredDocument?> LoadAsync(string kind, CancellationToken cancellationToken) =>
                 throw new NotSupportedException();
 
-            public Task<long> SaveAsync(string kind, string json, long loadedVersion, CancellationToken ct) =>
+            public Task<long> SaveAsync(
+                string kind,
+                string json,
+                long loadedVersion,
+                CancellationToken cancellationToken) =>
                 throw new NotSupportedException();
         }
 
@@ -2818,16 +2831,25 @@ public static class DiagnosticSources
 
         internal sealed class MixedStore : IAgentSettingsStore, ISettingsStore<int>
         {
-            public Task<StoredDocument?> LoadAsync(string kind, CancellationToken ct) =>
+            public Task<StoredDocument?> LoadAsync(string kind, CancellationToken cancellationToken) =>
                 throw new NotSupportedException();
 
-            public Task<long> SaveAsync(string kind, string json, long loadedVersion, CancellationToken ct) =>
+            public Task<long> SaveAsync(
+                string kind,
+                string json,
+                long loadedVersion,
+                CancellationToken cancellationToken) =>
                 throw new NotSupportedException();
 
-            public Task<StoredDocument?> LoadAsync(int id, string kind, CancellationToken ct) =>
+            public Task<StoredDocument?> LoadAsync(int id, string kind, CancellationToken cancellationToken) =>
                 throw new NotSupportedException();
 
-            public Task<long> SaveAsync(int id, string kind, string json, long loadedVersion, CancellationToken ct) =>
+            public Task<long> SaveAsync(
+                int id,
+                string kind,
+                string json,
+                long loadedVersion,
+                CancellationToken cancellationToken) =>
                 throw new NotSupportedException();
         }
 
@@ -2860,7 +2882,7 @@ public static class DiagnosticSources
 
         internal sealed class SettingsStore : ISettingsStore<Guid>
         {
-            public Task<StoredDocument?> LoadAsync(Guid id, string kind, CancellationToken ct) =>
+            public Task<StoredDocument?> LoadAsync(Guid id, string kind, CancellationToken cancellationToken) =>
                 throw new NotSupportedException();
 
             public Task<long> SaveAsync(
@@ -2868,7 +2890,7 @@ public static class DiagnosticSources
                 string kind,
                 string json,
                 long loadedVersion,
-                CancellationToken ct) =>
+                CancellationToken cancellationToken) =>
                 throw new NotSupportedException();
         }
 

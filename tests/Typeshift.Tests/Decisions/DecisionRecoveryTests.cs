@@ -103,7 +103,7 @@ public class DecisionRecoveryTests : DecisionTestBase
         var asked = ((ConversationStoreException)failed!).Response;
 
         // Act
-        var resumed = await Chat.ResumeAsync(ct: Ct);
+        var resumed = await Chat.ResumeAsync(cancellationToken: Ct);
         var entries = await EntriesAsync(Data.Agent.ConversationId);
 
         // Assert
@@ -120,7 +120,7 @@ public class DecisionRecoveryTests : DecisionTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Held.RunAsync(Data.Agent.FollowUp, ct: Ct);
+        await Held.RunAsync(Data.Agent.FollowUp, cancellationToken: Ct);
 
         // Assert
         ToolCalls.Should().Equal($"send_refund {Data.Agent.Ticket.Default}");
@@ -135,7 +135,7 @@ public class DecisionRecoveryTests : DecisionTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Held.ResumeAsync(ct: Ct);
+        await Held.ResumeAsync(cancellationToken: Ct);
 
         // Assert
         ToolCalls.Should().Equal($"send_refund {Data.Agent.Ticket.Default}");
@@ -150,7 +150,7 @@ public class DecisionRecoveryTests : DecisionTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Held.RunAsync(Data.Agent.FollowUp, ct: Ct);
+        await Held.RunAsync(Data.Agent.FollowUp, cancellationToken: Ct);
 
         // Assert
         ToolCalls.Should().Equal($"send_refund {Data.Agent.Ticket.Default}");
@@ -165,7 +165,7 @@ public class DecisionRecoveryTests : DecisionTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act
-        await OtherProcess<HeldAgent>().ResumeAsync(ct: Ct);
+        await OtherProcess<HeldAgent>().ResumeAsync(cancellationToken: Ct);
 
         // Assert
         ToolCalls.Should().Equal($"send_refund {Data.Agent.Ticket.Default}");
@@ -183,7 +183,7 @@ public class DecisionRecoveryTests : DecisionTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Held.RunAsync(Data.Agent.FollowUp, ct: Ct);
+        await Held.RunAsync(Data.Agent.FollowUp, cancellationToken: Ct);
 
         // Assert
         ToolCalls.Should().Equal(
@@ -282,13 +282,13 @@ public class DecisionRecoveryTests : DecisionTestBase
     {
         ChatClient.Reply(calls);
 
-        var asked = await Held.RunAsync(Data.Tool.Question, ct: Ct);
+        var asked = await Held.RunAsync(Data.Tool.Question, cancellationToken: Ct);
         var answers = asked.Decisions.Select(decision => DecisionAnswer.Approve(decision.Id)).ToList();
         using var stopping = CancellationTokenSource.CreateLinkedTokenSource(Ct);
 
         Task answering = streaming
-            ? Held.AnswerStreamingAsync(answers, ct: stopping.Token).ToListAsync(stopping.Token).AsTask()
-            : Held.AnswerAsync(answers, ct: stopping.Token);
+            ? Held.AnswerStreamingAsync(answers, cancellationToken: stopping.Token).ToListAsync(stopping.Token).AsTask()
+            : Held.AnswerAsync(answers, cancellationToken: stopping.Token);
 
         await Hold.Running.Task.WaitAsync(Ct);
         await stopping.CancelAsync();

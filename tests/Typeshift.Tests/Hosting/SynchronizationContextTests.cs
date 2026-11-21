@@ -32,7 +32,7 @@ public class SynchronizationContextTests : HostTestBase
             .Reply(Text(Data.Tool.Answer), Text(Data.Agent.Reason));
 
         // Act
-        var updates = await _context.ReadAsync(() => host.RunStreamingAsync(Data.Tool.Question, ct: Ct));
+        var updates = await _context.ReadAsync(() => host.RunStreamingAsync(Data.Tool.Question, cancellationToken: Ct));
 
         // Assert
         updates.Should().Be(4);
@@ -55,7 +55,7 @@ public class SynchronizationContextTests : HostTestBase
         await _context.ReadAsync(() =>
         {
             Log.Flowing.Value = Data.Agent.Reason;
-            return host.RunStreamingAsync(Data.Tool.Question, ct: Ct);
+            return host.RunStreamingAsync(Data.Tool.Question, cancellationToken: Ct);
         });
 
         // Assert
@@ -74,7 +74,9 @@ public class SynchronizationContextTests : HostTestBase
             .Reply(Text(Data.Tool.Answer), Text(Data.Agent.Reason));
 
         // Act
-        await _context.StayAndReadAsync(() => host.RunStreamingAsync(Data.Tool.Question, ct: Ct), int.MaxValue);
+        await _context.StayAndReadAsync(
+            () => host.RunStreamingAsync(Data.Tool.Question, cancellationToken: Ct),
+            int.MaxValue);
 
         // Assert
         Log.OnContext.Should().BeEmpty();
@@ -91,7 +93,7 @@ public class SynchronizationContextTests : HostTestBase
         ChatClient.Reply(Text(Data.Tool.Answer), Text(Data.Agent.Reason));
 
         // Act
-        await _context.StayAndReadAsync(() => host.RunStreamingAsync(Data.Tool.Question, ct: Ct), 1);
+        await _context.StayAndReadAsync(() => host.RunStreamingAsync(Data.Tool.Question, cancellationToken: Ct), 1);
 
         // Assert
         Log.Calls.Should().EndWith(ContextLog.Append);
@@ -109,7 +111,7 @@ public class SynchronizationContextTests : HostTestBase
             .Reply(Text(Data.Tool.Answer));
 
         // Act
-        await _context.RunAsync(() => host.RunAsync(Data.Tool.Question, ct: Ct));
+        await _context.RunAsync(() => host.RunAsync(Data.Tool.Question, cancellationToken: Ct));
 
         // Assert
         _context.Posts.Should().Be(0);
@@ -127,11 +129,11 @@ public class SynchronizationContextTests : HostTestBase
             .Reply(Call(Data.Tool.CallId, "close_ticket", ("number", Data.Agent.Ticket.Default)))
             .Reply(Text(Data.Tool.Answer));
 
-        var asked = await host.RunAsync(Data.Tool.Question, ct: Ct);
+        var asked = await host.RunAsync(Data.Tool.Question, cancellationToken: Ct);
         var approved = DecisionAnswer.Approve(asked.Decisions[0].Id);
 
         // Act
-        await _context.RunAsync(() => host.AnswerAsync([approved], ct: Ct));
+        await _context.RunAsync(() => host.AnswerAsync([approved], cancellationToken: Ct));
 
         // Assert
         ToolCalls.Should().Equal($"close_ticket {Data.Agent.Ticket.Default}");

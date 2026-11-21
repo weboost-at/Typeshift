@@ -9,10 +9,10 @@ public sealed class HeldToolMiddleware(ToolHold hold) : IToolMiddleware
     public async ValueTask<object?> InvokeAsync(
         FunctionInvocationContext call,
         Func<ValueTask<object?>> next,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
     {
         hold.Running.TrySetResult();
-        await hold.Release.Task.WaitAsync(ct);
+        await hold.Release.Task.WaitAsync(cancellationToken);
 
         return await next();
     }
