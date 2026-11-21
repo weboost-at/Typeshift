@@ -86,6 +86,8 @@ services.AddTypeshift()
 - An agent that names no provider then runs on `openai`, and one with `WithProvider("anthropic")` on `anthropic`.
 - The key must be one a client is registered under. A key nothing serves fails the runs that take it, and the message
   says that the key is the default provider's and lists the keys that are registered.
+- Your app has one default provider. The same key again changes nothing, and a second call with another key throws
+  an `InvalidOperationException` that names both, rather than leave the order of two calls to decide.
 - An app whose customers each bring their own provider registers no default provider, so a run that forgets to name
   one fails rather than spend your app's own account.
 
@@ -216,6 +218,8 @@ services.AddTypeshift()
 - A connector that throws fails the run with its own exception, before the run stores anything. A run handed a
   document while no connector is registered throws an `InvalidOperationException` that names
   `WithProviderConnector<T>()`.
+- Your app has one connector, which switches on the document's `Kind`. Registering a second class throws an
+  `InvalidOperationException` that names both.
 - An agent's code and `WithDefaultProvider` take keys only, and refuse a document with an `ArgumentException`: a
   document belongs to the run your code hands it to.
 - Register no default provider when every run should be on a customer's account. A run that forgets `WithProvider`

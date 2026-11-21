@@ -86,8 +86,8 @@ references. Your app's own toolsets and agents need a call to `AddTypeshift()` i
 | `WithStore(store)` | A store you created yourself, as each store interface its declared type implements | Singleton, your app's |
 | `WithStore(provider => ...)` | A store the container builds with your factory, as each store interface the factory's return type implements | Singleton |
 | `WithFileStore(configure)` | The file store, as `IAgentSettingsStore` | Singleton |
-| `WithProviderConnector<TConnector>()` | The `IChatProviderConnector` that turns the provider documents runs are handed into clients; the last call wins ([Providers your customers bring](./models.md#providers-your-customers-bring)) | Scoped |
-| `WithDefaultProvider(key)` | Which keyed client serves the runs that name no provider, in place of the client registered for every agent ([The default provider](./models.md#the-default-provider)) | Your app's choice, once |
+| `WithProviderConnector<TConnector>()` | The `IChatProviderConnector` that turns the provider documents runs are handed into clients; a second call with another class throws ([Providers your customers bring](./models.md#providers-your-customers-bring)) | Scoped |
+| `WithDefaultProvider(key)` | Which keyed client serves the runs that name no provider, in place of the client registered for every agent; a second call with another key throws ([The default provider](./models.md#the-default-provider)) | Your app's choice, once |
 | `WithOptions(options => ...)` | `TypeshiftOptions`, such as `PersistAllConversations`, `StoreFailure` and the limits of live updates, `LiveUpdates` | Singleton |
 | `WithConversationTracker<TId>()` | The `ConversationTracker<TId>` of one id type | Singleton |
 | `WithApprovalRule<TRule>()` | One more `IToolApprovalRule`, which decides calls before your app is asked | Scoped |

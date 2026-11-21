@@ -211,23 +211,40 @@ public sealed class TypeshiftBuilder
                 .Where(StoreAccess.IsStoreInterface)
         ];
 
-    // D88: the app's one class that turns a document into a client, resolved from the run's services
+    // D88: the app's one class that turns a document into a client, resolved from the run's services. D63: a second
+    // one throws, as a second store for one interface does (D38), since the order of two calls would pick it
     /// <summary>
     /// Registers the class that turns a <see cref="ChatProvider"/> a run is handed into the chat client that serves
     /// it, scoped: Typeshift resolves it from the services of the run that hands in a document it holds no client for.
-    /// The last call wins.
+    /// An app has one connector, which may switch on the document's <c>Kind</c>: the same class again changes nothing,
+    /// and another throws.
     /// More in the guide:
     /// <see href="https://weboost-at.github.io/Typeshift/guide/models#providers-your-customers-bring">Providers your
     /// customers bring</see>.
     /// </summary>
     /// <typeparam name="TConnector">The connector.</typeparam>
     /// <returns>The same chain.</returns>
+    /// <exception cref="InvalidOperationException">Another connector is registered.</exception>
     public TypeshiftBuilder WithProviderConnector<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TConnector>()
         where TConnector : class, IChatProviderConnector
     {
-        _services.Replace(ServiceDescriptor.Scoped<IChatProviderConnector, TConnector>());
-        return this;
+        var registered = _services.LastOrDefault(service => service.ServiceType == typeof(IChatProviderConnector));
+
+        if (registered is null)
+        {
+            _services.AddScoped<IChatProviderConnector, TConnector>();
+            return this;
+        }
+
+        if (registered.ImplementationType == typeof(TConnector)) return this;
+
+        var held = registered.ImplementationType ?? registered.ImplementationInstance?.GetType();
+
+        throw new InvalidOperationException(
+            $"WithProviderConnector<{TypeNames.Of<TConnector>()}>() names a second provider connector, and "
+            + $"{(held is null ? "a factory" : TypeNames.Of(held))} is registered as the IChatProviderConnector "
+            + "already: an app has one connector, which may switch on the document's Kind. Register one of them.");
     }
 
     /// <summary>
@@ -245,12 +262,13 @@ public sealed class TypeshiftBuilder
         return this;
     }
 
-    // D63: the default provider is a choice of the app's, made once, so a typo of a provider's key never falls back
+    // D63: the default provider is a choice of the app's, made once, so a typo of a provider's key never falls back,
+    // and a second call that names another key throws rather than leave the order of two calls to pick it
     /// <summary>
     /// Names the provider that serves every run that names none, by its key: the client registered under the key, as
     /// <c>services.AddKeyedChatClient(key, client)</c> registers one, in place of the client registered for every
     /// agent. A run that names a provider is never served by it, and a key nothing serves fails the runs that take it,
-    /// naming the keys clients are registered under. The last call wins.
+    /// naming the keys clients are registered under. The same key again changes nothing, and another throws.
     /// More in the guide:
     /// <see href="https://weboost-at.github.io/Typeshift/guide/models#the-default-provider">The default provider</see>.
     /// </summary>
@@ -262,6 +280,7 @@ public sealed class TypeshiftBuilder
     /// <paramref name="provider"/> is text that is white space, or a <see cref="ChatProvider"/>, which a run is handed
     /// at its call site.
     /// </exception>
+    /// <exception cref="InvalidOperationException">An earlier call named another default provider.</exception>
     public TypeshiftBuilder WithDefaultProvider<TProviderId>(TProviderId provider) where TProviderId : notnull
     {
         ArgumentNullException.ThrowIfNull(provider);
@@ -276,7 +295,16 @@ public sealed class TypeshiftBuilder
                 nameof(provider));
         }
 
-        Options.DefaultProvider = new ProviderId<TProviderId>(provider);
+        var named = new ProviderId<TProviderId>(provider);
+
+        if (Options.DefaultProvider is { } held && !Equals(held, named))
+        {
+            throw new InvalidOperationException(
+                $"WithDefaultProvider('{named}') names a second default provider, and '{held}' is the default provider "
+                + "already: the default serves every run that names no provider, so name it once.");
+        }
+
+        Options.DefaultProvider = named;
         return this;
     }
 

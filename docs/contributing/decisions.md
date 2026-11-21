@@ -783,7 +783,8 @@ The table lists every entry by its ID, with the section that holds it and whethe
 - **Decision:** `ChatProvider` is an open record the app derives from, with `Kind`, `Name`, `Endpoint`, `ApiKey` and
   `Model`. The app stores it where it likes; Typeshift saves, loads and lists none, and defines no store for them. A
   run is handed one at its call site, `host.WithProvider(document)` (D87), and the app's one
-  `IChatProviderConnector`, registered with `WithProviderConnector<T>()`, turns it into a client. An agent's code and
+  `IChatProviderConnector`, registered with `WithProviderConnector<T>()`, turns it into a client; a second call with
+  another class throws, so the app has one, which switches on the document's `Kind`. An agent's code and
   `WithDefaultProvider` name keys only and refuse a document. `IChatClientProvider<T>`, `WithChatClientProvider<T>()`
   and TSH030 are gone: a key's client is the one registered under it (D63), and a customer's key is a document.
 - **The client cache:** `ProviderClients`, a singleton of the runtime, keeps one client per equal document, a
@@ -840,7 +841,9 @@ The table lists every entry by its ID, with the section that holds it and whethe
   | No model | A client that reports none | Throws before the conversation is touched. |
 
   - The default provider is the keyed client `WithDefaultProvider(key)` names, or else the `IChatClient` registered
-    for every agent, as `AddChatClient` and `TypeshiftRuntime.Create(client)` register it (D75). An app whose
+    for every agent, as `AddChatClient` and `TypeshiftRuntime.Create(client)` register it (D75). A second
+    `WithDefaultProvider` with another key throws an `InvalidOperationException` that names both, as a second
+    connector does (D88) and a second store for one interface (D38): the order of two calls would pick it. An app whose
     customers bring their own providers registers none, so a call site that forgets its provider fails rather than
     spend the app's own account. A run that names none takes the default's key as its provider, so its span, its
     entries and `AgentRun.Provider` name it (D36).

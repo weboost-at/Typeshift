@@ -18,7 +18,8 @@ All notable changes to this project are documented here. The format follows
   `Configurable(o => o.ModelId)`. The provider serves the whole run: its sub-agents, the agents it hands off to and
   its summary, while each sub-agent keeps its own model. TSH041 reports such a copy that a statement drops.
 - `AddTypeshift().WithDefaultProvider(key)` names the keyed client that serves every run that names no provider, in
-  place of the client registered for every agent.
+  place of the client registered for every agent. A second call that names another key throws an
+  `InvalidOperationException` naming both, and so does a second `WithProviderConnector<T>()` with another class.
 - `ChatProvider`, a record your app derives from and keeps in its own storage, is a provider your customers bring: a
   kind, a name, an endpoint, a key and a model. `host.WithProvider(document)` hands one to a run, and the
   `IChatProviderConnector` your app registers with `AddTypeshift().WithProviderConnector<T>()` turns it into a client.

@@ -33,7 +33,7 @@ that no row names, and on a name that is no test class.
 |---|---|
 | The runtime, its hosts and its catalog | `TypeshiftRuntimeTests`, `RuntimeCatalogTests` |
 | Registration: the chain, its stores, the interceptor | `AddTypeshiftTests`, `StoreRegistrationTests` |
-| Providers and chat clients, the default rule, the call site's provider and model, provider documents | `ChatClientResolutionTests`, `HostSelectionTests`, `ProviderClientsTests`, `ChatProviderTests` |
+| Providers and chat clients, the default rule, the call site's provider and model, provider documents | `ChatClientResolutionTests`, `HostSelectionTests`, `ProviderClientsTests`, `ChatProviderTests`, `ProviderRegistrationTests` |
 | Tools: schemas, arguments, overrides, unions | `ToolSchemaTests`, `ToolInvocationTests`, `ToolOverridesTests`, `UnionToolTests` |
 | Tool results and failed calls | `ToolResultWireTests`, `ToolFailureTests` |
 | Runs: options, instructions, own tools, usage, the raw path, the caller's context | `AgentRunTests`, `ChatOptionsBuilderTests`, `ResolvedChatOptionsTests`, `OwnToolsTests`, `ChatResponsesTests`, `SynchronizationContextTests` |
