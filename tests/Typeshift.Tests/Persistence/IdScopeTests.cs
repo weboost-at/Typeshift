@@ -322,8 +322,15 @@ public class IdScopeTests : AgentTestBase
 
         var conversation = Data.Persistence.ChatName;
 
-        await store.AppendConversationAsync(conversation, new("probe_agent", [input], Time.GetUtcNow()), Ct);
-        await store.AppendConversationAsync(conversation, new("probe_agent", [call], Time.GetUtcNow()), Ct);
+        await store.AppendConversationAsync(
+            conversation,
+            new() { Agent = "probe_agent", Messages = [input], At = Time.GetUtcNow() },
+            Ct);
+
+        await store.AppendConversationAsync(
+            conversation,
+            new() { Agent = "probe_agent", Messages = [call], At = Time.GetUtcNow() },
+            Ct);
 
         ChatClient.Reply(Text(Data.Tool.Answer));
 

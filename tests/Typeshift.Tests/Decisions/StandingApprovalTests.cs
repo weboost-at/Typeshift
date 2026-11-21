@@ -35,7 +35,11 @@ public class StandingApprovalTests : ApprovalTestBase
         var decisions = await DecisionsAsync();
 
         // Assert
-        decisions.Standing.Should().Equal(new StandingApproval("close_ticket", null, Time.GetUtcNow()));
+        decisions.Standing.Should().Equal(new StandingApproval
+        {
+            Tool = "close_ticket",
+            GrantedAt = Time.GetUtcNow()
+        });
     }
 
     [Fact]
@@ -88,7 +92,7 @@ public class StandingApprovalTests : ApprovalTestBase
             .Reply(CloseTicket(Data.Tool.SecondCallId, Data.Agent.Ticket.Updated));
 
         var asked = await RunAsync(Data.Tool.Question);
-        await AnswerAsync(new DecisionAnswer(asked.Decisions[0].Id) { ForConversation = true });
+        await AnswerAsync(new DecisionAnswer { DecisionId = asked.Decisions[0].Id, ForConversation = true });
 
         // Act
         var later = await RunAsync(Data.Agent.FollowUp);

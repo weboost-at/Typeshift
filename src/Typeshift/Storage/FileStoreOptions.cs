@@ -3,7 +3,7 @@ namespace Typeshift;
 /// <summary>
 /// Where <c>WithFileStore</c> keeps what it stores.
 /// </summary>
-public sealed record FileStoreOptions
+public sealed class FileStoreOptions
 {
     /// <summary>
     /// The folder of the file store, which keeps agents' own settings in its <c>settings</c> folder: by default

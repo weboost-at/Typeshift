@@ -356,7 +356,8 @@ chat.MapPost("/decisions", async Task<IResult> (
   `"reason"` rejects and tells the model why, `"forConversation":true` makes the approval a
   [standing approval](./tool-approval.md#approving-for-the-conversation), which covers every later call of the tool
   until your app withdraws it, and `"mode":"Auto"` picks the mode an approved
-  [plan](./tool-approval.md#plan-mode) continues in.
+  [plan](./tool-approval.md#plan-mode) continues in. A body without `decisionId` answers 400 Bad Request before the
+  endpoint runs, since System.Text.Json refuses a `DecisionAnswer` without its required id.
 - Questions are answered with `"answers"`, one entry for each question in the questions' order:
   `{"decisionId":"...","answers":[{"selected":["It leaks"]},{"text":"Since Monday."}]}`. An entry holds the labels
   the user picked in `selected`, their own words in `text`, or both. Without `answers`, the body declines the
@@ -494,7 +495,7 @@ chat.MapPost("/ag-ui", async Task<IResult> (
     }
 });
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.AgUi.cs#L44-L75' title='Snippet source file'>snippet source</a> | <a href='#snippet-ag-ui-endpoint' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.AgUi.cs#L45-L76' title='Snippet source file'>snippet source</a> | <a href='#snippet-ag-ui-endpoint' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 - The endpoint sits on the chat group, so the owner filter checks the chat and the busy filter answers a second run
@@ -536,7 +537,7 @@ private static AGUIInterrupt? Interrupt(AIContent content) =>
         }
         : null;
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.AgUi.cs#L15-L40' title='Snippet source file'>snippet source</a> | <a href='#snippet-ag-ui-options' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.AgUi.cs#L16-L41' title='Snippet source file'>snippet source</a> | <a href='#snippet-ag-ui-options' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 - Each event carries the update it came from as its raw event, and a tool call's events carry its arguments and
@@ -555,12 +556,17 @@ The client answers the interrupts on its next run, in the `resume` of its input,
 <a id='snippet-ag-ui-answer'></a>
 ```cs
 // A resolved interrupt's payload is the answer endpoint's body without the decision's id: {"approved":true}
-private static DecisionAnswer Answer(AGUIResume resume) =>
-    resume is { Status: ResumeStatus.Resolved, Payload: { } payload }
-        ? payload.Deserialize<DecisionAnswer>(AgUiJson)! with { DecisionId = resume.InterruptId }
-        : DecisionAnswer.Reject(resume.InterruptId);
+private static DecisionAnswer Answer(AGUIResume resume)
+{
+    if (resume is not { Status: ResumeStatus.Resolved, Payload: { } payload })
+        return DecisionAnswer.Reject(resume.InterruptId);
+
+    var body = JsonObject.Create(payload)!;
+    body["decisionId"] = resume.InterruptId;
+    return body.Deserialize<DecisionAnswer>(AgUiJson)!;
+}
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.AgUi.cs#L78-L84' title='Snippet source file'>snippet source</a> | <a href='#snippet-ag-ui-answer' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.AgUi.cs#L79-L90' title='Snippet source file'>snippet source</a> | <a href='#snippet-ag-ui-answer' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 - The payload of a resolved interrupt is the body that [Answer a decision](#answer-a-decision) takes, so questions are

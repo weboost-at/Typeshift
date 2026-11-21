@@ -19,11 +19,13 @@ public class RuntimeCatalogTests : AgentTestBase
         var probe = Runtime.Agents.Single(agent => agent.Type == typeof(ProbeAgent));
 
         // Assert
-        probe.Should().Be(new AgentInfo(
-            Type: typeof(ProbeAgent),
-            Name: "probe_agent",
-            Kind: "ProbeAgent",
-            Description: "Probes what a run resolves."));
+        probe.Should().Be(new AgentInfo
+        {
+            Type = typeof(ProbeAgent),
+            Name = "probe_agent",
+            Kind = "ProbeAgent",
+            Description = "Probes what a run resolves."
+        });
     }
 
     [Fact]
@@ -150,5 +152,11 @@ public class RuntimeCatalogTests : AgentTestBase
     }
 
     private static ToolInfo Tool(string name, string description, bool readOnly, bool approval) =>
-        new(name, description, IsReadOnly: readOnly, RequiresApproval: approval);
+        new()
+        {
+            Name = name,
+            Description = description,
+            IsReadOnly = readOnly,
+            RequiresApproval = approval
+        };
 }

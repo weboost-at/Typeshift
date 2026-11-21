@@ -273,10 +273,10 @@ internal static class ChatEndpoint
 
         ConversationEntry[] entries =
         [
-            new("support_agent", [question], at) { Sequence = 1 },
-            new("support_agent", [answer], at) { Sequence = 2 },
-            new("support_agent", [], at) { Sequence = 3, EndsRun = true },
-            new("support_agent", [summary, answer], at) { Sequence = 4, IsSummary = true }
+            new() { Agent = "support_agent", Messages = [question], At = at, Sequence = 1 },
+            new() { Agent = "support_agent", Messages = [answer], At = at, Sequence = 2 },
+            new() { Agent = "support_agent", At = at, Sequence = 3, EndsRun = true },
+            new() { Agent = "support_agent", Messages = [summary, answer], At = at, Sequence = 4, IsSummary = true }
         ];
 
         foreach (var entry in entries)

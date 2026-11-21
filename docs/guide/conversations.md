@@ -249,7 +249,7 @@ its last stored step, without new input:
 ```cs
 var resumed = await support.WithSettingsId(settingsId).WithConversationId(interrupted).ResumeAsync();
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L75-L77' title='Snippet source file'>snippet source</a> | <a href='#snippet-resume' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L80-L82' title='Snippet source file'>snippet source</a> | <a href='#snippet-resume' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 `ResumeStreamingAsync` does the same and streams the continuation, as `RunStreamingAsync` streams a run.
@@ -306,7 +306,7 @@ catch (HttpRequestException)
     await refunds.RetryAsync();
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L84-L94' title='Snippet source file'>snippet source</a> | <a href='#snippet-retry' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L89-L99' title='Snippet source file'>snippet source</a> | <a href='#snippet-retry' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 - `RetryAsync` continues what `ResumeAsync` continues too: an interrupted run, or decisions your app answered. On top,
@@ -368,7 +368,7 @@ Cancelling ends the loop with an `OperationCanceledException`, so catch it where
 await foreach (var run in tracker.WatchRunsAsync(ct))
     Console.WriteLine($"Conversation {run.Conversation} is {(run.Ended ? "idle" : "running")}");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L118-L121' title='Snippet source file'>snippet source</a> | <a href='#snippet-watch-runs' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L123-L126' title='Snippet source file'>snippet source</a> | <a href='#snippet-watch-runs' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The tracker's members, each for the conversations under ids of `TId` in this container:
@@ -471,7 +471,7 @@ await foreach (var update in tracker.WatchAsync(conversationId, ct))
     if (update.EndsRun) break;
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L104-L111' title='Snippet source file'>snippet source</a> | <a href='#snippet-watch-conversation' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L109-L116' title='Snippet source file'>snippet source</a> | <a href='#snippet-watch-conversation' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 A watcher receives what the runs write from the moment it subscribes: the model's updates, the tool calls and their

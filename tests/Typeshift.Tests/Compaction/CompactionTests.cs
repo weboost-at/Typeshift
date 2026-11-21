@@ -226,9 +226,19 @@ public class CompactionTests : AgentTestBase
 
         ConversationEntry[] earlier =
         [
-            new("compacting_agent", [new ChatMessage(ChatRole.User, new string('x', Page))], Time.GetUtcNow()),
-            new("compacting_agent", [new ChatMessage(ChatRole.Assistant, [])], Time.GetUtcNow()),
-            new("compacting_agent", [], Time.GetUtcNow()) { EndsRun = true }
+            new()
+            {
+                Agent = "compacting_agent",
+                Messages = [new ChatMessage(ChatRole.User, new string('x', Page))],
+                At = Time.GetUtcNow()
+            },
+            new()
+            {
+                Agent = "compacting_agent",
+                Messages = [new ChatMessage(ChatRole.Assistant, [])],
+                At = Time.GetUtcNow()
+            },
+            new() { Agent = "compacting_agent", At = Time.GetUtcNow(), EndsRun = true }
         ];
 
         foreach (var entry in earlier)
@@ -967,7 +977,12 @@ public class CompactionTests : AgentTestBase
         var text = string.Concat(Enumerable.Repeat($"\"{Data.Persistence.TextOutsideAscii}\" ", 100));
         var result = JsonSerializer.SerializeToElement(text, Json.GetTypeInfo<string>());
         var message = new ChatMessage(ChatRole.Tool, [new FunctionResultContent(Data.Tool.CallId, result)]);
-        var entry = new ConversationEntry("compacting_agent", [message], Time.GetUtcNow());
+        var entry = new ConversationEntry
+        {
+            Agent = "compacting_agent",
+            Messages = [message],
+            At = Time.GetUtcNow()
+        };
 
         // Act
         var loaded = ConversationEntry.Deserialize(entry.Serialize());

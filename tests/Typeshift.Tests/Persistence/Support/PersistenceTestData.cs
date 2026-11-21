@@ -76,8 +76,10 @@ public class PersistenceTestData(Faker faker)
     {
         var callId = faker.Random.AlphaNumeric(12);
 
-        return new(
-            faker.Lorem.Word(),
+        return new()
+        {
+            Agent = faker.Lorem.Word(),
+            Messages =
             [
                 new ChatMessage(ChatRole.User, faker.Lorem.Sentence()),
                 new ChatMessage(
@@ -93,8 +95,7 @@ public class PersistenceTestData(Faker faker)
                 },
                 new ChatMessage(ChatRole.Tool, [new FunctionResultContent(callId, faker.Lorem.Sentence())])
             ],
-            faker.Date.PastOffset())
-        {
+            At = faker.Date.PastOffset(),
             Sequence = faker.Random.Long(1, 1000),
             Model = $"{faker.Hacker.Noun()}-model",
             Provider = $"{faker.Hacker.Noun()}-provider",

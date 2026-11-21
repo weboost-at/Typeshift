@@ -37,7 +37,7 @@ public class DecisionDocumentJsonTests : UnitTestBase
 
         var document = new DecisionDocument
         {
-            Standing = [new StandingApproval("add_note", null, asked)],
+            Standing = [new StandingApproval { Tool = "add_note", GrantedAt = asked }],
             Batch = new DecisionBatch("support_agent", asked, BatchState.Open, [call])
         };
 
@@ -292,6 +292,19 @@ public class DecisionDocumentJsonTests : UnitTestBase
 
         // Assert
         answer.Should().Be(DecisionAnswer.ApprovePlan(Data.Decisions.DecisionId, AgentMode.Auto));
+    }
+
+    [Fact]
+    public void Given_An_Answer_A_Page_Posts_Without_Its_Decision_Id_System_Text_Json_Refuses_It()
+    {
+        // Arrange
+        var json = """{"approved":true}""";
+
+        // Act
+        var read = () => JsonSerializer.Deserialize<DecisionAnswer>(json, JsonSerializerOptions.Web);
+
+        // Assert
+        read.Should().Throw<JsonException>().WithMessage("*decisionId*");
     }
 
     [Fact]

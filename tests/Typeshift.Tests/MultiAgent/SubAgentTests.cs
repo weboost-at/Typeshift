@@ -533,7 +533,11 @@ public class SubAgentTests : MultiAgentTestBase
             new(ChatRole.Tool, [new FunctionResultContent(Data.Tool.CallId, "started")])
         ];
 
-        await store.AppendConversationAsync(conversation, new("background_lead_agent", steps, Time.GetUtcNow()), Ct);
+        await store.AppendConversationAsync(
+            conversation,
+            new() { Agent = "background_lead_agent", Messages = steps, At = Time.GetUtcNow() },
+            Ct);
+
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act
@@ -557,8 +561,17 @@ public class SubAgentTests : MultiAgentTestBase
             new(ChatRole.Tool, [new FunctionResultContent(Data.Tool.CallId, "started")])
         ];
 
-        await store.AppendConversationAsync(conversation, new("background_lead_agent", steps, Time.GetUtcNow()), Ct);
-        var end = new ConversationEntry("background_lead_agent", [], Time.GetUtcNow()) { EndsRun = true };
+        await store.AppendConversationAsync(
+            conversation,
+            new() { Agent = "background_lead_agent", Messages = steps, At = Time.GetUtcNow() },
+            Ct);
+
+        var end = new ConversationEntry
+        {
+            Agent = "background_lead_agent",
+            At = Time.GetUtcNow(),
+            EndsRun = true
+        };
 
         await store.AppendConversationAsync(conversation, end, Ct);
         ChatClient.Reply(Text(Data.Tool.Answer));
@@ -710,17 +723,22 @@ public class SubAgentTests : MultiAgentTestBase
         var store = Services.GetRequiredService<ITypeshiftStore<Guid>>();
         var conversation = Data.Agent.ConversationId;
 
-        var summary = new ConversationEntry(
-            "background_lead_agent",
-            [new ChatMessage(ChatRole.User, Data.Agent.Reason)],
-            Time.GetUtcNow())
+        var summary = new ConversationEntry
         {
+            Agent = "background_lead_agent",
+            Messages = [new ChatMessage(ChatRole.User, Data.Agent.Reason)],
+            At = Time.GetUtcNow(),
             IsSummary = true,
             BackgroundCalls = new Dictionary<string, string> { [Data.Tool.CallId] = "helper_agent" }
         };
 
         await store.AppendConversationAsync(conversation, summary, Ct);
-        var end = new ConversationEntry("background_lead_agent", [], Time.GetUtcNow()) { EndsRun = true };
+        var end = new ConversationEntry
+        {
+            Agent = "background_lead_agent",
+            At = Time.GetUtcNow(),
+            EndsRun = true
+        };
 
         await store.AppendConversationAsync(conversation, end, Ct);
         ChatClient.Reply(Text(Data.Tool.Answer));

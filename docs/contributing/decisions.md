@@ -119,6 +119,7 @@ The table lists every entry by its ID, with the section that holds it and whethe
 | D87 | [The call site hands the host its provider and its model](#d87) | Runtime | In force |
 | D88 | [A provider is a document the app owns](#d88) | Runtime | In force |
 | D89 | [A model policy is a value of rules](#d89) | Runtime | In force |
+| D90 | [Records whose values come from the library have init-only properties](#d90) | Repository | In force |
 
 ## Registration and the generator
 
@@ -2535,6 +2536,27 @@ The table lists every entry by its ID, with the section that holds it and whethe
   TSH028 to TSH030 did in 0.1.0-alpha.6. Once a stable release ships a diagnostic's row, its ID never changes (see
   [Releasing](./releasing.md#cutting-a-release)).
 - **Where:** `docs/guide/diagnostics.md#retired-ids`, `Diagnostics/DiagnosticCatalogTests` (generator tests).
+
+### D90. Records whose values come from the library have init-only properties {#d90}
+
+- **Status:** owner, for 0.1.0-alpha.8, the last alpha.
+- **Context:** after the last alpha only additive betas follow. A positional record gains a member as a parameter of
+  its constructor, which breaks every call that creates it and every `Deconstruct`, while a property with `init`
+  comes in without either.
+- **Decision:** the records whose values the library fills in, `AgentInfo`, `ToolsetInfo` and `ToolInfo` of the
+  catalog, `LiveRun<TId>`, `ConversationEntry`, `ConversationDecisions`, `StandingApproval`, `Question`,
+  `QuestionOption` and `DecisionAnswer`, which your app makes with its factories or binds from JSON, have init-only
+  properties, no positional constructor and so no `Deconstruct`. A property without a sensible default is
+  `required`, which System.Text.Json enforces as well: a `DecisionAnswer` without its `decisionId` does not bind.
+  `StoredDocument`, `Stored<T>`, `ToolName` and `QuestionAnswer` stay positional, values whose parameters are the
+  whole of them, and an options type your app sets in a callback, `FileStoreOptions` as `LiveUpdateOptions`, is a
+  sealed class with setters.
+- **Alternatives:** positional records that gain an overload of the constructor for each member, which an app's
+  `new(...)` binds ambiguously once a parameter has a default.
+- **Where:** `Hosting/AgentInfo.cs`, `Toolsets/ToolInfo.cs`, `Toolsets/ToolsetInfo.cs`,
+  `Conversations/ConversationTracker.cs`, `Conversations/ConversationEntry.cs`, `Decisions/Decision.cs`,
+  `Decisions/Question.cs`, `Storage/FileStoreOptions.cs`; `Emitting/ModuleEmitter.cs` writes a `ToolInfo` with an
+  object initializer.
 
 ## Withdrawn
 

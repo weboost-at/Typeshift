@@ -731,7 +731,12 @@ public class AgentRunTests : AgentTestBase
         // Arrange
         var expected = new ProbeSettings { Limit = Data.Tool.Limit };
         var input = new ChatMessage(ChatRole.User, Data.Tool.Question);
-        var interrupted = new ConversationEntry("probe_agent", [input], Time.GetUtcNow());
+        var interrupted = new ConversationEntry
+        {
+            Agent = "probe_agent",
+            Messages = [input],
+            At = Time.GetUtcNow()
+        };
 
         await Services.GetRequiredService<ITypeshiftStore<Guid>>()
             .AppendConversationAsync(Data.Agent.ConversationId, interrupted, Ct);

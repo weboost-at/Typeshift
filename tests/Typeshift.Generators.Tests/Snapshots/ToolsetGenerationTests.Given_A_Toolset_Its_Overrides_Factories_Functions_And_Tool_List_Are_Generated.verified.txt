@@ -320,7 +320,7 @@ partial class TicketToolset
 #nullable enable
 #pragma warning disable CS0612, CS0618
 
-[assembly: global::Typeshift.Generated.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule), 22)]
+[assembly: global::Typeshift.Generated.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule), 23)]
 
 namespace Typeshift.Generated;
 
@@ -342,8 +342,8 @@ public static class SubjectModule
         if (!global::Typeshift.Generated.ModuleRegistration.TryAddModule(services, typeof(SubjectModule))) return;
 
         global::Typeshift.Generated.ModuleRegistration.AddToolset(services, static () => new global::Demo.TicketToolset(),
-            new global::Typeshift.ToolInfo("search_tickets", "Searches the customer's tickets, newest first.", IsReadOnly: true, RequiresApproval: false),
-            new global::Typeshift.ToolInfo("close_ticket", "Closes a ticket for good.", IsReadOnly: false, RequiresApproval: true),
-            new global::Typeshift.ToolInfo("forget_ticket", "Forgets what was read.", IsReadOnly: false, RequiresApproval: false));
+            new global::Typeshift.ToolInfo { Name = "search_tickets", Description = "Searches the customer's tickets, newest first.", IsReadOnly = true, RequiresApproval = false },
+            new global::Typeshift.ToolInfo { Name = "close_ticket", Description = "Closes a ticket for good.", IsReadOnly = false, RequiresApproval = true },
+            new global::Typeshift.ToolInfo { Name = "forget_ticket", Description = "Forgets what was read.", IsReadOnly = false, RequiresApproval = false });
     }
 }

@@ -80,18 +80,44 @@ public sealed record QuestionDecision : Decision, IJsonStorable<QuestionDecision
 /// <summary>
 /// One question of a <see cref="QuestionDecision"/>. The user picks among its options or answers in their own words.
 /// </summary>
-/// <param name="Header">A short label for the question, which names it in a compact UI and in the answers.</param>
-/// <param name="Text">The question.</param>
-/// <param name="Options">The options to pick from, two to four.</param>
-/// <param name="MultiSelect">Whether the user may pick more than one option.</param>
-public sealed record Question(string Header, string Text, IReadOnlyList<QuestionOption> Options, bool MultiSelect);
+public sealed record Question
+{
+    /// <summary>
+    /// A short label for the question, which names it in a compact UI and in the answers.
+    /// </summary>
+    public required string Header { get; init; }
+
+    /// <summary>
+    /// The question.
+    /// </summary>
+    public required string Text { get; init; }
+
+    /// <summary>
+    /// The options to pick from, two to four.
+    /// </summary>
+    public required IReadOnlyList<QuestionOption> Options { get; init; }
+
+    /// <summary>
+    /// Whether the user may pick more than one option.
+    /// </summary>
+    public bool MultiSelect { get; init; }
+}
 
 /// <summary>
 /// One option of a <see cref="Question"/>.
 /// </summary>
-/// <param name="Label">The option as the user sees it. An answer selects the option by this label.</param>
-/// <param name="Description">What the option means, or what follows from picking it.</param>
-public sealed record QuestionOption(string Label, string Description);
+public sealed record QuestionOption
+{
+    /// <summary>
+    /// The option as the user sees it. An answer selects the option by this label.
+    /// </summary>
+    public required string Label { get; init; }
+
+    /// <summary>
+    /// What the option means, or what follows from picking it.
+    /// </summary>
+    public required string Description { get; init; }
+}
 
 /// <summary>
 /// The user's answer to one <see cref="Question"/>: the labels of the options they picked, their own words, or both.

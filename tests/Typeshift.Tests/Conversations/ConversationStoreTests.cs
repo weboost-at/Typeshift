@@ -30,12 +30,25 @@ public class ConversationStoreTests : AgentTestBase
 
         ConversationEntry[] entries =
         [
-            new("probe_agent", [new ChatMessage(ChatRole.User, Data.Tool.Question)], Time.GetUtcNow()),
-            new("probe_agent", [new ChatMessage(ChatRole.User, Data.Agent.Reason)], Time.GetUtcNow())
+            new()
             {
+                Agent = "probe_agent",
+                Messages = [new ChatMessage(ChatRole.User, Data.Tool.Question)],
+                At = Time.GetUtcNow()
+            },
+            new()
+            {
+                Agent = "probe_agent",
+                Messages = [new ChatMessage(ChatRole.User, Data.Agent.Reason)],
+                At = Time.GetUtcNow(),
                 IsSummary = true
             },
-            new("probe_agent", [new ChatMessage(ChatRole.User, Data.Agent.FollowUp)], Time.GetUtcNow())
+            new()
+            {
+                Agent = "probe_agent",
+                Messages = [new ChatMessage(ChatRole.User, Data.Agent.FollowUp)],
+                At = Time.GetUtcNow()
+            }
         ];
 
         foreach (var entry in entries)
@@ -571,8 +584,10 @@ public class ConversationStoreTests : AgentTestBase
 
         foreach (var sequence in new long[] { 1, 3, 2 })
         {
-            var entry = new ConversationEntry("probe_agent", [], Time.GetUtcNow())
+            var entry = new ConversationEntry
             {
+                Agent = "probe_agent",
+                At = Time.GetUtcNow(),
                 EndsRun = true,
                 Sequence = sequence
             };

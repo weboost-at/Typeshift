@@ -28,7 +28,13 @@ internal sealed record DecisionDocument
     public IReadOnlyList<Decision> Open => Batch is { State: BatchState.Open } batch ? batch.Unanswered : [];
 
     public ConversationDecisions ToDecisions() =>
-        new(Open, Batch is { State: BatchState.Answered }, Standing, Mode);
+        new()
+        {
+            Open = Open,
+            CanResume = Batch is { State: BatchState.Answered },
+            Standing = Standing,
+            Mode = Mode
+        };
 
     // Why a decision that is not in the batch is closed; older than the last batch, nothing remembers it
     public DecisionClosedReason ClosedReason(string decision) =>
@@ -100,10 +106,12 @@ internal sealed record DecisionDocument
         approval = null!;
         if (!StorableJson.TryRead(StorableJson.Member(element, "tool"), out string tool)) return false;
 
-        approval = new StandingApproval(
-            tool,
-            StorableJson.TryRead(StorableJson.Member(element, "server"), out string server) ? server : null,
-            StorableJson.TryRead(StorableJson.Member(element, "at"), out DateTimeOffset at) ? at : default);
+        approval = new StandingApproval
+        {
+            Tool = tool,
+            Server = StorableJson.TryRead(StorableJson.Member(element, "server"), out string server) ? server : null,
+            GrantedAt = StorableJson.TryRead(StorableJson.Member(element, "at"), out DateTimeOffset at) ? at : default
+        };
 
         return true;
     }
@@ -291,7 +299,7 @@ internal sealed record Ask(string Id, AskKind Kind)
     {
         // Questions are answered by their answers, whatever else the answer says
         if (Kind is AskKind.Question && answer.Answers is { } answers)
-            return new(Id) { Approved = true, Answers = AskUserFunction.Normalize(questions, answers, Id) };
+            return DecisionAnswer.Answer(Id, AskUserFunction.Normalize(questions, answers, Id));
 
         if (answer.Answers is not null)
         {
@@ -301,7 +309,7 @@ internal sealed record Ask(string Id, AskKind Kind)
         }
 
         if (!answer.Approved)
-            return new(Id) { Reason = string.IsNullOrWhiteSpace(answer.Reason) ? null : answer.Reason };
+            return new() { DecisionId = Id, Reason = string.IsNullOrWhiteSpace(answer.Reason) ? null : answer.Reason };
 
         return Kind switch
         {
@@ -313,7 +321,7 @@ internal sealed record Ask(string Id, AskKind Kind)
                 $"The answer to {Id} approves a plan into a mode, and the decision is a tool call: approve it with "
                 + "Approve() or ApproveForConversation().",
                 "answers"),
-            AskKind.Approval => new(Id) { Approved = true, ForConversation = answer.ForConversation },
+            AskKind.Approval => new() { DecisionId = Id, Approved = true, ForConversation = answer.ForConversation },
             _ when answer.ForConversation => throw new ArgumentException(
                 $"The answer to {Id} approves a tool for the conversation, and the decision is a plan: approve it "
                 + "with Approve(mode).",
@@ -322,7 +330,7 @@ internal sealed record Ask(string Id, AskKind Kind)
                 $"The answer to {Id} approves a plan into plan mode: an approved plan continues in the default or "
                 + "the auto mode.",
                 "answers"),
-            _ => new(Id) { Approved = true, Mode = answer.Mode ?? AgentMode.Default }
+            _ => new() { DecisionId = Id, Approved = true, Mode = answer.Mode ?? AgentMode.Default }
         };
     }
 
@@ -365,8 +373,9 @@ internal sealed record Ask(string Id, AskKind Kind)
     }
 
     private static DecisionAnswer ReadAnswer(string id, JsonElement answer) =>
-        new(id)
+        new()
         {
+            DecisionId = id,
             Approved = StorableJson.TryRead(StorableJson.Member(answer, "approved"), out bool approved) && approved,
             Reason = StorableJson.TryRead(StorableJson.Member(answer, "reason"), out string reason) ? reason : null,
             ForConversation = StorableJson.TryRead(StorableJson.Member(answer, "forConversation"), out bool all) && all,

@@ -800,7 +800,9 @@ internal sealed class ConversationChatClient(
 
         // The results follow their calls as if the store held them already (D46)
         var history = ConversationHistory.From(
-            results is null ? entries : [.. entries, new ConversationEntry(agent.Name, [results], Time.GetUtcNow())]);
+            results is null
+                ? entries
+                : [.. entries, new() { Agent = agent.Name, Messages = [results], At = Time.GetUtcNow() }]);
 
         List<ChatMessage> call = [.. history, .. input];
 

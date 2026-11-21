@@ -216,9 +216,13 @@ public sealed record PlanDecision : Decision, IJsonStorable<PlanDecision>
 /// <c>{"decisionId":"...","approved":true}</c>, or <c>{"decisionId":"...","answers":[{"selected":["Dapper"]}]}</c> for
 /// questions. It is checked against the stored decision when it is recorded.
 /// </summary>
-/// <param name="DecisionId">The <see cref="Decision.Id"/> of the decision it answers.</param>
-public sealed record DecisionAnswer(string DecisionId)
+public sealed record DecisionAnswer
 {
+    /// <summary>
+    /// The <see cref="Decision.Id"/> of the decision it answers.
+    /// </summary>
+    public required string DecisionId { get; init; }
+
     /// <summary>
     /// Whether the call or the plan is approved; false rejects it. Questions are answered by <see cref="Answers"/>.
     /// </summary>
@@ -250,7 +254,7 @@ public sealed record DecisionAnswer(string DecisionId)
     /// </summary>
     /// <param name="decisionId">The decision's id.</param>
     /// <returns>The answer.</returns>
-    public static DecisionAnswer Approve(string decisionId) => new(decisionId) { Approved = true };
+    public static DecisionAnswer Approve(string decisionId) => new() { DecisionId = decisionId, Approved = true };
 
     /// <summary>
     /// Approves a tool call and every later call of the same tool in the conversation.
@@ -258,7 +262,7 @@ public sealed record DecisionAnswer(string DecisionId)
     /// <param name="decisionId">The decision's id.</param>
     /// <returns>The answer.</returns>
     public static DecisionAnswer ApproveForConversation(string decisionId) =>
-        new(decisionId) { Approved = true, ForConversation = true };
+        new() { DecisionId = decisionId, Approved = true, ForConversation = true };
 
     /// <summary>
     /// Approves a plan; the conversation continues in <paramref name="mode"/>.
@@ -271,7 +275,7 @@ public sealed record DecisionAnswer(string DecisionId)
     /// </exception>
     public static DecisionAnswer ApprovePlan(string decisionId, AgentMode mode) =>
         mode is AgentMode.Default or AgentMode.Auto
-            ? new(decisionId) { Approved = true, Mode = mode }
+            ? new() { DecisionId = decisionId, Approved = true, Mode = mode }
             : throw new ArgumentOutOfRangeException(
                 nameof(mode),
                 mode,
@@ -287,7 +291,7 @@ public sealed record DecisionAnswer(string DecisionId)
     /// </param>
     /// <returns>The answer.</returns>
     public static DecisionAnswer Answer(string decisionId, params IReadOnlyList<QuestionAnswer> answers) =>
-        new(decisionId) { Approved = true, Answers = answers };
+        new() { DecisionId = decisionId, Approved = true, Answers = answers };
 
     /// <summary>
     /// Rejects a tool call or a plan, or declines questions.
@@ -296,7 +300,7 @@ public sealed record DecisionAnswer(string DecisionId)
     /// <param name="reason">Why, for the model; null for none.</param>
     /// <returns>The answer.</returns>
     public static DecisionAnswer Reject(string decisionId, string? reason = null) =>
-        new(decisionId) { Reason = reason };
+        new() { DecisionId = decisionId, Reason = reason };
 
     /// <summary>
     /// Whether two answers say the same about the same decision, the answers to questions compared one by one.
@@ -325,25 +329,48 @@ public sealed record DecisionAnswer(string DecisionId)
 /// <summary>
 /// A tool your app approved for a conversation: its later calls there run without asking.
 /// </summary>
-/// <param name="Tool">The tool's name.</param>
-/// <param name="Server">The MCP server that offers the tool, as the agent names it; null for every other tool.</param>
-/// <param name="GrantedAt">When the approval took effect: the moment a run began to carry it out.</param>
-public sealed record StandingApproval(string Tool, string? Server, DateTimeOffset GrantedAt);
+public sealed record StandingApproval
+{
+    /// <summary>
+    /// The tool's name.
+    /// </summary>
+    public required string Tool { get; init; }
+
+    /// <summary>
+    /// The MCP server that offers the tool, as the agent names it; null for every other tool.
+    /// </summary>
+    public string? Server { get; init; }
+
+    /// <summary>
+    /// When the approval took effect: the moment a run began to carry it out.
+    /// </summary>
+    public required DateTimeOffset GrantedAt { get; init; }
+}
 
 /// <summary>
 /// What a conversation waits for, read in one load of its decisions: what a page shows after a reload.
 /// </summary>
-/// <param name="Open">The decisions your app has not answered yet.</param>
-/// <param name="CanResume">
-/// Whether every decision is answered and the answers are not carried out yet, so <c>ResumeAsync</c> continues the run.
-/// </param>
-/// <param name="Standing">The tools approved for the conversation.</param>
-/// <param name="Mode">
-/// The mode the conversation is in, once a run's settings, an approved plan or <c>SetModeAsync</c> named one; null
-/// while each run is in its agent's own mode.
-/// </param>
-public sealed record ConversationDecisions(
-    IReadOnlyList<Decision> Open,
-    bool CanResume,
-    IReadOnlyList<StandingApproval> Standing,
-    AgentMode? Mode);
+public sealed record ConversationDecisions
+{
+    /// <summary>
+    /// The decisions your app has not answered yet.
+    /// </summary>
+    public IReadOnlyList<Decision> Open { get; init; } = [];
+
+    /// <summary>
+    /// Whether every decision is answered and the answers are not carried out yet, so <c>ResumeAsync</c> continues the
+    /// run.
+    /// </summary>
+    public bool CanResume { get; init; }
+
+    /// <summary>
+    /// The tools approved for the conversation.
+    /// </summary>
+    public IReadOnlyList<StandingApproval> Standing { get; init; } = [];
+
+    /// <summary>
+    /// The mode the conversation is in, once a run's settings, an approved plan or <c>SetModeAsync</c> named one; null
+    /// while each run is in its agent's own mode.
+    /// </summary>
+    public AgentMode? Mode { get; init; }
+}

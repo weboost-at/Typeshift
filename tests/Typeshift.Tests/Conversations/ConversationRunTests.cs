@@ -306,8 +306,15 @@ public class ConversationRunTests : AgentTestBase
 
         var conversation = Data.Agent.ConversationId;
 
-        await store.AppendConversationAsync(conversation, new("probe_agent", [input], Time.GetUtcNow()), Ct);
-        await store.AppendConversationAsync(conversation, new("probe_agent", [call], Time.GetUtcNow()), Ct);
+        await store.AppendConversationAsync(
+            conversation,
+            new() { Agent = "probe_agent", Messages = [input], At = Time.GetUtcNow() },
+            Ct);
+
+        await store.AppendConversationAsync(
+            conversation,
+            new() { Agent = "probe_agent", Messages = [call], At = Time.GetUtcNow() },
+            Ct);
 
         ChatClient.Reply(Text(Data.Tool.Answer));
 
@@ -328,7 +335,7 @@ public class ConversationRunTests : AgentTestBase
 
         await store.AppendConversationAsync(
             Data.Agent.ConversationId,
-            new("probe_agent", [input], Time.GetUtcNow()),
+            new() { Agent = "probe_agent", Messages = [input], At = Time.GetUtcNow() },
             Ct);
 
         ChatClient.Reply(Text(Data.Tool.Answer));
@@ -1698,7 +1705,7 @@ public class ConversationRunTests : AgentTestBase
     private Task StoreAsync(ChatMessage message) =>
         Services.GetRequiredService<ITypeshiftStore<Guid>>().AppendConversationAsync(
             Data.Agent.ConversationId,
-            new ConversationEntry("probe_agent", [message], Time.GetUtcNow()),
+            new ConversationEntry { Agent = "probe_agent", Messages = [message], At = Time.GetUtcNow() },
             Ct);
 
     // The same run on either path, a streamed one as the response its updates make

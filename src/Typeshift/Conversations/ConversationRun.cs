@@ -626,8 +626,11 @@ internal sealed class ConversationRun(
 
         if (!_streams && !endsRun && !summary) Publish(messages);
 
-        var entry = new ConversationEntry(answering ?? Agent, Writable(messages), time.GetUtcNow())
+        var entry = new ConversationEntry
         {
+            Agent = answering ?? Agent,
+            Messages = Writable(messages),
+            At = time.GetUtcNow(),
             Sequence = Interlocked.Increment(ref _sequence),
             Model = model,
             Provider = provider,

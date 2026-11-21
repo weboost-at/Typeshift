@@ -97,17 +97,15 @@ internal static class ModuleEmitter
 
         using (writer.Indent())
         {
-            writer.List(
-                [
-                    .. toolset.Tools.Select(tool =>
-                        $"new global::Typeshift.ToolInfo({Names.Literal(tool.Name)}, "
-                        + $"{(tool.Description is { } description ? Names.Literal(description) : "null")}, "
-                        + $"IsReadOnly: {(tool.IsReadOnly ? "true" : "false")}, "
-                        + $"RequiresApproval: {(tool.RequiresApproval ? "true" : "false")})")
-                ],
-                end: ");");
+            writer.List([.. toolset.Tools.Select(GetToolInfo)], end: ");");
         }
     }
+
+    private static string GetToolInfo(ModuleTool tool) =>
+        $"new global::Typeshift.ToolInfo {{ Name = {Names.Literal(tool.Name)}, "
+        + $"Description = {(tool.Description is { } description ? Names.Literal(description) : "null")}, "
+        + $"IsReadOnly = {(tool.IsReadOnly ? "true" : "false")}, "
+        + $"RequiresApproval = {(tool.RequiresApproval ? "true" : "false")} }}";
 
     // D33, D34: what the agents of other assemblies check when they use this one
     private static string GetStamp(ModuleAgent agent)

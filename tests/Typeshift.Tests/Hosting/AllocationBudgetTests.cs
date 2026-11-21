@@ -220,10 +220,13 @@ public class AllocationBudgetTests : AgentTestBase
 
     // An answer carries the tokens its provider reported, as every stored answer of a real provider does
     private ConversationEntry Entry(ChatRole role) =>
-        new("probe_agent", [new ChatMessage(role, Data.Tool.Question)], Time.GetUtcNow())
+        new()
         {
+            Agent = "probe_agent",
+            Messages = [new ChatMessage(role, Data.Tool.Question)],
+            At = Time.GetUtcNow(),
             Usage = role == ChatRole.Assistant ? new UsageDetails { InputTokenCount = Data.Agent.InputTokens } : null
         };
 
-    private ConversationEntry End() => new("probe_agent", [], Time.GetUtcNow()) { EndsRun = true };
+    private ConversationEntry End() => new() { Agent = "probe_agent", At = Time.GetUtcNow(), EndsRun = true };
 }

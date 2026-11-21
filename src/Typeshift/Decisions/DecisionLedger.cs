@@ -186,7 +186,12 @@ internal sealed class DecisionLedger(StoreAccess stores, TimeProvider time, Agen
     {
         var granted = batch.Calls
             .Where(call => call.Ask is { Kind: AskKind.Approval, Answer: { Approved: true, ForConversation: true } })
-            .Select(call => new StandingApproval(call.Tool, call.Server, time.GetUtcNow()))
+            .Select(call => new StandingApproval
+            {
+                Tool = call.Tool,
+                Server = call.Server,
+                GrantedAt = time.GetUtcNow()
+            })
             .Where(approval => !standing.Any(held => held.Tool == approval.Tool && held.Server == approval.Server))
             .DistinctBy(approval => (approval.Tool, approval.Server));
 

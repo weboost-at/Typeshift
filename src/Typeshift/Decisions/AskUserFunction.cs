@@ -143,11 +143,13 @@ internal sealed class AskUserFunction : AIFunction
             if (multiSelect.ValueKind is not (JsonValueKind.Undefined or JsonValueKind.True or JsonValueKind.False))
                 wrong ??= $"{at}.multiSelect must be true or false.";
 
-            questions.Add(new Question(
-                Required(element, "header", at, ref wrong),
-                Required(element, text, at, ref wrong),
-                options,
-                multiSelect.ValueKind is JsonValueKind.True));
+            questions.Add(new Question
+            {
+                Header = Required(element, "header", at, ref wrong),
+                Text = Required(element, text, at, ref wrong),
+                Options = options,
+                MultiSelect = multiSelect.ValueKind is JsonValueKind.True
+            });
         }
 
         if (questions.Count is < 1 or > MaxQuestions)
@@ -231,9 +233,11 @@ internal sealed class AskUserFunction : AIFunction
                 continue;
             }
 
-            options.Add(new QuestionOption(
-                Required(element, "label", at, ref wrong),
-                Required(element, "description", at, ref wrong)));
+            options.Add(new QuestionOption
+            {
+                Label = Required(element, "label", at, ref wrong),
+                Description = Required(element, "description", at, ref wrong)
+            });
         }
 
         if (options.Count is < 2 or > MaxOptions)

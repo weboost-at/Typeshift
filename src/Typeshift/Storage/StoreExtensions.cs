@@ -595,8 +595,11 @@ public static class StoreExtensions
     // Fixed times, so the check reads no clock, that neither rise nor fall with the order appended and tie, as the
     // times of real entries can: a store that orders by them fails. Each step is numbered as a run numbers it
     private static ConversationEntry Entry(int step, ChatRole role) =>
-        new(Agent, [new ChatMessage(role, $"Step {step}.")], DateTimeOffset.UnixEpoch.AddSeconds(step * 2 % 3))
+        new()
         {
+            Agent = Agent,
+            Messages = [new ChatMessage(role, $"Step {step}.")],
+            At = DateTimeOffset.UnixEpoch.AddSeconds(step * 2 % 3),
             Sequence = step
         };
 

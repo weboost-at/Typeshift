@@ -77,17 +77,16 @@ public Typeshift.AgentHost<TAgent> Typeshift.AgentHost<TAgent>.WithProvider<TPro
 public Typeshift.AgentHost<TAgent> Typeshift.AgentHost<TAgent>.WithSettingsId<TId>(TId id) where TId : notnull
 public Typeshift.AgentHost<TAgent> Typeshift.AgentHost<TAgent>.WithSettingsId<TId>(TId? id) where TId : struct
 public sealed record Typeshift.AgentInfo : System.IEquatable<Typeshift.AgentInfo>
-public Typeshift.AgentInfo.AgentInfo(System.Type Type, string Name, string Kind, string? Description)
-public void Typeshift.AgentInfo.Deconstruct(out System.Type Type, out string Name, out string Kind, out string? Description)
+public Typeshift.AgentInfo.AgentInfo()
 public string? Typeshift.AgentInfo.Description { get; init; }
 public bool Typeshift.AgentInfo.Equals(Typeshift.AgentInfo? other)
 public override bool Typeshift.AgentInfo.Equals(object? obj)
 public override int Typeshift.AgentInfo.GetHashCode()
-public string Typeshift.AgentInfo.Kind { get; init; }
-public string Typeshift.AgentInfo.Name { get; init; }
+public required string Typeshift.AgentInfo.Kind { get; init; }
+public required string Typeshift.AgentInfo.Name { get; init; }
 public System.Collections.Generic.IReadOnlyList<string> Typeshift.AgentInfo.SwitchableTools { get; init; }
 public override string Typeshift.AgentInfo.ToString()
-public System.Type Typeshift.AgentInfo.Type { get; init; }
+public required System.Type Typeshift.AgentInfo.Type { get; init; }
 public static bool Typeshift.AgentInfo.operator !=(Typeshift.AgentInfo? left, Typeshift.AgentInfo? right)
 public static bool Typeshift.AgentInfo.operator ==(Typeshift.AgentInfo? left, Typeshift.AgentInfo? right)
 public enum Typeshift.AgentMode
@@ -191,8 +190,7 @@ public object Typeshift.ConversationBusyException.Conversation { get; }
 public Typeshift.ConversationBusyException.ConversationBusyException(string message, object conversation, System.Exception? inner = null)
 public sealed record Typeshift.ConversationDecisions : System.IEquatable<Typeshift.ConversationDecisions>
 public bool Typeshift.ConversationDecisions.CanResume { get; init; }
-public Typeshift.ConversationDecisions.ConversationDecisions(System.Collections.Generic.IReadOnlyList<Typeshift.Decision> Open, bool CanResume, System.Collections.Generic.IReadOnlyList<Typeshift.StandingApproval> Standing, Typeshift.AgentMode? Mode)
-public void Typeshift.ConversationDecisions.Deconstruct(out System.Collections.Generic.IReadOnlyList<Typeshift.Decision> Open, out bool CanResume, out System.Collections.Generic.IReadOnlyList<Typeshift.StandingApproval> Standing, out Typeshift.AgentMode? Mode)
+public Typeshift.ConversationDecisions.ConversationDecisions()
 public bool Typeshift.ConversationDecisions.Equals(Typeshift.ConversationDecisions? other)
 public override bool Typeshift.ConversationDecisions.Equals(object? obj)
 public override int Typeshift.ConversationDecisions.GetHashCode()
@@ -207,11 +205,10 @@ public static System.Collections.Generic.IReadOnlyList<Typeshift.ConversationEnt
 public static Typeshift.ConversationEntries.extension(System.Collections.Generic.IReadOnlyList<Typeshift.ConversationEntry>)
 public System.Collections.Generic.IReadOnlyList<Typeshift.ConversationEntry> Typeshift.ConversationEntries.extension(System.Collections.Generic.IReadOnlyList<Typeshift.ConversationEntry>).SinceLastSummary()
 public sealed record Typeshift.ConversationEntry : Typeshift.IStorable<Typeshift.ConversationEntry>, Typeshift.Generated.IJsonStorable<Typeshift.ConversationEntry>, System.IEquatable<Typeshift.ConversationEntry>
-public string Typeshift.ConversationEntry.Agent { get; init; }
-public System.DateTimeOffset Typeshift.ConversationEntry.At { get; init; }
+public required string Typeshift.ConversationEntry.Agent { get; init; }
+public required System.DateTimeOffset Typeshift.ConversationEntry.At { get; init; }
 public System.Collections.Generic.IReadOnlyDictionary<string, string>? Typeshift.ConversationEntry.BackgroundCalls { get; init; }
-public Typeshift.ConversationEntry.ConversationEntry(string Agent, System.Collections.Generic.IReadOnlyList<Microsoft.Extensions.AI.ChatMessage> Messages, System.DateTimeOffset At)
-public void Typeshift.ConversationEntry.Deconstruct(out string Agent, out System.Collections.Generic.IReadOnlyList<Microsoft.Extensions.AI.ChatMessage> Messages, out System.DateTimeOffset At)
+public Typeshift.ConversationEntry.ConversationEntry()
 public static Typeshift.ConversationEntry Typeshift.ConversationEntry.Deserialize(string json)
 public bool Typeshift.ConversationEntry.EndsRun { get; init; }
 public bool Typeshift.ConversationEntry.Equals(Typeshift.ConversationEntry? other)
@@ -263,9 +260,8 @@ public static Typeshift.DecisionAnswer Typeshift.DecisionAnswer.Approve(string d
 public static Typeshift.DecisionAnswer Typeshift.DecisionAnswer.ApproveForConversation(string decisionId)
 public static Typeshift.DecisionAnswer Typeshift.DecisionAnswer.ApprovePlan(string decisionId, Typeshift.AgentMode mode)
 public bool Typeshift.DecisionAnswer.Approved { get; init; }
-public Typeshift.DecisionAnswer.DecisionAnswer(string DecisionId)
-public string Typeshift.DecisionAnswer.DecisionId { get; init; }
-public void Typeshift.DecisionAnswer.Deconstruct(out string DecisionId)
+public Typeshift.DecisionAnswer.DecisionAnswer()
+public required string Typeshift.DecisionAnswer.DecisionId { get; init; }
 public bool Typeshift.DecisionAnswer.Equals(Typeshift.DecisionAnswer? other)
 public override bool Typeshift.DecisionAnswer.Equals(object? obj)
 public bool Typeshift.DecisionAnswer.ForConversation { get; init; }
@@ -290,15 +286,9 @@ public Typeshift.DecisionRequestContent.DecisionRequestContent(Typeshift.Decisio
 public sealed class Typeshift.DecisionUnavailableException : System.InvalidOperationException
 public Typeshift.DecisionUnavailableException.DecisionUnavailableException(string message, System.Collections.Generic.IReadOnlyList<string> tools)
 public System.Collections.Generic.IReadOnlyList<string> Typeshift.DecisionUnavailableException.Tools { get; }
-public sealed record Typeshift.FileStoreOptions : System.IEquatable<Typeshift.FileStoreOptions>
-public bool Typeshift.FileStoreOptions.Equals(Typeshift.FileStoreOptions? other)
-public override bool Typeshift.FileStoreOptions.Equals(object? obj)
+public sealed class Typeshift.FileStoreOptions
 public Typeshift.FileStoreOptions.FileStoreOptions()
 public string Typeshift.FileStoreOptions.Folder { get; set; }
-public override int Typeshift.FileStoreOptions.GetHashCode()
-public override string Typeshift.FileStoreOptions.ToString()
-public static bool Typeshift.FileStoreOptions.operator !=(Typeshift.FileStoreOptions? left, Typeshift.FileStoreOptions? right)
-public static bool Typeshift.FileStoreOptions.operator ==(Typeshift.FileStoreOptions? left, Typeshift.FileStoreOptions? right)
 public static class Typeshift.FunctionInvocationContextExtensions
 public static Typeshift.FunctionInvocationContextExtensions.extension(Microsoft.Extensions.AI.FunctionInvocationContext)
 public Typeshift.AgentRun Typeshift.FunctionInvocationContextExtensions.extension(Microsoft.Extensions.AI.FunctionInvocationContext).Run { get; }
@@ -544,16 +534,15 @@ public System.Threading.Tasks.Task<long> Typeshift.InMemoryTypeshiftStore<TId>.S
 public System.Threading.Tasks.Task<long> Typeshift.InMemoryTypeshiftStore<TId>.SaveAsync(string kind, string json, long loadedVersion, System.Threading.CancellationToken ct)
 public System.Threading.Tasks.Task<long> Typeshift.InMemoryTypeshiftStore<TId>.SaveDecisionsAsync(TId conversation, string json, long loadedVersion, System.Threading.CancellationToken ct)
 public sealed record Typeshift.LiveRun<TId> : System.IEquatable<Typeshift.LiveRun<TId>>
-public string Typeshift.LiveRun<TId>.Agent { get; init; }
-public TId Typeshift.LiveRun<TId>.Conversation { get; init; }
-public void Typeshift.LiveRun<TId>.Deconstruct(out TId Conversation, out string Agent, out string Model, out System.DateTimeOffset StartedAt)
+public required string Typeshift.LiveRun<TId>.Agent { get; init; }
+public required TId Typeshift.LiveRun<TId>.Conversation { get; init; }
 public bool Typeshift.LiveRun<TId>.Ended { get; init; }
 public bool Typeshift.LiveRun<TId>.Equals(Typeshift.LiveRun<TId>? other)
 public override bool Typeshift.LiveRun<TId>.Equals(object? obj)
 public override int Typeshift.LiveRun<TId>.GetHashCode()
-public Typeshift.LiveRun<TId>.LiveRun(TId Conversation, string Agent, string Model, System.DateTimeOffset StartedAt)
-public string Typeshift.LiveRun<TId>.Model { get; init; }
-public System.DateTimeOffset Typeshift.LiveRun<TId>.StartedAt { get; init; }
+public Typeshift.LiveRun<TId>.LiveRun()
+public required string Typeshift.LiveRun<TId>.Model { get; init; }
+public required System.DateTimeOffset Typeshift.LiveRun<TId>.StartedAt { get; init; }
 public override string Typeshift.LiveRun<TId>.ToString()
 public static bool Typeshift.LiveRun<TId>.operator !=(Typeshift.LiveRun<TId>? left, Typeshift.LiveRun<TId>? right)
 public static bool Typeshift.LiveRun<TId>.operator ==(Typeshift.LiveRun<TId>? left, Typeshift.LiveRun<TId>? right)
@@ -607,15 +596,14 @@ public override string Typeshift.PlanDecision.ToString()
 public static bool Typeshift.PlanDecision.operator !=(Typeshift.PlanDecision? left, Typeshift.PlanDecision? right)
 public static bool Typeshift.PlanDecision.operator ==(Typeshift.PlanDecision? left, Typeshift.PlanDecision? right)
 public sealed record Typeshift.Question : System.IEquatable<Typeshift.Question>
-public void Typeshift.Question.Deconstruct(out string Header, out string Text, out System.Collections.Generic.IReadOnlyList<Typeshift.QuestionOption> Options, out bool MultiSelect)
 public bool Typeshift.Question.Equals(Typeshift.Question? other)
 public override bool Typeshift.Question.Equals(object? obj)
 public override int Typeshift.Question.GetHashCode()
-public string Typeshift.Question.Header { get; init; }
+public required string Typeshift.Question.Header { get; init; }
 public bool Typeshift.Question.MultiSelect { get; init; }
-public System.Collections.Generic.IReadOnlyList<Typeshift.QuestionOption> Typeshift.Question.Options { get; init; }
-public Typeshift.Question.Question(string Header, string Text, System.Collections.Generic.IReadOnlyList<Typeshift.QuestionOption> Options, bool MultiSelect)
-public string Typeshift.Question.Text { get; init; }
+public required System.Collections.Generic.IReadOnlyList<Typeshift.QuestionOption> Typeshift.Question.Options { get; init; }
+public Typeshift.Question.Question()
+public required string Typeshift.Question.Text { get; init; }
 public override string Typeshift.Question.ToString()
 public static bool Typeshift.Question.operator !=(Typeshift.Question? left, Typeshift.Question? right)
 public static bool Typeshift.Question.operator ==(Typeshift.Question? left, Typeshift.Question? right)
@@ -644,13 +632,12 @@ public override string Typeshift.QuestionDecision.ToString()
 public static bool Typeshift.QuestionDecision.operator !=(Typeshift.QuestionDecision? left, Typeshift.QuestionDecision? right)
 public static bool Typeshift.QuestionDecision.operator ==(Typeshift.QuestionDecision? left, Typeshift.QuestionDecision? right)
 public sealed record Typeshift.QuestionOption : System.IEquatable<Typeshift.QuestionOption>
-public void Typeshift.QuestionOption.Deconstruct(out string Label, out string Description)
-public string Typeshift.QuestionOption.Description { get; init; }
+public required string Typeshift.QuestionOption.Description { get; init; }
 public bool Typeshift.QuestionOption.Equals(Typeshift.QuestionOption? other)
 public override bool Typeshift.QuestionOption.Equals(object? obj)
 public override int Typeshift.QuestionOption.GetHashCode()
-public string Typeshift.QuestionOption.Label { get; init; }
-public Typeshift.QuestionOption.QuestionOption(string Label, string Description)
+public required string Typeshift.QuestionOption.Label { get; init; }
+public Typeshift.QuestionOption.QuestionOption()
 public override string Typeshift.QuestionOption.ToString()
 public static bool Typeshift.QuestionOption.operator !=(Typeshift.QuestionOption? left, Typeshift.QuestionOption? right)
 public static bool Typeshift.QuestionOption.operator ==(Typeshift.QuestionOption? left, Typeshift.QuestionOption? right)
@@ -695,15 +682,14 @@ public Typeshift.RunOptionsBuilder Typeshift.RunOptionsBuilder.WithSummaryInstru
 public Typeshift.RunOptionsBuilder Typeshift.RunOptionsBuilder.WithSummaryModel(string model)
 public Typeshift.RunOptionsBuilder Typeshift.RunOptionsBuilder.WithTargetInputTokens(int tokens)
 public sealed record Typeshift.StandingApproval : System.IEquatable<Typeshift.StandingApproval>
-public void Typeshift.StandingApproval.Deconstruct(out string Tool, out string? Server, out System.DateTimeOffset GrantedAt)
 public bool Typeshift.StandingApproval.Equals(Typeshift.StandingApproval? other)
 public override bool Typeshift.StandingApproval.Equals(object? obj)
 public override int Typeshift.StandingApproval.GetHashCode()
-public System.DateTimeOffset Typeshift.StandingApproval.GrantedAt { get; init; }
+public required System.DateTimeOffset Typeshift.StandingApproval.GrantedAt { get; init; }
 public string? Typeshift.StandingApproval.Server { get; init; }
-public Typeshift.StandingApproval.StandingApproval(string Tool, string? Server, System.DateTimeOffset GrantedAt)
+public Typeshift.StandingApproval.StandingApproval()
 public override string Typeshift.StandingApproval.ToString()
-public string Typeshift.StandingApproval.Tool { get; init; }
+public required string Typeshift.StandingApproval.Tool { get; init; }
 public static bool Typeshift.StandingApproval.operator !=(Typeshift.StandingApproval? left, Typeshift.StandingApproval? right)
 public static bool Typeshift.StandingApproval.operator ==(Typeshift.StandingApproval? left, Typeshift.StandingApproval? right)
 public sealed class Typeshift.StoreConflictException : System.Exception
@@ -778,16 +764,15 @@ public Typeshift.ToolInclusion<TToolset> Typeshift.ToolInclusion<TToolset>.Confi
 public Typeshift.ToolInclusion<TToolset> Typeshift.ToolInclusion<TToolset>.Include(System.Func<Typeshift.ToolList<TToolset>, Typeshift.ToolName> tool)
 public Typeshift.ToolInclusion<TToolset> Typeshift.ToolInclusion<TToolset>.RequiresApproval(System.Func<Typeshift.ToolList<TToolset>, Typeshift.ToolName> tool)
 public sealed record Typeshift.ToolInfo : System.IEquatable<Typeshift.ToolInfo>
-public void Typeshift.ToolInfo.Deconstruct(out string Name, out string? Description, out bool IsReadOnly, out bool RequiresApproval)
 public string? Typeshift.ToolInfo.Description { get; init; }
 public bool Typeshift.ToolInfo.Equals(Typeshift.ToolInfo? other)
 public override bool Typeshift.ToolInfo.Equals(object? obj)
 public override int Typeshift.ToolInfo.GetHashCode()
 public bool Typeshift.ToolInfo.IsReadOnly { get; init; }
-public string Typeshift.ToolInfo.Name { get; init; }
+public required string Typeshift.ToolInfo.Name { get; init; }
 public bool Typeshift.ToolInfo.RequiresApproval { get; init; }
 public override string Typeshift.ToolInfo.ToString()
-public Typeshift.ToolInfo.ToolInfo(string Name, string? Description, bool IsReadOnly, bool RequiresApproval)
+public Typeshift.ToolInfo.ToolInfo()
 public static bool Typeshift.ToolInfo.operator !=(Typeshift.ToolInfo? left, Typeshift.ToolInfo? right)
 public static bool Typeshift.ToolInfo.operator ==(Typeshift.ToolInfo? left, Typeshift.ToolInfo? right)
 public sealed class Typeshift.ToolList<TToolset> where TToolset : Typeshift.Toolset
@@ -807,15 +792,14 @@ public string? Typeshift.Toolset.DisplayName { get; }
 protected Typeshift.Toolset.Toolset()
 protected void Typeshift.Toolset.WithDisplayName(string displayName)
 public sealed record Typeshift.ToolsetInfo : System.IEquatable<Typeshift.ToolsetInfo>
-public void Typeshift.ToolsetInfo.Deconstruct(out System.Type Type, out string? DisplayName, out System.Collections.Generic.IReadOnlyList<Typeshift.ToolInfo> Tools)
 public string? Typeshift.ToolsetInfo.DisplayName { get; init; }
 public bool Typeshift.ToolsetInfo.Equals(Typeshift.ToolsetInfo? other)
 public override bool Typeshift.ToolsetInfo.Equals(object? obj)
 public override int Typeshift.ToolsetInfo.GetHashCode()
 public override string Typeshift.ToolsetInfo.ToString()
 public System.Collections.Generic.IReadOnlyList<Typeshift.ToolInfo> Typeshift.ToolsetInfo.Tools { get; init; }
-public Typeshift.ToolsetInfo.ToolsetInfo(System.Type Type, string? DisplayName, System.Collections.Generic.IReadOnlyList<Typeshift.ToolInfo> Tools)
-public System.Type Typeshift.ToolsetInfo.Type { get; init; }
+public Typeshift.ToolsetInfo.ToolsetInfo()
+public required System.Type Typeshift.ToolsetInfo.Type { get; init; }
 public static bool Typeshift.ToolsetInfo.operator !=(Typeshift.ToolsetInfo? left, Typeshift.ToolsetInfo? right)
 public static bool Typeshift.ToolsetInfo.operator ==(Typeshift.ToolsetInfo? left, Typeshift.ToolsetInfo? right)
 public sealed class Typeshift.ToolsetUse<TToolset> where TToolset : Typeshift.Toolset

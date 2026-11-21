@@ -151,19 +151,41 @@ public sealed class ConversationTracker<TId> where TId : notnull
     private static bool IsOfIdType(ConversationRun run) => run.Conversation is StoreId<TId>;
 
     private static LiveRun<TId> Live(ConversationRun run) =>
-        new(((StoreId<TId>)run.Conversation!).Id, run.Agent, run.Model, run.StartedAt);
+        new()
+        {
+            Conversation = ((StoreId<TId>)run.Conversation!).Id,
+            Agent = run.Agent,
+            Model = run.Model,
+            StartedAt = run.StartedAt
+        };
 }
 
 /// <summary>
 /// A run of a conversation in this container.
 /// </summary>
-/// <param name="Conversation">The conversation's id.</param>
-/// <param name="Agent">The name of the agent that answers.</param>
-/// <param name="Model">The model it answers with.</param>
-/// <param name="StartedAt">When the run started.</param>
 /// <typeparam name="TId">The id type.</typeparam>
-public sealed record LiveRun<TId>(TId Conversation, string Agent, string Model, DateTimeOffset StartedAt)
+public sealed record LiveRun<TId>
 {
+    /// <summary>
+    /// The conversation's id.
+    /// </summary>
+    public required TId Conversation { get; init; }
+
+    /// <summary>
+    /// The name of the agent that answers.
+    /// </summary>
+    public required string Agent { get; init; }
+
+    /// <summary>
+    /// The model it answers with.
+    /// </summary>
+    public required string Model { get; init; }
+
+    /// <summary>
+    /// When the run started.
+    /// </summary>
+    public required DateTimeOffset StartedAt { get; init; }
+
     /// <summary>
     /// Whether the run has ended; only <see cref="ConversationTracker{TId}.WatchRunsAsync"/> reports runs that ended.
     /// </summary>

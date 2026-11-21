@@ -57,7 +57,15 @@ public class DecisionTestData(Faker faker)
         return new DecisionDocument
         {
             Mode = AgentMode.Plan,
-            Standing = [new StandingApproval(faker.Hacker.Verb(), $"{faker.Hacker.Noun()}-server", asked)],
+            Standing =
+            [
+                new StandingApproval
+                {
+                    Tool = faker.Hacker.Verb(),
+                    Server = $"{faker.Hacker.Noun()}-server",
+                    GrantedAt = asked
+                }
+            ],
             Batch = new DecisionBatch(
                 faker.Lorem.Word(),
                 asked,

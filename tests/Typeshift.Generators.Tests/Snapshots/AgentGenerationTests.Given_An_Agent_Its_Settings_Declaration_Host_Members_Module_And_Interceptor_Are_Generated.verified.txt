@@ -1340,7 +1340,7 @@ namespace System.Runtime.CompilerServices
 #nullable enable
 #pragma warning disable CS0612, CS0618
 
-[assembly: global::Typeshift.Generated.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule), 22)]
+[assembly: global::Typeshift.Generated.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule), 23)]
 
 namespace Typeshift.Generated;
 
@@ -1363,9 +1363,9 @@ public static class SubjectModule
         if (!global::Typeshift.Generated.ModuleRegistration.TryAddModule(services, typeof(SubjectModule))) return;
 
         global::Typeshift.Generated.ModuleRegistration.AddToolset(services, static () => new global::Demo.TicketToolset(),
-            new global::Typeshift.ToolInfo("search_tickets", "Searches tickets.", IsReadOnly: false, RequiresApproval: false),
-            new global::Typeshift.ToolInfo("close_ticket", "Closes a ticket.", IsReadOnly: false, RequiresApproval: false),
-            new global::Typeshift.ToolInfo("delete_ticket", "Deletes a ticket.", IsReadOnly: false, RequiresApproval: false));
+            new global::Typeshift.ToolInfo { Name = "search_tickets", Description = "Searches tickets.", IsReadOnly = false, RequiresApproval = false },
+            new global::Typeshift.ToolInfo { Name = "close_ticket", Description = "Closes a ticket.", IsReadOnly = false, RequiresApproval = false },
+            new global::Typeshift.ToolInfo { Name = "delete_ticket", Description = "Deletes a ticket.", IsReadOnly = false, RequiresApproval = false });
         global::Typeshift.Generated.ModuleRegistration.AddAgent(services, static () => new global::Demo.SupportAgent(), "SupportAgent");
     }
 }

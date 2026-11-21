@@ -8,7 +8,12 @@ public static class Steps
     private const string Agent = "probe_agent";
 
     public static ConversationEntry Entry(params ChatMessage[] messages) =>
-        new(Agent, messages, DateTimeOffset.UnixEpoch);
+        new()
+        {
+            Agent = Agent,
+            Messages = messages,
+            At = DateTimeOffset.UnixEpoch
+        };
 
     public static ChatMessage Input(string text) => new(ChatRole.User, text);
 

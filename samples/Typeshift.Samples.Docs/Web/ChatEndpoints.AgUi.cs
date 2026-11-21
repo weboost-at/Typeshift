@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using AGUI.Abstractions;
 using AGUI.Server;
 using Microsoft.AspNetCore.Builder;
@@ -77,9 +78,14 @@ internal static partial class ChatEndpoints
 
     // begin-snippet: ag-ui-answer
     // A resolved interrupt's payload is the answer endpoint's body without the decision's id: {"approved":true}
-    private static DecisionAnswer Answer(AGUIResume resume) =>
-        resume is { Status: ResumeStatus.Resolved, Payload: { } payload }
-            ? payload.Deserialize<DecisionAnswer>(AgUiJson)! with { DecisionId = resume.InterruptId }
-            : DecisionAnswer.Reject(resume.InterruptId);
+    private static DecisionAnswer Answer(AGUIResume resume)
+    {
+        if (resume is not { Status: ResumeStatus.Resolved, Payload: { } payload })
+            return DecisionAnswer.Reject(resume.InterruptId);
+
+        var body = JsonObject.Create(payload)!;
+        body["decisionId"] = resume.InterruptId;
+        return body.Deserialize<DecisionAnswer>(AgUiJson)!;
+    }
     // end-snippet
 }

@@ -193,7 +193,12 @@ public class ConversationEntryJsonTests : UnitTestBase
     {
         // Arrange
         var message = new ChatMessage(ChatRole.User, Data.Persistence.TextOutsideAscii);
-        var entry = new ConversationEntry("probe_agent", [message], Time.GetUtcNow());
+        var entry = new ConversationEntry
+        {
+            Agent = "probe_agent",
+            Messages = [message],
+            At = Time.GetUtcNow()
+        };
 
         // Act
         var json = entry.Serialize();
@@ -207,7 +212,12 @@ public class ConversationEntryJsonTests : UnitTestBase
     {
         // Arrange
         var message = new ChatMessage(ChatRole.User, $"<script>{Data.Tool.Query}</script>");
-        var entry = new ConversationEntry("probe_agent", [message], Time.GetUtcNow());
+        var entry = new ConversationEntry
+        {
+            Agent = "probe_agent",
+            Messages = [message],
+            At = Time.GetUtcNow()
+        };
 
         // Act
         var json = entry.Serialize();
@@ -271,10 +281,12 @@ public class ConversationEntryJsonTests : UnitTestBase
     {
         // Arrange
         var picture = ContentToolset.Drawn(Data.Tool.Query);
-        var entry = new ConversationEntry(
-            "probe_agent",
-            [new ChatMessage(ChatRole.Tool, [new FunctionResultContent(Data.Tool.CallId, picture)])],
-            DateTimeOffset.UnixEpoch);
+        var entry = new ConversationEntry
+        {
+            Agent = "probe_agent",
+            Messages = [new ChatMessage(ChatRole.Tool, [new FunctionResultContent(Data.Tool.CallId, picture)])],
+            At = DateTimeOffset.UnixEpoch
+        };
 
         // Act
         var read = ConversationEntry.Deserialize(entry.Serialize());
@@ -288,10 +300,12 @@ public class ConversationEntryJsonTests : UnitTestBase
     {
         // Arrange
         AIContent[] contents = [new TextContent(Data.Tool.Query), ContentToolset.Drawn(Data.Tool.Query)];
-        var entry = new ConversationEntry(
-            "probe_agent",
-            [new ChatMessage(ChatRole.Tool, [new FunctionResultContent(Data.Tool.CallId, contents)])],
-            DateTimeOffset.UnixEpoch);
+        var entry = new ConversationEntry
+        {
+            Agent = "probe_agent",
+            Messages = [new ChatMessage(ChatRole.Tool, [new FunctionResultContent(Data.Tool.CallId, contents)])],
+            At = DateTimeOffset.UnixEpoch
+        };
 
         // Act
         var read = ConversationEntry.Deserialize(entry.Serialize());
@@ -307,14 +321,17 @@ public class ConversationEntryJsonTests : UnitTestBase
     public void Given_A_Tool_Result_Of_Content_The_Content_Reads_Back_Without_The_Mark()
     {
         // Arrange
-        var entry = new ConversationEntry(
-            "probe_agent",
+        var entry = new ConversationEntry
+        {
+            Agent = "probe_agent",
+            Messages =
             [
                 new ChatMessage(
                     ChatRole.Tool,
                     [new FunctionResultContent(Data.Tool.CallId, ContentToolset.Drawn(Data.Tool.Query))])
             ],
-            DateTimeOffset.UnixEpoch);
+            At = DateTimeOffset.UnixEpoch
+        };
 
         // Act
         var read = ConversationEntry.Deserialize(entry.Serialize());
@@ -328,10 +345,12 @@ public class ConversationEntryJsonTests : UnitTestBase
     {
         // Arrange
         var json = JsonElement.Parse("""{"$type":"text","text":"not content"}""");
-        var entry = new ConversationEntry(
-            "probe_agent",
-            [new ChatMessage(ChatRole.Tool, [new FunctionResultContent(Data.Tool.CallId, json)])],
-            DateTimeOffset.UnixEpoch);
+        var entry = new ConversationEntry
+        {
+            Agent = "probe_agent",
+            Messages = [new ChatMessage(ChatRole.Tool, [new FunctionResultContent(Data.Tool.CallId, json)])],
+            At = DateTimeOffset.UnixEpoch
+        };
 
         // Act
         var read = ConversationEntry.Deserialize(entry.Serialize());

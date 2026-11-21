@@ -32,8 +32,13 @@ internal sealed class RuntimeCatalog
             .. _agents.Select(registration =>
             {
                 var agent = registration.Agent(services);
-                return new AgentInfo(registration.Type, agent.Name, registration.Kind, agent.Description)
+
+                return new AgentInfo
                 {
+                    Type = registration.Type,
+                    Name = agent.Name,
+                    Kind = registration.Kind,
+                    Description = agent.Description,
                     SwitchableTools = agent.GeneratedDeclaration.SwitchableTools
                 };
             })
@@ -41,10 +46,12 @@ internal sealed class RuntimeCatalog
 
         Toolsets =
         [
-            .. services.GetServices<ToolsetRegistration>().Select(registration => new ToolsetInfo(
-                registration.Type,
-                registration.Toolset(services).DisplayName,
-                registration.Tools))
+            .. services.GetServices<ToolsetRegistration>().Select(registration => new ToolsetInfo
+            {
+                Type = registration.Type,
+                DisplayName = registration.Toolset(services).DisplayName,
+                Tools = registration.Tools
+            })
         ];
     }
 

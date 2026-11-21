@@ -11,20 +11,31 @@ namespace Typeshift;
 /// of a run. A conversation is its entries in order; a run whose entries have no ending one was interrupted, unless it
 /// is still going on, in this container or another.
 /// </summary>
-/// <param name="Agent">The name of the agent the step belongs to.</param>
-/// <param name="Messages">The step's messages; none for the end of a run that answered.</param>
-/// <param name="At">When the step was stored.</param>
 // D44: System.Text.Json and Newtonsoft.Json take entries as they are, in their stored JSON
 [JsonConverter(typeof(StorableJsonConverter<ConversationEntry>))]
 [TypeConverter(typeof(StorableTypeConverter<ConversationEntry>))]
-public sealed record ConversationEntry(string Agent, IReadOnlyList<ChatMessage> Messages, DateTimeOffset At)
-    : IStorable<ConversationEntry>, IJsonStorable<ConversationEntry>
+public sealed record ConversationEntry : IStorable<ConversationEntry>, IJsonStorable<ConversationEntry>
 {
     // D78: the content types Microsoft.Extensions.AI's contract writes; one of any other type fails the whole entry
     private static readonly HashSet<Type>? WritableContents =
         Contract<AIContent>().PolymorphismOptions is { } contents
             ? [typeof(AIContent), .. contents.DerivedTypes.Select(content => content.DerivedType)]
             : null;
+
+    /// <summary>
+    /// The name of the agent the step belongs to.
+    /// </summary>
+    public required string Agent { get; init; }
+
+    /// <summary>
+    /// The step's messages; none for the end of a run that answered.
+    /// </summary>
+    public IReadOnlyList<ChatMessage> Messages { get; init; } = [];
+
+    /// <summary>
+    /// When the step was stored.
+    /// </summary>
+    public required DateTimeOffset At { get; init; }
 
     /// <summary>
     /// The entry's number in its conversation: one past the highest the run that appended it had loaded or appended
@@ -169,11 +180,11 @@ public sealed record ConversationEntry(string Agent, IReadOnlyList<ChatMessage> 
         var estimate = StorableJson.Member(root, "estimatedInputTokens");
         var background = StorableJson.Member(root, "backgroundCalls");
 
-        entry = new ConversationEntry(
-            StorableJson.TryRead(StorableJson.Member(root, "agent"), out string agent) ? agent : "",
-            messages,
-            StorableJson.TryRead(StorableJson.Member(root, "at"), out DateTimeOffset at) ? at : default)
+        entry = new ConversationEntry
         {
+            Agent = StorableJson.TryRead(StorableJson.Member(root, "agent"), out string agent) ? agent : "",
+            Messages = messages,
+            At = StorableJson.TryRead(StorableJson.Member(root, "at"), out DateTimeOffset at) ? at : default,
             // D50: an entry an earlier version stored has no number
             Sequence = StorableJson.TryReadNumber(sequence, out long numbered) ? numbered : 0,
             Model = StorableJson.TryRead(StorableJson.Member(root, "model"), out string model) ? model : null,

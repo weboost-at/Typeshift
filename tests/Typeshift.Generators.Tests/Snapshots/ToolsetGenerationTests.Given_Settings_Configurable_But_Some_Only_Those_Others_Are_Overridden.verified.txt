@@ -187,7 +187,7 @@ partial class KnowledgeToolset
 #nullable enable
 #pragma warning disable CS0612, CS0618
 
-[assembly: global::Typeshift.Generated.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule), 22)]
+[assembly: global::Typeshift.Generated.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule), 23)]
 
 namespace Typeshift.Generated;
 
@@ -209,6 +209,6 @@ public static class SubjectModule
         if (!global::Typeshift.Generated.ModuleRegistration.TryAddModule(services, typeof(SubjectModule))) return;
 
         global::Typeshift.Generated.ModuleRegistration.AddToolset(services, static () => new global::Demo.KnowledgeToolset(),
-            new global::Typeshift.ToolInfo("search_articles", "Searches the help center.", IsReadOnly: false, RequiresApproval: false));
+            new global::Typeshift.ToolInfo { Name = "search_articles", Description = "Searches the help center.", IsReadOnly = false, RequiresApproval = false });
     }
 }

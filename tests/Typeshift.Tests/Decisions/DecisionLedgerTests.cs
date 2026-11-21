@@ -209,7 +209,12 @@ public class DecisionLedgerTests : LedgerTestBase
     {
         // Arrange
         var batch = Batch(Plan(Data.Tool.CallId));
-        var posted = new DecisionAnswer(batch.Ids.Single()) { Approved = true, Mode = AgentMode.Plan };
+        var posted = new DecisionAnswer
+        {
+            DecisionId = batch.Ids.Single(),
+            Approved = true,
+            Mode = AgentMode.Plan
+        };
         await Ledger.OpenAsync(Conversation, batch, Ct);
 
         // Act
@@ -224,7 +229,11 @@ public class DecisionLedgerTests : LedgerTestBase
     {
         // Arrange
         var batch = Batch(Plan(Data.Tool.CallId));
-        var posted = new DecisionAnswer(batch.Ids.Single()) { Approved = true };
+        var posted = new DecisionAnswer
+        {
+            DecisionId = batch.Ids.Single(),
+            Approved = true
+        };
         await Ledger.OpenAsync(Conversation, batch, Ct);
 
         // Act
@@ -239,7 +248,12 @@ public class DecisionLedgerTests : LedgerTestBase
     {
         // Arrange
         var batch = Batch(Approval(Data.Tool.CallId));
-        var posted = new DecisionAnswer(batch.Ids.Single()) { ForConversation = true, Reason = Data.Agent.Reason };
+        var posted = new DecisionAnswer
+        {
+            DecisionId = batch.Ids.Single(),
+            ForConversation = true,
+            Reason = Data.Agent.Reason
+        };
         await Ledger.OpenAsync(Conversation, batch, Ct);
         var answered = await Ledger.RecordAsync(Conversation, [posted], Ct);
 
@@ -296,7 +310,11 @@ public class DecisionLedgerTests : LedgerTestBase
         await Ledger.StartAsync(Conversation, answered.Batch!, Ct);
 
         // Assert
-        (await DocumentAsync()).Standing.Should().Equal(new StandingApproval("close_ticket", null, Time.GetUtcNow()));
+        (await DocumentAsync()).Standing.Should().Equal(new StandingApproval
+        {
+            Tool = "close_ticket",
+            GrantedAt = Time.GetUtcNow()
+        });
     }
 
     [Fact]
