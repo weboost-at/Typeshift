@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Typeshift;
 
 /// <summary>
@@ -64,6 +66,22 @@ public sealed class TypeshiftOptions
             _providerClientIdleTime = value;
         }
     }
+
+    // D89: your app's, since only it knows the exceptions of the client libraries it uses, and Typeshift reads no
+    // member of one by reflection
+    /// <summary>
+    /// Tells the kind of a model call's failure that Typeshift cannot tell itself, such as the exception of a client
+    /// library: return a kind, as <c>ModelFailure.FromStatus(failed.Status)</c> gives one for the status an OpenAI
+    /// client's <c>ClientResultException</c> holds, or null to leave the exception to Typeshift, which knows .NET's
+    /// own. A <see cref="ModelPolicy"/> asks it for each failure of a model call before Typeshift's own table, but for
+    /// a cancellation your app asked for or the policy's timeout, and <see cref="ModelFailure.None"/> lets the
+    /// exception reach your app as the client threw it. Runs call it at the same time, so make it thread-safe.
+    /// More in the guide:
+    /// <see href="https://weboost-at.github.io/Typeshift/guide/models#when-a-provider-fails">When a provider
+    /// fails</see>.
+    /// </summary>
+    [Experimental(ExperimentalIds.ModelPolicy, UrlFormat = ExperimentalIds.ModelPolicyUrl)]
+    public Func<Exception, ModelFailure?>? ClassifyModelFailure { get; set; }
 
     // D63: the key WithDefaultProvider names, which a run that names no provider takes
     internal ProviderId? DefaultProvider { get; set; }

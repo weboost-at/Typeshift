@@ -60,3 +60,6 @@ dotnet_diagnostic.CA1310.severity = error
 # Library awaits do not come back to the caller's synchronization context
 [src/Typeshift/**.cs]
 dotnet_diagnostic.CA2007.severity = error
+
+# D89: the model policy ships experimental, and the library builds its own runs on it
+dotnet_diagnostic.TYPESHIFT001.severity = none

@@ -561,6 +561,33 @@ public System.TimeSpan Typeshift.LiveUpdateOptions.PublishInterval { get; set; }
 public sealed class Typeshift.McpServerUse
 public Typeshift.McpServerUse Typeshift.McpServerUse.ReadOnly()
 public Typeshift.McpServerUse Typeshift.McpServerUse.RequiresApproval()
+public enum Typeshift.ModelFailure
+Typeshift.ModelFailure.Any = Typeshift.ModelFailure.Transient | Typeshift.ModelFailure.Auth | Typeshift.ModelFailure.ContentFilter | Typeshift.ModelFailure.Rejected | Typeshift.ModelFailure.Unknown
+Typeshift.ModelFailure.Auth = 8
+Typeshift.ModelFailure.ContentFilter = 16
+Typeshift.ModelFailure.None = 0
+Typeshift.ModelFailure.RateLimit = 1
+Typeshift.ModelFailure.Rejected = 32
+Typeshift.ModelFailure.Timeout = 2
+Typeshift.ModelFailure.Transient = Typeshift.ModelFailure.RateLimit | Typeshift.ModelFailure.Timeout | Typeshift.ModelFailure.Unavailable
+Typeshift.ModelFailure.Unavailable = 4
+Typeshift.ModelFailure.Unknown = 64
+public sealed record Typeshift.ModelPolicy : System.IEquatable<Typeshift.ModelPolicy>
+public bool Typeshift.ModelPolicy.Equals(Typeshift.ModelPolicy? other)
+public override bool Typeshift.ModelPolicy.Equals(object? obj)
+public override int Typeshift.ModelPolicy.GetHashCode()
+public static Typeshift.ModelPolicy.Rule Typeshift.ModelPolicy.Handle(Typeshift.ModelFailure failures)
+public static Typeshift.ModelPolicy Typeshift.ModelPolicy.None { get; }
+public Typeshift.ModelPolicy.Rule Typeshift.ModelPolicy.Or(Typeshift.ModelFailure failures)
+public readonly struct Typeshift.ModelPolicy.Rule
+public Typeshift.ModelPolicy Typeshift.ModelPolicy.Rule.FallbackTo<TProviderId>(TProviderId provider, string model) where TProviderId : notnull
+public Typeshift.ModelPolicy Typeshift.ModelPolicy.Rule.FallbackToModel(string model)
+public Typeshift.ModelPolicy Typeshift.ModelPolicy.Rule.FallbackToProvider<TProviderId>(TProviderId provider) where TProviderId : notnull
+public Typeshift.ModelPolicy Typeshift.ModelPolicy.Rule.Retry(int times, System.TimeSpan delay = default(System.TimeSpan), double backoff = 2)
+public Typeshift.ModelPolicy Typeshift.ModelPolicy.Timeout(System.TimeSpan untilFirstUpdate)
+public override string Typeshift.ModelPolicy.ToString()
+public static bool Typeshift.ModelPolicy.operator !=(Typeshift.ModelPolicy? left, Typeshift.ModelPolicy? right)
+public static bool Typeshift.ModelPolicy.operator ==(Typeshift.ModelPolicy? left, Typeshift.ModelPolicy? right)
 public sealed class Typeshift.NothingToResumeException : System.InvalidOperationException
 public object Typeshift.NothingToResumeException.Conversation { get; }
 public Typeshift.NothingToResumeException.NothingToResumeException(string message, object conversation)
@@ -805,7 +832,12 @@ public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithStore<TStore>(S
 public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithStore<TStore>(TStore store, bool replace = false) where TStore : class
 public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithStore<TStore>(bool replace = false) where TStore : class
 public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithToolMiddleware<TMiddleware>() where TMiddleware : class, Typeshift.IToolMiddleware
+public static class Typeshift.TypeshiftExtensions
+public static Typeshift.ModelFailure Typeshift.TypeshiftExtensions.FromStatus(int status)
+public static Typeshift.TypeshiftExtensions.extension(Typeshift.ModelFailure)
+public static Typeshift.ModelFailure Typeshift.TypeshiftExtensions.extension(Typeshift.ModelFailure).FromStatus(int status)
 public sealed class Typeshift.TypeshiftOptions
+public System.Func<System.Exception, Typeshift.ModelFailure?>? Typeshift.TypeshiftOptions.ClassifyModelFailure { get; set; }
 public Typeshift.LiveUpdateOptions Typeshift.TypeshiftOptions.LiveUpdates { get; }
 public void Typeshift.TypeshiftOptions.NewConversationIds<TId>(System.Func<TId> create) where TId : notnull
 public bool Typeshift.TypeshiftOptions.PersistAllConversations { get; set; }

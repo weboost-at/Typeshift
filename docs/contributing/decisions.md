@@ -118,6 +118,7 @@ The table lists every entry by its ID, with the section that holds it and whethe
 | D86 | [An agent names its provider and its model apart](#d86) | Runtime | In force |
 | D87 | [The call site hands the host its provider and its model](#d87) | Runtime | In force |
 | D88 | [A provider is a document the app owns](#d88) | Runtime | In force |
+| D89 | [A model policy is a value of rules](#d89) | Runtime | In force |
 
 ## Registration and the generator
 
@@ -812,6 +813,41 @@ The table lists every entry by its ID, with the section that holds it and whethe
   the app already keeps; documents registered under a key on the chain, which nothing asks for yet; a client per run,
   which opens connections per request for client libraries that do not share them; a timer for the idle sweep, one
   more moving part that the next take does as well.
+
+### D89. A model policy is a value of rules {#d89}
+
+- **Status:** owner, shape A of the model selection design; experimental for 0.1.0-alpha.8 (owner).
+- **Context:** a model call that fails, on a rate limit, a provider that is down or a key that was revoked, failed
+  the run, and the only ways on were the client library's own retries and `RetryAsync` once the run had stored the
+  error. The owner: fallback and timeout are typed, written inline like Polly, and overridable at run time; an agent
+  declares its policy, and the app may replace it at run time. No rule per run.
+- **Decision:** `ModelPolicy` is a sealed record, compared by its rules in their order and its timeout, built from
+  the static entry point `ModelPolicy.Handle(failures)`, with `Or(failures)` for each further rule. A rule names the
+  kinds of failure it handles, `ModelFailure` flags, and one action: `Retry(times, delay, backoff)`,
+  `FallbackToModel(model)`, `FallbackToProvider(key)` or `FallbackTo(key, model)`. `Timeout(untilFirstUpdate)`
+  replaces the policy's timeout. `ModelPolicy.None`, no rule and no timeout, is a run's behavior without a policy.
+  A provider of a fallback is a key or a `ChatProvider` document, as `host.WithProvider` takes it (D88): a derived
+  record binds to the generic overload, which tells it apart. The text of a policy writes it as code does, with a
+  document by its `Name` or `Kind`, never its key.
+- **The kinds:** `RateLimit`, `Timeout`, `Unavailable`, `Auth`, `ContentFilter`, `Rejected` and `Unknown`, with
+  `Transient` and `Any` as combinations. Typeshift references no vendor's client library, so it tells the kinds of
+  .NET's own exceptions: the status of an `HttpRequestException` (`ModelFailure.FromStatus`, a static extension
+  member, which an app calls for an exception of its own that holds a status), a request without a status, a
+  socket or IO failure, a `TimeoutException`, and a cancellation the caller did not ask for. Everything else is
+  `Unknown`, and `ContentFilter` comes only from the app.
+- **The classification is the app's:** `TypeshiftOptions.ClassifyModelFailure` answers before the table, and null
+  leaves an exception to it. Reading `Status` from a client library's exception would need reflection over a type
+  Typeshift does not reference, which Native AOT and the repository's rules exclude, and the app knows which library
+  it uses. A lambda of the registration chain runs, as every option there does.
+- **Experimental:** `ModelPolicy`, `ModelFailure`, `FromStatus`, `ClassifyModelFailure`, `WithModelPolicy` and
+  `Agent.ModelPolicy` carry `[Experimental("TYPESHIFT001")]`, whose link opens the policy's section of the guide, so
+  their shape may still change after the last alpha that breaks API. The library builds on them itself, so
+  `.editorconfig` switches the id off for `src/Typeshift`; a test or a sample that uses them disables it by pragma.
+- **Where:** `Hosting/ModelPolicy.cs`, `Hosting/ModelFailure.cs`, `DependencyInjection/TypeshiftOptions.cs`.
+- **Alternatives:** a flat `WithFallback(...)` list, which handles every failure alike; a middleware class of the
+  app's around the provider's client, which is not inline and runs outside the checkpoints; a selector service asked
+  after each failure, the most power and nothing inline, which every app fills with the same counting; reading a
+  vendor's status by reflection; a stable API now, which would freeze a shape no app has used yet.
 
 ### D63. The default provider serves only a run that names none {#d63}
 

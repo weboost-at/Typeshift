@@ -27,6 +27,12 @@ All notable changes to this project are documented here. The format follows
   client no run used for `TypeshiftOptions.ProviderClientIdleTime`, 10 minutes by default, and the rest with the
   runtime. A document's key stays out of its `ToString()`, the run's span, its entries, its logs and its messages,
   which name the document's `Name`, else its `Kind`.
+- `ModelPolicy`, experimental under the id `TYPESHIFT001`, says what a run does when a model call fails, written inline
+  as `ModelPolicy.Handle(ModelFailure.Transient).Retry(2).Or(ModelFailure.Rejected).FallbackToModel("gpt-5-nano")`:
+  try the call again, move to another model or provider, or time out with `Timeout(untilFirstUpdate)`. Policies with
+  the same rules are equal. `ModelFailure` names the kinds a rule handles, Typeshift tells them for .NET's own
+  exceptions, and `TypeshiftOptions.ClassifyModelFailure` tells them for a client library's, with
+  `ModelFailure.FromStatus(status)` for one that holds an HTTP status.
 - `host.CreateChatClientAsync()`, and the agent's generated `CreateChatClientAsync(settings)`, create the client of the
   raw path in one call: they resolve the run's options as `ResolveOptionsAsync` does, and the client keeps them, so
   `using var client = await support.CreateChatClientAsync();` is all a library that takes an `IChatClient` needs.
