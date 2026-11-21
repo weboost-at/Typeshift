@@ -233,6 +233,43 @@ public class ModelPolicyRunTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_No_First_Update_Within_The_Timeout_A_Stream_Tries_The_Call_Again()
+    {
+        // Arrange
+        var policy = ModelPolicy.Handle(ModelFailure.Timeout).Retry(1).Timeout(Patience);
+        ChatClient.Reply(new TaskCompletionSource()).Reply(Text(Data.Tool.Answer));
+
+        var running = Host<PolicyAgent>()
+            .WithModelPolicy(policy)
+            .RunStreamingAsync(Data.Tool.Question, ct: Ct)
+            .ToListAsync(Ct);
+
+        await ChatClient.Requested;
+
+        // Act
+        Time.Advance(Patience);
+        var updates = await running;
+
+        // Assert
+        updates.ToChatResponse().Text.Should().Be(Data.Tool.Answer);
+    }
+
+    [Fact]
+    public async Task Given_A_Copy_With_A_Model_Policy_The_Host_It_Came_From_Keeps_The_Agents()
+    {
+        // Arrange
+        var host = Host<PolicyAgent>();
+        _ = host.WithModelPolicy(ModelPolicy.None);
+        ChatClient.Reply(Unavailable()).Reply(Text(Data.Tool.Answer));
+
+        // Act
+        var response = await host.RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        response.Text.Should().Be(Data.Tool.Answer);
+    }
+
+    [Fact]
     public async Task Given_A_Timeout_No_Rule_Handles_The_Run_Throws_A_Timeout_Naming_The_Pair()
     {
         // Arrange
