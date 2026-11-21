@@ -70,6 +70,7 @@ public System.Threading.Tasks.Task Typeshift.AgentHost<TAgent>.SetModeAsync(Type
 public Typeshift.AgentHost<TAgent> Typeshift.AgentHost<TAgent>.WithConversationId<TId>(TId id) where TId : notnull
 public Typeshift.AgentHost<TAgent> Typeshift.AgentHost<TAgent>.WithConversationId<TId>(TId? id) where TId : struct
 public Typeshift.AgentHost<TAgent> Typeshift.AgentHost<TAgent>.WithModel(string model)
+public Typeshift.AgentHost<TAgent> Typeshift.AgentHost<TAgent>.WithProvider(Typeshift.ChatProvider provider)
 public Typeshift.AgentHost<TAgent> Typeshift.AgentHost<TAgent>.WithProvider<TProviderId>(TProviderId provider) where TProviderId : notnull
 public Typeshift.AgentHost<TAgent> Typeshift.AgentHost<TAgent>.WithSettingsId<TId>(TId id) where TId : notnull
 public Typeshift.AgentHost<TAgent> Typeshift.AgentHost<TAgent>.WithSettingsId<TId>(TId? id) where TId : struct
@@ -143,6 +144,22 @@ public Typeshift.ChatOptionsBuilder Typeshift.ChatOptionsBuilder.WithToolMode(Mi
 public Typeshift.ChatOptionsBuilder Typeshift.ChatOptionsBuilder.WithTools(params Microsoft.Extensions.AI.AITool[] tools)
 public Typeshift.ChatOptionsBuilder Typeshift.ChatOptionsBuilder.WithTopK(int topK)
 public Typeshift.ChatOptionsBuilder Typeshift.ChatOptionsBuilder.WithTopP(float topP)
+public record Typeshift.ChatProvider : System.IEquatable<Typeshift.ChatProvider>
+public string? Typeshift.ChatProvider.ApiKey { get; init; }
+public Typeshift.ChatProvider.ChatProvider()
+protected Typeshift.ChatProvider.ChatProvider(Typeshift.ChatProvider original)
+public System.Uri? Typeshift.ChatProvider.Endpoint { get; init; }
+protected virtual System.Type Typeshift.ChatProvider.EqualityContract { get; }
+public virtual bool Typeshift.ChatProvider.Equals(Typeshift.ChatProvider? other)
+public override bool Typeshift.ChatProvider.Equals(object? obj)
+public override int Typeshift.ChatProvider.GetHashCode()
+public required string Typeshift.ChatProvider.Kind { get; init; }
+public string? Typeshift.ChatProvider.Model { get; init; }
+public string? Typeshift.ChatProvider.Name { get; init; }
+protected virtual bool Typeshift.ChatProvider.PrintMembers(System.Text.StringBuilder builder)
+public override string Typeshift.ChatProvider.ToString()
+public static bool Typeshift.ChatProvider.operator !=(Typeshift.ChatProvider? left, Typeshift.ChatProvider? right)
+public static bool Typeshift.ChatProvider.operator ==(Typeshift.ChatProvider? left, Typeshift.ChatProvider? right)
 public static class Typeshift.ChatResponseExtensions
 public static TId Typeshift.ChatResponseExtensions.GetConversationId<TId>(Microsoft.Extensions.AI.ChatResponse response) where TId : notnull, System.IParsable<TId>
 public static Typeshift.ChatResponseExtensions.extension(Microsoft.Extensions.AI.ChatMessage)
@@ -469,14 +486,15 @@ abstract System.Threading.Tasks.Task Typeshift.IAgentHost.SetModeAsync(Typeshift
 abstract Typeshift.IAgentHost Typeshift.IAgentHost.WithConversationId<TId>(TId id) where TId : notnull
 abstract Typeshift.IAgentHost Typeshift.IAgentHost.WithConversationId<TId>(TId? id) where TId : struct
 abstract Typeshift.IAgentHost Typeshift.IAgentHost.WithModel(string model)
+abstract Typeshift.IAgentHost Typeshift.IAgentHost.WithProvider(Typeshift.ChatProvider provider)
 abstract Typeshift.IAgentHost Typeshift.IAgentHost.WithProvider<TProviderId>(TProviderId provider) where TProviderId : notnull
 abstract Typeshift.IAgentHost Typeshift.IAgentHost.WithSettingsId<TId>(TId id) where TId : notnull
 abstract Typeshift.IAgentHost Typeshift.IAgentHost.WithSettingsId<TId>(TId? id) where TId : struct
 public interface Typeshift.IAgentSettingsStore
 abstract System.Threading.Tasks.Task<Typeshift.StoredDocument?> Typeshift.IAgentSettingsStore.LoadAsync(string kind, System.Threading.CancellationToken ct)
 abstract System.Threading.Tasks.Task<long> Typeshift.IAgentSettingsStore.SaveAsync(string kind, string json, long loadedVersion, System.Threading.CancellationToken ct)
-public interface Typeshift.IChatClientProvider<TProviderId> where TProviderId : notnull
-abstract System.Threading.Tasks.ValueTask<Microsoft.Extensions.AI.IChatClient> Typeshift.IChatClientProvider<TProviderId>.GetChatClientAsync(TProviderId provider, string model, System.Threading.CancellationToken ct)
+public interface Typeshift.IChatProviderConnector
+abstract System.Threading.Tasks.ValueTask<Microsoft.Extensions.AI.IChatClient> Typeshift.IChatProviderConnector.ConnectAsync(Typeshift.ChatProvider provider, System.Threading.CancellationToken ct)
 public interface Typeshift.IContextProvider
 abstract System.Threading.Tasks.ValueTask<Typeshift.AgentContext> Typeshift.IContextProvider.GetContextAsync(Typeshift.AgentRun run, System.Threading.CancellationToken ct)
 public interface Typeshift.IConversationStore<TId> where TId : notnull
@@ -776,12 +794,12 @@ public Typeshift.ToolsetUse<TToolset> Typeshift.ToolsetUse<TToolset>.RequiresApp
 public sealed class Typeshift.TypeshiftBuilder
 public Microsoft.Extensions.DependencyInjection.IServiceCollection Typeshift.TypeshiftBuilder.Services { get; }
 public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithApprovalRule<TRule>() where TRule : class, Typeshift.IToolApprovalRule
-public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithChatClientProvider<TProvider>() where TProvider : class
 public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithConversationTracker<TId>() where TId : notnull
 public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithDefaultProvider<TProviderId>(TProviderId provider) where TProviderId : notnull
 public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithFileStore(System.Action<Typeshift.FileStoreOptions>? configure = null, bool replace = false)
 public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithMcpToolProvider<TProvider>() where TProvider : class, Typeshift.IMcpToolProvider
 public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithOptions(System.Action<Typeshift.TypeshiftOptions> configure)
+public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithProviderConnector<TConnector>() where TConnector : class, Typeshift.IChatProviderConnector
 public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithRunMiddleware<TMiddleware>() where TMiddleware : class, Typeshift.IRunMiddleware
 public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithStore<TStore>(System.Func<System.IServiceProvider, TStore> create, bool replace = false) where TStore : class
 public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithStore<TStore>(TStore store, bool replace = false) where TStore : class
@@ -791,6 +809,7 @@ public sealed class Typeshift.TypeshiftOptions
 public Typeshift.LiveUpdateOptions Typeshift.TypeshiftOptions.LiveUpdates { get; }
 public void Typeshift.TypeshiftOptions.NewConversationIds<TId>(System.Func<TId> create) where TId : notnull
 public bool Typeshift.TypeshiftOptions.PersistAllConversations { get; set; }
+public System.TimeSpan Typeshift.TypeshiftOptions.ProviderClientIdleTime { get; set; }
 public Typeshift.StoreFailure Typeshift.TypeshiftOptions.StoreFailure { get; set; }
 public Typeshift.TypeshiftOptions.TypeshiftOptions()
 public static class Typeshift.TypeshiftRuntime

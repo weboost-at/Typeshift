@@ -33,10 +33,3 @@ public sealed class NetworkChatClient(ScriptedChatClient inner) : IChatClient
     {
     }
 }
-
-// Serves every model from the test's scripted client, over the network
-public sealed class NetworkChatClientProvider(ScriptedChatClient client) : IChatClientProvider<string>
-{
-    public ValueTask<IChatClient> GetChatClientAsync(string provider, string model, CancellationToken ct) =>
-        ValueTask.FromResult<IChatClient>(new NetworkChatClient(client));
-}

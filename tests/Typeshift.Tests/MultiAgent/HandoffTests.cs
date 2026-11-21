@@ -303,7 +303,7 @@ public class HandoffTests : MultiAgentTestBase
         // Arrange
         var services = new ServiceCollection();
 #pragma warning disable TSH036 // the store counts loads and keeps conversations alone, and the run never asks
-        services.AddTypeshift().WithStore<CountingLoadStore>().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddTypeshift().WithStore<CountingLoadStore>().WithScriptedProviders();
 #pragma warning restore TSH036
         services.AddSingleton(ChatClient).AddSingleton(Models);
 
@@ -336,13 +336,15 @@ public class HandoffTests : MultiAgentTestBase
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddTypeshift().WithStore<InMemoryTypeshiftStore<Guid>>().WithChatClientProvider<GatedBackProvider>();
-        services.AddSingleton(ChatClient).AddSingleton<ProviderGate>();
+        services.AddTypeshift().WithStore<InMemoryTypeshiftStore<Guid>>()
+            .WithStore<GatedBackSettings>(replace: true)
+            .WithScriptedProviders();
+        services.AddSingleton(ChatClient).AddSingleton(Models).AddSingleton<BackGate>();
 
         await using var provider = services.BuildServiceProvider();
         await using var scope = provider.CreateAsyncScope();
         var front = scope.ServiceProvider.GetRequiredService<AgentHost<FrontAgent>>();
-        var gate = provider.GetRequiredService<ProviderGate>();
+        var gate = provider.GetRequiredService<BackGate>();
 
         var answering = new TaskCompletionSource();
 
@@ -372,7 +374,7 @@ public class HandoffTests : MultiAgentTestBase
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddTypeshift().WithStore<GatedEndStore>().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddTypeshift().WithStore<GatedEndStore>().WithScriptedProviders();
         services.AddSingleton(ChatClient).AddSingleton(Models);
 
         await using var provider = services.BuildServiceProvider();
@@ -412,13 +414,15 @@ public class HandoffTests : MultiAgentTestBase
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddTypeshift().WithStore<InMemoryTypeshiftStore<Guid>>().WithChatClientProvider<GatedBackProvider>();
-        services.AddSingleton(ChatClient).AddSingleton<ProviderGate>();
+        services.AddTypeshift().WithStore<InMemoryTypeshiftStore<Guid>>()
+            .WithStore<GatedBackSettings>(replace: true)
+            .WithScriptedProviders();
+        services.AddSingleton(ChatClient).AddSingleton(Models).AddSingleton<BackGate>();
 
         await using var provider = services.BuildServiceProvider();
         await using var scope = provider.CreateAsyncScope();
         var front = scope.ServiceProvider.GetRequiredService<AgentHost<FrontAgent>>();
-        var gate = provider.GetRequiredService<ProviderGate>();
+        var gate = provider.GetRequiredService<BackGate>();
 
         var answering = new TaskCompletionSource();
 
@@ -453,13 +457,15 @@ public class HandoffTests : MultiAgentTestBase
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddTypeshift().WithStore<InMemoryTypeshiftStore<Guid>>().WithChatClientProvider<GatedBackProvider>();
-        services.AddSingleton(ChatClient).AddSingleton<ProviderGate>();
+        services.AddTypeshift().WithStore<InMemoryTypeshiftStore<Guid>>()
+            .WithStore<GatedBackSettings>(replace: true)
+            .WithScriptedProviders();
+        services.AddSingleton(ChatClient).AddSingleton(Models).AddSingleton<BackGate>();
 
         await using var provider = services.BuildServiceProvider();
         await using var scope = provider.CreateAsyncScope();
         var front = scope.ServiceProvider.GetRequiredService<AgentHost<FrontAgent>>();
-        var gate = provider.GetRequiredService<ProviderGate>();
+        var gate = provider.GetRequiredService<BackGate>();
         gate.Failure = new InvalidOperationException(Data.Agent.Reason);
 
         ChatClient

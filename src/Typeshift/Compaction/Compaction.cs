@@ -298,8 +298,9 @@ internal sealed class Compaction(ReportedCall? last)
         var instrumented = run.Services.GetRequiredService<InstrumentedClients>();
 
         var summarized = $"the summary of the agent '{run.Agent.Name}'";
-        var provided = await ChatClients.GetAsync(run.Services, summarized, provider, model, ct).ConfigureAwait(false);
-        using var client = instrumented.Instrument(provided, model);
+        var (provided, hold) = await ChatClients.GetAsync(run.Services, summarized, provider, model, ct)
+            .ConfigureAwait(false);
+        using var client = instrumented.Instrument(provided, model, hold);
 
         var response = await client.GetResponseAsync(
             [

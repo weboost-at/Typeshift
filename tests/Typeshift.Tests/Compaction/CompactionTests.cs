@@ -408,7 +408,11 @@ public class CompactionTests : AgentTestBase
         await RunAsync(Data.Agent.FollowUp, settings);
 
         // Assert
-        Models.Select(asked => asked.Model).Should().EndWith([SummaryModel, CompactingAgent.Model]);
+        Models.Select(asked => asked.Model).Should().Equal(
+            CompactingAgent.Model,
+            SummaryModel,
+            CompactingAgent.Model,
+            CompactingAgent.Model);
         ChatClient.Assert.Request(3).Texts[0].Should().EndWith(Data.Agent.Reason);
     }
 
@@ -491,7 +495,7 @@ public class CompactionTests : AgentTestBase
         // Arrange
         var logs = new WarningLog();
         var services = new ServiceCollection();
-        services.AddTypeshift().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddTypeshift().WithScriptedProviders();
         services.AddSingleton(ChatClient).AddSingleton(Models).AddSingleton<ILoggerFactory>(logs);
 
         await using var provider = services.BuildServiceProvider();

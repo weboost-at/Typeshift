@@ -40,7 +40,6 @@ app runs throws an exception instead, and [Errors at run time](#errors-at-run-ti
 | [TSH027](#tsh027) | Error | Tool type has no JSON metadata for Native AOT or a trimmed app | On build |
 | [TSH028](#tsh028) | Error | Type is no store | While you type |
 | [TSH029](#tsh029) | Error | Provider id type cannot be used | While you type |
-| [TSH030](#tsh030) | Error | Type is no chat client provider | While you type |
 | [TSH031](#tsh031) | Error | C# language version is below 14 | On build |
 | [TSH032](#tsh032) | Warning | Generator read the declaration differently | Both |
 | [TSH033](#tsh033) | Error | Enum of a tool is a number for Native AOT or a trimmed app | On build |
@@ -61,7 +60,7 @@ projects: an editor runs it for a build or for an analysis of the whole solution
 build. "Both" marks a diagnostic with one check inside a class, which shows while you type, and one across classes,
 which shows on build.
 
-TSH021 is retired: the diagnostic it named is gone, and ids are never reused.
+TSH021 and TSH030 are retired: the diagnostics they named are gone, and ids are never reused.
 
 ## Severities and suppression
 
@@ -86,10 +85,11 @@ cannot silence a new mistake. A retired ID reports nothing any more, and you can
 | ID | Was | Retired |
 |---|---|---|
 | TSH021 | Referenced assembly has another id type | In 0.1.0-alpha.6. Ids and providers take their types in code, so projects built with different id types work together. |
+| TSH030 | Type is no chat client provider | In 0.1.0-alpha.8. `IChatClientProvider<T>` and `WithChatClientProvider<T>()` are gone: a provider is a key of a registered client or a document your `IChatProviderConnector` connects, and the constraint of `WithProviderConnector<T>()` checks the class ([Providers your customers bring](./models.md#providers-your-customers-bring)). |
 
-[TSH028](#tsh028), [TSH029](#tsh029) and [TSH030](#tsh030) reported other mistakes up to 0.1.0-alpha.5, about the one
-id type a build had then. An entry that suppresses one of them since those versions silences today's diagnostic, so
-check whether you still mean it.
+[TSH028](#tsh028) and [TSH029](#tsh029) reported other mistakes up to 0.1.0-alpha.5, about the one id type a build
+had then. An entry that suppresses one of them since those versions silences today's diagnostic, so check whether you
+still mean it.
 
 ## TSH001
 
@@ -884,28 +884,6 @@ public partial class HelpAgent : Agent
 Name providers by a string, a number, a `Guid` or an enum, or keep the model out of the settings: an agent whose
 `Settings` store no provider may name one of any type ([The provider id type](./models.md#the-provider-id-type)).
 
-## TSH030
-
-**Type is no chat client provider.** `WithChatClientProvider<TProvider>()` registers the class as each
-`IChatClientProvider<T>` it implements, and this class implements none, so it would serve no run.
-
-<!-- snippet: tsh030 -->
-<a id='snippet-tsh030'></a>
-```cs
-public sealed class Clients;
-
-internal static class Startup
-{
-    public static void Register(IServiceCollection services) =>
-        services.AddTypeshift().WithChatClientProvider<Clients>();
-}
-```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L2998-L3006' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh030' title='Start of snippet'>anchor</a></sup>
-<!-- endSnippet -->
-
-Implement `IChatClientProvider<T>` for the [provider id type](./models.md#the-provider-id-type) of your agents, such
-as `IChatClientProvider<string>`, or pass the class you meant.
-
 ## TSH031
 
 **C# language version is below 14.** The code Typeshift generates for your toolsets and agents is C# 14, so the
@@ -1170,7 +1148,7 @@ internal static class Startup
         Create(client);
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L3670-L3680' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh040' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L3645-L3655' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh040' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The analyzer reports these spellings:
@@ -1204,7 +1182,7 @@ internal sealed class RefundDesk(AgentHost<SupportAgent> support)
     }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L3761-L3772' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh041' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L3736-L3747' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh041' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Run the copy, as in `support.WithSettingsId(customer).RunAsync(question)`, or keep it in a variable and run that
@@ -1235,7 +1213,7 @@ internal sealed class TicketFollowUp(ITypeshiftRuntime runtime)
     }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L3826-L3840' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh042' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L3801-L3815' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh042' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Take the copy without `using`, and dispose the host where its work ends. The analyzer reports nothing for
@@ -1261,7 +1239,7 @@ internal partial class DeskAgent : Agent
     }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L3974-L3984' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh043' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L3949-L3959' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh043' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Remove the `Exclude`, include the tool, or remove the mark. To make a tool ask your app, it has to be offered
@@ -1286,7 +1264,7 @@ internal partial class EchoAgent : Agent
         : this() => WithInstructions(instructions);
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L4115-L4123' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh044' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L4090-L4098' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh044' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The constructor takes the instructions, but `new EchoAgent()` never calls it. Move the declaration into the
@@ -1320,11 +1298,11 @@ Each row links the section that explains it. A word in braces stands for a value
 |---|---|---|---|
 | `InvalidOperationException` | `which names no provider, and no default provider is registered` | The run names no provider, and your app registered no default client and named no default provider | Register a client with `services.AddChatClient(client)`, name one with `WithDefaultProvider(key)`, or name the run's provider ([The default provider](./models.md#the-default-provider)) |
 | `InvalidOperationException` | `No chat client serves {run} on`, `Name a provider that has a client` | The run names a provider that no client is registered under, such as a typo. The message lists the keys your app registered clients under | Name a registered provider, or register a client under it ([Registering clients](./models.md#registering-clients)) |
-| `InvalidOperationException` | `which names no model: the` | Your provider class serves the run's provider, and the run names no model | Name the model, in the agent's code or its settings ([Your own provider](./models.md#your-own-provider)) |
 | `InvalidOperationException` | `No model is named for {run}`, `names no model of its own in its ChatClientMetadata` | No layer names a model, and the client that serves the run was built without one | Name a model at the call site, in the agent's code or its settings, or build the client with one ([The default provider](./models.md#the-default-provider)) |
-| `InvalidOperationException` | `returned no client for` | Your `IChatClientProvider<T>` returned null | Return a client, or throw for a provider it does not serve ([A key per customer](./models.md#a-key-per-customer)) |
+| `InvalidOperationException` | `The IChatProviderConnector returned no client for the provider` | Your connector returned null | Return a client, or throw for a document it cannot connect ([Providers your customers bring](./models.md#providers-your-customers-bring)) |
+| `InvalidOperationException` | `a document the run was handed, since no IChatProviderConnector is registered` | A host was handed a `ChatProvider`, and your app registered no connector | Register one with `WithProviderConnector<TConnector>()` ([Providers your customers bring](./models.md#providers-your-customers-bring)) |
+| `ArgumentException` | `An agent names its provider by its key`, `The default provider is the key of a registered client` | The agent's chain or `WithDefaultProvider` got a `ChatProvider` | Name a key there, and hand the document to the run with `host.WithProvider(document)` ([Providers your customers bring](./models.md#providers-your-customers-bring)) |
 | `InvalidOperationException` | `runs a tool loop of its own` | The client is wrapped in `UseFunctionInvocation()` | Register the client without it ([Wrapping a client](./models.md#wrapping-a-client)) |
-| `InvalidOperationException` | `is no chat client provider: implement` | `WithChatClientProvider<T>()` got a class that implements no `IChatClientProvider<T>` | Implement it ([TSH030](#tsh030)) |
 
 ### Stores
 

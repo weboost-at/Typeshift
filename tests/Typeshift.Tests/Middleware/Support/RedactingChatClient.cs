@@ -40,10 +40,3 @@ public sealed class RedactingChatClient(IChatClient inner) : DelegatingChatClien
         }
     }
 }
-
-// Serves every model from the test's scripted client behind the guardrail
-public sealed class RedactingChatClientProvider(ScriptedChatClient client) : IChatClientProvider<string>
-{
-    public ValueTask<IChatClient> GetChatClientAsync(string provider, string model, CancellationToken ct) =>
-        ValueTask.FromResult<IChatClient>(new RedactingChatClient(client));
-}

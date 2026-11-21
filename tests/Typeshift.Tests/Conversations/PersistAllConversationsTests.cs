@@ -152,7 +152,7 @@ public class PersistAllConversationsTests : MultiAgentTestBase
         services.AddTypeshift()
             .WithStore<InMemoryTypeshiftStore<int>>()
             .WithOptions(options => options.PersistAllConversations = true)
-            .WithChatClientProvider<ScriptedChatClientProvider>();
+            .WithScriptedProviders();
 
         services.AddSingleton(ChatClient).AddSingleton(Models);
 
@@ -182,7 +182,7 @@ public class PersistAllConversationsTests : MultiAgentTestBase
                 options.PersistAllConversations = true;
                 options.NewConversationIds(() => Data.Persistence.NumberId);
             })
-            .WithChatClientProvider<ScriptedChatClientProvider>();
+            .WithScriptedProviders();
 
         services.AddSingleton(ChatClient).AddSingleton(Models);
 
@@ -389,7 +389,7 @@ public class PersistAllConversationsTests : MultiAgentTestBase
         var services = new ServiceCollection();
         services.AddTypeshift()
             .WithStore<InMemoryTypeshiftStore<Guid>>()
-            .WithChatClientProvider<ScriptedChatClientProvider>();
+            .WithScriptedProviders();
         services.AddSingleton(ChatClient).AddSingleton(Models);
 
         await using var provider = services.BuildServiceProvider(validateScopes: true);
@@ -411,7 +411,7 @@ public class PersistAllConversationsTests : MultiAgentTestBase
             .WithStore<InMemoryTypeshiftStore<string>>()
             .WithOptions(options => options.PersistAllConversations = true)
             .WithOptions(options => configure?.Invoke(options))
-            .WithChatClientProvider<ScriptedChatClientProvider>();
+            .WithScriptedProviders();
 
         services.AddSingleton(ChatClient).AddSingleton(Models);
         return services.BuildServiceProvider(validateScopes: true);

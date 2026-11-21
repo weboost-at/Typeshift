@@ -49,7 +49,7 @@ public class LogEventTests : MultiAgentTestBase
         // Assert
         _log.Of("RunResolved").Select(logged => logged.Message).Should().Equal(
             $"Agent probe_agent runs on model {ProbeAgent.Model} of provider {ProbeAgent.ModelProvider}, served by "
-            + "ScriptedChatClient, with the settings of its code.");
+            + $"{nameof(RecordingChatClient)}, with the settings of its code.");
     }
 
     [Fact]
@@ -310,7 +310,7 @@ public class LogEventTests : MultiAgentTestBase
         // Arrange
         var services = new ServiceCollection();
 #pragma warning disable TSH036 // the store fails every append, and the run never asks
-        services.AddTypeshift().WithStore<FailingAppendStore>().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddTypeshift().WithStore<FailingAppendStore>().WithScriptedProviders();
 #pragma warning restore TSH036
         services.AddSingleton(ChatClient).AddSingleton(Models).AddSingleton<ILoggerFactory>(_log);
 
@@ -336,7 +336,7 @@ public class LogEventTests : MultiAgentTestBase
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddTypeshift().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddTypeshift().WithScriptedProviders();
         services.AddSingleton(ChatClient).AddSingleton(Models).AddSingleton<ILoggerFactory>(_log);
 
         await using var provider = services.BuildServiceProvider();

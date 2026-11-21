@@ -197,7 +197,10 @@ an `ISettingsStore<TId>` for a settings id, an `IConversationStore<TId>` for a c
 ### `WithProvider` and `WithModel`
 
 `AgentHost<TAgent> WithProvider<TProviderId>(TProviderId provider)` names the provider that serves the copy's runs,
-by its key, and `AgentHost<TAgent> WithModel(string model)` the model they ask for. Both return a copy of the host,
+by its key, `AgentHost<TAgent> WithProvider(ChatProvider provider)` hands them a provider document of your app's
+([Providers your customers bring](./models.md#providers-your-customers-bring)), and
+`AgentHost<TAgent> WithModel(string model)` names the model they ask for. A record derived from `ChatProvider`
+binds to the generic overload and is taken as the document it is. Both return a copy of the host,
 as `WithSettingsId` does, which keeps the host's ids and what an earlier copy named. They win over the agent's code
 and its settings, and the provider serves the run's sub-agents, handoffs and summary too
 ([Choosing at the call site](./models.md#choosing-at-the-call-site)). `WithProvider` throws an
@@ -288,7 +291,7 @@ streams are done, since they use its scope: once the host or a copy is disposed,
 
 `AddTypeshift()` registers a host per agent as transient, so a host runs with the services of the scope it was
 resolved from. A host from `TypeshiftRuntime.CreateHost<TAgent>()` runs in a scope the runtime created for it
-([The runtime](./registration.md#the-runtime)). Tools, the chat client provider, middleware, context providers,
+([The runtime](./registration.md#the-runtime)). Tools, the provider connector, middleware, context providers,
 approval rules and the MCP tool provider all resolve from the host's scope.
 
 Every member that loads or saves settings under a settings id needs an `ISettingsStore<TId>` of the id's type, and

@@ -48,7 +48,7 @@ An `IRunMiddleware` receives the run as an `AgentRun`:
 | `Agent` | The agent that runs, such as its `Name`. |
 | `Messages` | The resumed conversation, then the input, as the pass began. What context providers add and steering input join the run below run middleware, so they are not among them. |
 | `Options` | The run's resolved `ChatOptions`, with every layer of settings applied. |
-| `Provider` | The [provider](./models.md#registering-clients) that serves the run, as the agent's code or its settings name it; null on the default client. Read-only: the run's client is taken before middleware runs, so a model your middleware sets in `Options` goes to this provider. |
+| `Provider` | The [provider](./models.md#registering-clients) that serves the run: the key the call site, the agent's settings or its code name, the default provider's key, or the `ChatProvider` document the call site handed the run; null on the client registered for every agent. Read-only: the run's client is taken before middleware runs, so a model your middleware sets in `Options` goes to this provider. |
 | `Mode` | The mode the run is in. |
 | `RunOptions` | The run's [run options](./builders.md#runoptionsbuilder), with every layer of settings applied, such as `MaxToolIterations`. |
 | `TryGetSettingsId<TId>(out id)` | The settings id the host was given with `WithSettingsId`, read as a `TId`. False without one, or with one of another type. A sub-agent's run has its caller's. |
@@ -161,7 +161,7 @@ internal sealed partial class RedactedCardNumbers(IChatClient inner) : Delegatin
 - It answers a streaming call from the whole response, because a card number can arrive split over two updates. The
   caller then gets the answer at once. A check that needs less of the text can hold back less.
 
-Register it where you register the client, or return the wrapped client from your `IChatClientProvider`:
+Register it where you register the client, or return the wrapped client from your connector:
 
 <!-- snippet: output-guardrail-registration -->
 <a id='snippet-output-guardrail-registration'></a>

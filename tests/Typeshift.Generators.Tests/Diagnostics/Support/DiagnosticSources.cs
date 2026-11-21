@@ -2672,7 +2672,7 @@ public static class DiagnosticSources
         }
         """;
 
-    public const string ChatClientProviderBeingTyped =
+    public const string ProviderConnectorBeingTyped =
         """
         using Typeshift;
         using Microsoft.Extensions.DependencyInjection;
@@ -2680,7 +2680,7 @@ public static class DiagnosticSources
         internal static class Startup
         {
             public static void Register(IServiceCollection services) =>
-                services.AddTypeshift().WithChatClientProvider<>();
+                services.AddTypeshift().WithProviderConnector<>();
         }
         """;
 
@@ -2937,16 +2937,16 @@ public static class DiagnosticSources
         }
         """;
 
-    // A helper generic over the provider and the store, which its callers' type arguments make one
+    // A helper generic over the connector and the store, which its callers' type arguments make one
     public const string GenericRegistrationHelpers =
         """
         using Typeshift;
 
         internal static class Registration
         {
-            public static TypeshiftBuilder WithClients<T>(TypeshiftBuilder builder)
-                where T : class, IChatClientProvider<string> =>
-                builder.WithChatClientProvider<T>();
+            public static TypeshiftBuilder WithConnector<T>(TypeshiftBuilder builder)
+                where T : class, IChatProviderConnector =>
+                builder.WithProviderConnector<T>();
 
             public static TypeshiftBuilder WithSettings<T>(TypeshiftBuilder builder)
                 where T : class, ISettingsStore<int> =>
@@ -2990,31 +2990,12 @@ public static class DiagnosticSources
         }
         """;
 
-    public const string NoChatClientProvider =
-        """
-        using Typeshift;
-        using Microsoft.Extensions.DependencyInjection;
-
-        // begin-snippet: tsh030
-        public sealed class Clients;
-
-        internal static class Startup
-        {
-            public static void Register(IServiceCollection services) =>
-                services.AddTypeshift().WithChatClientProvider<Clients>();
-        }
-        // end-snippet
-        """;
-
-    // D86: an agent's providers may be ints, and a provider of them serves those agents
-    public const string ChatClientProviderOfInts =
+    // D86: an agent's providers may be ints, and an app names one of them its default
+    public const string IntProviders =
         """
         #pragma warning disable CS1591
 
-        using System.Threading;
-        using System.Threading.Tasks;
         using Typeshift;
-        using Microsoft.Extensions.AI;
         using Microsoft.Extensions.DependencyInjection;
 
         public partial class HelpAgent : Agent
@@ -3023,16 +3004,10 @@ public static class DiagnosticSources
                 WithChatOptions().WithProvider(42).WithModel("fast-model").Configurable(o => o.ModelId);
         }
 
-        public sealed class NumberedClients : IChatClientProvider<int>
-        {
-            public ValueTask<IChatClient> GetChatClientAsync(int provider, string model, CancellationToken ct) =>
-                throw new System.NotSupportedException();
-        }
-
         internal static class Startup
         {
             public static void Register(IServiceCollection services) =>
-                services.AddTypeshift().WithChatClientProvider<NumberedClients>();
+                services.AddTypeshift().WithDefaultProvider(42);
         }
         """;
 

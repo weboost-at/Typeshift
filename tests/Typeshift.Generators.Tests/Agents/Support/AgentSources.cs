@@ -51,10 +51,7 @@ public static class AgentSources
         $$"""
         #pragma warning disable CS1591
 
-        using System.Threading;
-        using System.Threading.Tasks;
         using Typeshift;
-        using Microsoft.Extensions.AI;
         using Microsoft.Extensions.DependencyInjection;
 
         namespace Demo;
@@ -80,19 +77,10 @@ public static class AgentSources
             }
         }
 
-        public sealed class Clients : IChatClientProvider<{{providerIdType}}>
-        {
-            public ValueTask<IChatClient> GetChatClientAsync(
-                {{providerIdType}} provider,
-                string model,
-                CancellationToken ct) =>
-                throw new System.NotSupportedException();
-        }
-
         internal static class Startup
         {
             public static void Register(IServiceCollection services) =>
-                services.AddTypeshift().WithChatClientProvider<Clients>();
+                services.AddTypeshift().WithDefaultProvider({{provider}});
         }
         """;
 

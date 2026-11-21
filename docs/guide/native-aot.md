@@ -113,7 +113,7 @@ registration over that type. Under Native AOT, the container refuses to close it
 services.AddTypeshift()
     .WithStore<InMemoryTypeshiftStore<Guid>>()
     .WithConversationTracker<Guid>()
-    .WithChatClientProvider<ScriptedChatClientProvider>();
+    .WithProviderConnector<ScriptedConnector>();
 ```
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Program.cs#L13-L18' title='Snippet source file'>snippet source</a> | <a href='#snippet-aot-tracker' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->

@@ -20,7 +20,7 @@ internal static class ShownRegistrations
     {
         await StoresAsync();
         await ChatClientsAsync(client);
-        await TenantClientsAsync();
+        await ConnectorAsync();
 
         await using (var mcp = Build(Registration.ShowMcpRegistration))
         {
@@ -164,26 +164,21 @@ internal static class ShownRegistrations
         Expect(beta.GetService<ChatClientMetadata>()?.DefaultModelId == "claude-sonnet-5-5", "Anthropic's beta client");
     }
 
-    // A client per run, with the customer's key, for the one provider the app serves that way
-    private static async Task TenantClientsAsync()
+    // The connector the guide shows builds a client from a document alone, and refuses a kind it does not know
+    private static async Task ConnectorAsync()
     {
-        await using var tenants = Build(services =>
-        {
-            services.AddScoped<ICurrentCustomer, SampleCustomer>();
-            services.AddSingleton<ITenantKeys, SampleTenantKeys>();
-            Models.ShowTenantClients(services);
-        });
+        await using var connectors = Build(Models.ShowProviderConnector);
+        await using var scope = connectors.CreateAsyncScope();
+        var connector = scope.ServiceProvider.GetRequiredService<IChatProviderConnector>();
+        var provider = await new SampleCustomerProviders().LoadAsync(7, CancellationToken.None);
 
-        await using var scope = tenants.CreateAsyncScope();
-        var clients = scope.ServiceProvider.GetRequiredService<IChatClientProvider<string>>();
-
-        var openAi = await clients.GetChatClientAsync("openai", "gpt-5-mini", CancellationToken.None);
+        using var openAi = await connector.ConnectAsync(provider, CancellationToken.None);
         Expect(openAi.GetService<ChatClientMetadata>()?.DefaultModelId == "gpt-5-mini", "the customer's client");
 
         Expect(
             await ThrowsAsync<InvalidOperationException>(async () =>
-                await clients.GetChatClientAsync("anthropic", "claude-sonnet-5-5", CancellationToken.None)),
-            "no client for a provider the app does not serve per customer");
+                await connector.ConnectAsync(provider with { Kind = "local" }, CancellationToken.None)),
+            "no client for a kind the connector does not know");
     }
 
     private static ServiceProvider Build(Action<IServiceCollection> register)

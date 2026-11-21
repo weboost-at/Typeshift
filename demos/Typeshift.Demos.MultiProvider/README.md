@@ -1,7 +1,8 @@
 # Multi-provider demo
 
 An app whose users define model providers at runtime, in `providers.json`, and pick a model per user. The agent's
-code names no provider: the user's choice is a stored setting, and `RoutingChatClientProvider` maps it to a client.
+code names no provider: the user's choice is a stored setting, which names one of the clients `CatalogClients`
+registers under the providers' names.
 
 ```bash
 # offline, on the canned provider

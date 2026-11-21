@@ -115,7 +115,7 @@ public class AddTypeshiftTests : AgentTestBase
     }
 
     [Fact]
-    public async Task Given_No_Chat_Client_Provider_A_Run_Fails_Naming_The_Registration()
+    public async Task Given_No_Chat_Client_A_Run_Fails_Naming_The_Registration()
     {
         // Arrange
         var services = new ServiceCollection();
@@ -128,6 +128,6 @@ public class AddTypeshiftTests : AgentTestBase
         var run = () => scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>().RunAsync("", ct: Ct);
 
         // Assert
-        await run.Should().ThrowAsync<InvalidOperationException>().WithMessage("*WithChatClientProvider*");
+        await run.Should().ThrowAsync<InvalidOperationException>().WithMessage("*AddKeyedChatClient*");
     }
 }

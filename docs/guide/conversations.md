@@ -142,7 +142,8 @@ and, once it ran or was rejected, its result, and never a request for approval o
 Each entry is a `ConversationEntry`: the name of its agent in `Agent`, its `Messages`, the time it was stored in `At`
 and its number in `Sequence`, by which your store refuses a second run of the conversation
 ([One run at a time](#one-run-at-a-time)). A model response has its `Model` and `Usage` too, and the `Provider` its
-agent ran on, as text, unless that was the default client. The entry that ends a run has `EndsRun`, and `IsSummary`
+agent ran on, as text, a provider document's `Name` or else its `Kind`, unless that was the client registered for
+every agent. The entry that ends a run has `EndsRun`, and `IsSummary`
 is true on the entry [compaction](#compaction) appends when it summarizes, which is how your code and your store tell
 a summary apart ([Start from the last summary](./implementing-a-store.md#start-from-the-last-summary)). A model response of a run
 with a maximum of input tokens also has `EstimatedInputTokens`, what compaction estimated its call at.
@@ -507,7 +508,7 @@ services.AddTypeshift()
         options.LiveUpdates.MaxPendingUpdates = 1024;
     });
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L67-L74' title='Snippet source file'>snippet source</a> | <a href='#snippet-live-update-options' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L69-L76' title='Snippet source file'>snippet source</a> | <a href='#snippet-live-update-options' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ## Running on several instances

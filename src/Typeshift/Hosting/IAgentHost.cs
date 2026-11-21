@@ -37,6 +37,9 @@ public interface IAgentHost : IAsyncDisposable, IDisposable
     /// <inheritdoc cref="AgentHost{TAgent}.WithProvider{TProviderId}(TProviderId)"/>
     IAgentHost WithProvider<TProviderId>(TProviderId provider) where TProviderId : notnull;
 
+    /// <inheritdoc cref="AgentHost{TAgent}.WithProvider(ChatProvider)"/>
+    IAgentHost WithProvider(ChatProvider provider);
+
     /// <inheritdoc cref="AgentHost{TAgent}.WithModel(string)"/>
     IAgentHost WithModel(string model);
 

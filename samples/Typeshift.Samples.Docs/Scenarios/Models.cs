@@ -85,11 +85,11 @@ internal static partial class Models
         // end-snippet
     }
 
-    public static void ShowTenantClients(IServiceCollection services)
+    public static void ShowProviderConnector(IServiceCollection services)
     {
-        // begin-snippet: tenant-chat-client-provider-registration
+        // begin-snippet: provider-connector-registration
         services.AddTypeshift()
-            .WithChatClientProvider<TenantChatClientProvider>();
+            .WithProviderConnector<Connectors>();
         // end-snippet
     }
 

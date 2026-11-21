@@ -37,7 +37,6 @@ return await Demo.RunAsync(async () =>
 
     services.AddTypeshift()
         .WithStore(Demo.Store())
-        .WithChatClientProvider<RoutingChatClientProvider>()
         .WithMcpToolProvider<StatusMcpProvider>()
         .WithRunMiddleware<BlockedTopics>()
         .WithToolMiddleware<AuditedCalls>();

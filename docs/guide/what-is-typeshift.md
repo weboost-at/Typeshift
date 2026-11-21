@@ -151,8 +151,9 @@ you ship, your app has to do these things itself:
   ([Refuse a second run](./implementing-a-store.md#refuse-a-second-run)), and route each conversation to one
   instance ([Running on several instances](./conversations.md#running-on-several-instances)).
 - Read API keys from your app's configuration, never from code ([A real client](./models.md#a-real-client)).
-- Where each customer brings a key, register no default client, so an agent that names no provider fails instead of
-  running on your app's own key ([A key per customer](./models.md#a-key-per-customer)).
+- Where each customer brings a key, register no default provider, so a run that names no provider fails instead of
+  running on your app's own key, and hand each run the document of the customer the request belongs to, loaded from
+  your storage, never one the request sends ([Providers your customers bring](./models.md#providers-your-customers-bring)).
 - Decide what your app shows when a run fails because its conversation could not be saved, and watch your logs or
   spans for those failures ([When the store fails](./conversations.md#when-the-store-fails)).
 - Show your users a text of your own for a failed run in a chat built from the entries: its last entry holds the

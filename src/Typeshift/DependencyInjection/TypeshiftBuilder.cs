@@ -211,44 +211,24 @@ public sealed class TypeshiftBuilder
                 .Where(StoreAccess.IsStoreInterface)
         ];
 
+    // D88: the app's one class that turns a document into a client, resolved from the run's services
     /// <summary>
-    /// Registers the provider that returns the client of a provider's model, scoped, as each
-    /// <see cref="IChatClientProvider{TProviderId}"/> it implements. It alone serves the runs that name a provider of
-    /// its type, in place of any <see cref="Microsoft.Extensions.AI.IChatClient"/> registered under the provider. A
-    /// run that names no provider takes the default client. For each provider type, the last call wins.
+    /// Registers the class that turns a <see cref="ChatProvider"/> a run is handed into the chat client that serves
+    /// it, scoped: Typeshift resolves it from the services of the run that hands in a document it holds no client for.
+    /// The last call wins.
+    /// More in the guide:
+    /// <see href="https://weboost-at.github.io/Typeshift/guide/models#providers-your-customers-bring">Providers your
+    /// customers bring</see>.
     /// </summary>
-    /// <typeparam name="TProvider">
-    /// An <c>IChatClientProvider&lt;TProviderId&gt;</c>, or several of them, of any provider types (TSH030).
-    /// </typeparam>
+    /// <typeparam name="TConnector">The connector.</typeparam>
     /// <returns>The same chain.</returns>
-    /// <exception cref="InvalidOperationException">
-    /// <typeparamref name="TProvider"/> implements no <c>IChatClientProvider&lt;TProviderId&gt;</c>.
-    /// </exception>
-    public TypeshiftBuilder WithChatClientProvider<
-        [DynamicallyAccessedMembers(
-            DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.Interfaces)] TProvider>()
-        where TProvider : class
+    public TypeshiftBuilder WithProviderConnector<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TConnector>()
+        where TConnector : class, IChatProviderConnector
     {
-        // D86: as a store is (D72), of whatever provider types; the type check reads no members
-        Type[] contracts = [.. typeof(TProvider).GetInterfaces().Where(IsChatClientProvider)];
-
-        if (contracts.Length == 0)
-            throw new InvalidOperationException(
-                $"{typeof(TProvider).Name} is no chat client provider: implement IChatClientProvider<TProviderId> "
-                + "(TSH030).");
-
-        _services.AddScoped<TProvider>();
-
-        foreach (var contract in contracts)
-        {
-            _services.AddScoped(contract, provider => provider.GetRequiredService<TProvider>());
-        }
-
+        _services.Replace(ServiceDescriptor.Scoped<IChatProviderConnector, TConnector>());
         return this;
     }
-
-    private static bool IsChatClientProvider(Type contract) =>
-        contract.IsGenericType && contract.GetGenericTypeDefinition() == typeof(IChatClientProvider<>);
 
     /// <summary>
     /// Sets what every run of the app does, such as <c>options => options.PersistAllConversations = true</c>, and how
@@ -278,11 +258,23 @@ public sealed class TypeshiftBuilder
     /// <typeparam name="TProviderId">The key's type, any type the app registered a client under.</typeparam>
     /// <returns>The same chain.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="provider"/> is null.</exception>
-    /// <exception cref="ArgumentException"><paramref name="provider"/> is text that is white space.</exception>
+    /// <exception cref="ArgumentException">
+    /// <paramref name="provider"/> is text that is white space, or a <see cref="ChatProvider"/>, which a run is handed
+    /// at its call site.
+    /// </exception>
     public TypeshiftBuilder WithDefaultProvider<TProviderId>(TProviderId provider) where TProviderId : notnull
     {
         ArgumentNullException.ThrowIfNull(provider);
         if (provider is string text) ArgumentException.ThrowIfNullOrWhiteSpace(text, nameof(provider));
+
+        // D88: the default is a key among the app's registered clients; a document belongs to the run that is handed it
+        if (provider is ChatProvider)
+        {
+            throw new ArgumentException(
+                "The default provider is the key of a registered client, such as WithDefaultProvider(\"openai\"): "
+                + "hand a ChatProvider to the run with host.WithProvider(provider).",
+                nameof(provider));
+        }
 
         Options.DefaultProvider = new ProviderId<TProviderId>(provider);
         return this;

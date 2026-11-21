@@ -72,10 +72,9 @@ public class ChatClientResolutionTests : HostTestBase
         // Assert
         await run.Should().ThrowAsync<InvalidOperationException>().WithMessage(
             $"No chat client serves the agent 'probe_agent' on '{ProbeAgent.Model}' of '{ProbeAgent.ModelProvider}': "
-            + "no client is registered under a provider, and no IChatClientProvider<string> is registered. Name a "
-            + "provider that has a client, register one with services.AddKeyedChatClient(provider, client), or "
-            + "register a provider class with WithChatClientProvider<T>(). The default provider serves only a run "
-            + "that names no provider.");
+            + "no client is registered under a provider. Name a provider that has a client, register one with "
+            + "services.AddKeyedChatClient(provider, client), or hand the run a provider document with "
+            + "host.WithProvider(document). The default provider serves only a run that names no provider.");
 
         ChatClient.Requests.Should().BeEmpty();
     }
@@ -249,7 +248,8 @@ public class ChatClientResolutionTests : HostTestBase
         await run.Should().ThrowAsync<InvalidOperationException>().WithMessage(
             $"No model is named for the agent '{SchemaAgent.AgentName}', and the client that serves it names no "
             + "model of its own in its ChatClientMetadata. Name a model with host.WithModel(model), "
-            + "WithChatOptions().WithModel(model) or in the agent's settings, or build the client with a model.");
+            + "WithChatOptions().WithModel(model), in the agent's settings or in a provider document's Model, or "
+            + "build the client with a model.");
 
         (await Store.LoadConversationAsync(Data.Agent.ConversationId, Ct)).Should().BeEmpty();
     }
@@ -270,6 +270,189 @@ public class ChatClientResolutionTests : HostTestBase
     }
 
     [Fact]
+    public async Task Given_A_Document_The_Run_Answers_On_The_Client_Its_Connector_Built()
+    {
+        // Arrange
+        _register = Connected;
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await Host<ModelOnlyAgent>().WithProvider(Document(Data.Agent.Provider)).RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        Connections.Single().Provider.Should().Be(Document(Data.Agent.Provider));
+    }
+
+    [Fact]
+    public async Task Given_Equal_Documents_Two_Runs_Share_One_Client()
+    {
+        // Arrange
+        _register = Connected;
+        ChatClient.Reply(Text(Data.Tool.Answer)).Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await Host<ModelOnlyAgent>().WithProvider(Document(Data.Agent.Provider)).RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<ModelOnlyAgent>().WithProvider(Document(Data.Agent.Provider)).RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        Connections.Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task Given_Equal_Documents_At_The_Same_Time_The_Connector_Is_Called_Once()
+    {
+        // Arrange
+        _register = Connected;
+        Connections.Gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        ChatClient.Reply(Text(Data.Tool.Answer)).Reply(Text(Data.Tool.Answer));
+
+        var first = Host<ModelOnlyAgent>().WithProvider(Document(Data.Agent.Provider));
+        var second = Host<ModelOnlyAgent>().WithProvider(Document(Data.Agent.Provider));
+        var runs = Task.WhenAll(
+            first.RunAsync(Data.Tool.Question, ct: Ct),
+            second.RunAsync(Data.Tool.Question, ct: Ct));
+
+        // Act
+        Connections.Gate.SetResult();
+        await runs;
+
+        // Assert
+        Connections.Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task Given_A_Document_Whose_Key_Changed_It_Gets_A_Client_Of_Its_Own()
+    {
+        // Arrange
+        _register = Connected;
+        ChatClient.Reply(Text(Data.Tool.Answer)).Reply(Text(Data.Tool.Answer));
+        await Host<ModelOnlyAgent>().WithProvider(Document(Data.Agent.Provider)).RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Act
+        await Host<ModelOnlyAgent>().WithProvider(Document(Data.Agent.Model)).RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        Connections.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public async Task Given_A_Document_Of_The_Apps_Own_Type_Passed_As_That_Type_It_Is_Taken_As_A_Document()
+    {
+        // Arrange
+        _register = Connected;
+        var document = new CustomerProvider(Data.Agent.ConversationId) { Kind = "scripted", ApiKey = Data.Agent.Model };
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await Host<ModelOnlyAgent>().WithProvider(document).RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        Connections.Single().Provider.Should().Be(document);
+    }
+
+    [Fact]
+    public async Task Given_A_Document_With_A_Model_A_Run_That_Names_None_Asks_For_It()
+    {
+        // Arrange
+        _register = Connected;
+        var document = Document(Data.Agent.Provider) with { Model = Data.Agent.Model };
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await Host<SchemaAgent>().WithProvider(document).RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        ChatClient.Options[0]!.ModelId.Should().Be(Data.Agent.Model);
+    }
+
+    [Fact]
+    public async Task Given_A_Document_Its_Response_Entry_Names_Its_Name_And_Not_Its_Key()
+    {
+        // Arrange
+        _register = Connected;
+        var document = Document(Data.Agent.Provider) with { Name = Data.Agent.Instructions };
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await Host<ModelOnlyAgent>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .WithProvider(document)
+            .RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        (await Store.LoadConversationAsync(Data.Agent.ConversationId, Ct))[1].Provider
+            .Should()
+            .Be(Data.Agent.Instructions);
+    }
+
+    [Fact]
+    public async Task Given_A_Document_And_No_Connector_The_Run_Fails_Naming_The_Registration()
+    {
+        // Arrange
+        var document = Document(Data.Agent.Provider) with { Name = Data.Agent.Instructions };
+
+        // Act
+        var run = () => Host<ModelOnlyAgent>().WithProvider(document).RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        await run.Should().ThrowAsync<InvalidOperationException>().WithMessage(
+            $"No chat client serves the agent 'model_only_agent' on the provider '{Data.Agent.Instructions}', a "
+            + "document the run was handed, since no IChatProviderConnector is registered: register the class that "
+            + "turns your documents into clients with AddTypeshift().WithProviderConnector<TConnector>().");
+    }
+
+    [Fact]
+    public async Task Given_A_Connector_That_Fails_The_Run_Fails_With_Its_Exception_And_Stores_Nothing()
+    {
+        // Arrange
+        _register = services => services.AddTypeshift().WithProviderConnector<FailingConnector>();
+        var host = Host<ModelOnlyAgent>().WithConversationId(Data.Agent.ConversationId);
+
+        // Act
+        var run = () => host.WithProvider(Document(Data.Agent.Provider)).RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        await run.Should().ThrowAsync<InvalidOperationException>().WithMessage(FailingConnector.Reason);
+        (await Store.LoadConversationAsync(Data.Agent.ConversationId, Ct)).Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Given_A_Connector_That_Failed_The_Next_Run_Of_The_Document_Connects_Again()
+    {
+        // Arrange
+        _register = Connected;
+        Connections.Gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        Connections.Gate.SetException(new InvalidOperationException(FailingConnector.Reason));
+        await Record.ExceptionAsync(() =>
+            Host<ModelOnlyAgent>().WithProvider(Document(Data.Agent.Provider)).RunAsync(Data.Tool.Question, ct: Ct));
+
+        Connections.Gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        Connections.Gate.SetResult();
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        var response = await Host<ModelOnlyAgent>()
+            .WithProvider(Document(Data.Agent.Provider))
+            .RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        response.Text.Should().Be(Data.Tool.Answer);
+    }
+
+    [Fact]
+    public void Given_A_Document_As_The_Default_Provider_The_Chain_Refuses_It()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        // Act
+        var register = () => services.AddTypeshift().WithDefaultProvider(Document(Data.Agent.Provider));
+
+        // Assert
+        register.Should().Throw<ArgumentException>().WithParameterName("provider");
+    }
+
+    [Fact]
     public async Task Given_A_Keyed_Client_And_A_Provider_Without_A_Model_The_Client_Answers_On_Its_Own_Model()
     {
         // Arrange
@@ -282,31 +465,6 @@ public class ChatClientResolutionTests : HostTestBase
 
         // Assert
         ChatClient.Options[0]!.ModelId.Should().BeNull();
-    }
-
-    [Fact]
-    public async Task Given_A_Chat_Client_Provider_And_A_Provider_Without_A_Model_The_Run_Fails_Naming_The_Model()
-    {
-        // Arrange
-        _register = services =>
-        {
-            services.AddChatClient(Other);
-            services.AddKeyedChatClient(Data.Agent.Provider, Other);
-            services.AddTypeshift().WithChatClientProvider<ScriptedChatClientProvider>();
-        };
-
-        var settings = new EveryKindAgent.Settings { Provider = Data.Agent.Provider };
-
-        // Act
-        var run = () => Host<EveryKindAgent>().RunAsync(Data.Tool.Question, settings, Ct);
-
-        // Assert
-        await run.Should().ThrowAsync<InvalidOperationException>().WithMessage(
-            $"No chat client serves the agent 'every_kind_agent' on '{Data.Agent.Provider}', which names no model: "
-            + "the IChatClientProvider<string> that is registered serves a provider and a model. Name the model "
-            + "too, in the agent's code or its settings.");
-
-        Other.Requests.Should().BeEmpty();
     }
 
     [Fact]
@@ -402,7 +560,6 @@ public class ChatClientResolutionTests : HostTestBase
         {
             services.AddChatClient(ChatClient);
             services.AddKeyedChatClient(ProbeAgent.ModelProvider, Other);
-            services.AddScoped<IChatClientProvider<string>, ScriptedChatClientProvider>();
         };
 
         ChatClient.Reply(Text(Data.Tool.Answer));
@@ -412,14 +569,13 @@ public class ChatClientResolutionTests : HostTestBase
 
         // Assert
         ChatClient.Options[0]!.ModelId.Should().Be(ModelOnlyAgent.Model);
-        Models.Should().BeEmpty();
     }
 
     [Fact]
     public async Task Given_A_Model_Without_A_Provider_Settings_That_Name_A_Provider_Reach_It_With_The_Model()
     {
         // Arrange
-        _register = services => services.AddTypeshift().WithChatClientProvider<ScriptedChatClientProvider>();
+        _register = services => services.AddTypeshift().WithScriptedProviders();
         var settings = new ModelOnlyAgent.Settings { Provider = Data.Agent.Provider };
         ChatClient.Reply(Text(Data.Tool.Answer));
 
@@ -434,7 +590,7 @@ public class ChatClientResolutionTests : HostTestBase
     public async Task Given_A_Model_Named_After_A_Provider_And_Its_Model_The_Provider_Serves_The_Later_Model()
     {
         // Arrange
-        _register = services => services.AddTypeshift().WithChatClientProvider<ScriptedChatClientProvider>();
+        _register = services => services.AddTypeshift().WithScriptedProviders();
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act
@@ -464,50 +620,14 @@ public class ChatClientResolutionTests : HostTestBase
     }
 
     [Fact]
-    public async Task Given_A_Chat_Client_Provider_It_Serves_The_Agents_Model_Over_A_Chat_Client()
+    public async Task Given_Agents_Of_Two_Provider_Types_Each_Run_Takes_The_Client_Under_Its_Key()
     {
         // Arrange
         _register = services =>
         {
-            services.AddChatClient(Other);
-            services.AddScoped<IChatClientProvider<string>, ScriptedChatClientProvider>();
+            services.AddTypeshift().WithScriptedProviders();
+            services.AddKeyedChatClient(Vendor.Probe, new RecordingChatClient(ChatClient, Vendor.Probe, Models));
         };
-
-        ChatClient.Reply(Text(Data.Tool.Answer));
-
-        // Act
-        await Host<ProbeAgent>().RunAsync(Data.Tool.Question, ct: Ct);
-
-        // Assert
-        Models.Should().Equal(new ProvidedModel(ProbeAgent.ModelProvider, ProbeAgent.Model));
-    }
-
-    [Fact]
-    public async Task Given_A_Chat_Client_Provider_It_Serves_The_Agents_Model_Over_A_Keyed_Client()
-    {
-        // Arrange
-        _register = services =>
-        {
-            services.AddKeyedChatClient(ProbeAgent.ModelProvider, Other);
-            services.AddScoped<IChatClientProvider<string>, ScriptedChatClientProvider>();
-        };
-
-        ChatClient.Reply(Text(Data.Tool.Answer));
-
-        // Act
-        await Host<ProbeAgent>().RunAsync(Data.Tool.Question, ct: Ct);
-
-        // Assert
-        Models.Should().Equal(new ProvidedModel(ProbeAgent.ModelProvider, ProbeAgent.Model));
-    }
-
-    [Fact]
-    public async Task Given_Agents_Of_Two_Provider_Types_Each_Run_Asks_The_Chat_Client_Provider_Of_Its_Type()
-    {
-        // Arrange
-        _register = services => services.AddTypeshift()
-            .WithChatClientProvider<ScriptedChatClientProvider>()
-            .WithChatClientProvider<VendorChatClientProvider>();
 
         ChatClient.Reply(Text(Data.Tool.Answer)).Reply(Text(Data.Tool.Answer));
 
@@ -522,27 +642,12 @@ public class ChatClientResolutionTests : HostTestBase
     }
 
     [Fact]
-    public async Task Given_A_Chat_Client_Provider_Of_Two_Provider_Types_It_Serves_The_Agents_Of_Both()
+    public async Task Given_Settings_Naming_Another_Provider_Of_An_Enum_The_Client_Under_It_Receives_The_Model()
     {
         // Arrange
-        _register = services => services.AddTypeshift().WithChatClientProvider<EveryVendorChatClientProvider>();
-        ChatClient.Reply(Text(Data.Tool.Answer)).Reply(Text(Data.Tool.Answer));
+        _register = services =>
+            services.AddKeyedChatClient(Vendor.Other, new RecordingChatClient(ChatClient, Vendor.Other, Models));
 
-        // Act
-        await Host<ProbeAgent>().RunAsync(Data.Tool.Question, ct: Ct);
-        await Host<VendorAgent>().RunAsync(Data.Tool.Question, ct: Ct);
-
-        // Assert
-        Models.Should().Equal(
-            new ProvidedModel(ProbeAgent.ModelProvider, ProbeAgent.Model),
-            new ProvidedModel(Vendor.Probe, VendorAgent.Model));
-    }
-
-    [Fact]
-    public async Task Given_Settings_Naming_Another_Provider_Of_An_Enum_Its_Chat_Client_Provider_Receives_It()
-    {
-        // Arrange
-        _register = services => services.AddTypeshift().WithChatClientProvider<VendorChatClientProvider>();
         var settings = new VendorAgent.Settings { Provider = Vendor.Other };
         ChatClient.Reply(Text(Data.Tool.Answer));
 
@@ -557,7 +662,7 @@ public class ChatClientResolutionTests : HostTestBase
     public async Task Given_A_Configurable_Model_Without_WithProvider_Its_String_Provider_Reaches_The_Provider()
     {
         // Arrange
-        _register = services => services.AddTypeshift().WithChatClientProvider<ScriptedChatClientProvider>();
+        _register = services => services.AddTypeshift().WithScriptedProviders();
         var settings = new EveryKindAgent.Settings { Provider = Data.Agent.Provider, Model = Data.Agent.Model };
         ChatClient.Reply(Text(Data.Tool.Answer));
 
@@ -588,36 +693,21 @@ public class ChatClientResolutionTests : HostTestBase
     }
 
     [Fact]
-    public async Task Given_A_Chat_Client_Provider_Of_Another_Type_The_Run_Fails_Naming_The_Type_It_Needs()
+    public async Task Given_Clients_Under_Keys_Of_Another_Type_The_Run_Fails_Naming_Its_Own_Key()
     {
         // Arrange
         _register = services =>
         {
             services.AddChatClient(Other);
-            services.AddTypeshift().WithChatClientProvider<ScriptedChatClientProvider>();
+            services.AddTypeshift().WithScriptedProviders();
         };
 
         // Act
         var run = () => Host<VendorAgent>().RunAsync(Data.Tool.Question, ct: Ct);
 
         // Assert
-        await run.Should().ThrowAsync<InvalidOperationException>().WithMessage("*IChatClientProvider<Vendor>*");
+        await run.Should().ThrowAsync<InvalidOperationException>().WithMessage($"*'{Vendor.Probe}'*");
         Other.Requests.Should().BeEmpty();
-    }
-
-    [Fact]
-    public void Given_A_Type_That_Is_No_Chat_Client_Provider_Registering_It_Fails_Naming_TSH030()
-    {
-        // Arrange
-        var services = new ServiceCollection();
-
-        // Act
-#pragma warning disable TSH030 // the analyzer reports it at build time; this checks the registration's own guard
-        var register = () => services.AddTypeshift().WithChatClientProvider<ProvidedModels>();
-#pragma warning restore TSH030
-
-        // Assert
-        register.Should().Throw<InvalidOperationException>().WithMessage("*TSH030*");
     }
 
     [Fact]
@@ -670,7 +760,19 @@ public class ChatClientResolutionTests : HostTestBase
         await run.Should().ThrowAsync<InvalidOperationException>().WithMessage("*AddKeyedChatClient*");
     }
 
+    private Connections Connections { get; } = [];
+
     private AgentHost<TAgent> Host<TAgent>() where TAgent : Agent => Scope.GetRequiredService<AgentHost<TAgent>>();
+
+    // A document of the scripted kind, told apart from another by its key
+    private static ChatProvider Document(string key) => new() { Kind = "scripted", ApiKey = key };
+
+    // The connector that turns each document into a client of the scripted one
+    private void Connected(IServiceCollection services)
+    {
+        services.AddTypeshift().WithProviderConnector<CountingConnector>();
+        services.AddSingleton(Connections);
+    }
 
     // The provider each run names to run middleware, over the clients a test registers
     private List<object?> SeenBy(Action<IServiceCollection> register)

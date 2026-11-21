@@ -23,7 +23,7 @@ services.AddOpenTelemetry()
     .WithTracing(tracing => tracing.AddSource("Typeshift"))
     .WithMetrics(metrics => metrics.AddMeter("Typeshift"));
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L87-L91' title='Snippet source file'>snippet source</a> | <a href='#snippet-open-telemetry' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L89-L93' title='Snippet source file'>snippet source</a> | <a href='#snippet-open-telemetry' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ## Spans
@@ -51,7 +51,7 @@ The `invoke_agent` span carries these tags:
 | `gen_ai.operation.name` | `invoke_agent` |
 | `gen_ai.agent.name`, `gen_ai.agent.description` | The agent's name and description |
 | `gen_ai.request.model` | The model the run asks for |
-| `typeshift.provider` | The provider the span's agent runs on, as its code or its settings name it, as text: `openai`, or an enum member's name. After a handoff, each agent's span has its own. A run on the [default client](./models.md#registering-clients) has no such tag. |
+| `typeshift.provider` | The provider the span's agent runs on, as the call site, its settings or its code name it, as text: `openai`, an enum member's name, the key `WithDefaultProvider` names, or a [provider document](./models.md#providers-your-customers-bring)'s `Name`, else its `Kind`, never its key. After a handoff, each agent's span has its own. A run on the client registered for every agent has no such tag ([Registering clients](./models.md#registering-clients)). |
 | `gen_ai.conversation.id` | The conversation's id, when the run has one |
 | `gen_ai.usage.input_tokens`, `gen_ai.usage.output_tokens` | The run's token usage, as its response reports it: its model calls', its sub-agents' and those of compaction's summaries. Each `chat` span carries its own call's. |
 | `typeshift.decisions.asked` | The number of [decisions](#decisions) the run asked your app, when it asked any |
@@ -75,9 +75,10 @@ fails is logged as an error and recorded on the calling run's span.
 
 A `chat` span names the backend that answered its call. Its `gen_ai.provider.name`, `server.address` and
 `server.port` come from the `ChatClientMetadata` of the client the run got, which each provider's client library
-fills in. When [your own provider](./models.md#your-own-provider) returns a client per customer, each customer's
-calls therefore show that customer's endpoint, also when all of them run under one provider id. The provider id
-itself, as the agent's code or its settings name it, is the `typeshift.provider` tag of the run's span.
+fills in. When [providers your customers bring](./models.md#providers-your-customers-bring) give each customer a
+client of their own, each customer's calls therefore show that customer's endpoint. The provider itself is the
+`typeshift.provider` tag of the run's span: the key the call site, the agent's settings or its code name, or a
+document's `Name`, else its `Kind`, and never its key.
 
 ## Decisions
 

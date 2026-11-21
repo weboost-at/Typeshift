@@ -46,6 +46,25 @@ public sealed class TypeshiftOptions
         _newTextId = create as Func<string>;
     }
 
+    // D88: ten minutes, after which a client no run used is disposed
+    private TimeSpan _providerClientIdleTime = TimeSpan.FromMinutes(10);
+
+    /// <summary>
+    /// How long Typeshift keeps the client of a <see cref="ChatProvider"/> no run used before it disposes it: 10
+    /// minutes by default. A later run handed an equal document connects again. Clients your app registered are
+    /// never disposed.
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">The value is negative.</exception>
+    public TimeSpan ProviderClientIdleTime
+    {
+        get => _providerClientIdleTime;
+        set
+        {
+            ArgumentOutOfRangeException.ThrowIfLessThan(value, TimeSpan.Zero);
+            _providerClientIdleTime = value;
+        }
+    }
+
     // D63: the key WithDefaultProvider names, which a run that names no provider takes
     internal ProviderId? DefaultProvider { get; set; }
 

@@ -30,6 +30,12 @@ public static class ModuleRegistration
         services.TryAddSingleton(new RegisteredChatClients(services));
         services.TryAddSingleton<LiveRuns>();
         services.TryAddSingleton<InstrumentedClients>();
+        // D88: the clients of the provider documents runs are handed, disposed with the container
+        services.TryAddSingleton(provider => new ProviderClients(
+#pragma warning disable RS0030 // the clock of an app that registered no TimeProvider
+            provider.GetService<TimeProvider>() ?? TimeProvider.System,
+#pragma warning restore RS0030
+            provider.GetService<TypeshiftOptions>()?.ProviderClientIdleTime ?? TimeSpan.FromMinutes(10)));
         // D74: live updates are on from the start; WithOptions tunes them, whenever the chain calls it
         services.TryAddSingleton(provider =>
             provider.GetService<TypeshiftOptions>()?.LiveUpdates ?? new LiveUpdateOptions());

@@ -272,7 +272,7 @@ public class AgentSettingsTests : AgentTestBase
         var services = new ServiceCollection();
         services.AddTypeshift()
             .WithStore<AgentSettingsOnlyStore>()
-            .WithChatClientProvider<ScriptedChatClientProvider>();
+            .WithScriptedProviders();
         services.AddSingleton(ChatClient).AddSingleton(Models);
 
         await using var provider = services.BuildServiceProvider();
@@ -296,7 +296,7 @@ public class AgentSettingsTests : AgentTestBase
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddTypeshift().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddTypeshift().WithScriptedProviders();
         services.AddSingleton(ChatClient).AddSingleton(Models);
 
         await using var provider = services.BuildServiceProvider();
@@ -319,7 +319,7 @@ public class AgentSettingsTests : AgentTestBase
         // Arrange
         var logs = new WarningLog();
         var services = new ServiceCollection();
-        services.AddTypeshift().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddTypeshift().WithScriptedProviders();
         services.AddSingleton<ILoggerFactory>(logs);
 
         await using var provider = services.BuildServiceProvider();
@@ -339,7 +339,7 @@ public class AgentSettingsTests : AgentTestBase
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddTypeshift().WithStore<SettingsOnlyStore>().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddTypeshift().WithStore<SettingsOnlyStore>().WithScriptedProviders();
         services.AddSingleton(ChatClient).AddSingleton(Models);
 
         await using var provider = services.BuildServiceProvider();
@@ -375,7 +375,7 @@ public class AgentSettingsTests : AgentTestBase
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddTypeshift().WithStore<SettingsOnlyStore>().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddTypeshift().WithStore<SettingsOnlyStore>().WithScriptedProviders();
 
         await using var provider = services.BuildServiceProvider();
         await using var scope = provider.CreateAsyncScope();
@@ -393,7 +393,7 @@ public class AgentSettingsTests : AgentTestBase
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddTypeshift().WithStore<SettingsOnlyStore>().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddTypeshift().WithStore<SettingsOnlyStore>().WithScriptedProviders();
 
         await using var provider = services.BuildServiceProvider();
         await using var scope = provider.CreateAsyncScope();

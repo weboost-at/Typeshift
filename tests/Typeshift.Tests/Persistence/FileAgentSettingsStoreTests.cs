@@ -447,7 +447,7 @@ public sealed class FileAgentSettingsStoreTests : AgentTestBase
     private ServiceProvider Provider(Action<TypeshiftBuilder> withStore, TimeProvider? time = null)
     {
         var services = new ServiceCollection();
-        withStore(services.AddTypeshift().WithChatClientProvider<ScriptedChatClientProvider>());
+        withStore(services.AddTypeshift().WithScriptedProviders());
         services.AddSingleton(ChatClient).AddSingleton(Models).AddSingleton(time ?? Time);
 
         return services.BuildServiceProvider(validateScopes: true);

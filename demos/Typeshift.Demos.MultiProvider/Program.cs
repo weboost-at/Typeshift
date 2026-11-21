@@ -71,8 +71,7 @@ return await Demo.RunAsync(async () =>
     services.AddDemoServices(catalog, canned);
 
     services.AddTypeshift()
-        .WithStore(Demo.Store())
-        .WithChatClientProvider<RoutingChatClientProvider>();
+        .WithStore(Demo.Store());
 
     await using var provider = services.BuildServiceProvider(new ServiceProviderOptions
     {
@@ -138,7 +137,6 @@ return await Demo.RunAsync(async () =>
 
     Demo.Heading("Where the current library gets in the way");
     Demo.Note("3  no model catalog: a settings UI asks each provider itself, and only some can answer");
-    Demo.Note("4  the provider is scoped but clients must live long: a second singleton holds them");
     Demo.Note("5  nothing validates a stored model; a typo surfaces in the middle of a run");
 
     return 0;

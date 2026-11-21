@@ -163,11 +163,6 @@ internal static class Descriptors
         "The provider WithProvider names is of the type '{0}', which the agent's settings cannot store as one value: "
         + "name the provider by a string, a number, a Guid or an enum");
 
-    public static readonly DiagnosticDescriptor NoChatClientProvider = Error(
-        "TSH030",
-        "Type is no chat client provider",
-        "'{0}' is no chat client provider: implement IChatClientProvider<TProviderId>");
-
     public static readonly DiagnosticDescriptor LanguageVersionTooLow = Error(
         "TSH031",
         "C# language version is below 14",

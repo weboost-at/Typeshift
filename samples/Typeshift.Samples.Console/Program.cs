@@ -14,7 +14,12 @@ var services = new ServiceCollection();
 services.AddTypeshift()
     .WithStore<InMemoryTypeshiftStore<Guid>>()
     .WithConversationTracker<Guid>()
-    .WithChatClientProvider<ScriptedChatClientProvider>();
+    .WithProviderConnector<ScriptedConnector>();
+// end-snippet
+
+// The providers the agents name, under an enum's key, beside the documents the connector turns into clients
+// begin-snippet: provider-enum-client
+services.AddKeyedChatClient(Provider.Scripted, new ScriptedChatClient());
 // end-snippet
 
 await using var provider = services.BuildServiceProvider();
@@ -116,6 +121,14 @@ Expect(tools.Contains(CompanyToolset.ToolNames.CountCompanies), string.Join(", "
 await using var byKind = runtime.CreateHost("ResearchAgent");
 var looked = await byKind.WithSettingsId(customerId).RunAsync("Vienna");
 Expect(looked.Text == answer.Text, looked.Text);
+
+// A document of the app's own type, handed to the run at its call site, over the provider its settings store: the
+// connector builds its client once, and an equal document's run takes the same client
+var tenant = new TenantProvider("tenant-7") { Kind = "scripted", ApiKey = "not-a-key", Model = "scripted-model" };
+var onDocument = await customer.WithProvider(tenant).RunAsync("Vienna");
+var onEqual = await customer.WithProvider(tenant with { }).RunAsync("Vienna");
+Expect(onDocument.Text == answer.Text && onEqual.Text == answer.Text, onDocument.Text);
+Expect(!tenant.ToString().Contains("not-a-key", StringComparison.Ordinal), "the document's key in its text");
 
 Console.WriteLine(
     $"{research.Agent.Name}: {answer.Text} {streamed} {count.Result} {counting.Response.Result} {robotics.Text} "

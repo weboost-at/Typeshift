@@ -30,13 +30,15 @@ internal static class Registration
         services.AddChatClient(fast);
 
         services.AddTypeshift()
-            .WithMcpToolProvider<CannedMcpToolProvider>();
+            .WithMcpToolProvider<CannedMcpToolProvider>()
+            .WithProviderConnector<CannedConnector>();
         ShowApprovalRule(services);
         services.AddDbContextFactory<TypeshiftDb>(options => options.UseSqlite($"Data Source={database}"));
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<ITicketClient, InMemoryTicketClient>();
         services.AddSingleton<IArticleIndex, InMemoryArticleIndex>();
         services.AddScoped<ICurrentCustomer, SampleCustomer>();
+        services.AddSingleton<ICustomerProviders, SampleCustomerProviders>();
         services.AddScoped<CurrentTenant>();
         services.AddScoped<RefundDesk>();
         services.AddLogging();

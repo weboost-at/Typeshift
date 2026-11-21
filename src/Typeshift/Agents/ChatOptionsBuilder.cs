@@ -26,11 +26,23 @@ public sealed class ChatOptionsBuilder
     /// <param name="provider">The provider's key.</param>
     /// <returns>The same chain.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="provider"/> is null.</exception>
-    /// <exception cref="ArgumentException"><paramref name="provider"/> is text that is white space.</exception>
+    /// <exception cref="ArgumentException">
+    /// <paramref name="provider"/> is text that is white space, or a <see cref="ChatProvider"/>, which a run is handed
+    /// at its call site.
+    /// </exception>
     public ChatOptionsBuilder WithProvider<TProviderId>(TProviderId provider) where TProviderId : notnull
     {
         ArgumentNullException.ThrowIfNull(provider);
         if (provider is string text) ArgumentException.ThrowIfNullOrWhiteSpace(text, nameof(provider));
+
+        // D88: an agent names a provider by key; a document belongs to the run that is handed it
+        if (provider is ChatProvider)
+        {
+            throw new ArgumentException(
+                "An agent names its provider by its key, such as WithProvider(\"openai\"): hand a ChatProvider to the "
+                + "run with host.WithProvider(provider).",
+                nameof(provider));
+        }
 
         // D86: typed here, where the provider's type is known, so no type is made at run time
         _agent.Provider = new ProviderId<TProviderId>(provider);

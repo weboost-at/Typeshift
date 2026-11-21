@@ -31,7 +31,7 @@ public abstract class AgentTestBase : HostTestBase
     {
         services.AddTypeshift()
             .WithStore<InMemoryTypeshiftStore<Guid>>()
-            .WithChatClientProvider<ScriptedChatClientProvider>();
+            .WithScriptedProviders();
 
         services.AddSingleton(ChatClient);
         services.AddSingleton(Models);

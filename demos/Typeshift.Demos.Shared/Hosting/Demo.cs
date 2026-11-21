@@ -52,7 +52,7 @@ public static class Demo
         {
             services.AddSingleton(catalog);
             services.AddSingleton(canned);
-            services.AddSingleton<ClientCache>();
+            services.AddCatalogClients(catalog, canned);
 
             return services;
         }

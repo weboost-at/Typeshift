@@ -1433,34 +1433,10 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
-    public void Given_A_Type_That_Is_No_Chat_Client_Provider_TSH030_Is_Reported_On_WithChatClientProvider()
+    public void Given_An_Agent_Of_Int_Providers_And_An_Int_Default_Provider_It_Compiles_Cleanly()
     {
         // Act
-        var run = Run(DiagnosticSources.NoChatClientProvider);
-
-        // Assert
-        run.Assert.Reports(
-            "TSH030",
-            DiagnosticSeverity.Error,
-            "WithChatClientProvider<Clients>",
-            message: "'Clients' is no chat client provider: implement IChatClientProvider<TProviderId>");
-    }
-
-    [Fact]
-    public void Given_A_Helper_Generic_Over_The_Chat_Client_Provider_TSH030_Is_Not_Reported()
-    {
-        // Act
-        var run = Run(DiagnosticSources.GenericRegistrationHelpers);
-
-        // Assert
-        run.Assert.DoesNotReport("TSH030");
-    }
-
-    [Fact]
-    public void Given_An_Agent_Of_Int_Providers_And_A_Chat_Client_Provider_Of_Ints_It_Compiles_Cleanly()
-    {
-        // Act
-        var run = Run(DiagnosticSources.ChatClientProviderOfInts);
+        var run = Run(DiagnosticSources.IntProviders);
 
         // Assert
         run.Assert.CompilesCleanly();
@@ -2384,7 +2360,7 @@ public class DiagnosticTests : GeneratorTestBase
     [InlineData(nameof(DiagnosticSources.SettingOfAnUnresolvedType))]
     [InlineData(nameof(DiagnosticSources.UnresolvedSignature))]
     [InlineData(nameof(DiagnosticSources.StoreBeingTyped))]
-    [InlineData(nameof(DiagnosticSources.ChatClientProviderBeingTyped))]
+    [InlineData(nameof(DiagnosticSources.ProviderConnectorBeingTyped))]
     public void Given_A_Type_That_Does_Not_Resolve_Yet_Only_The_Compiler_Reports_It(string mistake)
     {
         // Arrange

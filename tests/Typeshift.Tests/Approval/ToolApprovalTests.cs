@@ -757,7 +757,7 @@ public class ToolApprovalTests : ApprovalTestBase
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddTypeshift().WithStore<DoublingStore>().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddTypeshift().WithStore<DoublingStore>().WithScriptedProviders();
         services.AddSingleton(ChatClient).AddSingleton(Models).AddSingleton(ToolCalls).AddSingleton(Rules);
 
         await using var provider = services.BuildServiceProvider();
@@ -806,7 +806,7 @@ public class ToolApprovalTests : ApprovalTestBase
     private ServiceProvider WithoutRules()
     {
         var services = new ServiceCollection();
-        services.AddTypeshift().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddTypeshift().WithScriptedProviders();
         services.AddSingleton<TimeProvider>(Time).AddSingleton(ChatClient).AddSingleton(Models).AddSingleton(ToolCalls);
 
         return services.BuildServiceProvider();

@@ -33,7 +33,7 @@ that no row names, and on a name that is no test class.
 |---|---|
 | The runtime, its hosts and its catalog | `TypeshiftRuntimeTests`, `RuntimeCatalogTests` |
 | Registration: the chain, its stores, the interceptor | `AddTypeshiftTests`, `StoreRegistrationTests` |
-| Providers and chat clients, the default rule, the call site's provider and model | `ChatClientResolutionTests`, `HostSelectionTests` |
+| Providers and chat clients, the default rule, the call site's provider and model, provider documents | `ChatClientResolutionTests`, `HostSelectionTests`, `ProviderClientsTests`, `ChatProviderTests` |
 | Tools: schemas, arguments, overrides, unions | `ToolSchemaTests`, `ToolInvocationTests`, `ToolOverridesTests`, `UnionToolTests` |
 | Tool results and failed calls | `ToolResultWireTests`, `ToolFailureTests` |
 | Runs: options, instructions, own tools, usage, the raw path, the caller's context | `AgentRunTests`, `ChatOptionsBuilderTests`, `ResolvedChatOptionsTests`, `OwnToolsTests`, `ChatResponsesTests`, `SynchronizationContextTests` |
@@ -137,11 +137,11 @@ that no row names, and on a name that is no test class.
 - **Trackers of value-type ids under Native AOT.** The container closes the tracker's open generic over reference
   types only there, so an app registers the tracker of each value type it injects with `WithConversationTracker<TId>()`.
   A generator that read the injected trackers could register them itself.
-- **A provider type nothing serves.** No diagnostic sees an agent whose provider id type no registered
-  `IChatClientProvider<T>` serves, since the registration may lie in another project. Its runs take a client keyed
-  by the provider and fail without one, naming the `IChatClientProvider<T>` they need (D63), so the mistake shows
-  at the first run, not at build time.
-- **An id type no store keeps.** As for provider types, no diagnostic sees a `WithSettingsId`, a
+- **A provider key nothing serves.** No diagnostic sees a `WithProvider(key)` or a `WithDefaultProvider(key)` whose
+  key no client is registered under, since the registration may lie in another project. A run that may reach such a
+  key, its own or that of an agent it may call or hand off to, fails when it starts, before it stores anything,
+  naming the keys clients are registered under (D63, D87), so the mistake shows at the first run, not at build time.
+- **An id type no store keeps.** As for provider keys, no diagnostic sees a `WithSettingsId`, a
   `WithConversationId` or a `ConversationTracker<TId>` whose id type none of the registered stores keeps, since the
   registration may lie in another project. Without stores every id type works in memory, so the first call with
   such an id fails only once a store is registered, naming the store interface it needs. A check at startup of the

@@ -55,7 +55,7 @@ public class ConversationStoreTests : AgentTestBase
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddTypeshift().WithStore<CountingLoadStore>().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddTypeshift().WithStore<CountingLoadStore>().WithScriptedProviders();
         services.AddSingleton(ChatClient).AddSingleton(Models);
 
         await using var provider = services.BuildServiceProvider();
@@ -85,7 +85,7 @@ public class ConversationStoreTests : AgentTestBase
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddTypeshift().WithStore<GatedLoadStore>().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddTypeshift().WithStore<GatedLoadStore>().WithScriptedProviders();
         services.AddSingleton(ChatClient).AddSingleton(Models);
 
         await using var provider = services.BuildServiceProvider();
@@ -117,7 +117,7 @@ public class ConversationStoreTests : AgentTestBase
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddTypeshift().WithStore<GatedLoadStore>().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddTypeshift().WithStore<GatedLoadStore>().WithScriptedProviders();
         services.AddSingleton(ChatClient).AddSingleton(Models);
 
         await using var provider = services.BuildServiceProvider();
@@ -150,7 +150,7 @@ public class ConversationStoreTests : AgentTestBase
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddTypeshift().WithStore<FailingLoadStore>().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddTypeshift().WithStore<FailingLoadStore>().WithScriptedProviders();
         services.AddSingleton(ChatClient).AddSingleton(Models);
 
         await using var provider = services.BuildServiceProvider();
@@ -174,7 +174,7 @@ public class ConversationStoreTests : AgentTestBase
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddTypeshift().WithStore<GatedLoadStore>().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddTypeshift().WithStore<GatedLoadStore>().WithScriptedProviders();
         services.AddSingleton(ChatClient).AddSingleton(Models);
 
         await using var provider = services.BuildServiceProvider();
@@ -277,7 +277,7 @@ public class ConversationStoreTests : AgentTestBase
 
         services.AddTypeshift()
             .WithStore<FlakyAppendStore>()
-            .WithChatClientProvider<ScriptedChatClientProvider>()
+            .WithScriptedProviders()
             .WithOptions(options => options.StoreFailure = StoreFailure.ContinueRun);
 
         services.AddSingleton(ChatClient).AddSingleton(Models);
@@ -305,7 +305,7 @@ public class ConversationStoreTests : AgentTestBase
         // Arrange
         var log = new ErrorLog();
         var services = new ServiceCollection();
-        services.AddTypeshift().WithStore<FailingAppendStore>().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddTypeshift().WithStore<FailingAppendStore>().WithScriptedProviders();
         services.AddSingleton(ChatClient).AddSingleton(Models).AddSingleton<ILoggerFactory>(log);
 
         await using var provider = services.BuildServiceProvider();
@@ -357,7 +357,7 @@ public class ConversationStoreTests : AgentTestBase
         var services = new ServiceCollection();
         services.AddTypeshift()
             .WithStore<InMemoryTypeshiftStore<Guid>>()
-            .WithChatClientProvider<ScriptedChatClientProvider>();
+            .WithScriptedProviders();
         services.AddSingleton(ChatClient).AddSingleton(Models).AddSingleton<ILoggerFactory>(logs);
 
         await using var provider = services.BuildServiceProvider();
@@ -421,7 +421,7 @@ public class ConversationStoreTests : AgentTestBase
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddTypeshift().WithStore<FlakyAppendStore>().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddTypeshift().WithStore<FlakyAppendStore>().WithScriptedProviders();
         services.AddSingleton(ChatClient).AddSingleton(Models);
 
         await using var provider = services.BuildServiceProvider();
@@ -647,7 +647,7 @@ public class ConversationStoreTests : AgentTestBase
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddTypeshift().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddTypeshift().WithScriptedProviders();
         services.AddSingleton(ChatClient).AddSingleton(Models);
 
         await using var provider = services.BuildServiceProvider();
@@ -680,7 +680,7 @@ public class ConversationStoreTests : AgentTestBase
         // Arrange
         var logs = new WarningLog();
         var services = new ServiceCollection();
-        services.AddTypeshift().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddTypeshift().WithScriptedProviders();
         services.AddSingleton(ChatClient).AddSingleton(Models).AddSingleton<ILoggerFactory>(logs);
 
         await using var provider = services.BuildServiceProvider();
@@ -708,7 +708,7 @@ public class ConversationStoreTests : AgentTestBase
         // Arrange
         var calls = new ToolCalls();
         var services = new ServiceCollection();
-        services.AddTypeshift().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddTypeshift().WithScriptedProviders();
         services.AddSingleton(ChatClient).AddSingleton(Models).AddSingleton(calls);
 
         await using var provider = services.BuildServiceProvider();
@@ -738,7 +738,7 @@ public class ConversationStoreTests : AgentTestBase
 
         services.AddTypeshift()
             .WithFileStore(store => store.Folder = folder)
-            .WithChatClientProvider<ScriptedChatClientProvider>();
+            .WithScriptedProviders();
 
         services.AddSingleton(ChatClient).AddSingleton(Models);
 
@@ -816,7 +816,7 @@ public class ConversationStoreTests : AgentTestBase
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddTypeshift().WithStore<SettingsOnlyStore>().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddTypeshift().WithStore<SettingsOnlyStore>().WithScriptedProviders();
         services.AddSingleton(ChatClient).AddSingleton(Models);
 
         await using var provider = services.BuildServiceProvider();
@@ -840,7 +840,7 @@ public class ConversationStoreTests : AgentTestBase
         services.AddTypeshift()
             .WithStore<SettingsOnlyStore>()
             .WithStore<CountingLoadStore>()
-            .WithChatClientProvider<ScriptedChatClientProvider>();
+            .WithScriptedProviders();
 
         services.AddSingleton(ChatClient).AddSingleton(Models);
 
@@ -905,7 +905,7 @@ public class ConversationStoreTests : AgentTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         var services = new ServiceCollection();
-        services.AddTypeshift().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddTypeshift().WithScriptedProviders();
         services.AddSingleton(ChatClient).AddSingleton(Models);
 
         await using var provider = services.BuildServiceProvider(validateScopes: true);
@@ -942,7 +942,7 @@ public class ConversationStoreTests : AgentTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         var services = new ServiceCollection();
-        services.AddTypeshift().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddTypeshift().WithScriptedProviders();
         services.AddSingleton(ChatClient).AddSingleton(Models);
 
         await using var provider = services.BuildServiceProvider(validateScopes: true);
@@ -979,7 +979,7 @@ public class ConversationStoreTests : AgentTestBase
                 options.LiveUpdates.PublishInterval = TimeSpan.Zero;
                 options.LiveUpdates.MaxPendingUpdates = 3;
             })
-            .WithChatClientProvider<ScriptedChatClientProvider>();
+            .WithScriptedProviders();
 
         services.AddSingleton(ChatClient).AddSingleton(Models);
 
@@ -1022,7 +1022,7 @@ public class ConversationStoreTests : AgentTestBase
 
         services.AddTypeshift()
             .WithStore<FailingAppendStore>()
-            .WithChatClientProvider<ScriptedChatClientProvider>()
+            .WithScriptedProviders()
             .WithOptions(options => options.StoreFailure = failure);
 
         services.AddSingleton(ChatClient).AddSingleton(Models);
@@ -1057,7 +1057,7 @@ public class ConversationStoreTests : AgentTestBase
     private ServiceProvider Provider(StoredJsonStore store, WarningLog logs)
     {
         var services = new ServiceCollection();
-        services.AddTypeshift().WithStore(store).WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddTypeshift().WithStore(store).WithScriptedProviders();
         services.AddSingleton(ChatClient).AddSingleton(Models).AddSingleton<ILoggerFactory>(logs);
 
         return services.BuildServiceProvider();
@@ -1071,7 +1071,7 @@ public class ConversationStoreTests : AgentTestBase
         ToolHold? hold = null)
     {
         var services = new ServiceCollection();
-        var typeshift = services.AddTypeshift().WithStore(store).WithChatClientProvider<ScriptedChatClientProvider>();
+        var typeshift = services.AddTypeshift().WithStore(store).WithScriptedProviders();
 
         if (hold is not null) typeshift.WithToolMiddleware<HeldToolMiddleware>();
 

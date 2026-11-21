@@ -56,6 +56,9 @@ chat.MapPost("/messages", async (
   can set every member the agent made configurable, the model, the instructions and the mode among them, so a
   customer changes theirs through a form that holds only what they may change
   ([Settings from a request](./settings-and-stores.md#settings-from-a-request)).
+- An endpoint of an app whose customers bring their own provider loads the customer's document from your storage and
+  adds `.WithProvider(document)` to the chain, so the run and its sub-agents run on that account
+  ([Providers your customers bring](./models.md#providers-your-customers-bring)).
 
 The filter on the group checks that the chat belongs to the caller before any endpoint of the group runs, because
 Typeshift resumes whichever conversation it is given

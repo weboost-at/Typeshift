@@ -81,6 +81,20 @@ internal static class RunningAgents
 
         Expect(premium.Text == answer.Text, "a run on the provider and model of its call site answers");
 
+        var customer = scope.ServiceProvider.GetRequiredService<ICurrentCustomer>();
+        var providers = scope.ServiceProvider.GetRequiredService<ICustomerProviders>();
+
+        // begin-snippet: customer-provider-run
+        var account = await providers.LoadAsync(customer.Id, ct);
+
+        var reply = await support
+            .WithSettingsId(customer.Id)
+            .WithProvider(account)
+            .RunAsync("Where is my refund?", ct);
+        // end-snippet
+
+        Expect(reply.Text == answer.Text, "a run on the provider its customer brought answers");
+
         // begin-snippet: run-settings
         var run = new SupportAgent.Settings
         {

@@ -117,6 +117,7 @@ The table lists every entry by its ID, with the section that holds it and whethe
 | D85 | [A run leaves the caller's synchronization context](#d85) | Runtime | In force |
 | D86 | [An agent names its provider and its model apart](#d86) | Runtime | In force |
 | D87 | [The call site hands the host its provider and its model](#d87) | Runtime | In force |
+| D88 | [A provider is a document the app owns](#d88) | Runtime | In force |
 
 ## Registration and the generator
 
@@ -577,16 +578,16 @@ The table lists every entry by its ID, with the section that holds it and whethe
 
 - **Status:** owner.
 - **Context:** v0 gave each tool call a fresh scope of the root container, so request-scoped services (the current
-  customer) never reached tools, context or the chat client provider (audit finding 2).
+  customer) never reached tools, context or the provider class of the time (audit finding 2).
 - **Decision:** `AgentHost<TAgent>` is transient and keeps the provider it was resolved from, or the scope
   `runtime.CreateHost<TAgent>()` created for it (D76). Tools, context providers, middleware, the MCP tool
-  provider and the chat client provider resolve from it. Agents and toolsets stay singletons, the store too.
+  provider and the provider connector (D88) resolve from it. Agents and toolsets stay singletons, the store too.
 - **Never the root's:** a host the container resolves from the root provider, as one injected into a singleton or
   a `BackgroundService` is, throws an `InvalidOperationException` that names the runtime and a scope. The guide
   only warned up to 0.1.0-alpha.6: with scope validation such a host failed at its first scoped service with the
   container's message, and without it, as in ASP.NET Core outside Development, every customer's run got one
-  customer's scoped services, the key of its chat client provider among them, and the root kept each host until
-  the app stopped. The transient registration's factory tells the root by reference: the root hands it the
+  customer's scoped services, the key a scoped service holds for its customer among them, and the root kept each
+  host until the app stopped. The transient registration's factory tells the root by reference: the root hands it the
   provider the runtime holds (D76), a scope another. A container that hands the root's factories some other
   object is not recognized, and resolves as before. The hosts the library builds itself, for sub-agents and
   handoffs, take the run's services and pass no such check.
@@ -712,10 +713,9 @@ The table lists every entry by its ID, with the section that holds it and whethe
   `WithProvider`, and in the generated `ApplySettings`, through `SetProvider<TProviderId>` and
   `SetSummaryProvider`. It reaches what serves it through a generic call, as a `StoreId<TId>` reaches its store
   (D72), so no type is made at run time and Native AOT keeps working; it is equal only to a provider of the same
-  type and value. D63's keyed clients serve any type, since keyed services take keys of any type. Until the provider
-  document replaces it, the `IChatClientProvider<T>` of the agent's provider type serves the runs that name a
-  provider of its type: `WithChatClientProvider<T>()` registers `T` as each `IChatClientProvider<X>` it implements,
-  and a `T` that implements none is TSH030. Settings that store a provider need a type they store as one value, a
+  type and value. D63's keyed clients serve any type, since keyed services take keys of any type, and a document
+  the call site hands a run goes down it as a `ProviderDocument` (D88). Settings that store a provider need a type
+  they store as one value, a
   string, a number, a `Guid` or an enum: TSH029, on `WithProvider`'s argument. An agent whose settings store none may
   name a provider of any type. Settings that store one need a type the generated `Settings`, in a file of their own,
   can name, so no type nested as `private` or `protected` and no `file` type, and a public agent's settings a public
@@ -773,6 +773,45 @@ The table lists every entry by its ID, with the section that holds it and whethe
   site's model for sub-agents too, which sends one agent's model to another; checking only the providers the
   agents' code names, which fails a run whose sub-agent's settings name a served provider over an unserved default.
 
+### D88. A provider is a document the app owns {#d88}
+
+- **Status:** owner, shape A of the model selection design.
+- **Context:** a key per customer needed an `IChatClientProvider<T>`, a scoped class of the app's that the run asked
+  for every client. Clients must live longer than a request, so every app wrote the routing and a cache of clients of
+  its own beside it, the pair the demos marked as "CLUNKY 4". A provider a customer brings is data: a kind, an
+  address, a key, a model, which the app keeps and edits as its own.
+- **Decision:** `ChatProvider` is an open record the app derives from, with `Kind`, `Name`, `Endpoint`, `ApiKey` and
+  `Model`. The app stores it where it likes; Typeshift saves, loads and lists none, and defines no store for them. A
+  run is handed one at its call site, `host.WithProvider(document)` (D87), and the app's one
+  `IChatProviderConnector`, registered with `WithProviderConnector<T>()`, turns it into a client. An agent's code and
+  `WithDefaultProvider` name keys only and refuse a document. `IChatClientProvider<T>`, `WithChatClientProvider<T>()`
+  and TSH030 are gone: a key's client is the one registered under it (D63), and a customer's key is a document.
+- **The client cache:** `ProviderClients`, a singleton of the runtime, keeps one client per equal document, a
+  record's value equality, the members a derived record adds included, so a rotated key or a new endpoint is a new
+  client and the old one falls out of use. On a miss it resolves the connector from the run's scope and calls it
+  once; runs that hand in equal documents at the same time share that call, and one whose connecting run was
+  cancelled connects again. A connection that fails is forgotten, so the next run tries again, and fails its run with
+  the connector's exception before the run stores anything. A run holds its client from its start to the disposal of
+  its pipeline, streams included (`UndisposedChatClient` releases the hold). A client no run holds and none used for
+  `TypeshiftOptions.ProviderClientIdleTime`, 10 minutes by default, is disposed when a later run takes a client,
+  which looks at most once a minute on the injected `TimeProvider`, so no timer runs. Disposing the runtime disposes
+  the rest. Clients the app registered itself are never Typeshift's to dispose.
+- **Keys:** `ApiKey` is left out of the record's `ToString()` (`PrintMembers`), and a document is named by its
+  `Name`, else its `Kind`, on the run's span, its entries, its log lines and its messages. Typeshift holds a document
+  in memory while its client lives and writes it nowhere.
+- **The trap of the generic copy:** a record derived from `ChatProvider` binds to `WithProvider<TProviderId>`, the
+  better match, so that overload takes a `ChatProvider` as the document it is (`HostSelectionTests`,
+  `ChatClientResolutionTests` pin it).
+- **The model:** a document's `Model` answers a run that names none, as layer 5 of the model's resolution (D63).
+- **Where:** `Hosting/ChatProvider.cs`, `Hosting/IChatProviderConnector.cs`, `Hosting/ProviderClients.cs`,
+  `Hosting/ProviderId.cs` (`ProviderDocument`), `Hosting/ChatClients.cs`, `Hosting/UndisposedChatClient.cs`,
+  `Hosting/AgentHost.cs`, `DependencyInjection/TypeshiftBuilder.cs`, `DependencyInjection/TypeshiftOptions.cs`.
+- **Alternatives:** keeping the scoped provider class with a cache built in, which keeps the routing in every app
+  and the provider out of reach of the call site; a store of provider documents in Typeshift, a second place for data
+  the app already keeps; documents registered under a key on the chain, which nothing asks for yet; a client per run,
+  which opens connections per request for client libraries that do not share them; a timer for the idle sweep, one
+  more moving part that the next take does as well.
+
 ### D63. The default provider serves only a run that names none {#d63}
 
 - **Status:** owner; rewritten twice. It read "a registered chat client serves a run no `IChatClientProvider`
@@ -805,21 +844,18 @@ The table lists every entry by its ID, with the section that holds it and whethe
     customers bring their own providers registers none, so a call site that forgets its provider fails rather than
     spend the app's own account. A run that names none takes the default's key as its provider, so its span, its
     entries and `AgentRun.Provider` name it (D36).
-  - A run that names a provider takes the client of the `IChatClientProvider` of the agent's provider type (D86)
-    when one is registered. The class decides alone for the providers of its type: when it throws, no client is
-    tried after it, and a run that names a provider and no model throws, since the class serves a provider and a
-    model. Before, such a run went on to a client keyed by the provider, which beside a class that serves a key per
-    customer is the app's own key.
-  - Without a class of the type, the run takes the `IChatClient` registered under the provider as its key, as
-    Microsoft.Extensions.AI's `AddKeyedChatClient` registers one. It receives the model as `ModelId`.
+  - A run that names a key takes the `IChatClient` registered under it, as Microsoft.Extensions.AI's
+    `AddKeyedChatClient` registers one, of any key type (D86). It receives the model as `ModelId`. A run handed a
+    document takes the client the app's connector built for it, which Typeshift keeps (D88). The scoped
+    `IChatClientProvider<T>` that served a provider's key in alpha 7 is gone; with it a run that named a provider and
+    no model threw, since the class served a provider and a model.
   - A provider nothing serves throws. The message lists the keys clients are registered under, which tells a typo
     from a provider the app never registered, and says so when the key is the default provider's. The default
     provider is never asked in its place.
 - **As built:** the run's client is found before the run stores an entry or opens its span
   (`AgentHost.CreateChatClientAsync`). With a conversation, the run has claimed and loaded it by then (D34), and
-  frees the claim when no client is found. A summary's provider is checked there too once the run can compact, without
-  asking a provider class, which is asked when a summary is needed: a summary call that fails is best effort (D32),
-  a provider that does not exist is not. So are the providers of the agents the run may reach (D87). The keys are
+  frees the claim when no client is found. A summary's provider is checked there too once the run can compact: a
+  summary call that fails is best effort (D32), a provider that does not exist is not. So are the providers of the agents the run may reach (D87). The keys are
   read from the registrations (`RegisteredChatClients`), since a container does not list them. The model check
   reads the client's `ChatClientMetadata`, which Microsoft.Extensions.AI's adapters fill from the model a client was
   built with; a wrapper that answers no `GetService` hides it, and its runs need a model named.
@@ -841,7 +877,9 @@ The table lists every entry by its ID, with the section that holds it and whethe
   and each pass's share of the limit), `FunctionInvokingChatClient` (handoff, run options, the tool gate and tool
   middleware as its `FunctionInvoker`), the decision gate (D81), checkpoints (each step appended before compaction
   sees it; steering input and background answers injected here), unique call ids (D59), compaction,
-  `OpenTelemetryChatClient`, the provider's client behind a wrapper that never disposes it.
+  `OpenTelemetryChatClient`, the provider's client behind a wrapper that never disposes it and ends the run's hold
+  on a client Typeshift keeps for a document (D88). The client comes from `ChatClients.GetAsync`, the one place a
+  run turns its provider and model into a client.
   The run's own wrapper above `OpenTelemetryChatClient` hands the provider's client each JSON result as text without
   white space (D45). The gate, checkpoints and compaction sit inside the tool loop, so they act around every model
   call. The mode
@@ -2409,7 +2447,8 @@ The table lists every entry by its ID, with the section that holds it and whethe
 
 - **Decision:** the rewrite started the catalog again at TSH001, since none of v0's IDs had shipped. A number is
   taken once any tag shipped it, a prerelease included: no other diagnostic ever gets it, and a diagnostic that goes
-  away stays listed under "Retired IDs" in the guide, as TSH021 does since 0.1.0-alpha.6. A new diagnostic takes the
+  away stays listed under "Retired IDs" in the guide, as TSH021 does since 0.1.0-alpha.6 and TSH030 since
+  0.1.0-alpha.8. A new diagnostic takes the
   number after the highest ever used. Before 1.0 an ID's meaning may still change, with a CHANGELOG entry, as those of
   TSH028 to TSH030 did in 0.1.0-alpha.6. Once a stable release ships a diagnostic's row, its ID never changes (see
   [Releasing](./releasing.md#cutting-a-release)).

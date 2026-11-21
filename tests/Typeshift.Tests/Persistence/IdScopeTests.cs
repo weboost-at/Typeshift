@@ -151,7 +151,7 @@ public class IdScopeTests : AgentTestBase
         ChatClient.Reply(Text(Data.Tool.Answer)).Reply(Text(Data.Tool.Answer));
 
         var services = new ServiceCollection();
-        services.AddTypeshift().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddTypeshift().WithScriptedProviders();
         services.AddSingleton(ChatClient).AddSingleton(Models);
 
         await using var provider = services.BuildServiceProvider(validateScopes: true);
@@ -456,7 +456,7 @@ public class IdScopeTests : AgentTestBase
         // Arrange
         var store = new InMemoryTypeshiftStore<int>();
         var services = new ServiceCollection();
-        services.AddTypeshift().WithStore(store).WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddTypeshift().WithStore(store).WithScriptedProviders();
         services.AddSingleton(ChatClient).AddSingleton(Models);
 
         await using var provider = services.BuildServiceProvider(validateScopes: true);
@@ -478,7 +478,7 @@ public class IdScopeTests : AgentTestBase
         // Arrange
         var logs = new WarningLog();
         var services = new ServiceCollection();
-        services.AddTypeshift().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddTypeshift().WithScriptedProviders();
         services.AddSingleton<ISettingsStore<int>>(new InMemoryTypeshiftStore<int>());
         services.AddSingleton(ChatClient).AddSingleton(Models).AddSingleton<ILoggerFactory>(logs);
 
@@ -500,7 +500,7 @@ public class IdScopeTests : AgentTestBase
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddTypeshift().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddTypeshift().WithScriptedProviders();
         services.AddSingleton<IConversationStore<Guid>>(new InMemoryTypeshiftStore<Guid>());
         services.AddSingleton(ChatClient).AddSingleton(Models);
 
@@ -527,7 +527,7 @@ public class IdScopeTests : AgentTestBase
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddTypeshift().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddTypeshift().WithScriptedProviders();
         services.AddScoped<IConversationStore<Guid>, InMemoryTypeshiftStore<Guid>>();
         services.AddSingleton(ChatClient).AddSingleton(Models);
 
@@ -551,7 +551,7 @@ public class IdScopeTests : AgentTestBase
         // Arrange
         var creations = 0;
         var services = new ServiceCollection();
-        services.AddTypeshift().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddTypeshift().WithScriptedProviders();
         services.AddSingleton(ChatClient).AddSingleton(Models);
 
         services.AddSingleton<IAgentSettingsStore>(_ => Interlocked.Increment(ref creations) == 1

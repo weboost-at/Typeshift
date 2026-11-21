@@ -19,6 +19,13 @@ All notable changes to this project are documented here. The format follows
   its summary, while each sub-agent keeps its own model. TSH041 reports such a copy that a statement drops.
 - `AddTypeshift().WithDefaultProvider(key)` names the keyed client that serves every run that names no provider, in
   place of the client registered for every agent.
+- `ChatProvider`, a record your app derives from and keeps in its own storage, is a provider your customers bring: a
+  kind, a name, an endpoint, a key and a model. `host.WithProvider(document)` hands one to a run, and the
+  `IChatProviderConnector` your app registers with `AddTypeshift().WithProviderConnector<T>()` turns it into a client.
+  Typeshift keeps one client per equal document, shared by runs that hand in equal documents at once, and disposes a
+  client no run used for `TypeshiftOptions.ProviderClientIdleTime`, 10 minutes by default, and the rest with the
+  runtime. A document's key stays out of its `ToString()`, the run's span, its entries, its logs and its messages,
+  which name the document's `Name`, else its `Kind`.
 - `host.CreateChatClientAsync()`, and the agent's generated `CreateChatClientAsync(settings)`, create the client of the
   raw path in one call: they resolve the run's options as `ResolveOptionsAsync` does, and the client keeps them, so
   `using var client = await support.CreateChatClientAsync();` is all a library that takes an `IChatClient` needs.
@@ -690,6 +697,15 @@ All notable changes to this project are documented here. The format follows
   nearly every step of a run went back to the UI thread, a streamed run posted to it several times per update, the
   store appended there, and blocking on a run there deadlocked. Your code that started the run still comes back to
   its own context.
+
+### Removed
+
+- **Breaking:** `IChatClientProvider<TProviderId>` and `AddTypeshift().WithChatClientProvider<T>()` are gone, and so
+  is TSH030, which reported a class that implements no such interface. A provider's key is served by the client
+  registered under it, `services.AddKeyedChatClient(key, client)`. A key per customer becomes a `ChatProvider`
+  document your app loads and hands to the run, `support.WithProvider(document).RunAsync(...)`, with an
+  `IChatProviderConnector` registered by `WithProviderConnector<T>()` in place of the provider class; its
+  `ConnectAsync(document, ct)` builds the client, which Typeshift keeps and disposes.
 
 ### Fixed
 

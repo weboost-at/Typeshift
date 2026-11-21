@@ -270,7 +270,7 @@ public sealed class DecisionTelemetryTests : QuestionTestBase
 
         services.AddTypeshift()
             .WithStore(new UnreliableStore { FailingSave = 1 })
-            .WithChatClientProvider<ScriptedChatClientProvider>();
+            .WithScriptedProviders();
 
         services.AddSingleton(ChatClient).AddSingleton(Models);
 

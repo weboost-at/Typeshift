@@ -330,7 +330,7 @@ public class TypeshiftRuntimeTests : AgentTestBase
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddTypeshift().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddTypeshift().WithScriptedProviders();
         services.AddSingleton(ChatClient).AddSingleton(Models);
         await using var provider = services.BuildServiceProvider(validateScopes);
 
@@ -340,8 +340,8 @@ public class TypeshiftRuntimeTests : AgentTestBase
         // Assert
         resolve.Should().Throw<InvalidOperationException>().WithMessage(
             "AgentHost<ProbeAgent> was resolved from the root provider, as a host injected into a singleton is. Its "
-            + "runs would share one instance of each scoped service, such as the chat client provider of one "
-            + "customer, and the root would keep every host until the app stops: inject ITypeshiftRuntime and call "
+            + "runs would share one instance of each scoped service, such as the current customer, and the root "
+            + "would keep every host until the app stops: inject ITypeshiftRuntime and call "
             + "CreateHost<ProbeAgent>() for each unit of work, or resolve the host from a scope.");
     }
 

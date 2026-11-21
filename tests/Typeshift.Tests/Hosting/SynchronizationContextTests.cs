@@ -178,7 +178,7 @@ public class SynchronizationContextTests : HostTestBase
     {
         var typeshift = services.AddTypeshift()
             .WithStore<ContextLoggingStore>()
-            .WithChatClientProvider<NetworkChatClientProvider>()
+            .WithClientOfEveryProvider((_, _) => new NetworkChatClient(ChatClient))
             .WithToolMiddleware<ContextLoggingToolMiddleware>();
 
         if (_withRunMiddleware) typeshift.WithRunMiddleware<ContextLoggingRunMiddleware>();

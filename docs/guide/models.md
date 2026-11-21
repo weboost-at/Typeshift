@@ -1,6 +1,6 @@
 ---
 title: Models and providers
-description: Register a default chat client or one per provider, name an agent's model with or without a provider, serve keys per customer, handle a failing provider, and pick the summary model.
+description: Register clients and a default provider, name a model and a provider apart, choose both at the call site, run on providers your customers bring, and pick the summary model.
 ---
 
 # Models and providers
@@ -53,9 +53,9 @@ asks for comes from the same places, and then from the client:
 |---|---|---|
 | No provider | A [default provider](#the-default-provider) | The default provider's client. Naming no provider is how a run means the default. |
 | No provider | No default provider | An exception that names the ways to register one or to name a provider |
-| A provider | An `IChatClientProvider<T>` of the agent's [provider id type](#the-provider-id-type) | The client your provider class returns ([Your own provider](#your-own-provider)). The class decides alone for the providers of its type: when it throws, the run fails, and a run that names a provider without a model fails too, since the class serves a provider and a model. |
-| A provider | A client under that provider, and no provider class of the type | That client. It receives the model the run names, and answers with its own when the run names none. |
-| A provider | Neither | An exception that lists the keys your app registered clients under |
+| A provider's key | A client under that key | That client. It receives the model the run names, and answers with its own when the run names none. |
+| A provider's key | Nothing under that key | An exception that lists the keys your app registered clients under |
+| A provider document | A connector | The client your connector built for an equal document, made once and kept ([Providers your customers bring](#providers-your-customers-bring)) |
 | No model | A client built with a model of its own, as `GetChatClient("gpt-5-mini")` builds one | That model: the client reports it as its `ChatClientMetadata.DefaultModelId` |
 | No model | A client without a model of its own | An exception that names the ways to name a model |
 
@@ -106,33 +106,128 @@ var premium = await support
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L75-L80' title='Snippet source file'>snippet source</a> | <a href='#snippet-call-site-provider' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-- What the call site names wins over the agent's code and over every [settings layer](./settings-and-stores.md#settings-layering).
-  The model needs no `Configurable(o => o.ModelId)`: the allow list guards what stored data may change, and the call
-  site is your app's code.
+- What the call site names wins over the agent's code and over every
+  [settings layer](./settings-and-stores.md#settings-layering). The model needs no `Configurable(o => o.ModelId)`:
+  the allow list guards what stored data may change, and the call site is your app's code.
 - The provider serves the whole run: the agent's sub-agents, the agents it hands off to, and the summary of a long
   conversation. A customer who brings a key expects every call of the run on it. The model is the host's agent's
   alone, so each sub-agent keeps its own.
 - A copy leaves the host it came from as it was, and a later copy keeps what an earlier one named, so
   `support.WithSettingsId(42).WithProvider("anthropic")` carries both. A copy whose result your code drops changes
   nothing, which the analyzer reports ([TSH041](./diagnostics.md#tsh041)).
-- `IAgentHost`, the host of an agent your code does not name, has the same two copies
+- `IAgentHost`, the host of an agent your code does not name, has the same copies
   ([The catalog](./registration.md#the-catalog)).
 
-## Your own provider
+## Providers your customers bring
 
-Write an `IChatClientProvider<TProviderId>` when a client depends on more than its provider, such as a key per
-customer. `TProviderId` is the type your agents name providers by, `string` for `WithProvider("openai")`
-([The provider id type](#the-provider-id-type)). Its one method gets the provider and the model of every run that
-names both, and again when [compaction](./conversations.md#compaction) needs the summary model. A run that names no
-provider never reaches it and takes the default client. Register your class with
-`WithChatClientProvider<TProvider>()`, and [A key per customer](#a-key-per-customer) shows one. For a class that
-implements no `IChatClientProvider<T>`, the analyzer reports [TSH030](./diagnostics.md#tsh030).
+When each customer brings their own account, such as their own API key or endpoint, a provider is data your app
+owns rather than a client it registers. Derive a record from `ChatProvider` and keep it in your app's storage as you
+keep any other entity:
 
-::: info The provider is scoped
-Typeshift resolves your provider from each run's scope, so it can use that request's services, such as the current
-customer or your `DbContext`. Typeshift never disposes a client you return. You may return a new instance for every
-run: the metrics go on across instances, and each call's span names the backend of the client that answered it
-([Spans](./observability.md#spans)).
+<!-- snippet: customer-provider -->
+<a id='snippet-customer-provider'></a>
+```cs
+// A provider a customer brings: the record your app keeps in its own storage, with the members it needs
+internal sealed record CustomerProvider(Guid Id, int Customer) : ChatProvider;
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/CustomerProvider.cs#L3-L6' title='Snippet source file'>snippet source</a> | <a href='#snippet-customer-provider' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+- `Kind` says which client your connector builds, such as `openai`. `Name` is what spans, entries and messages show
+  for the provider. `Endpoint`, `ApiKey` and `Model` are what the client needs, and `Model` answers a run that names
+  no model.
+- A record compares by its values, the members you add included, so two equal documents are one provider, and a
+  rotated key or a new endpoint makes another.
+- Typeshift saves, loads and lists no documents. It sees one only when a run is handed it, so where the record lives,
+  a table, a file or memory, is your app's choice.
+
+Load the document of the customer the run is for, and hand it to the host:
+
+<!-- snippet: customer-provider-run -->
+<a id='snippet-customer-provider-run'></a>
+```cs
+var account = await providers.LoadAsync(customer.Id, ct);
+
+var reply = await support
+    .WithSettingsId(customer.Id)
+    .WithProvider(account)
+    .RunAsync("Where is my refund?", ct);
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L87-L94' title='Snippet source file'>snippet source</a> | <a href='#snippet-customer-provider-run' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+`ICustomerProviders` stands for your app's storage of the documents its customers entered. The document serves the
+whole run, its sub-agents and its summary included, as a provider the call site names by key does
+([Choosing at the call site](#choosing-at-the-call-site)).
+
+### The connector
+
+One class of yours turns a document into a client, an `IChatProviderConnector`:
+
+<!-- snippet: provider-connector -->
+<a id='snippet-provider-connector'></a>
+```cs
+internal sealed class Connectors : IChatProviderConnector
+{
+    public ValueTask<IChatClient> ConnectAsync(ChatProvider provider, CancellationToken ct) =>
+        ValueTask.FromResult(provider.Kind switch
+        {
+            "openai" => OpenAi(provider),
+            "anthropic" => new AnthropicClient { ApiKey = provider.ApiKey }.AsIChatClient(provider.Model),
+            _ => throw new InvalidOperationException($"No connector for the provider kind '{provider.Kind}'.")
+        });
+
+    // The document's key and endpoint, and its model as the client's own
+    private static IChatClient OpenAi(ChatProvider provider)
+    {
+        var options = new OpenAIClientOptions();
+        if (provider.Endpoint is { } endpoint) options.Endpoint = endpoint;
+
+        var key = provider.ApiKey
+            ?? throw new InvalidOperationException($"The provider '{provider.Name}' has no key.");
+
+        return new OpenAIClient(new ApiKeyCredential(key), options)
+            .GetChatClient(provider.Model ?? "gpt-5-mini")
+            .AsIChatClient();
+    }
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/Connectors.cs#L8-L33' title='Snippet source file'>snippet source</a> | <a href='#snippet-provider-connector' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+Register it on the chain:
+
+<!-- snippet: provider-connector-registration -->
+<a id='snippet-provider-connector-registration'></a>
+```cs
+services.AddTypeshift()
+    .WithProviderConnector<Connectors>();
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L90-L93' title='Snippet source file'>snippet source</a> | <a href='#snippet-provider-connector-registration' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+- Typeshift asks the connector once for each document it holds no client for, and runs that hand in equal documents
+  at the same time share that one call. Every later run with an equal document takes the same client, so build it
+  from the document alone: the client outlives the request. The connector is resolved from the run's scope, so it may
+  use your services to do its work, such as a vault that holds the keys.
+- Typeshift owns the clients your connector returns. One that no run used for
+  `TypeshiftOptions.ProviderClientIdleTime`, 10 minutes by default, is disposed when a later run takes a client, and
+  disposing the runtime disposes the rest. Clients your app registered itself are never disposed.
+- A connector that throws fails the run with its own exception, before the run stores anything. A run handed a
+  document while no connector is registered throws an `InvalidOperationException` that names
+  `WithProviderConnector<T>()`.
+- An agent's code and `WithDefaultProvider` take keys only, and refuse a document with an `ArgumentException`: a
+  document belongs to the run your code hands it to.
+- Register no default provider when every run should be on a customer's account. A run that forgets `WithProvider`
+  then fails, where a default provider would answer it with your app's own key
+  ([The default provider](#the-default-provider)).
+
+::: warning Load only the document of the customer the run is for
+A document is what a run spends: whoever hands it in runs on that account. Load it from your storage by the customer
+the request belongs to, never take one from the request as it is. Keep the keys there in the form you choose, plain,
+encrypted by your persistence or as a reference such as `vault:customers/42` that your connector resolves. Typeshift
+holds a document in memory while its client lives, writes it nowhere, and leaves `ApiKey` out of the record's
+`ToString()`, its spans, its logs, its entries and its messages.
 :::
 
 ## A real client
@@ -275,54 +370,6 @@ dotnet user-secrets init
 dotnet user-secrets set "Providers:openai:ApiKey" "<your key>"
 ```
 
-## A key per customer
-
-When each customer brings their own API key, the client depends on who is asking. Because your provider is scoped, it
-can read the current customer and fetch that customer's key for each run:
-
-<!-- snippet: tenant-chat-client-provider -->
-<a id='snippet-tenant-chat-client-provider'></a>
-```cs
-internal sealed class TenantChatClientProvider(ICurrentCustomer customer, ITenantKeys keys)
-    : IChatClientProvider<string>
-{
-    // A client per run, with the customer's current key
-    public async ValueTask<IChatClient> GetChatClientAsync(string provider, string model, CancellationToken ct)
-    {
-        if (provider != "openai") throw new InvalidOperationException($"No client for the provider '{provider}'.");
-
-        var key = await keys.GetApiKeyAsync(customer.Id, provider, ct);
-
-        return new OpenAIClient(key)
-            .GetChatClient(model)
-            .AsIChatClient();
-    }
-}
-```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/TenantChatClientProvider.cs#L6-L22' title='Snippet source file'>snippet source</a> | <a href='#snippet-tenant-chat-client-provider' title='Start of snippet'>anchor</a></sup>
-<!-- endSnippet -->
-
-Register it on the chain, in place of a provider for your app's own keys:
-
-<!-- snippet: tenant-chat-client-provider-registration -->
-<a id='snippet-tenant-chat-client-provider-registration'></a>
-```cs
-services.AddTypeshift()
-    .WithChatClientProvider<TenantChatClientProvider>();
-```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L90-L93' title='Snippet source file'>snippet source</a> | <a href='#snippet-tenant-chat-client-provider-registration' title='Start of snippet'>anchor</a></sup>
-<!-- endSnippet -->
-
-- `ICurrentCustomer` and `ITenantKeys` stand for services of your app: who the request is for, and where you keep the
-  keys your customers entered. Both may be scoped, since the provider is.
-- A new client per run costs little, because every `OpenAIClient` shares one `HttpClient`, and it always holds the
-  customer's current key. A client library whose clients each open their own connections needs a cache instead, kept
-  in a singleton and keyed by the API key, so a changed key gets a new client.
-- `GetChatClientAsync` throws for any provider but `openai`, so a run that names another fails before it starts
-  ([When a provider fails](#when-a-provider-fails)).
-- Register no default client beside it. An agent that names no provider then fails, where a default client would
-  answer it with your app's own key.
-
 ## Wrapping a client
 
 You may wrap a provider's client before Typeshift gets it, with the `Use...` calls of Microsoft.Extensions.AI's
@@ -436,7 +483,18 @@ your own instead: an enum suits providers known in code, so the compiler checks 
 providers that are rows in your database. Each agent takes the type from its own `WithProvider`, so one app can run an
 agent of enum providers beside agents of strings.
 
-Pass a value of your type to `WithProvider`, here an enum `Provider` of the Native AOT sample:
+Pass a value of your type to `WithProvider`, here a member of the Native AOT sample's enum:
+
+<!-- snippet: provider-enum -->
+<a id='snippet-provider-enum'></a>
+```cs
+internal enum Provider
+{
+    Scripted
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Chat/Providers.cs#L6-L11' title='Snippet source file'>snippet source</a> | <a href='#snippet-provider-enum' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
 
 <!-- snippet: provider-enum-model -->
 <a id='snippet-provider-enum-model'></a>
@@ -451,36 +509,19 @@ WithChatOptions()
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Companies/ResearchAgent.cs#L14-L21' title='Snippet source file'>snippet source</a> | <a href='#snippet-provider-enum-model' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-Your provider class implements `IChatClientProvider<T>` for that type, so `GetChatClientAsync` takes a `Provider`
-instead of a string:
+Register the provider's client under the enum's value, as you register one under a string:
 
-<!-- snippet: provider-enum -->
-<a id='snippet-provider-enum'></a>
+<!-- snippet: provider-enum-client -->
+<a id='snippet-provider-enum-client'></a>
 ```cs
-internal enum Provider
-{
-    Scripted
-}
-
-// A real app maps each provider to its client here
-internal sealed class ScriptedChatClientProvider : IChatClientProvider<Provider>
-{
-    private static readonly ScriptedChatClient Client = new();
-
-    public ValueTask<IChatClient> GetChatClientAsync(Provider provider, string model, CancellationToken ct) =>
-        ValueTask.FromResult<IChatClient>(Client);
-}
+services.AddKeyedChatClient(Provider.Scripted, new ScriptedChatClient());
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Chat/ScriptedChatClientProvider.cs#L6-L20' title='Snippet source file'>snippet source</a> | <a href='#snippet-provider-enum' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Program.cs#L21-L23' title='Snippet source file'>snippet source</a> | <a href='#snippet-provider-enum-client' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-- A run asks the `IChatClientProvider<T>` of its agent's provider type. The runs of this agent reach the class
-  above, and those of an agent with string providers reach the class your app registered for strings. One class may
-  serve both: `WithChatClientProvider<TProvider>()` registers it as each `IChatClientProvider<T>` it implements.
-- A run asks only the provider class of its agent's provider type. Beside a provider class for strings, an agent
-  that names an enum provider needs the interface implemented for the enum too, or a client registered under the
-  enum's value, such as `services.AddKeyedChatClient(Provider.Scripted, client)`. Without either its runs fail,
-  naming the `IChatClientProvider<T>` they need ([Registering clients](#registering-clients)).
+- Keyed services take keys of any type, so the runs of this agent find the client under `Provider.Scripted`, and
+  the runs of an agent with string providers the clients under their strings, in one app. A run of this agent that
+  names no provider takes the default provider, whatever its type.
 - With `Configurable(o => o.ModelId)`, the agent's `Settings` store its provider, so a user's pick is a `Provider`
   too. An agent that makes its model configurable and names no provider in code, without `WithProvider`, stores
   providers as strings.
@@ -543,8 +584,8 @@ await support.WithSettingsId(42).UpdateSettingsAsync(settings => settings with
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/AgentSettings.cs#L14-L22' title='Snippet source file'>snippet source</a> | <a href='#snippet-configure-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-A provider in settings picks among the clients your app registered, and with a key per customer, whose key pays for
-the run. So a settings page offers the providers the user may pick, rather than taking one from the request as it is
+A provider in settings picks among the clients your app registered, and so whose key pays for the run. So a
+settings page offers the providers the user may pick, rather than taking one from the request as it is
 ([Settings from a request](./settings-and-stores.md#settings-from-a-request)).
 
 ## The summary model
@@ -616,8 +657,8 @@ What your code sees depends on whether the run fails before or after it stores i
 |---|---|---|
 | Nothing serves the run: it names a provider your app registered no client for, or no provider while no default provider is registered, or it can compact and its settings name such a summary provider, or an agent it may call or hand off to names such a provider | An `InvalidOperationException` that names the agent, what it named and the keys your app registered clients under | Unchanged |
 | No model: no layer names one, and the client that serves the run was built without one | An `InvalidOperationException` that names the ways to name a model | Unchanged |
-| Your provider throws for the run's model, such as for a provider it does not know | Your provider's exception | Unchanged |
-| The summary call fails, or your provider throws for the summary model, when compaction asks for it during the run | Nothing: the run goes on ([The summary model](#the-summary-model)) | Goes on, with a summary by the run's own model or without one |
+| Your connector throws for a document, such as one of a kind it does not know | Your connector's exception | Unchanged |
+| The summary call fails, when compaction asks for it during the run | Nothing: the run goes on ([The summary model](#the-summary-model)) | Goes on, with a summary by the run's own model or without one |
 | The model call fails, such as on a wrong key, an unknown model or a rate limit that outlasts the retries | The client library's exception | Ends with an entry that holds an `ErrorContent` |
 
 - Typeshift finds the run's client before the run stores its input, so the first three fail with the conversation's

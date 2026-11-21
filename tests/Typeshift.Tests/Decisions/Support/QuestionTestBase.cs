@@ -1,3 +1,4 @@
+using Typeshift.Tests.Agents.Support;
 using Typeshift.Tests.Approval.Support;
 using Typeshift.Tests.MultiAgent.Support;
 using Typeshift.Tests.Testing.Fakes;
@@ -21,7 +22,7 @@ public abstract class QuestionTestBase : ApprovalTestBase
     {
         base.ConfigureServices(services);
 
-        services.AddTypeshift().WithChatClientProvider<TwoClientProvider>();
+        services.AddTypeshift().WithClientOfEveryProvider(TwoClients.For);
         services.AddSingleton(new HelperChatClient(HelperClient));
     }
 

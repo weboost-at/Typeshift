@@ -42,8 +42,9 @@ public sealed record ConversationEntry(string Agent, IReadOnlyList<ChatMessage> 
     public string? Model { get; init; }
 
     /// <summary>
-    /// The provider whose client wrote the messages, as text, for a model response of a run that names a provider;
-    /// null for one on the default client, and on entries stored before entries named their provider.
+    /// The provider whose client wrote the messages, for a model response: a key as text, or a provider document's
+    /// name, else its kind. Null for one on the client registered for every agent, and on entries stored before
+    /// entries named their provider.
     /// </summary>
     public string? Provider { get; init; }
 

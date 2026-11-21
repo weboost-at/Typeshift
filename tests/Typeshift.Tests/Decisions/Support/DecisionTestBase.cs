@@ -27,7 +27,7 @@ public abstract class DecisionTestBase : ApprovalTestBase
 
         services.AddTypeshift()
             .WithStore(Store.Inner)
-            .WithChatClientProvider<ScriptedChatClientProvider>()
+            .WithScriptedProviders()
             .WithApprovalRule<ScriptedRule>()
             .WithApprovalRule<SecondScriptedRule>();
 

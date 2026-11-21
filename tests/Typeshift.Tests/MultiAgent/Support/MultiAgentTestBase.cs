@@ -28,7 +28,7 @@ public abstract class MultiAgentTestBase : AgentTestBase
     {
         base.ConfigureServices(services);
 
-        services.AddTypeshift().WithChatClientProvider<TwoClientProvider>();
+        services.AddTypeshift().WithClientOfEveryProvider(TwoClients.For);
         services.AddKeyedChatClient(Vendor.Other, CallSite);
         services.AddSingleton(new HelperChatClient(HelperClient));
         services.AddSingleton(ToolCalls);
@@ -37,14 +37,38 @@ public abstract class MultiAgentTestBase : AgentTestBase
 
 public sealed record HelperChatClient(ScriptedChatClient Client);
 
-public sealed class TwoClientProvider(ScriptedChatClient client, HelperChatClient helper, ProvidedModels models)
-    : IChatClientProvider<string>
+// Answers the helper's model from the helper's client and every other model from the test's, recording each call
+public sealed class TwoClients(IChatClient client, IChatClient helper) : IChatClient
 {
-    public ValueTask<IChatClient> GetChatClientAsync(string provider, string model, CancellationToken ct)
+    public static IChatClient For(IServiceProvider services, string provider) =>
+        new RecordingChatClient(
+            new TwoClients(
+                services.GetRequiredService<ScriptedChatClient>(),
+                services.GetRequiredService<HelperChatClient>().Client),
+            provider,
+            services.GetRequiredService<ProvidedModels>());
+
+    public Task<ChatResponse> GetResponseAsync(
+        IEnumerable<ChatMessage> messages,
+        ChatOptions? options = null,
+        CancellationToken cancellationToken = default) =>
+        Of(options).GetResponseAsync(messages, options, cancellationToken);
+
+    public IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
+        IEnumerable<ChatMessage> messages,
+        ChatOptions? options = null,
+        CancellationToken cancellationToken = default) =>
+        Of(options).GetStreamingResponseAsync(messages, options, cancellationToken);
+
+    public object? GetService(Type serviceType, object? serviceKey = null) =>
+        client.GetService(serviceType, serviceKey);
+
+    // The test owns both
+    public void Dispose()
     {
-        models.Add(new(provider, model));
-        return ValueTask.FromResult<IChatClient>(model == HelperAgent.Model ? helper.Client : client);
     }
+
+    private IChatClient Of(ChatOptions? options) => options?.ModelId == HelperAgent.Model ? helper : client;
 }
 
 // Answers one question, with the guarded tools

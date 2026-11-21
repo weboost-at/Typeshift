@@ -23,6 +23,8 @@ public class HostSelectionTests : AgentTestBase
         base.ConfigureServices(services);
 
         services.AddKeyedChatClient(Vendor.Other, CallSite);
+        services.AddTypeshift().WithProviderConnector<CountingConnector>();
+        services.AddSingleton(new Connections());
     }
 
     [Fact]
@@ -181,6 +183,32 @@ public class HostSelectionTests : AgentTestBase
         await run.Should()
             .ThrowAsync<InvalidOperationException>()
             .WithMessage($"*'{ProbeAgent.Model}' of '{Vendor.Probe}': the registered clients are under 'Other'*");
+    }
+
+    [Fact]
+    public async Task Given_A_Document_At_The_Call_Site_It_Wins_Over_The_Runs_Settings()
+    {
+        // Arrange
+        var settings = new ProbeAgent.Settings { Provider = Data.Agent.Provider };
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await Host<ProbeAgent>()
+            .WithProvider(new ChatProvider { Kind = "scripted", ApiKey = Data.Agent.Model })
+            .RunAsync(Data.Tool.Question, settings, Ct);
+
+        // Assert
+        Models.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Given_A_Document_Without_A_Kind_At_The_Call_Site_The_Copy_Is_Refused()
+    {
+        // Act
+        var copy = () => Host<ProbeAgent>().WithProvider(new ChatProvider { Kind = " " });
+
+        // Assert
+        copy.Should().Throw<ArgumentException>().WithParameterName("provider");
     }
 
     [Fact]

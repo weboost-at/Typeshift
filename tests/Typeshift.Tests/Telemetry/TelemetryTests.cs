@@ -4,6 +4,7 @@ using Typeshift.Tests.Agents.Support;
 using Typeshift.Tests.Approval.Support;
 using Typeshift.Tests.Compaction.Support;
 using Typeshift.Tests.Conversations.Support;
+using Typeshift.Tests.Hosting.Support;
 using Typeshift.Tests.MultiAgent.Support;
 using Typeshift.Tests.Telemetry.Support;
 using Typeshift.Tests.Tools.Support;
@@ -381,7 +382,7 @@ public sealed class TelemetryTests : AgentTestBase
         // Arrange
         var services = new ServiceCollection();
 #pragma warning disable TSH036 // the store fails every append, and the run never asks
-        services.AddTypeshift().WithStore<FailingAppendStore>().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddTypeshift().WithStore<FailingAppendStore>().WithScriptedProviders();
 #pragma warning restore TSH036
         services.AddSingleton(ChatClient).AddSingleton(Models);
 
@@ -407,7 +408,7 @@ public sealed class TelemetryTests : AgentTestBase
 #pragma warning disable TSH036 // the store fails every append, and the run never asks
         services.AddTypeshift()
             .WithStore<FailingAppendStore>()
-            .WithChatClientProvider<ScriptedChatClientProvider>()
+            .WithScriptedProviders()
             .WithOptions(options => options.StoreFailure = StoreFailure.ContinueRun);
 #pragma warning restore TSH036
 
@@ -477,7 +478,7 @@ public sealed class TelemetryTests : AgentTestBase
         var services = new ServiceCollection();
         services.AddTypeshift()
             .WithStore<InMemoryTypeshiftStore<Guid>>()
-            .WithChatClientProvider<ClientPerCallProvider>();
+            .WithClientOfEveryProvider((_, _) => new ClientPerCall(ChatClient));
         services.AddSingleton(ChatClient);
 
         await using var provider = services.BuildServiceProvider();
@@ -617,6 +618,35 @@ public sealed class TelemetryTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Run_Handed_A_Document_Its_Span_Carries_Its_Name_And_Not_Its_Key()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddTypeshift().WithStore<InMemoryTypeshiftStore<Guid>>().WithProviderConnector<CountingConnector>();
+        services.AddSingleton(ChatClient).AddSingleton(new Connections());
+
+        await using var provider = services.BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var document = new ChatProvider
+        {
+            Kind = "scripted",
+            Name = Data.Agent.Instructions,
+            ApiKey = Data.Agent.Model
+        };
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await scope.ServiceProvider.GetRequiredService<AgentHost<SchemaAgent>>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .WithProvider(document)
+            .RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        var run = Activities.Run(Data.Agent.ConversationId);
+        run.GetTagItem("typeshift.provider").Should().Be(Data.Agent.Instructions);
+    }
+
+    [Fact]
     public async Task Given_A_Run_On_The_Default_Client_Its_Span_Carries_No_Provider()
     {
         // Arrange
@@ -711,14 +741,15 @@ public sealed class TelemetryTests : AgentTestBase
     private Task<ChatResponse> RunAsync() =>
         Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Tool.Question, ct: Ct);
 
-    // A container whose provider serves each run from a client of the next backend
+    // A container that serves each run from a client of the next backend, as a client per customer or per model would
     private ServiceProvider ServicesOf(params ChatClientMetadata[] backends)
     {
+        var queue = new Backends(backends);
         var services = new ServiceCollection();
         services.AddTypeshift()
             .WithStore<InMemoryTypeshiftStore<Guid>>()
-            .WithChatClientProvider<BackendProvider>();
-        services.AddSingleton(ChatClient).AddSingleton(new Backends(backends));
+            .WithClientOfEveryProvider((_, _) => new BackendClient(ChatClient, queue.Dequeue()));
+        services.AddSingleton(ChatClient);
 
         return services.BuildServiceProvider();
     }

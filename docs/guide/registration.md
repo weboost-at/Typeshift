@@ -86,7 +86,7 @@ references. Your app's own toolsets and agents need a call to `AddTypeshift()` i
 | `WithStore(store)` | A store you created yourself, as each store interface its declared type implements | Singleton, your app's |
 | `WithStore(provider => ...)` | A store the container builds with your factory, as each store interface the factory's return type implements | Singleton |
 | `WithFileStore(configure)` | The file store, as `IAgentSettingsStore` | Singleton |
-| `WithChatClientProvider<TProvider>()` | `TProvider`, as each `IChatClientProvider<T>` it implements | Scoped |
+| `WithProviderConnector<TConnector>()` | The `IChatProviderConnector` that turns the provider documents runs are handed into clients; the last call wins ([Providers your customers bring](./models.md#providers-your-customers-bring)) | Scoped |
 | `WithDefaultProvider(key)` | Which keyed client serves the runs that name no provider, in place of the client registered for every agent ([The default provider](./models.md#the-default-provider)) | Your app's choice, once |
 | `WithOptions(options => ...)` | `TypeshiftOptions`, such as `PersistAllConversations`, `StoreFailure` and the limits of live updates, `LiveUpdates` | Singleton |
 | `WithConversationTracker<TId>()` | The `ConversationTracker<TId>` of one id type | Singleton |
@@ -109,9 +109,8 @@ references. Your app's own toolsets and agents need a call to `AddTypeshift()` i
   ([Keep them in a file](./settings-and-stores.md#keep-them-in-a-file)). `WithFileStore` takes an optional
   `Action<FileStoreOptions>`, and the container builds the store with your app's `TimeProvider`. By default,
   `Folder` is `typeshift` under `AppContext.BaseDirectory`, and the settings files lie in its `settings` folder.
-- A chat client provider serves every run with a provider and a model of its type, before any `IChatClient` you
-  registered ([Registering clients](./models.md#registering-clients)). One class may implement
-  `IChatClientProvider<T>` for several provider types, and for each type the last call wins.
+- A run takes the `IChatClient` registered under the key of its provider, the client your connector built for a
+  document it was handed, or the default provider's ([Registering clients](./models.md#registering-clients)).
 - Each `WithOptions` call changes the same `TypeshiftOptions` further. `PersistAllConversations` keeps the runs
   without a conversation id ([Keeping every conversation](./conversations.md#keeping-every-conversation)), and
   `StoreFailure` says what a run does when its conversation could not be saved
@@ -224,7 +223,7 @@ The runtime's members:
 
 ::: warning Dispose every host the runtime gives you
 `runtime.CreateHost<TAgent>()` creates a scope for the host. The services the chain registers as scoped, such as the
-`WithChatClientProvider<T>()` provider, approval rules, middleware and the MCP tool provider, and the scoped services
+provider connector, approval rules, middleware and the MCP tool provider, and the scoped services
 your tools resolve, are created in it. Every run of that host shares them, and no other host sees them. Disposing the
 host disposes the scope and its services, so write `await using`, and let every run and stream of the host finish
 first: a stream read after its host was disposed throws an `ObjectDisposedException`. A host injected from a

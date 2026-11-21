@@ -16,7 +16,7 @@ public static class TypeshiftServiceCollectionExtensions
         /// did not intercept throws, saying what to check.
         /// More in the guide: <see href="https://weboost-at.github.io/Typeshift/guide/registration">Registration</see>.
         /// </summary>
-        /// <returns>The chain that registers the chat client provider and the rest.</returns>
+        /// <returns>The chain that registers the stores, the default provider and the rest.</returns>
         /// <exception cref="InvalidOperationException">The call was not intercepted.</exception>
         public TypeshiftBuilder AddTypeshift() =>
             throw new InvalidOperationException(

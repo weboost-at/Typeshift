@@ -270,7 +270,7 @@ public class StoredSettingsTests : AgentTestBase
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddTypeshift().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddTypeshift().WithScriptedProviders();
         services.AddSingleton(ChatClient).AddSingleton(Models);
 
         await using var provider = services.BuildServiceProvider();
@@ -294,7 +294,7 @@ public class StoredSettingsTests : AgentTestBase
         // Arrange
         var logs = new WarningLog();
         var services = new ServiceCollection();
-        services.AddTypeshift().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddTypeshift().WithScriptedProviders();
         services.AddSingleton<ILoggerFactory>(logs);
 
         await using var provider = services.BuildServiceProvider();
@@ -315,7 +315,7 @@ public class StoredSettingsTests : AgentTestBase
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddTypeshift().WithStore<SettingsOnlyStore>().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddTypeshift().WithStore<SettingsOnlyStore>().WithScriptedProviders();
         services.AddSingleton(ChatClient).AddSingleton(Models);
 
         await using var provider = services.BuildServiceProvider();
@@ -345,7 +345,7 @@ public class StoredSettingsTests : AgentTestBase
         // Arrange
         var services = new ServiceCollection();
 #pragma warning disable TSH036 // a store of conversations alone is the point, and the run never asks
-        services.AddTypeshift().WithStore<CountingLoadStore>().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddTypeshift().WithStore<CountingLoadStore>().WithScriptedProviders();
 #pragma warning restore TSH036
 
         await using var provider = services.BuildServiceProvider();

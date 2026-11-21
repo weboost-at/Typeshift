@@ -40,9 +40,10 @@ public sealed class AgentRun
     public ChatOptions Options { get; }
 
     /// <summary>
-    /// The provider that serves the run, as the agent's code or its settings name it: a string, an enum value or
-    /// another value of the agent's provider id type. Null for a run that names none and runs on the default
-    /// client. The run's client was taken for it before the run began, so it does not change.
+    /// The provider that serves the run: the key the call site, the agent's settings or its code name, a string, an
+    /// enum value or another value of the agent's provider id type, or the key of the default provider; or the
+    /// <see cref="ChatProvider"/> document the call site handed the run. Null for a run on the client registered for
+    /// every agent. The run's client was taken for it before the run began, so it does not change.
     /// </summary>
     public object? Provider => ResolvedProvider?.Value;
 

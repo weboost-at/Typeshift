@@ -7,7 +7,7 @@ using Typeshift.Generated;
 namespace Typeshift;
 
 /// <summary>
-/// Runs <typeparamref name="TAgent"/> with the services of its scope: its tools and its chat client provider resolve
+/// Runs <typeparamref name="TAgent"/> with the services of its scope: its tools and its provider connector resolve
 /// there. Registered as transient by <c>AddTypeshift()</c>: inject it, or resolve it from a scope, never from the root
 /// provider. <see cref="ITypeshiftRuntime.CreateHost{TAgent}"/> creates one in a scope of its own, which disposing the
 /// host disposes. Its runs, answers, resumes and <c>ResolveOptionsAsync</c> are its own, so code generic over the agent
@@ -65,8 +65,8 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
         ReferenceEquals(services, services.GetRequiredService<ITypeshiftRuntime>().Services)
             ? throw new InvalidOperationException(
                 $"AgentHost<{typeof(TAgent).Name}> was resolved from the root provider, as a host injected into a "
-                + "singleton is. Its runs would share one instance of each scoped service, such as the chat client "
-                + "provider of one customer, and the root would keep every host until the app stops: inject "
+                + "singleton is. Its runs would share one instance of each scoped service, such as the current "
+                + "customer, and the root would keep every host until the app stops: inject "
                 + $"ITypeshiftRuntime and call CreateHost<{typeof(TAgent).Name}>() for each unit of work, or resolve "
                 + "the host from a scope.")
             : In(services);
@@ -156,7 +156,9 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// Returns a copy of this host whose runs a provider serves, named by its key, and leaves this host as it was: the
     /// client registered under the key, as <c>services.AddKeyedChatClient(key, client)</c> registers one. It wins over
     /// the provider the agent's code and settings name, and serves the whole run: its sub-agents, the agents it hands
-    /// off to and its summary, while each sub-agent keeps its own model.
+    /// off to and its summary, while each sub-agent keeps its own model. A <see cref="ChatProvider"/>, a record of
+    /// yours that derives from it included, is taken as the document it is, as
+    /// <see cref="WithProvider(ChatProvider)"/> takes it.
     /// More in the guide:
     /// <see href="https://weboost-at.github.io/Typeshift/guide/models#choosing-at-the-call-site">Choosing at the call
     /// site</see>.
@@ -167,13 +169,42 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// The copy, with this host's ids and model and in its scope. Disposing it disposes what disposing this host would.
     /// </returns>
     /// <exception cref="ArgumentNullException"><paramref name="provider"/> is null.</exception>
-    /// <exception cref="ArgumentException"><paramref name="provider"/> is text that is white space.</exception>
+    /// <exception cref="ArgumentException">
+    /// <paramref name="provider"/> is text that is white space, or a document whose <c>Kind</c> is.
+    /// </exception>
     public AgentHost<TAgent> WithProvider<TProviderId>(TProviderId provider) where TProviderId : notnull
     {
         ArgumentNullException.ThrowIfNull(provider);
+
+        // D88: a record derived from ChatProvider binds here, not to the overload that takes one
+        if (provider is ChatProvider document) return WithProvider(document);
         if (provider is string text) ArgumentException.ThrowIfNullOrWhiteSpace(text, nameof(provider));
 
         return Copy(_settingsId, _conversationId, new ProviderId<TProviderId>(provider), _model);
+    }
+
+    // D88: a provider of the app's own, which its connector turns into a client that Typeshift keeps
+    /// <summary>
+    /// Returns a copy of this host whose runs a provider your app owns serves, such as a customer's own account, and
+    /// leaves this host as it was. Your <see cref="IChatProviderConnector"/> turns the document into a client, once for
+    /// every equal document. It wins over the provider the agent's code and settings name, serves the whole run as a
+    /// key does, and its <c>Model</c> answers a run that names no model.
+    /// More in the guide:
+    /// <see href="https://weboost-at.github.io/Typeshift/guide/models#providers-your-customers-bring">Providers your
+    /// customers bring</see>.
+    /// </summary>
+    /// <param name="provider">The document, as your app loaded it.</param>
+    /// <returns>
+    /// The copy, with this host's ids and model and in its scope. Disposing it disposes what disposing this host would.
+    /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="provider"/> is null.</exception>
+    /// <exception cref="ArgumentException">The document's <c>Kind</c> is null or white space.</exception>
+    public AgentHost<TAgent> WithProvider(ChatProvider provider)
+    {
+        ArgumentNullException.ThrowIfNull(provider);
+        ArgumentException.ThrowIfNullOrWhiteSpace(provider.Kind, nameof(provider));
+
+        return Copy(_settingsId, _conversationId, new ProviderDocument(provider), _model);
     }
 
     /// <summary>
@@ -951,9 +982,9 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
 
     /// <summary>
     /// The raw path: creates the client of a run whose options <c>ResolveOptionsAsync</c> resolved. For options that
-    /// name a provider it takes the client from the <see cref="IChatClientProvider{TProviderId}"/> of the provider's
-    /// type, or else the <see cref="IChatClient"/> registered under the provider. For options that name none it
-    /// takes the default client, the one registered for every agent. It wraps the client in the tool loop.
+    /// name a provider it takes the <see cref="IChatClient"/> registered under the provider's key, or the client your
+    /// <see cref="IChatProviderConnector"/> built for a <see cref="ChatProvider"/> the host was handed. For options
+    /// that name none it takes the default provider's. It wraps the client in the tool loop.
     /// The client keeps the options: a call without options runs with them, and a call with options of its own, as a
     /// library passes them, changes only the conversation id, the response format and the tools it adds. A call with
     /// options resolved for another provider or model throws.
@@ -968,11 +999,12 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     /// <c>ResolveOptionsAsync</c> did not return <paramref name="options"/>, as for <c>ChatOptions</c> your code made.
     /// </exception>
     /// <exception cref="InvalidOperationException">
-    /// No chat client serves the options: they name a provider nothing is registered for, or one without a model
-    /// that an <c>IChatClientProvider</c> serves, or they name no provider and no default client is registered. The
-    /// default client never serves a provider the options name. Or the run can compact and its summary provider has
-    /// no client, or the client runs a tool loop of its own, as one registered with <c>UseFunctionInvocation()</c>
-    /// does.
+    /// No chat client serves the options: they name a provider nothing is registered for, a document while no
+    /// <see cref="IChatProviderConnector"/> is registered, or no provider while no default provider is registered. The
+    /// default provider never serves a provider the options name. Or they name no model, and the client reports none of
+    /// its own; or the run can compact and its summary provider has no client, an agent the run may call or hand off
+    /// to names a provider nothing serves, or the client runs a tool loop of its own, as one registered with
+    /// <c>UseFunctionInvocation()</c> does.
     /// </exception>
     public async Task<IChatClient> CreateChatClientAsync(ChatOptions options, CancellationToken ct = default)
     {
@@ -992,41 +1024,25 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
         var provider = resolved.Provider;
         var model = resolved.ModelId;
 
-        var client = await ChatClients.GetAsync(_services, $"the agent '{Agent.Name}'", provider, model, ct)
+        var (client, hold) = await ChatClients.GetAsync(_services, $"the agent '{Agent.Name}'", provider, model, ct)
             .ConfigureAwait(false);
 
-        // D29: a tool loop below Typeshift's own would run tools past the gate, the tool middleware and the run's
-        // limits, so the client that brings one is refused before it is called
-        if (client.GetService<FunctionInvokingChatClient>() is not null)
+        try
         {
-            throw new InvalidOperationException(
-                $"The chat client that serves the agent '{Agent.Name}' runs a tool loop of its own, as one registered "
-                + "with UseFunctionInvocation() does. Typeshift runs the tool loop of a run itself, with approval, "
-                + "tool middleware and the run's limits in it: register the client without UseFunctionInvocation().");
+            await EnsureServedAsync(resolved, client, ct).ConfigureAwait(false);
+        }
+        catch
+        {
+            hold?.Dispose();
+            throw;
         }
 
         var run = resolved.RunOptions;
 
-        // D63: a summary provider nothing serves fails the run here, where it has stored nothing, and not as a
-        // warning once the history is compacted
-        if (run.MaxInputTokens is not null && resolved.SummaryProvider is { } summary)
-        {
-            var summarized = $"the summary of the agent '{Agent.Name}'";
-            ChatClients.EnsureServed(_services, summarized, summary, run.SummaryModel ?? model);
-        }
-
-        // D87: so do the providers of the agents the run may call or hand off to, unless the run was handed one, which
-        // serves them all and was found above
-        if (resolved.HandedProvider is null)
-        {
-            await ReachableProviders.EnsureServedAsync(Agent, _services, Store, resolved.SettingsId, ct)
-                .ConfigureAwait(false);
-        }
-
         // D29: outermost the conversation, then run middleware, context and the mode above the tool loop, the gate
         // (D81), the checkpoints, unique call ids (D59) and compaction inside it, and innermost the provider's
-        // client, instrumented, behind a wrapper that never disposes it
-        var provided = _services.GetRequiredService<InstrumentedClients>().Instrument(client, model);
+        // client, instrumented, behind a wrapper that never disposes it and ends the run's hold on it (D88)
+        var provided = _services.GetRequiredService<InstrumentedClients>().Instrument(client, model, hold);
 
         var checkpoints = new CheckpointChatClient(new UniqueCallIdsChatClient(new CompactingChatClient(provided)));
         var decisions = new DecisionChatClient(checkpoints);
@@ -1069,6 +1085,39 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
             };
 
             return new AuthorNameChatClient(loop, Agent.Name);
+        }
+    }
+
+    // What else the run needs is checked before it stores anything: the client, the summary's provider and the
+    // providers of the agents it may reach
+    private async Task EnsureServedAsync(ResolvedChatOptions resolved, IChatClient client, CancellationToken ct)
+    {
+        // D29: a tool loop below Typeshift's own would run tools past the gate, the tool middleware and the run's
+        // limits, so the client that brings one is refused before it is called
+        if (client.GetService<FunctionInvokingChatClient>() is not null)
+        {
+            throw new InvalidOperationException(
+                $"The chat client that serves the agent '{Agent.Name}' runs a tool loop of its own, as one registered "
+                + "with UseFunctionInvocation() does. Typeshift runs the tool loop of a run itself, with approval, "
+                + "tool middleware and the run's limits in it: register the client without UseFunctionInvocation().");
+        }
+
+        var run = resolved.RunOptions;
+
+        // D63: a summary provider nothing serves fails the run here, where it has stored nothing, and not as a
+        // warning once the history is compacted
+        if (run.MaxInputTokens is not null && resolved.SummaryProvider is { } summary)
+        {
+            var summarized = $"the summary of the agent '{Agent.Name}'";
+            ChatClients.EnsureServed(_services, summarized, summary, run.SummaryModel ?? resolved.ModelId);
+        }
+
+        // D87: so do the providers of the agents the run may call or hand off to, unless the run was handed one, which
+        // serves them all and was found as the run's own
+        if (resolved.HandedProvider is null)
+        {
+            await ReachableProviders.EnsureServedAsync(Agent, _services, Store, resolved.SettingsId, ct)
+                .ConfigureAwait(false);
         }
     }
 
@@ -1130,6 +1179,10 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
 
         if (_model is not null) options.ModelId = _model;
         options.Provider ??= ChatClients.DefaultProvider(_services);
+
+        // D63, D88: a document's model answers a run that names none
+        if (options is { ModelId: null, Provider: ProviderDocument { Provider.Model: { } model } })
+            options.ModelId = model;
 
         string?[] applied =
         [

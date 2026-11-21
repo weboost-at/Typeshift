@@ -51,7 +51,6 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         Descriptors.NumericEnum,
         Descriptors.NoStore,
         Descriptors.UnusableProviderIdType,
-        Descriptors.NoChatClientProvider,
         Descriptors.LanguageVersionTooLow,
         Descriptors.ReadDifferently,
         Descriptors.SubAgentAsksUser,
@@ -290,21 +289,6 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         if (IsHostCopy(target))
         {
             AnalyzeHostCopy(context, invocation);
-            return;
-        }
-
-        // D86: a chat client provider may serve providers of any type, but it must serve some. A type parameter is
-        // its caller's to check, since its interfaces are unknown here, and a type that does not resolve the compiler's
-        if (target is { Name: "WithChatClientProvider", TypeArguments.Length: 1 }
-            && target.ContainingType.Is(KnownTypes.TypeshiftBuilder)
-            && target.TypeArguments[0] is { TypeKind: not (TypeKind.TypeParameter or TypeKind.Error) } clients
-            && !clients.AllInterfaces.Any(contract => contract.Is(KnownTypes.ChatClientProvider)))
-        {
-            context.ReportDiagnostic(Diagnostic.Create(
-                Descriptors.NoChatClientProvider,
-                ConstructorChains.GetCalledName(invocation).GetLocation(),
-                clients.Name));
-
             return;
         }
 

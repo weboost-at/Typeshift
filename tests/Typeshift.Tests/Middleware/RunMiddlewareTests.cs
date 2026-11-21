@@ -236,7 +236,7 @@ public class RunMiddlewareTests : MiddlewareTestBase
 
         services.AddTypeshift()
             .WithStore<InMemoryTypeshiftStore<Guid>>()
-            .WithChatClientProvider<ScriptedChatClientProvider>()
+            .WithScriptedProviders()
             .WithRunMiddleware<LateAnswerMiddleware>();
 
         services.AddSingleton(ChatClient).AddSingleton(Models);
@@ -283,7 +283,7 @@ public class RunMiddlewareTests : MiddlewareTestBase
 
         services.AddTypeshift()
             .WithStore<InMemoryTypeshiftStore<Guid>>()
-            .WithChatClientProvider<RedactingChatClientProvider>();
+            .WithClientOfEveryProvider((_, _) => new RedactingChatClient(ChatClient));
 
         services.AddSingleton(ChatClient);
 
