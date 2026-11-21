@@ -120,6 +120,7 @@ The table lists every entry by its ID, with the section that holds it and whethe
 | D88 | [A provider is a document the app owns](#d88) | Runtime | In force |
 | D89 | [A model policy is a value of rules](#d89) | Runtime | In force |
 | D90 | [Records whose values come from the library have init-only properties](#d90) | Repository | In force |
+| D91 | [From the first beta, every release only adds](#d91) | Repository | In force |
 
 ## Registration and the generator
 
@@ -279,6 +280,9 @@ The table lists every entry by its ID, with the section that holds it and whethe
   `KnownTypes.StampVersion`, so the reference built before it gets TSH020 at build time, where it would fail
   with a `MissingMethodException` when the app starts. `PublicApiSurfaceTests` keeps those members in
   `Snapshots/GeneratedContract.verified.txt` under the version, and fails when they change while it stays.
+- **From the first beta:** the version stays at 25, the one 0.1.0-alpha.8 ships, since a raise would turn every
+  referenced project built with an earlier 1.x into TSH020 on a minor update (D91). The contract grows by members,
+  which code generated earlier never calls, and a stamp by optional properties, which older stamps leave unset.
 - **Where:** `Generated/Stamps.cs`, `Naming/KnownTypes.cs`, `Emitting/ModuleEmitter.cs`, `Parsing/ReferenceReader.cs`,
   `Repository/PublicApiSurfaceTests` (generator tests).
 
@@ -2559,6 +2563,31 @@ The table lists every entry by its ID, with the section that holds it and whethe
   `Conversations/ConversationTracker.cs`, `Conversations/ConversationEntry.cs`, `Decisions/Decision.cs`,
   `Decisions/Question.cs`, `Storage/FileStoreOptions.cs`; `Emitting/ModuleEmitter.cs` writes a `ToolInfo` with an
   object initializer.
+
+### D91. From the first beta, every release only adds {#d91}
+
+- **Status:** owner, for 0.1.0-alpha.8, the last alpha: after it come only `1.0.0-beta.N` releases, with additive
+  changes only.
+- **Decision:** 0.1.0-alpha.8 is the last release that breaks its users. From the first beta on, the package's API,
+  what generated code binds to, the interfaces apps implement, the diagnostics' severities and the documents stores
+  keep only grow. The rules and the checks that hold them are on
+  [Releasing](./releasing.md#compatibility-from-the-first-beta).
+- **The stamp:** D7 raises the stamp version for every change of the generated contract, and an unknown version is
+  TSH020. From the first beta the version no longer moves: a raise would turn every referenced toolset or agent
+  assembly built with an earlier 1.x into TSH020 on a minor update of the package. The contract grows by members,
+  which older generated code never calls, and stamps by optional properties, which older stamps leave unset.
+- **Interfaces:** an interface an app implements, a store, a middleware, a rule or a connector, gains a member only
+  with a default body. `IAgentHost` is implemented by Typeshift alone and grows the same way.
+- **Diagnostics:** a new diagnostic is an error only for code that would fail at run time anyway, anything else starts
+  as a warning, and a severity never rises (D49 keeps the numbers).
+- **Experimental API:** `[Experimental]` members, the model policy among them (D89), may change in a minor release
+  with a line in the changelog; the mark comes off once they held against real providers.
+- **Where:** `docs/contributing/releasing.md`, `src/Typeshift/Typeshift.csproj` (`PackageValidationBaselineVersion`),
+  `Naming/KnownTypes.cs`, `Repository/PublicApiSurfaceTests` (generator tests).
+- **Alternatives:** a stamp version per release with a reader that accepts every earlier one, which puts every old
+  shape of generated code into the library's tests; no promise for `Typeshift.Generated`, hidden from editors, which
+  breaks a solution whose projects update the package one at a time; another round of alphas, which the owner
+  declined.
 
 ## Withdrawn
 

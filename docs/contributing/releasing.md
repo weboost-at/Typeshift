@@ -53,9 +53,9 @@ nuget.org keeps later packages under the name.
    ```
 
    Every line the diff removes or changes is a break. Each needs its entry under Changed or Removed in the
-   changelog's section, as [the alpha's rules](#breaking-changes-during-the-alpha) ask. From 0.1.0 on, also set
-   `PackageValidationBaselineVersion` in `src/Typeshift/Typeshift.csproj` to the last released version, so the pack
-   fails on a break nobody meant, and keep it on the latest release. It stays unset during the alpha.
+   changelog's section, as [the alpha's rules](#breaking-changes-during-the-alpha) ask. From the first beta on, the
+   diff only adds, as [Compatibility from the first beta](#compatibility-from-the-first-beta) says, and
+   `PackageValidationBaselineVersion` makes the pack fail on a break nobody meant.
 
 4. Check that the last run of the `demos` workflow on `main` is green. No pull request waits for that workflow, so
    a broken demo shows only there. A demo that broke gets fixed before the tag, or the release notes say so. Without
@@ -104,6 +104,27 @@ surprise:
   accepted and a reviewer read.
 - A break in what generated code calls raises the stamp version (D7). A project built with the earlier version then
   gets [TSH020](../guide/diagnostics.md#tsh020) when your app builds, where it would fail when your app starts.
+
+## Compatibility from the first beta
+
+0.1.0-alpha.8 is the last release that may break its users (D91). Every `1.0.0-beta.N`, 1.0 and every 1.x release
+only adds, and these hold it to that:
+
+- **The package's API.** In the first commit after the tag of 0.1.0-alpha.8, set `PackageValidationBaselineVersion`
+  in `src/Typeshift/Typeshift.csproj` to `0.1.0-alpha.8`, so every pack fails on a removed or changed member. After
+  1.0 it names the latest stable release. `PublicApiSurfaceTests` still shows each addition as a diff someone
+  accepted.
+- **What generated code binds to.** `KnownTypes.StampVersion` stays at 25. `Typeshift.Generated`, `IStorable<TSelf>`
+  and `Agent.Declaration` only gain members, so a project built with an earlier 1.x keeps working beside a later
+  package. A fact a stamp must carry from then on is an optional property, which older stamps leave unset.
+- **Interfaces your app implements.** A store, a middleware, a rule or a connector gains a member only with a default
+  body. `IAgentHost` is implemented by Typeshift alone and grows the same way.
+- **Diagnostics.** A new diagnostic is an error only for code that would fail at run time anyway; anything else starts
+  as a warning. A severity never rises, and no number is ever given to another diagnostic.
+- **Stored data.** Every document 0.1.0-alpha.8 writes reads in every later version. A new member is optional, and a
+  change of shape raises the document's schema version while the earlier one still reads.
+- **Experimental API.** A member marked `[Experimental]`, such as the model policy, may change in a minor release, with
+  a line under Changed in the changelog. The mark comes off once the API held against real providers.
 
 ## A dry run
 
