@@ -524,7 +524,7 @@ Register the provider's client under the enum's value, as you register one under
 ```cs
 services.AddKeyedChatClient(Provider.Scripted, new ScriptedChatClient());
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Program.cs#L21-L23' title='Snippet source file'>snippet source</a> | <a href='#snippet-provider-enum-client' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Program.cs#L23-L25' title='Snippet source file'>snippet source</a> | <a href='#snippet-provider-enum-client' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 - Keyed services take keys of any type, so the runs of this agent find the client under `Provider.Scripted`, and

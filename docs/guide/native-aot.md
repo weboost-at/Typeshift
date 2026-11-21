@@ -115,7 +115,7 @@ services.AddTypeshift()
     .WithConversationTracker<Guid>()
     .WithProviderConnector<ScriptedConnector>();
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Program.cs#L13-L18' title='Snippet source file'>snippet source</a> | <a href='#snippet-aot-tracker' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Program.cs#L15-L20' title='Snippet source file'>snippet source</a> | <a href='#snippet-aot-tracker' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 - `WithConversationTracker<Guid>()` registers the tracker of `Guid` ids as a singleton of its own, so the container

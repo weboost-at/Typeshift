@@ -1,3 +1,4 @@
+#pragma warning disable TYPESHIFT001 // the model policy is experimental, and Native AOT runs it here
 using System.Text.Json;
 using Typeshift;
 using Typeshift.Samples;
@@ -6,8 +7,9 @@ using Typeshift.Samples.Companies;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 
-// Runs a toolset, stored settings, a tracked conversation, streaming, structured output, a tool's images and a round
-// of decisions published as Native AOT; any reflection a generated path needed would fail here, which fails CI
+// Runs a toolset, stored settings, a tracked conversation, streaming, structured output, a tool's images, a round of
+// decisions, a provider document and a model policy published as Native AOT; any reflection a generated path needed
+// would fail here, which fails CI
 var services = new ServiceCollection();
 
 // begin-snippet: aot-tracker
@@ -21,6 +23,9 @@ services.AddTypeshift()
 // begin-snippet: provider-enum-client
 services.AddKeyedChatClient(Provider.Scripted, new ScriptedChatClient());
 // end-snippet
+
+// A provider that is down, which a model policy moves the run away from
+services.AddKeyedChatClient(DownChatClient.Key, new DownChatClient());
 
 await using var provider = services.BuildServiceProvider();
 await using var research = provider.GetRequiredService<ITypeshiftRuntime>().CreateHost<ResearchAgent>();
@@ -129,6 +134,11 @@ var onDocument = await customer.WithProvider(tenant).RunAsync("Vienna");
 var onEqual = await customer.WithProvider(tenant with { }).RunAsync("Vienna");
 Expect(onDocument.Text == answer.Text && onEqual.Text == answer.Text, onDocument.Text);
 Expect(!tenant.ToString().Contains("not-a-key", StringComparison.Ordinal), "the document's key in its text");
+
+// A model policy handed to the run: the provider that is down fails as Unavailable, and the run moves to the document
+var policy = ModelPolicy.Handle(ModelFailure.Unavailable).FallbackToProvider(tenant);
+var fallen = await customer.WithProvider(DownChatClient.Key).WithModelPolicy(policy).RunAsync("Vienna");
+Expect(fallen.Text == answer.Text, fallen.Text);
 
 Console.WriteLine(
     $"{research.Agent.Name}: {answer.Text} {streamed} {count.Result} {counting.Response.Result} {robotics.Text} "
