@@ -145,7 +145,7 @@ internal static class AgentEmitter
     private static IEnumerable<OptionMember> Picked(EquatableArray<string> picks, OptionMember[] options) =>
         options.Where(option => picks.Contains(option.Option));
 
-    // D77: a configurable model brings the member of its provider, first
+    // D86: a configurable model brings the member of its provider, first
     private static IEnumerable<string> Members(OptionMember option) =>
         option.Provider is { } provider ? [provider, option.Setting] : [option.Setting];
 
@@ -215,7 +215,7 @@ internal static class AgentEmitter
         var tools = output.Tools.Select(offered => offered.Tool).Where(tool => tool.Overrides is not null).ToList();
         var switches = output.Tools.Where(offered => offered.Switchable).Select(offered => offered.Tool).ToList();
 
-        // D6: a public agent's Settings cannot name a less accessible provider id type, the agent's own (TSH006, D77)
+        // D6: a public agent's Settings cannot name a less accessible provider id type, the agent's own (TSH006, D86)
         var providerAccess = agent.Type.Accessibility == "public" && !providerId.IsPublic
             ? "internal"
             : "public";
@@ -248,7 +248,7 @@ internal static class AgentEmitter
                 if (option.Provider is { } provider)
                 {
                     members.Add((
-                        "The provider of the model, over <c>WithModel</c>. Null keeps the layer below.",
+                        "The provider that serves the model, over <c>WithProvider</c>. Null keeps the layer below.",
                         ProviderDeclaration(provider)));
                 }
 
@@ -488,7 +488,7 @@ internal static class AgentEmitter
         }
     }
 
-    // D77: the providers ride on the resolved options, each with the type the generated code knows
+    // D86: the providers ride on the resolved options, each with the type the generated code knows
     private static void WriteSetProvider(SourceWriter writer, string provider) =>
         writer.Line($"if (settings.{provider} is {{ }} {Local(provider)}) Set{provider}(options, {Local(provider)});");
 

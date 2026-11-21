@@ -11,7 +11,8 @@ internal partial class CodingAgent : Agent
             "Work in the customer's workspace. Read before you change anything, and run the tests after every change.");
 
         WithChatOptions()
-            .WithModel("anthropic", "claude-sonnet-5-5");
+            .WithProvider("anthropic")
+            .WithModel("claude-sonnet-5-5");
 
         UseToolset<WorkspaceToolset>();
 

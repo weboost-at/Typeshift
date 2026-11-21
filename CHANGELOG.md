@@ -262,6 +262,10 @@ All notable changes to this project are documented here. The format follows
   `services.AddTypeshift()` registers it as one, over a class of the library's. `TypeshiftRuntime` is a static class
   that holds only `Create`. Inject `ITypeshiftRuntime` where you injected `TypeshiftRuntime`, as in
   `TicketDigest(ITypeshiftRuntime runtime)`, and resolve it as `GetRequiredService<ITypeshiftRuntime>()`.
+- **Breaking:** an agent names its provider apart from its model. `WithModel(provider, model)` is gone: write
+  `WithChatOptions().WithProvider("openai").WithModel("gpt-5-mini")` for `WithModel("openai", "gpt-5-mini")`, or
+  `WithModel("gpt-5-mini")` alone for an agent that runs on the default client. The agent's provider id type is the
+  type of the key `WithProvider` takes, and TSH029 reports a key its `Settings` cannot store on that argument.
 - **Breaking:** `host.CreateChatClientAsync(options)` takes only options that `ResolveOptionsAsync` returned, and
   throws an `ArgumentException` for `ChatOptions` your code made, such as `new ChatOptions()`. Create the client from
   `await host.ResolveOptionsAsync()` instead. The client keeps those options: a call without options runs with them,

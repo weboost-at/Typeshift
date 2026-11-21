@@ -19,7 +19,7 @@ server it stands for:
 UseMcpServer("status_page")
     .ReadOnly();
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/SupportAgent.cs#L34-L37' title='Snippet source file'>snippet source</a> | <a href='#snippet-use-mcp-server' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/SupportAgent.cs#L35-L38' title='Snippet source file'>snippet source</a> | <a href='#snippet-use-mcp-server' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Your app connects the server by implementing `IMcpToolProvider`. Its `GetToolsAsync` receives the name and returns
@@ -129,10 +129,11 @@ the chat options:
 <a id='snippet-hosted-mcp'></a>
 ```cs
 WithChatOptions()
-    .WithModel("anthropic", "claude-sonnet-5-5")
+    .WithProvider("anthropic")
+    .WithModel("claude-sonnet-5-5")
     .WithTools(new HostedMcpServerTool("status_page", new Uri("https://mcp.example.com/status")));
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/StatusAgent.cs#L9-L13' title='Snippet source file'>snippet source</a> | <a href='#snippet-hosted-mcp' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/StatusAgent.cs#L9-L14' title='Snippet source file'>snippet source</a> | <a href='#snippet-hosted-mcp' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The model provider then connects to the server itself, and your `IMcpToolProvider` takes no part. Plan mode hides a

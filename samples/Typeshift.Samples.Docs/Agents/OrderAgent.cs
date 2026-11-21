@@ -11,7 +11,8 @@ internal partial class OrderAgent : Agent
         WithInstructions("Look up each order the customer names, and say where it is.");
 
         WithChatOptions()
-            .WithModel("openai", "gpt-5-mini");
+            .WithProvider("openai")
+            .WithModel("gpt-5-mini");
 
         UseToolset<OrderToolset>();
 

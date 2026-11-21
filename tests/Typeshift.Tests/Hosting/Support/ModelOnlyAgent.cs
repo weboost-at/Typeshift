@@ -20,6 +20,7 @@ public partial class SwitchedModelAgent : Agent
 
     public SwitchedModelAgent() =>
         WithChatOptions()
-            .WithModel(ModelProvider, "first-model")
+            .WithProvider(ModelProvider)
+            .WithModel("first-model")
             .WithModel(Model);
 }

@@ -11,7 +11,8 @@ internal partial class MarketAgent : Agent
             "Compare the markets of the cities you are given. Ask research_agent for each city's companies.");
 
         WithChatOptions()
-            .WithModel("anthropic", "claude-sonnet-5-5");
+            .WithProvider("anthropic")
+            .WithModel("claude-sonnet-5-5");
 
         UseAgent<ResearchAgent>()
             .WithResult<CityCompanies>();

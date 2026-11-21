@@ -74,7 +74,8 @@ public partial class OptionsAgent : Agent
     public OptionsAgent()
     {
         WithChatOptions()
-            .WithModel(ProbeAgent.ModelProvider, Model)
+            .WithProvider(ProbeAgent.ModelProvider)
+            .WithModel(Model)
             .WithTemperature(Temperature)
             .WithMaxOutputTokens(MaxOutputTokens)
             .WithTopP(TopP)

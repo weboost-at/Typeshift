@@ -160,8 +160,8 @@ internal static class Descriptors
     public static readonly DiagnosticDescriptor UnusableProviderIdType = Error(
         "TSH029",
         "Provider id type cannot be used",
-        "The provider's type '{0}' is one the agent's settings cannot store as one value: name the provider by a "
-        + "string, a number, a Guid or an enum");
+        "The provider WithProvider names is of the type '{0}', which the agent's settings cannot store as one value: "
+        + "name the provider by a string, a number, a Guid or an enum");
 
     public static readonly DiagnosticDescriptor NoChatClientProvider = Error(
         "TSH030",

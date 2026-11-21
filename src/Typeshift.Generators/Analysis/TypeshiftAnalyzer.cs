@@ -293,7 +293,7 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        // D77: a chat client provider may serve providers of any type, but it must serve some. A type parameter is
+        // D86: a chat client provider may serve providers of any type, but it must serve some. A type parameter is
         // its caller's to check, since its interfaces are unknown here, and a type that does not resolve the compiler's
         if (target is { Name: "WithChatClientProvider", TypeArguments.Length: 1 }
             && target.ContainingType.Is(KnownTypes.TypeshiftBuilder)

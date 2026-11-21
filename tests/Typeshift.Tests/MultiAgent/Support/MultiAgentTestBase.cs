@@ -50,7 +50,8 @@ public partial class HelperAgent : Agent
         WithDescription(About);
 
         WithChatOptions()
-            .WithModel("scripted", Model)
+            .WithProvider("scripted")
+            .WithModel(Model)
             .Configurable(o => o.Temperature);
 
         UseToolset<GuardedToolset>();
@@ -63,7 +64,7 @@ public partial class LeadAgent : Agent
 {
     public LeadAgent()
     {
-        WithChatOptions().WithModel("scripted", "lead-model");
+        WithChatOptions().WithProvider("scripted").WithModel("lead-model");
 
         WithRunOptions().Configurable(r => r.Mode);
 
@@ -77,7 +78,8 @@ public partial class ShadowedLeadAgent : Agent
     public ShadowedLeadAgent()
     {
         WithChatOptions()
-            .WithModel("scripted", "lead-model")
+            .WithProvider("scripted")
+            .WithModel("lead-model")
             .WithTools(AIFunctionFactory.Create(() => "", "helper_agent"));
 
         UseAgent<HelperAgent>();
@@ -89,7 +91,7 @@ public partial class TypedLeadAgent : Agent
 {
     public TypedLeadAgent()
     {
-        WithChatOptions().WithModel("scripted", "lead-model");
+        WithChatOptions().WithProvider("scripted").WithModel("lead-model");
 
         UseAgent<HelperAgent>().WithResult<HelperFinding>();
     }
@@ -101,7 +103,7 @@ public partial class CountingLeadAgent : Agent
 {
     public CountingLeadAgent()
     {
-        WithChatOptions().WithModel("scripted", "lead-model");
+        WithChatOptions().WithProvider("scripted").WithModel("lead-model");
 
         UseAgent<HelperAgent>().WithResult<int>();
     }
@@ -111,7 +113,7 @@ public partial class BackgroundTypedLeadAgent : Agent
 {
     public BackgroundTypedLeadAgent()
     {
-        WithChatOptions().WithModel("scripted", "lead-model");
+        WithChatOptions().WithProvider("scripted").WithModel("lead-model");
 
         UseAgent<HelperAgent>().InBackground().WithResult<HelperFinding>();
     }
@@ -122,7 +124,7 @@ public partial class TrustingLeadAgent : Agent
 {
     public TrustingLeadAgent()
     {
-        WithChatOptions().WithModel("scripted", "lead-model");
+        WithChatOptions().WithProvider("scripted").WithModel("lead-model");
 
         UseToolset<GuardedToolset>().Include(t => t.CloseTicket);
 
@@ -134,7 +136,7 @@ public partial class BackgroundLeadAgent : Agent
 {
     public BackgroundLeadAgent()
     {
-        WithChatOptions().WithModel("scripted", "lead-model");
+        WithChatOptions().WithProvider("scripted").WithModel("lead-model");
 
         WithRunOptions().Configurable(r => r.MaxInputTokens);
 
@@ -149,7 +151,7 @@ public partial class BackgroundFrontAgent : Agent
     {
         WithDescription("Finds out what the customer needs.");
 
-        WithChatOptions().WithModel("scripted", "front-model");
+        WithChatOptions().WithProvider("scripted").WithModel("front-model");
 
         UseAgent<HelperAgent>().InBackground();
 
@@ -162,7 +164,7 @@ public partial class GuardedBackgroundLeadAgent : Agent
 {
     public GuardedBackgroundLeadAgent()
     {
-        WithChatOptions().WithModel("scripted", "lead-model");
+        WithChatOptions().WithProvider("scripted").WithModel("lead-model");
 
         UseToolset<GuardedToolset>().Include(t => t.CloseTicket);
 
@@ -178,7 +180,7 @@ public partial class GuardedFrontAgent : Agent
     {
         WithDescription("Finds out what the customer needs.");
 
-        WithChatOptions().WithModel("scripted", "front-model");
+        WithChatOptions().WithProvider("scripted").WithModel("front-model");
 
         UseHandoff<GuardedBackAgent>();
     }
@@ -191,7 +193,7 @@ public partial class ModeFrontAgent : Agent
     {
         WithDescription("Finds out what the customer needs.");
 
-        WithChatOptions().WithModel("scripted", "front-model");
+        WithChatOptions().WithProvider("scripted").WithModel("front-model");
 
         WithRunOptions().Configurable(r => r.Mode);
 
@@ -205,7 +207,7 @@ public partial class GuardedBackAgent : Agent
     {
         WithDescription("Closes tickets.");
 
-        WithChatOptions().WithModel("scripted", "back-model");
+        WithChatOptions().WithProvider("scripted").WithModel("back-model");
 
         UseToolset<GuardedToolset>().Include(t => t.CloseTicket);
 
@@ -220,7 +222,7 @@ public partial class NotingFrontAgent : Agent
     {
         WithDescription("Notes what the customer needs, then hands off.");
 
-        WithChatOptions().WithModel("scripted", "front-model");
+        WithChatOptions().WithProvider("scripted").WithModel("front-model");
 
         UseToolset<GuardedToolset>().Include(t => t.Note);
 
@@ -236,7 +238,7 @@ public partial class EntryAgent : Agent
     {
         WithDescription("Greets the customer.");
 
-        WithChatOptions().WithModel("scripted", "entry-model");
+        WithChatOptions().WithProvider("scripted").WithModel("entry-model");
 
         UseHandoff<FrontAgent>();
     }
@@ -250,7 +252,7 @@ public partial class FrontAgent : Agent
 
         WithInstructions("Find out what the customer needs.");
 
-        WithChatOptions().WithModel("scripted", "front-model");
+        WithChatOptions().WithProvider("scripted").WithModel("front-model");
 
         UseHandoff<BackAgent>();
     }
@@ -267,7 +269,8 @@ public partial class BackAgent : Agent
         WithInstructions(Prompt);
 
         WithChatOptions()
-            .WithModel("scripted", "back-model")
+            .WithProvider("scripted")
+            .WithModel("back-model")
             .Configurable(o => o.Temperature);
 
         UseHandoff<FrontAgent>();

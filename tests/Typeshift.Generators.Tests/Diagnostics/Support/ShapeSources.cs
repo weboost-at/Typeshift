@@ -903,7 +903,8 @@ public static class ShapeSources
                 WithSchemaVersion(3);
 
                 WithChatOptions()
-                    .WithModel("openai", "fast-model")
+                    .WithProvider("openai")
+                    .WithModel("fast-model")
                     .WithTemperature(0.2f)
                     .WithMaxOutputTokens(500)
                     .Configurable(o => o.ModelId)
@@ -1268,7 +1269,8 @@ public static class ShapeSources
                     WithDescription("Finds.");
 
                     WithChatOptions()
-                        .WithModel(Vendor.OpenAi, "fast-model")
+                        .WithProvider(Vendor.OpenAi)
+                        .WithModel("fast-model")
                         .Configurable(o => o.ModelId)
                         .Configurable(o => o.StopSequences)
                         .Configurable(o => o.Reasoning);
@@ -1457,7 +1459,7 @@ public static class ShapeSources
         }
         """;
 
-    // D77: the model that is set last is the one a run asks for, so its provider's type is the agent's
+    // D86: the model that is set last is the one a run asks for, so its provider's type is the agent's
     public const string TwoModelsInOneConstructor =
         """
         using Typeshift;
@@ -1473,9 +1475,9 @@ public static class ShapeSources
         {
             public SwitchingAgent()
             {
-                WithChatOptions().WithModel(Vendor.OpenAi, "first-model");
+                WithChatOptions().WithProvider(Vendor.OpenAi).WithModel("first-model");
 
-                WithChatOptions().WithModel("openai", "fast-model").Configurable(o => o.ModelId);
+                WithChatOptions().WithProvider("openai").WithModel("fast-model").Configurable(o => o.ModelId);
             }
         }
         """;
@@ -1670,7 +1672,8 @@ public static class ShapeSources
 
         #pragma warning disable DEMO004, DEMO006, DEMO007
                 WithChatOptions()
-                    .WithModel(Lab.Small, "trial-model")
+                    .WithProvider(Lab.Small)
+                    .WithModel("trial-model")
                     .Configurable(o => o.ModelId);
 
                 UseToolset<TrialTools>();
@@ -2779,7 +2782,7 @@ public static class ShapeSources
         }
         """;
 
-    // D77: WithModel(model) names no provider, alone and after a WithModel that names one
+    // D86: WithModel(model) names no provider, alone and after a WithProvider
     public const string ModelWithoutAProvider =
         """
         using Typeshift;
@@ -2810,7 +2813,8 @@ public static class ShapeSources
                 WithDescription("Names a provider, then another model.");
 
                 WithChatOptions()
-                    .WithModel(Vendor.OpenAi, "fast-model")
+                    .WithProvider(Vendor.OpenAi)
+                    .WithModel("fast-model")
                     .WithModel("faster-model")
                     .Configurable(o => o.ModelId);
             }

@@ -14,7 +14,8 @@ internal partial class SupportAgent : Agent
 
         // begin-snippet: agent-model
         WithChatOptions()
-            .WithModel("openai", "gpt-5-mini")
+            .WithProvider("openai")
+            .WithModel("gpt-5-mini")
             .WithTemperature(0.3f)
             .Configurable(o => o.ModelId)
             .Configurable(o => o.Instructions)

@@ -946,7 +946,7 @@ partial class SupportAgent
         : global::Typeshift.IStorable<Settings>, global::Typeshift.Generated.IJsonStorable<Settings>
     {
         /// <summary>
-        /// The provider of the model, over <c>WithModel</c>. Null keeps the layer below.
+        /// The provider that serves the model, over <c>WithProvider</c>. Null keeps the layer below.
         /// </summary>
         public string? Provider { get; init; }
 

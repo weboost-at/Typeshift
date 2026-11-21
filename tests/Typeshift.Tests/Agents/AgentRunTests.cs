@@ -769,13 +769,13 @@ public class AgentRunTests : AgentTestBase
     }
 
     [Fact]
-    public async Task Given_No_Model_The_Run_Fails_Saying_How_To_Set_One()
+    public async Task Given_No_Provider_And_No_Default_Client_The_Run_Fails_Saying_How_To_Name_One()
     {
         // Act
         var run = () => Host<SchemaAgent>().RunAsync(Data.Tool.Question, ct: Ct);
 
         // Assert
-        await run.Should().ThrowAsync<InvalidOperationException>().WithMessage("*WithModel*");
+        await run.Should().ThrowAsync<InvalidOperationException>().WithMessage("*WithProvider*");
     }
 
     [Fact]

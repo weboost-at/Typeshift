@@ -10,7 +10,8 @@ internal partial class ReportAgent : Agent
         WithInstructions("Write a market report. Ask research_agent for the companies of each city you cover.");
 
         WithChatOptions()
-            .WithModel("anthropic", "claude-sonnet-5-5");
+            .WithProvider("anthropic")
+            .WithModel("claude-sonnet-5-5");
 
         UseAgent<ResearchAgent>();
     }

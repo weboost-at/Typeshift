@@ -5,8 +5,8 @@ description: Register a default chat client or one per provider, name an agent's
 
 # Models and providers
 
-An agent names its model, such as `WithModel("gpt-5-mini")`, and may name the provider that serves it, such as
-`WithModel("openai", "gpt-5-mini")`. Typeshift takes the `IChatClient` your app registered for that provider, or the
+An agent names its model, such as `WithModel("gpt-5-mini")`, and may name the provider that serves it, by its key,
+such as `WithProvider("openai")`. Typeshift takes the `IChatClient` your app registered for that provider, or the
 default client when the agent names none, and sends it the model as `ChatOptions.ModelId`, so one client serves
 every model of its provider. A provider nothing is registered for fails the run: no other client stands in for it.
 
@@ -39,7 +39,7 @@ services.AddKeyedChatClient("anthropic", anthropic);
 <!-- endSnippet -->
 
 `AddKeyedChatClient` comes with Microsoft.Extensions.AI. Its key is the provider your agents name in
-`WithModel(provider, model)`, here `"openai"` and `"anthropic"`, and `openAi` and `anthropic` stand for the
+`WithProvider(provider)`, here `"openai"` and `"anthropic"`, and `openAi` and `anthropic` stand for the
 `IChatClient` instances your app creates ([A real client](#a-real-client)). Register them however you like, as long
 as none runs a tool loop of its own ([Wrapping a client](#wrapping-a-client) says why). An app may register both: a
 default client, and clients under the providers some agents name.
@@ -54,7 +54,7 @@ Which client a run gets depends on the provider it names, in its agent's code or
 | A provider | A client under that provider, and no provider class of the type | That client. It receives the model the run names, and answers with its own when the run names none. |
 | A provider | Neither | An exception that lists the keys your app registered clients under |
 
-The default client never stands in for a provider a run names. A typo, as in `WithModel("opnai", "gpt-5-mini")`, a
+The default client never stands in for a provider a run names. A typo, as in `WithProvider("opnai")`, a
 stored `Provider` in another case and a provider your app no longer registers each fail the run, where they would
 otherwise send a customer's prompt to another account. The exception is an `InvalidOperationException`, thrown before
 the run calls a model or stores an entry in its conversation ([When a provider fails](#when-a-provider-fails)).
@@ -62,7 +62,7 @@ the run calls a model or stores an entry in its conversation ([When a provider f
 ## Your own provider
 
 Write an `IChatClientProvider<TProviderId>` when a client depends on more than its provider, such as a key per
-customer. `TProviderId` is the type your agents name providers by, `string` for `WithModel("openai", ...)`
+customer. `TProviderId` is the type your agents name providers by, `string` for `WithProvider("openai")`
 ([The provider id type](#the-provider-id-type)). Its one method gets the provider and the model of every run that
 names both, and again when [compaction](./conversations.md#compaction) needs the summary model. A run that names no
 provider never reaches it and takes the default client. Register your class with
@@ -139,7 +139,7 @@ run that names none.
 
 A local server with an OpenAI-compatible API, such as LM Studio or Ollama, works with the OpenAI package. Point the
 client at its endpoint, `http://localhost:1234/v1` for LM Studio or `http://localhost:11434/v1` for Ollama, and name
-its models in `WithModel`, here as `WithModel("local", "qwen3-8b")`. `ApiKeyCredential` is in the
+its models in `WithModel`, here as `WithProvider("local").WithModel("qwen3-8b")`. `ApiKeyCredential` is in the
 `System.ClientModel` namespace:
 
 <!-- snippet: local-chat-client -->
@@ -201,7 +201,7 @@ foreach (var provider in configuration.GetSection("Providers").GetChildren())
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L59-L74' title='Snippet source file'>snippet source</a> | <a href='#snippet-providers-from-configuration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-- The entry's name, such as `openai`, is the provider your agents name in `WithModel` and your users pick in their
+- The entry's name, such as `openai`, is the provider your agents name in `WithProvider` and your users pick in their
   settings, so a run finds each client by it.
 - Keep real keys out of `appsettings.json`. Your app's configuration reads `Providers:openai:ApiKey` from
   [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) in development and from the
@@ -371,24 +371,25 @@ records values ([How Typeshift reads your code](./how-typeshift-reads-your-code.
 
 ## The provider id type
 
-A provider is the value an agent passes to `WithModel`, and that value's type is the agent's provider id type.
-`WithModel("openai", "gpt-5-mini")` names a `string`, which suits most apps. You may name providers by a type of
+A provider is the key an agent passes to `WithProvider`, and that key's type is the agent's provider id type.
+`WithProvider("openai")` names a `string`, which suits most apps. You may name providers by a type of
 your own instead: an enum suits providers known in code, so the compiler checks each one you name, and a `Guid` suits
-providers that are rows in your database. Each agent takes the type from its own `WithModel`, so one app can run an
+providers that are rows in your database. Each agent takes the type from its own `WithProvider`, so one app can run an
 agent of enum providers beside agents of strings.
 
-Pass a value of your type to `WithModel`, here an enum `Provider` of the Native AOT sample:
+Pass a value of your type to `WithProvider`, here an enum `Provider` of the Native AOT sample:
 
 <!-- snippet: provider-enum-model -->
 <a id='snippet-provider-enum-model'></a>
 ```cs
 WithChatOptions()
-    .WithModel(Provider.Scripted, "scripted-model")
+    .WithProvider(Provider.Scripted)
+    .WithModel("scripted-model")
     .WithTemperature(0.2f)
     .Configurable(o => o.ModelId)
     .Configurable(o => o.Temperature);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Companies/ResearchAgent.cs#L14-L20' title='Snippet source file'>snippet source</a> | <a href='#snippet-provider-enum-model' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Companies/ResearchAgent.cs#L14-L21' title='Snippet source file'>snippet source</a> | <a href='#snippet-provider-enum-model' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Your provider class implements `IChatClientProvider<T>` for that type, so `GetChatClientAsync` takes a `Provider`
@@ -422,8 +423,8 @@ internal sealed class ScriptedChatClientProvider : IChatClientProvider<Provider>
   enum's value, such as `services.AddKeyedChatClient(Provider.Scripted, client)`. Without either its runs fail,
   naming the `IChatClientProvider<T>` they need ([Registering clients](#registering-clients)).
 - With `Configurable(o => o.ModelId)`, the agent's `Settings` store its provider, so a user's pick is a `Provider`
-  too. An agent that makes its model configurable and names no provider in code, with `WithModel(model)` or without
-  `WithModel`, stores providers as strings.
+  too. An agent that makes its model configurable and names no provider in code, without `WithProvider`, stores
+  providers as strings.
 - A stored provider that the type no longer has, such as an enum member you renamed or removed, fails the load of
   its settings and every run that applies them, naming the stored text
   ([The stored JSON](./settings-and-stores.md#the-stored-json)). Change the stored values before you ship the rename.
@@ -434,21 +435,22 @@ internal sealed class ScriptedChatClientProvider : IChatClientProvider<Provider>
 
 ## Naming a model
 
-`WithModel` takes the model as the provider's API names it. With one argument it names the model alone, as the
-[getting started](./getting-started.md#_3-write-an-agent) agent's `WithModel("gpt-5-mini")` does, and the agent's runs
-take the default client. With two it takes the provider first, then the model:
+`WithModel` takes the model as the provider's API names it, as the
+[getting started](./getting-started.md#_3-write-an-agent) agent's `WithModel("gpt-5-mini")` does, and an agent that
+names no provider runs on the default client. `WithProvider` names the provider apart from the model, by its key:
 
 <!-- snippet: agent-model -->
 <a id='snippet-agent-model'></a>
 ```cs
 WithChatOptions()
-    .WithModel("openai", "gpt-5-mini")
+    .WithProvider("openai")
+    .WithModel("gpt-5-mini")
     .WithTemperature(0.3f)
     .Configurable(o => o.ModelId)
     .Configurable(o => o.Instructions)
     .Configurable(o => o.Temperature);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/SupportAgent.cs#L15-L22' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent-model' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/SupportAgent.cs#L15-L23' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent-model' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 `Configurable(o => o.ModelId)` adds `Provider` and `Model` to the agent's
@@ -456,13 +458,14 @@ WithChatOptions()
 [layer](./settings-and-stores.md#settings-layering) separately: a layer that sets only `Model` keeps the provider of
 the layer below, so set both when you switch providers.
 
-`WithModel(model)` sets the model alone. After a `WithModel` that names a provider it keeps that provider, and with
-`Configurable(o => o.ModelId)` a settings layer may still name one, as a string. A layer that names a provider moves
+The provider and the model are two calls, so an agent may name a model and leave its provider to the default
+client, or name a provider and leave the model to the client. With `Configurable(o => o.ModelId)` a settings layer may
+still name a provider for an agent that names none in code, as a string. A layer that names a provider moves
 the run off the default client, to the client registered for that provider
 ([Registering clients](#registering-clients)).
 
-Leave out `WithModel` but keep `Configurable(o => o.ModelId)`, and the choice is the user's. Every run then takes its
-provider and model from stored settings or from the run's own settings. A run without a provider takes the default
+Leave out `WithProvider` and `WithModel` but keep `Configurable(o => o.ModelId)`, and the choice is the user's.
+Every run then takes its provider and model from stored settings or from the run's own settings. A run without a provider takes the default
 client, or fails before it starts when there is none
 ([When a provider fails](#when-a-provider-fails)). Store the pick under a settings id, from a settings page
 that offers your providers and their models, for example:
@@ -501,7 +504,7 @@ WithRunOptions()
     .Configurable(r => r.MaxToolIterations)
     .Configurable(r => r.SummaryModel);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/CodingAgent.cs#L23-L31' title='Snippet source file'>snippet source</a> | <a href='#snippet-long-running-options' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/CodingAgent.cs#L24-L32' title='Snippet source file'>snippet source</a> | <a href='#snippet-long-running-options' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 With `Configurable(r => r.SummaryModel)`, stored settings or a run may name another provider for it too:

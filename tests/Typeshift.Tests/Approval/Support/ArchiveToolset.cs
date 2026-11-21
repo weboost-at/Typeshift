@@ -34,7 +34,7 @@ public partial class ArchiveAgent : Agent
 {
     public ArchiveAgent()
     {
-        WithChatOptions().WithModel("scripted", "guarded-model");
+        WithChatOptions().WithProvider("scripted").WithModel("guarded-model");
 
         UseToolset<ArchiveToolset>();
     }

@@ -9,7 +9,8 @@ internal partial class OutreachAgent : Agent
     public OutreachAgent()
     {
         WithChatOptions()
-            .WithModel(Provider.Scripted, "scripted-model");
+            .WithProvider(Provider.Scripted)
+            .WithModel("scripted-model");
 
         AddTool(SendMail)
             .RequiresApproval();

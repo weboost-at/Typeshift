@@ -46,7 +46,7 @@ public static class AgentSources
         }
         """;
 
-    // An agent whose model and summary model are configurable, of the provider id type its WithModel names (D77)
+    // An agent whose model and summary model are configurable, of the provider id type its WithProvider names (D86)
     public static string Routed(string providerIdType, string provider) =>
         $$"""
         #pragma warning disable CS1591
@@ -70,7 +70,8 @@ public static class AgentSources
             public RoutedAgent()
             {
                 WithChatOptions()
-                    .WithModel({{provider}}, "gpt-5-mini")
+                    .WithProvider({{provider}})
+                    .WithModel("gpt-5-mini")
                     .Configurable(o => o.ModelId);
 
                 WithRunOptions()
@@ -95,8 +96,8 @@ public static class AgentSources
         }
         """;
 
-    // D77: one agent's providers are an enum, the other's strings, and each agent's model is configurable without a
-    // WithModel, which makes its providers strings
+    // D86: one agent's providers are an enum, the other's strings, and each agent's model is configurable without a
+    // WithProvider, which makes its providers strings
     public const string TwoProviderIdTypes =
         """
         #pragma warning disable CS1591
@@ -114,13 +115,13 @@ public static class AgentSources
         public partial class VendorAgent : Agent
         {
             public VendorAgent() =>
-                WithChatOptions().WithModel(Vendor.OpenAi, "fast-model").Configurable(o => o.ModelId);
+                WithChatOptions().WithProvider(Vendor.OpenAi).WithModel("fast-model").Configurable(o => o.ModelId);
         }
 
         public partial class NamedAgent : Agent
         {
             public NamedAgent() =>
-                WithChatOptions().WithModel("openai", "fast-model").Configurable(o => o.ModelId);
+                WithChatOptions().WithProvider("openai").WithModel("fast-model").Configurable(o => o.ModelId);
         }
 
         public partial class PickedAgent : Agent
@@ -129,7 +130,7 @@ public static class AgentSources
         }
         """;
 
-    // D77: new SplitAgent() runs the enum's constructor, and new OverridingAgent() its own WithModel after it
+    // D86: new SplitAgent() runs the enum's constructor, and new OverridingAgent() its own WithProvider after it
     public const string ProvidersOfSeveralConstructors =
         """
         #pragma warning disable CS1591
@@ -151,16 +152,16 @@ public static class AgentSources
             }
 
             public SplitAgent(Vendor vendor) =>
-                WithChatOptions().WithModel(vendor, "fast-model").Configurable(o => o.ModelId);
+                WithChatOptions().WithProvider(vendor).WithModel("fast-model").Configurable(o => o.ModelId);
         }
 
         public partial class OverridingAgent : Agent
         {
             public OverridingAgent()
                 : this(Vendor.OpenAi) =>
-                WithChatOptions().WithModel("openai", "fast-model").Configurable(o => o.ModelId);
+                WithChatOptions().WithProvider("openai").WithModel("fast-model").Configurable(o => o.ModelId);
 
-            public OverridingAgent(Vendor vendor) => WithChatOptions().WithModel(vendor, "fast-model");
+            public OverridingAgent(Vendor vendor) => WithChatOptions().WithProvider(vendor).WithModel("fast-model");
         }
         """;
 
@@ -207,7 +208,7 @@ public static class AgentSources
 
         public partial class SupportAgent : Agent
         {
-            public SupportAgent() => WithChatOptions().WithModel("openai", "fast-model");
+            public SupportAgent() => WithChatOptions().WithProvider("openai").WithModel("fast-model");
 
             public partial class Host : Toolset
             {
@@ -258,7 +259,8 @@ public static class AgentSources
                 WithDescription("Answers customers.");
 
                 WithChatOptions()
-                    .WithModel("openai", "fast-model")
+                    .WithProvider("openai")
+                    .WithModel("fast-model")
                     .WithTemperature(0.3f)
                     .Configurable(o => o.ModelId)
                     .Configurable(o => o.Temperature)
@@ -306,7 +308,8 @@ public static class AgentSources
             public DeskAgent()
             {
                 WithChatOptions()
-                    .WithModel("openai", "fast-model");
+                    .WithProvider("openai")
+                    .WithModel("fast-model");
 
                 UseToolset<TicketToolset>().Include(t => t.CloseTicket);
 
@@ -391,7 +394,7 @@ public static class AgentSources
         {
             private partial class HiddenAgent : Agent
             {
-                public HiddenAgent() => WithChatOptions().WithModel("openai", "fast-model");
+                public HiddenAgent() => WithChatOptions().WithProvider("openai").WithModel("fast-model");
             }
         }
         """;
@@ -423,7 +426,7 @@ public static class AgentSources
 
         public partial class SupportAgent : Agent
         {
-            public SupportAgent() => WithChatOptions().WithModel("openai", "fast-model");
+            public SupportAgent() => WithChatOptions().WithProvider("openai").WithModel("fast-model");
         }
 
         internal static class Program
@@ -443,7 +446,7 @@ public static class AgentSources
 
         public partial class SupportAgent : Agent
         {
-            public SupportAgent() => WithChatOptions().WithModel("openai", "fast-model");
+            public SupportAgent() => WithChatOptions().WithProvider("openai").WithModel("fast-model");
         }
 
         internal static class Program

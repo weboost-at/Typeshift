@@ -12,7 +12,8 @@ internal partial class ExploreAgent : Agent
         WithInstructions("Answer the question from the files. Read only what you need; quote the lines you rely on.");
 
         WithChatOptions()
-            .WithModel("openai", "gpt-5-mini");
+            .WithProvider("openai")
+            .WithModel("gpt-5-mini");
 
         UseToolset<WorkspaceToolset>()
             .Include(t => t.ReadFile)

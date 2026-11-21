@@ -2408,8 +2408,8 @@ public class DiagnosticTests : GeneratorTestBase
             "TSH029",
             DiagnosticSeverity.Error,
             "new ProviderKey(\"openai\")",
-            message: "The provider's type 'ProviderKey' is one the agent's settings cannot store as one value: name "
-                + "the provider by a string, a number, a Guid or an enum");
+            message: "The provider WithProvider names is of the type 'ProviderKey', which the agent's settings "
+                + "cannot store as one value: name the provider by a string, a number, a Guid or an enum");
     }
 
     [Fact]

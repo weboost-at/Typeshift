@@ -69,7 +69,7 @@ public partial class AskingAgent : Agent
     {
         WithDescription("Settles what the customer wants.");
 
-        WithChatOptions().WithModel("scripted", "asking-model");
+        WithChatOptions().WithProvider("scripted").WithModel("asking-model");
 
         WithRunOptions().Configurable(r => r.Mode);
 
@@ -87,7 +87,7 @@ public partial class AskingHelperAgent : Agent
     {
         WithDescription("Answers one question about a ticket.");
 
-        WithChatOptions().WithModel("scripted", HelperAgent.Model);
+        WithChatOptions().WithProvider("scripted").WithModel(HelperAgent.Model);
 
         UseQuestions();
     }
@@ -99,7 +99,7 @@ public partial class AskingLeadAgent : Agent
 {
     public AskingLeadAgent()
     {
-        WithChatOptions().WithModel("scripted", "lead-model");
+        WithChatOptions().WithProvider("scripted").WithModel("lead-model");
 
         UseAgent<AskingHelperAgent>();
     }
@@ -109,7 +109,7 @@ public partial class BackgroundAskingLeadAgent : Agent
 {
     public BackgroundAskingLeadAgent()
     {
-        WithChatOptions().WithModel("scripted", "lead-model");
+        WithChatOptions().WithProvider("scripted").WithModel("lead-model");
 
         UseAgent<AskingHelperAgent>().InBackground();
     }
@@ -121,7 +121,7 @@ public partial class AskingFrontAgent : Agent
 {
     public AskingFrontAgent()
     {
-        WithChatOptions().WithModel("scripted", "front-model");
+        WithChatOptions().WithProvider("scripted").WithModel("front-model");
 
         UseHandoff<AskingAgent>();
     }

@@ -56,7 +56,7 @@ public partial class PlanningAgent : Agent
 {
     public PlanningAgent()
     {
-        WithChatOptions().WithModel("scripted", "guarded-model");
+        WithChatOptions().WithProvider("scripted").WithModel("guarded-model");
 
         WithRunOptions().WithMode(AgentMode.Plan);
 
@@ -70,7 +70,7 @@ public partial class GuardedAgent : Agent
 {
     public GuardedAgent()
     {
-        WithChatOptions().WithModel("scripted", "guarded-model");
+        WithChatOptions().WithProvider("scripted").WithModel("guarded-model");
 
         WithRunOptions()
             .Configurable(r => r.Mode)
@@ -88,7 +88,8 @@ public partial class ResearchingAgent : Agent
     public ResearchingAgent()
     {
         WithChatOptions()
-            .WithModel("scripted", "guarded-model")
+            .WithProvider("scripted")
+            .WithModel("guarded-model")
             .WithTools(new HostedCodeInterpreterTool())
             .WithReadOnlyTools(new HostedWebSearchTool());
 
@@ -104,7 +105,7 @@ public partial class MarkingAgent : Agent
 {
     public MarkingAgent()
     {
-        WithChatOptions().WithModel("scripted", "guarded-model");
+        WithChatOptions().WithProvider("scripted").WithModel("guarded-model");
 
         UseToolset<GuardedToolset>()
             .RequiresApproval(t => t.Note);

@@ -229,7 +229,7 @@ public sealed class TypeshiftBuilder
             DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.Interfaces)] TProvider>()
         where TProvider : class
     {
-        // D77: as a store is (D72), of whatever provider types; the type check reads no members
+        // D86: as a store is (D72), of whatever provider types; the type check reads no members
         Type[] contracts = [.. typeof(TProvider).GetInterfaces().Where(IsChatClientProvider)];
 
         if (contracts.Length == 0)

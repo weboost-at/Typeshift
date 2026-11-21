@@ -28,7 +28,7 @@ public abstract class Agent
     // D4: the values the chains record; what they declare is in the generated declaration
     internal ChatOptions ChatOptions { get; } = new();
 
-    // D77: WithModel's provider, with its type
+    // D86: WithProvider's provider, with its type
     internal ProviderId? Provider { get; set; }
 
     internal RunOptions RunOptions { get; set; } = new();

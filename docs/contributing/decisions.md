@@ -106,7 +106,7 @@ The table lists every entry by its ID, with the section that holds it and whethe
 | D74 | [Live updates are on by default](#d74) | Storage | In force |
 | D75 | [An app without a container creates a TypeshiftRuntime](#d75) | Storage | In force |
 | D76 | [The runtime is the root, and its hosts are units of work](#d76) | Storage | In force |
-| D77 | [Each agent's providers are of the type its WithModel names](#d77) | Runtime | In force |
+| D77 | [Each agent's providers are of the type its WithModel names](#d77) | Runtime | Withdrawn |
 | D78 | [Stored contents follow Microsoft.Extensions.AI's content contract](#d78) | Storage | In force |
 | D79 | [Decisions have a store of their own, and a setup that would lose them throws](#d79) | Storage | In force |
 | D80 | [Decisions are records in a document per conversation](#d80) | Conversations | In force |
@@ -115,6 +115,7 @@ The table lists every entry by its ID, with the section that holds it and whethe
 | D83 | [The runtime lists its agents and toolsets and hosts an agent by its kind](#d83) | Storage | In force |
 | D84 | [An agent's use of a toolset may require approval for a tool and let settings switch one off](#d84) | Runtime | In force |
 | D85 | [A run leaves the caller's synchronization context](#d85) | Runtime | In force |
+| D86 | [An agent names its provider and its model apart](#d86) | Runtime | In force |
 
 ## Registration and the generator
 
@@ -255,7 +256,7 @@ The table lists every entry by its ID, with the section that holds it and whethe
   record member gets a `Tool` suffix, and one more while another offered tool has that name: beside `kind_tool`,
   the tool `kind` is `KindToolTool`. A public agent's `Settings` cannot name the overrides of an internal toolset:
   TSH006, and the generator leaves the member out. Nor can it name a less accessible provider id type, the agent's
-  own (D77), which a configurable model or summary model brings in: TSH006 on the pick, and the generator writes the
+  own (D86), which a configurable model or summary model brings in: TSH006 on the pick, and the generator writes the
   provider members internal.
 - **Where:** `Naming/Names.cs`, `Emitting/AgentEmitter.cs`, `Emitting/ToolsetEmitter.cs`,
   `Emitting/ModuleEmitter.cs`, `Emitting/StorageEmitter.cs`.
@@ -634,8 +635,8 @@ The table lists every entry by its ID, with the section that holds it and whethe
 ### D28. The model is a configurable option like any other {#d28}
 
 - **Status:** owner; changes v0 D34.
-- **Decision:** `Configurable(o => o.ModelId)` puts `Model`, and its `Provider` (D77), into the agent's `Settings`,
-  overriding `WithModel`; without it the model stays in code. The allow list holds for the model too. The options
+- **Decision:** `Configurable(o => o.ModelId)` puts `Model`, and its `Provider` (D86), into the agent's `Settings`,
+  overriding `WithModel` and `WithProvider`; without it both stay in code. The allow list holds for the model too. The options
   that may be configurable are the model, the instructions, the sampling options, the stop sequences, multiple tool
   calls and reasoning; the rest belong to the run or have no stored form (TSH012).
 - **A name at all (owner: traps are loud):** a blank model or provider is refused where it enters, as a run option
@@ -681,53 +682,54 @@ The table lists every entry by its ID, with the section that holds it and whethe
 
 ### D77. Each agent's providers are of the type its WithModel names {#d77}
 
-- **Status:** owner; supersedes D56.
-- **Context:** a model was one string the host's provider read, so a host with several providers invented composite
-  names such as `lmstudio/qwen/qwen3-8b`, split them again, and wrapped each client to put the provider's own id back
-  into the request. D56 split it into a provider and a model, of one provider id type per build, so an app could not
-  run an agent of an enum's providers beside one of strings. As for ids (D72), the owner asked that the type move
-  into code, and chose "Per agent, inferred".
-- **Decision:** `WithModel(provider, model)`. `IChatClientProvider<TProviderId>` has one method,
-  `GetChatClientAsync(provider, model, ct)`, resolved scoped from the run's services, and `ChatOptions.ModelId` carries
-  the model alone. An agent's provider id type is the static type of the provider its `WithModel` takes, and
-  `string` for an agent without one. The generator reads it, so that agent's `Settings.Provider` and
-  `SummaryProvider` are of it, and the agent's runs ask the `IChatClientProvider<T>` of that type. The summary model
-  is the run's model unless named, and its provider the run's provider: the agent's code names a summary model only,
-  and only settings (`SummaryProvider`) name another provider for it. A summary model the run's provider cannot
-  serve, as after a user switched the agent to another provider, costs a failed call and a warning, and the run's own
-  model writes the summary (D32).
+- **Status:** owner; superseded by D86. `WithModel(provider, model)` named who serves an agent's runs and which
+  model they ask for in one call, and its provider's type typed the agent's providers; now `WithProvider` names the
+  provider apart from the model, and its type types them.
+
+### D86. An agent names its provider and its model apart {#d86}
+
+- **Status:** owner, shape A of the model selection design; supersedes D77.
+- **Context:** `WithModel(provider, model)` (D77) welded who serves a run and which model it asks for into one call
+  of the agent's code, so the run could change the provider only through a setting the agent made configurable, and
+  one model behind two vendors had no place to go. The owner: "Provider selection and model selection are two
+  different things", made apart and often by different people at different times, and "an agent's chain may name
+  its provider, by key only".
+- **Decision:** `WithChatOptions().WithProvider(key)` names the provider, `WithModel(model)` the model, and either
+  may be left out. An agent's provider id type is the static type of the key its `WithProvider` takes, and `string`
+  for an agent without one. The generator reads it, so that agent's `Settings.Provider` and `SummaryProvider` are of
+  it. `Provider` and `Model` in `Settings` stay two members that layer apart, which the one pick
+  `Configurable(o => o.ModelId)` brings in: a layer that names only a provider keeps the model, which with one model
+  behind two vendors is the point. The summary model is the run's model unless named, and its provider the run's provider: the agent's code
+  names a summary model only (`WithSummaryModel`), and only settings (`SummaryProvider`) name another provider for
+  it. A summary model the run's provider cannot serve, as after a user switched the agent to another provider, costs
+  a failed call and a warning, and the run's own model writes the summary (D32).
 - **As built:** a provider goes down the run as a `ProviderId<TProviderId>`, made where its type is known: in
-  `WithModel`, and in the generated `ApplySettings`, through `SetProvider<TProviderId>` and `SetSummaryProvider`. It
-  reaches the provider of its type through a generic call, as a `StoreId<TId>` reaches its store (D72), so no type is
-  made at run time and Native AOT keeps working; it is equal only to a provider of the same type and value. D63's
-  keyed clients serve any type, since keyed services take keys of any type. `WithChatClientProvider<T>()` registers `T`
-  as each `IChatClientProvider<X>` it implements, of any `X`, as `WithStore<T>()` registers a store, and a `T` that
-  implements none is TSH030. Settings that store a provider need a type they store as one value, a string, a number,
-  a `Guid` or an enum: TSH029, on the provider. An agent whose settings store none may name a provider of any type.
-  Settings that store one need a type the generated `Settings`, in a file of their own, can name, so no type nested
-  as `private` or `protected` and no `file` type, and a public agent's settings a public one (TSH006); the
-  generator writes `string` in place of a type it cannot name, so its code compiles. The `WithModel` that
-  `new TAgent()` runs last types the providers, as the module creates an agent with its parameterless constructor:
-  the last `WithModel` of that constructor, or else of the constructors it chains to with `this(...)`, nearest
-  first. `WithModel(model)` (owner) names a model and no provider, so an agent can mean the client registered for
-  every agent (D63): it sets `ModelId` alone, keeps a provider an earlier `WithModel` named, and the parser passes
-  it by, so an agent with no other `WithModel` has `string` providers. A stored provider that is no value of the
-  type, such as a member an enum no longer has, throws when the settings load, naming the stored text
-  (`StorableJson.EnsureProvider`, which raised the stamp version): read as absent, like any other member that does not read
-  (D44), it left the model stored beside it to the provider of the layer below. Gone with the build's type: `TypeshiftProviderIdType`, the
-  `IChatClientProvider` alias, the type parameter of `AddCoreServices`, `ChatClients<TProviderId>`, the module
-  stamps' provider id type (stamp version 6), TSH021, and the build-wide parts of TSH029 and TSH030.
-- **Where:** `Hosting/ProviderId.cs`, `Hosting/ChatClients.cs`, `Hosting/IChatClientProvider.cs`,
-  `Agents/ChatOptionsBuilder.cs`, `Generated/AgentDeclaration.cs`, `DependencyInjection/TypeshiftBuilder.cs`,
-  `Compaction/Compaction.cs`, `Parsing/AgentParser.cs`, `Emitting/AgentEmitter.cs`, `Naming/OptionMembers.cs`,
-  `Analysis/TypeshiftAnalyzer.cs`.
-- **Alternatives:** a model record with a request type, a client cache and a catalog, more surface than the problem
-  needs; methods that list providers and their models, which Typeshift never calls; a summary provider in code, tied
-  to a provider the user may switch away from; compaction that drops turns without a summary model. For the type:
-  the MSBuild property, one type per build (D56); one type per app on the `AddTypeshift()` chain, known only in the
-  project that registers; a type each agent declares beside `WithModel`, which says it twice; looking the provider
-  up by its value's runtime type, which needs `MakeGenericType` and misses a provider whose runtime type differs from
-  its declared one.
+  `WithProvider`, and in the generated `ApplySettings`, through `SetProvider<TProviderId>` and
+  `SetSummaryProvider`. It reaches what serves it through a generic call, as a `StoreId<TId>` reaches its store
+  (D72), so no type is made at run time and Native AOT keeps working; it is equal only to a provider of the same
+  type and value. D63's keyed clients serve any type, since keyed services take keys of any type. Until the provider
+  document replaces it, the `IChatClientProvider<T>` of the agent's provider type serves the runs that name a
+  provider of its type: `WithChatClientProvider<T>()` registers `T` as each `IChatClientProvider<X>` it implements,
+  and a `T` that implements none is TSH030. Settings that store a provider need a type they store as one value, a
+  string, a number, a `Guid` or an enum: TSH029, on `WithProvider`'s argument. An agent whose settings store none may
+  name a provider of any type. Settings that store one need a type the generated `Settings`, in a file of their own,
+  can name, so no type nested as `private` or `protected` and no `file` type, and a public agent's settings a public
+  one (TSH006); the generator writes `string` in place of a type it cannot name, so its code compiles. The
+  `WithProvider` that `new TAgent()` runs last types the providers, as the module creates an agent with its
+  parameterless constructor: the last `WithProvider` of that constructor, or else of the constructors it chains to
+  with `this(...)`, nearest first. A stored provider that is no value of the type, such as a member an enum no longer
+  has, throws when the settings load, naming the stored text (`StorableJson.EnsureProvider`): read as absent, like
+  any other member that does not read (D44), it left the model stored beside it to the provider of the layer below.
+- **Where:** `Agents/ChatOptionsBuilder.cs`, `Hosting/ProviderId.cs`, `Hosting/ChatClients.cs`,
+  `Generated/AgentDeclaration.cs`, `Compaction/Compaction.cs`, `Parsing/AgentParser.cs` (`ReadProvider`,
+  `GetRunProvider`), `Emitting/AgentEmitter.cs`, `Naming/OptionMembers.cs`, `Analysis/TypeshiftAnalyzer.cs`.
+- **Alternatives:** `WithModel(provider, model)`, which left the provider to the agent's code (D77); a model
+  constant that holds its vendor, as `ModelRef<Vendor>(Vendor.OpenAi, "gpt-5-mini")`, which welds the two choices
+  into one value and has no place for a model at two vendors or a customer's own provider; one value of provider,
+  model and failure handling for the agent's chain and the run, whose provider the parser cannot type, since it may
+  come from a field. For the type, as before: the MSBuild property, one type per build (D56); a type each agent
+  declares beside `WithProvider`, which says it twice; looking the provider up by its value's runtime type, which
+  needs `MakeGenericType` and misses a provider whose runtime type differs from its declared one.
 
 ### D63. The default client serves only a run that names no provider {#d63}
 
@@ -743,8 +745,8 @@ The table lists every entry by its ID, with the section that holds it and whethe
 - **Decision:** the provider a run names decides alone which client serves it.
   - A run that names no provider takes the default client: the `IChatClient` registered for every agent, as
     `AddChatClient` and `TypeshiftRuntime.Create(client)` register it (D75). Without one it throws. Its model, as
-    `WithModel(model)` names it (D77), reaches the client as `ModelId`; without one the client's own model answers.
-  - A run that names a provider takes the client of the `IChatClientProvider` of the agent's provider type (D77)
+    `WithModel(model)` names it (D86), reaches the client as `ModelId`; without one the client's own model answers.
+  - A run that names a provider takes the client of the `IChatClientProvider` of the agent's provider type (D86)
     when one is registered. The class decides alone for the providers of its type: when it throws, no client is
     tried after it, and a run that names a provider and no model throws, since the class serves a provider and a
     model. Before, such a run went on to a client keyed by the provider, which beside a class that serves a key per
@@ -884,7 +886,7 @@ The table lists every entry by its ID, with the section that holds it and whethe
   `WithConcurrentToolCalls`, `WithMaxInputTokens`, `WithTargetInputTokens`, `WithSummaryModel`, and `Configurable`
   over the `RunOptions` record, so a run option joins `Settings` like a chat option. Before each model call, when the
   last call's reported input tokens reached the maximum, the history shrinks to the target: oldest tool results
-  cleared first (calls kept), then the oldest turns summarized, by the run's model unless one is named (D77).
+  cleared first (calls kept), then the oldest turns summarized, by the run's model unless one is named (D86).
   Instructions, the latest `write_todos` call and call/result pairs stay; the summary is stored as an entry later
   runs start from. Without reported usage, tokens are estimated from the text.
 - **As built:** the estimate counts characters (four to a token) over the messages, the instructions and the tool
@@ -908,7 +910,7 @@ The table lists every entry by its ID, with the section that holds it and whethe
   (D33); a model response's entry keeps its provider's report alone, so compaction's first estimate reads no
   summary's tokens as a call's. A summary is best effort (owner): a summary call that fails is logged as a warning
   and recorded on the run's span, the run's own
-  provider and model write the summary when another was named (D77), and when that fails too the call goes out with
+  provider and model write the summary when another was named (D86), and when that fails too the call goes out with
   its results cleared and no summary, for the provider to answer or reject. Before, the failure ended the run ahead of
   its own model call, and every later run of the conversation, since each summarizes first. The run's cancellation
   still ends it. What compaction did holds for the rest of the run: the tool loop keeps the whole
@@ -1769,7 +1771,7 @@ The table lists every entry by its ID, with the section that holds it and whethe
   a strict flag through the readers, which would change the read every stored document goes through.
 - **Details:** each overrides record writes and reads itself (`IJsonStorable<T>`), so an agent's `Settings` in
   another assembly than the toolset delegates to it. A document that is no JSON object throws, and so does one whose
-  stored provider does not read (D77). Enums are stored by name, so reordering
+  stored provider does not read (D86). Enums are stored by name, so reordering
   an enum keeps them. A value without a name, such as `[Flags]` with none set, a combination with a bit no member
   names, or a cast number, is stored as its number, in digits whatever the culture, and as those digits where it is
   a dictionary's key. A string of digits reads as the number too, which is how versions up to 0.1.0-alpha.6 wrote
@@ -2354,6 +2356,7 @@ The table lists every entry by its ID, with the section that holds it and whethe
 |---|---|---|
 | D11 | The id type is an MSBuild property | D72 |
 | D56 | A model is a provider and a model, one interface serves both | D77 |
+| D77 | Each agent's providers are of the type its WithModel names | D86 |
 | D24 | Tool approval uses Microsoft.Extensions.AI's contents, with standing approvals and rules | D80, D81 |
 | D60 | An answer to a closed request throws; steering that the run answers closes its requests | D80, D81 |
 

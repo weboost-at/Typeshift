@@ -50,7 +50,7 @@ public partial class ContextAgent : Agent
     {
         WithInstructions(Prompt);
 
-        WithChatOptions().WithModel("scripted", "context-model");
+        WithChatOptions().WithProvider("scripted").WithModel("context-model");
 
         WithRunOptions()
             .Configurable(r => r.MaxInputTokens)

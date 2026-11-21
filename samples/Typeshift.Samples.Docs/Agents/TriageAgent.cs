@@ -10,7 +10,8 @@ internal partial class TriageAgent : Agent
         WithInstructions("Find out what the customer needs, then hand off to support or billing.");
 
         WithChatOptions()
-            .WithModel("openai", "gpt-5-mini");
+            .WithProvider("openai")
+            .WithModel("gpt-5-mini");
 
         // begin-snippet: exclude-tools
         UseToolset<TicketToolset>()

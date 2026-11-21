@@ -12,38 +12,37 @@ public sealed class ChatOptionsBuilder
     internal ChatOptionsBuilder(Agent agent) => _agent = agent;
 
     /// <summary>
-    /// Sets the model and the provider that serves it, both of which the
-    /// <see cref="IChatClientProvider{TProviderId}"/> of the provider's type receives.
-    /// <c>Configurable(o => o.ModelId)</c> lets stored settings or a run choose another of each.
+    /// Names the provider that serves the agent's runs, by its key: the client registered under the key, as
+    /// <c>services.AddKeyedChatClient(key, client)</c> registers one, serves them. Without it the default provider
+    /// does. The call site's <c>host.WithProvider(...)</c> names another, and so do the settings' <c>Provider</c>
+    /// once <c>Configurable(o => o.ModelId)</c> makes them configurable.
+    /// More in the guide:
+    /// <see href="https://weboost-at.github.io/Typeshift/guide/models#the-provider-id-type">The provider id type</see>.
     /// </summary>
     /// <typeparam name="TProviderId">
-    /// The agent's provider id type. When its <c>Settings</c> store the provider, a string, a number, a
-    /// <see cref="Guid"/> or an enum (TSH029).
+    /// The agent's provider id type, such as <see cref="string"/> or an enum of yours. When its <c>Settings</c> store
+    /// the provider, a string, a number, a <see cref="Guid"/> or an enum (TSH029).
     /// </typeparam>
-    /// <param name="provider">The provider.</param>
-    /// <param name="model">The model, as the provider's API names it.</param>
+    /// <param name="provider">The provider's key.</param>
     /// <returns>The same chain.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="provider"/> is null.</exception>
-    /// <exception cref="ArgumentException">
-    /// <paramref name="model"/> is null or white space, or <paramref name="provider"/> is text that is white space.
-    /// </exception>
-    public ChatOptionsBuilder WithModel<TProviderId>(TProviderId provider, string model) where TProviderId : notnull
+    /// <exception cref="ArgumentException"><paramref name="provider"/> is text that is white space.</exception>
+    public ChatOptionsBuilder WithProvider<TProviderId>(TProviderId provider) where TProviderId : notnull
     {
         ArgumentNullException.ThrowIfNull(provider);
         if (provider is string text) ArgumentException.ThrowIfNullOrWhiteSpace(text, nameof(provider));
-        ArgumentException.ThrowIfNullOrWhiteSpace(model);
 
-        // D77: typed here, where the provider's type is known, so the run asks the IChatClientProvider of that type
+        // D86: typed here, where the provider's type is known, so no type is made at run time
         _agent.Provider = new ProviderId<TProviderId>(provider);
-        return Set(options => options.ModelId = model);
+        return this;
     }
 
     /// <summary>
-    /// Sets the model alone. An agent that names no provider, here or in its settings, runs on the default client:
-    /// the one registered for every agent. <c>Configurable(o => o.ModelId)</c> lets stored settings or a run choose
-    /// another model, or name a provider.
+    /// Sets the model, as the API of the provider that serves the run names it. Who serves it is a choice of its own:
+    /// <see cref="WithProvider{TProviderId}"/>, the settings, the call site or the default provider.
+    /// <c>Configurable(o => o.ModelId)</c> lets stored settings or a run choose another model, or name a provider.
     /// </summary>
-    /// <param name="model">The model, as the API of the client that serves the run names it.</param>
+    /// <param name="model">The model.</param>
     /// <returns>The same chain.</returns>
     /// <exception cref="ArgumentException"><paramref name="model"/> is null or white space.</exception>
     public ChatOptionsBuilder WithModel(string model)

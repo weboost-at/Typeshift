@@ -80,8 +80,8 @@ fails on an import across.
    in `ScaleSources`, generate about 1,490 lines and 95 KB of C#, nearly two thirds of it XML docs, and add about
    22 KB to the assembly. It grows in step with the toolsets and agents, and the `measure` command of
    `tools/Typeshift.Tools.Generators` prints it, so a change can be weighed against it.
-5. **Agents** (`Parsing/AgentParser.cs`) read the chat and run option picks, the type of the provider `WithModel`
-   names, which types the provider members of the agent's `Settings` (D77), the toolset uses and their picks, and
+5. **Agents** (`Parsing/AgentParser.cs`) read the chat and run option picks, the type of the provider `WithProvider`
+   names, which types the provider members of the agent's `Settings` (D86), the toolset uses and their picks, and
    the agent's own tools, which `ToolsetParser.ParseTools` reads as it reads a toolset's (D57). The tool list's
    properties are the generator's own output, so a pick from it does not bind there. The parser walks those calls as
    invalid operations and reads the picks from syntax instead. `Parsing/Catalog.cs` resolves the uses against the
@@ -152,7 +152,7 @@ is built and holds under `data` unless it is an object of properties.
    reaches the configurable options and the run options. Then come the offered tools, created with their layered
    settings (D27), the sub-agents (D33) and the MCP servers' tools (D35).
 4. It takes the client of the run's provider and model from the scope's `IChatClientProvider<T>` of the provider's
-   type (D77) or else the `IChatClient` keyed by the provider, and for a run that names no provider the one
+   type (D86) or else the `IChatClient` keyed by the provider, and for a run that names no provider the one
    registered for every agent; a provider nothing serves throws here (D63). It builds the pipeline, outermost
    first:
    - the conversation (D46, D50), which also settles the decisions that wait (D80), run middleware (D30), context

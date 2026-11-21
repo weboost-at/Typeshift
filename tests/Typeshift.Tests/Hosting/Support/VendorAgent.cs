@@ -7,7 +7,7 @@ public enum Vendor
     Other
 }
 
-// D77: its provider id type is the enum, from WithModel
+// D86: its provider id type is the enum, from WithProvider
 /// <summary>
 /// Answers on a provider of an enum.
 /// </summary>
@@ -18,7 +18,8 @@ public partial class VendorAgent : Agent
     public VendorAgent()
     {
         WithChatOptions()
-            .WithModel(Vendor.Probe, Model)
+            .WithProvider(Vendor.Probe)
+            .WithModel(Model)
             .Configurable(o => o.ModelId);
     }
 }

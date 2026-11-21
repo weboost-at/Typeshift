@@ -31,7 +31,7 @@ await customer.UpdateSettingsAsync(settings => settings with
     FindCompanies = new CompanyToolset.FindCompaniesOverrides { Limit = 2 }
 });
 
-// The research agent's providers are the enum its WithModel names, stored and read back without reflection
+// The research agent's providers are the enum its WithProvider names, stored and read back without reflection
 var stored = await customer.LoadSettingsAsync();
 Expect(stored.Data.Provider == Provider.Scripted, $"the provider {stored.Data.Provider}");
 

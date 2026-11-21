@@ -8,7 +8,8 @@ internal partial class DeskAgent : Agent
     public DeskAgent()
     {
         WithChatOptions()
-            .WithModel("openai", "gpt-5-mini");
+            .WithProvider("openai")
+            .WithModel("gpt-5-mini");
 
         UseToolset<TicketLookupToolset>();
         UseToolset<TicketEscalationToolset>();

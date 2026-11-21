@@ -21,7 +21,7 @@ internal sealed class StorageEmitter
 
     // WriteJson, TryReadJson and CheckJson of an IJsonStorable record; writeMore and readMore add what is not a
     // stored member, tools the overrides an agent's Settings keeps under "tools" by name, and providers names the
-    // members that are refused when their stored value does not read (D77)
+    // members that are refused when their stored value does not read (D86)
     public static void WriteRecordJson(
         SourceWriter writer,
         string type,

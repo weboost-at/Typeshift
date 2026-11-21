@@ -40,7 +40,7 @@ public partial class HeldAgent : Agent
 {
     public HeldAgent()
     {
-        WithChatOptions().WithModel("scripted", "held-model");
+        WithChatOptions().WithProvider("scripted").WithModel("held-model");
 
         UseToolset<HeldToolset>();
         UseToolset<GuardedToolset>();

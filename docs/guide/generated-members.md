@@ -305,7 +305,8 @@ internal partial class SupportAgent : Agent
         WithDescription("Answers customers from their tickets and the help center.");
 
         WithChatOptions()
-            .WithModel("openai", "gpt-5-mini")
+            .WithProvider("openai")
+            .WithModel("gpt-5-mini")
             .WithTemperature(0.3f)
             .Configurable(o => o.ModelId)
             .Configurable(o => o.Instructions)
@@ -336,12 +337,12 @@ internal partial class SupportAgent : Agent
     }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/SupportAgent.cs#L8-L54' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/SupportAgent.cs#L8-L55' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 | Declaration | Member |
 |---|---|
-| `WithChatOptions().Configurable(o => o.ModelId)` | Two members: `Provider`, of the agent's [provider id type](./models.md#the-provider-id-type), such as `string?`, and `string? Model`. They override the provider and model that `WithModel` sets in code. |
+| `WithChatOptions().Configurable(o => o.ModelId)` | Two members: `Provider`, of the agent's [provider id type](./models.md#the-provider-id-type), such as `string?`, and `string? Model`. They override the provider that `WithProvider` and the model that `WithModel` set in code. |
 | `WithRunOptions().Configurable(r => r.SummaryModel)` | `SummaryProvider`, of the agent's provider id type, and `string? SummaryModel`. If either is still null after every layer, the summary uses the run's own provider or model. |
 | `WithChatOptions().Configurable(o => o.X)` | `X`, nullable: `float? Temperature`, `string? Instructions`. |
 | `WithRunOptions().Configurable(r => r.X)` | `X`, nullable: `AgentMode? Mode`, `int? MaxToolIterations`. |
@@ -470,7 +471,7 @@ named after the tool and of type `ToolName`, and `Include` and `Exclude` pick fr
 UseToolset<TicketToolset>()
     .Exclude(t => t.CloseTicket);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/TriageAgent.cs#L15-L18' title='Snippet source file'>snippet source</a> | <a href='#snippet-exclude-tools' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/TriageAgent.cs#L16-L19' title='Snippet source file'>snippet source</a> | <a href='#snippet-exclude-tools' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The block gives `ToolList<TicketToolset>` the properties `SearchTickets`, `GetTicket` and `CloseTicket`. A tool

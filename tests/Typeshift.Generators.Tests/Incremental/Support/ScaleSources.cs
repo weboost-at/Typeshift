@@ -85,7 +85,8 @@ public static class ScaleSources
                 WithInstructions("Answer briefly.");
 
                 WithChatOptions()
-                    .WithModel("p", "m")
+                    .WithProvider("p")
+                    .WithModel("m")
                     .WithTemperature(0.2f)
                     .Configurable(o => o.ModelId)
                     .Configurable(o => o.Temperature);

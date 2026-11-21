@@ -59,7 +59,8 @@ internal partial class SupportAgent : Agent
         WithDescription("Answers customers from their tickets and the help center.");
 
         WithChatOptions()
-            .WithModel("openai", "gpt-5-mini")
+            .WithProvider("openai")
+            .WithModel("gpt-5-mini")
             .WithTemperature(0.3f)
             .Configurable(o => o.ModelId)
             .Configurable(o => o.Instructions)
@@ -90,7 +91,7 @@ internal partial class SupportAgent : Agent
     }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/SupportAgent.cs#L8-L54' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/SupportAgent.cs#L8-L55' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The tools and their settings have sections of their own below. The other calls of this agent declare the rest:
@@ -98,7 +99,7 @@ The tools and their settings have sections of their own below. The other calls o
 | Call | Declares |
 |---|---|
 | `WithDescription(...)` | What the agent does, for the model of an agent that calls this one. |
-| `WithChatOptions()` | The chat options every run starts from, such as the model and the temperature. [Models and providers](./models.md) explains what `WithModel` names and which client serves it. |
+| `WithChatOptions()` | The chat options every run starts from, such as the model and the temperature. [Models and providers](./models.md) explains what `WithModel` and `WithProvider` name and which client serves a run. |
 | `UseMcpServer(...)` | The tools of an [MCP server](./mcp.md). `ReadOnly()` lets plan mode offer them. |
 | `UseContext<T>()` | A [context provider](./middleware.md#context-providers), whose instructions, messages and tools join every run. |
 | `UseQuestions()` | That the model may [ask the user](./tool-approval.md#asking-the-user) a question, which your app answers. |
@@ -145,7 +146,7 @@ pick them, or `Exclude` to offer all but those:
 UseToolset<TicketToolset>()
     .Exclude(t => t.CloseTicket);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/TriageAgent.cs#L15-L18' title='Snippet source file'>snippet source</a> | <a href='#snippet-exclude-tools' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/TriageAgent.cs#L16-L19' title='Snippet source file'>snippet source</a> | <a href='#snippet-exclude-tools' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The lambda picks from a list the generator writes for each toolset, with one property per tool, named after the
@@ -170,7 +171,7 @@ UseToolset<TicketToolset>()
     .Include(t => t.GetTicket)
     .Configurable(t => t.SearchTickets);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/ReviewDeskAgent.cs#L20-L25' title='Snippet source file'>snippet source</a> | <a href='#snippet-switchable-tool' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/ReviewDeskAgent.cs#L21-L26' title='Snippet source file'>snippet source</a> | <a href='#snippet-switchable-tool' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 - The agent's `Settings` gain `bool? SearchTicketsEnabled`, named after the tool. False leaves the tool out of the
@@ -209,7 +210,8 @@ internal partial class BillingAgent : Agent
         WithInstructions("Settle the customer's charges and invoices.");
 
         WithChatOptions()
-            .WithModel("openai", "gpt-5-mini");
+            .WithProvider("openai")
+            .WithModel("gpt-5-mini");
 
         AddTool(GetToday)
             .ReadOnly();
@@ -225,7 +227,7 @@ internal partial class BillingAgent : Agent
     }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/BillingAgent.cs#L3-L27' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent-own-tool' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/BillingAgent.cs#L3-L28' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent-own-tool' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 - The tool takes the same chain as a toolset's tool, such as `ReadOnly()` here or `RequiresApproval()`, and follows
@@ -268,7 +270,7 @@ WithRunOptions()
     .Configurable(r => r.Mode)
     .Configurable(r => r.MaxToolIterations);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/TriageAgent.cs#L20-L26' title='Snippet source file'>snippet source</a> | <a href='#snippet-run-options' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/TriageAgent.cs#L21-L27' title='Snippet source file'>snippet source</a> | <a href='#snippet-run-options' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Run options set the [mode](./tool-approval.md#the-three-modes) a run starts in, the limits of its tool loop, whether

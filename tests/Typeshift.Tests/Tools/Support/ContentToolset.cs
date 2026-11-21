@@ -52,7 +52,8 @@ public partial class ContentAgent : Agent
     public ContentAgent()
     {
         WithChatOptions()
-            .WithModel(ProbeAgent.ModelProvider, ProbeAgent.Model);
+            .WithProvider(ProbeAgent.ModelProvider)
+            .WithModel(ProbeAgent.Model);
 
         UseToolset<ContentToolset>();
     }

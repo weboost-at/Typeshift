@@ -44,7 +44,7 @@ Everything Typeshift does, you could write on Microsoft.Extensions.AI yourself. 
 |---|---|
 | An `AIFunctionFactory.Create` call per tool, and its description kept in step with the method | A static method with XML docs; the schema and description are generated |
 | Values the model must not choose, such as a search limit, passed around by hand | A settings record the tool receives and the model never sees, layered from code, storage and the run |
-| A `ChatOptions` per agent, and code that picks the client for its provider | `WithChatOptions().WithModel(...)` and a registered `IChatClient` |
+| A `ChatOptions` per agent, and code that picks the client for its provider | `WithChatOptions().WithModel(...)`, `WithProvider(...)` where an agent names its provider, and a registered `IChatClient` |
 | Storing the history between requests, and resuming after a crash | A conversation id on the run |
 | Asking a person before a call that closes a ticket | `RequiresApproval()`, approval rules, and plan and auto modes |
 | A tool with which the model asks the user, and a place where the question waits for its answer | `UseQuestions()`, and a decision your app answers by its id |

@@ -39,7 +39,7 @@ public partial class McpAgent : Agent
 {
     public McpAgent()
     {
-        WithChatOptions().WithModel("scripted", "mcp-model");
+        WithChatOptions().WithProvider("scripted").WithModel("mcp-model");
 
         WithRunOptions().Configurable(r => r.Mode);
 
@@ -59,7 +59,7 @@ public partial class McpHelperAgent : Agent
     {
         WithDescription("Deploys what the lead asks for.");
 
-        WithChatOptions().WithModel("scripted", "mcp-helper-model");
+        WithChatOptions().WithProvider("scripted").WithModel("mcp-helper-model");
 
         UseMcpServer("deploy").RequiresApproval();
     }
@@ -70,7 +70,7 @@ public partial class McpLeadAgent : Agent
 {
     public McpLeadAgent()
     {
-        WithChatOptions().WithModel("scripted", "mcp-lead-model");
+        WithChatOptions().WithProvider("scripted").WithModel("mcp-lead-model");
 
         UseToolset<GuardedToolset>().Include(t => t.CloseTicket);
 
@@ -83,7 +83,7 @@ public partial class McpFrontAgent : Agent
 {
     public McpFrontAgent()
     {
-        WithChatOptions().WithModel("scripted", "mcp-front-model");
+        WithChatOptions().WithProvider("scripted").WithModel("mcp-front-model");
 
         UseToolset<GuardedToolset>().Include(t => t.CloseTicket);
 
@@ -97,7 +97,7 @@ public partial class McpBackAgent : Agent
     {
         WithDescription("Deploys.");
 
-        WithChatOptions().WithModel("scripted", "mcp-back-model");
+        WithChatOptions().WithProvider("scripted").WithModel("mcp-back-model");
 
         UseMcpServer("deploy").RequiresApproval();
     }

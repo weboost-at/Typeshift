@@ -11,7 +11,7 @@ namespace Typeshift;
 /// <see href="https://weboost-at.github.io/Typeshift/guide/models#your-own-provider">Your own provider</see>.
 /// </summary>
 /// <typeparam name="TProviderId">
-/// The type of the providers it serves, as the agents name them in <c>WithModel(provider, model)</c>. When an agent's
+/// The type of the providers it serves, as the agents name them in <c>WithProvider(provider)</c>. When an agent's
 /// <c>Settings</c> store the provider, a string, a number, a <see cref="Guid"/> or an enum (TSH029).
 /// </typeparam>
 public interface IChatClientProvider<TProviderId> where TProviderId : notnull

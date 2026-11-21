@@ -75,7 +75,7 @@ public class ChatClientResolutionTests : HostTestBase
             + "no client is registered under a provider, and no IChatClientProvider<string> is registered. Name a "
             + "provider that has a client, register one with services.AddKeyedChatClient(provider, client), or "
             + "register a provider class with WithChatClientProvider<T>(). The default client serves only a run "
-            + "that names no provider, as an agent with WithChatOptions().WithModel(model) does.");
+            + "that names no provider, as an agent without WithChatOptions().WithProvider(provider) does.");
 
         ChatClient.Requests.Should().BeEmpty();
     }
@@ -151,7 +151,7 @@ public class ChatClientResolutionTests : HostTestBase
             $"No chat client serves the agent 'model_only_agent' on '{ModelOnlyAgent.Model}', which names no "
             + "provider, and no default client is registered: register one for every agent with "
             + "services.AddChatClient(client) or TypeshiftRuntime.Create(client), or name a provider with "
-            + "WithChatOptions().WithModel(provider, model) or in the agent's settings.");
+            + "WithChatOptions().WithProvider(provider) or in the agent's settings.");
     }
 
     [Fact]
@@ -439,7 +439,7 @@ public class ChatClientResolutionTests : HostTestBase
     }
 
     [Fact]
-    public async Task Given_A_Configurable_Model_Without_WithModel_Its_String_Provider_Reaches_The_Provider()
+    public async Task Given_A_Configurable_Model_Without_WithProvider_Its_String_Provider_Reaches_The_Provider()
     {
         // Arrange
         _register = services => services.AddTypeshift().WithChatClientProvider<ScriptedChatClientProvider>();

@@ -9,7 +9,8 @@ internal partial class BillingAgent : Agent
         WithInstructions("Settle the customer's charges and invoices.");
 
         WithChatOptions()
-            .WithModel("openai", "gpt-5-mini");
+            .WithProvider("openai")
+            .WithModel("gpt-5-mini");
 
         AddTool(GetToday)
             .ReadOnly();

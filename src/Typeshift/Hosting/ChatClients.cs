@@ -3,7 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Typeshift;
 
-// D63, D77: a run that names a provider takes that provider's client, from the IChatClientProvider of the provider's
+// D63, D86: a run that names a provider takes that provider's client, from the IChatClientProvider of the provider's
 // type or else the client registered under the provider. A run that names none takes the default client, the one
 // registered for every agent. A provider nothing serves throws: the default serves no run that names one
 internal static class ChatClients
@@ -43,8 +43,8 @@ internal static class ChatClients
         new(
             $"No chat client serves {what}{(model is null ? "" : $" on '{model}'")}, which names no provider, and no "
             + "default client is registered: register one for every agent with services.AddChatClient(client) or "
-            + "TypeshiftRuntime.Create(client), or name a provider with WithChatOptions().WithModel(provider, model) "
-            + "or in the agent's settings.");
+            + "TypeshiftRuntime.Create(client), or name a provider with WithChatOptions().WithProvider(provider) or "
+            + "in the agent's settings.");
 
     // The registered keys tell a typo from a provider the app never registered
     private static InvalidOperationException NotServed(
@@ -58,7 +58,7 @@ internal static class ChatClients
             + "registered. Name a provider that has a client, register one with "
             + "services.AddKeyedChatClient(provider, client), or register a provider class with "
             + "WithChatClientProvider<T>(). The default client serves only a run that names no provider, as an agent "
-            + "with WithChatOptions().WithModel(model) does.");
+            + "without WithChatOptions().WithProvider(provider) does.");
 
     private static InvalidOperationException NoModel(string what, ProviderId provider) =>
         new(

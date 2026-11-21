@@ -25,7 +25,8 @@ public partial class FailingAgent : Agent
     public FailingAgent()
     {
         WithChatOptions()
-            .WithModel(ProbeAgent.ModelProvider, ProbeAgent.Model);
+            .WithProvider(ProbeAgent.ModelProvider)
+            .WithModel(ProbeAgent.Model);
 
         WithRunOptions()
             .WithMaxConsecutiveToolErrors(1)

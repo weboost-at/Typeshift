@@ -11,7 +11,8 @@ internal partial class TroubleshootingAgent : Agent
 
         // begin-snippet: read-only-tools
         WithChatOptions()
-            .WithModel("openai", "gpt-5-mini")
+            .WithProvider("openai")
+            .WithModel("gpt-5-mini")
             .WithReadOnlyTools(new HostedWebSearchTool());
         // end-snippet
 

@@ -1,7 +1,7 @@
 namespace Typeshift.Generators.Models;
 
-// D77: an agent's provider id type, the static type of its WithModel provider, global::-qualified; how its Settings
-// store it, and whether it is public (D6)
+// D86: an agent's provider id type, the static type of its WithProvider provider, global::-qualified; how its
+// Settings store it, and whether it is public (D6)
 internal sealed record ProviderIdModel(string Type, StorageModel Storage, bool IsPublic)
 {
     // An agent whose code names no provider, or one of a type settings cannot store, which TSH029 reports

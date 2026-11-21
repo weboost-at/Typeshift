@@ -187,7 +187,8 @@ public static class ReferenceSources
             public ResearchAgent()
             {
                 WithChatOptions()
-                    .WithModel("openai", "fast-model")
+                    .WithProvider("openai")
+                    .WithModel("fast-model")
                     .Configurable(o => o.Temperature);
 
                 UseToolset<CompanyToolset>().Include(t => t.FindCompanies);
@@ -224,7 +225,7 @@ public static class ReferenceSources
 
         internal partial class HelpAgent : Agent
         {
-            public HelpAgent() => WithChatOptions().WithModel("openai", "fast-model");
+            public HelpAgent() => WithChatOptions().WithProvider("openai").WithModel("fast-model");
         }
         """;
 
@@ -236,7 +237,7 @@ public static class ReferenceSources
 
         internal partial class HelpAgent : Agent
         {
-            public HelpAgent() => WithChatOptions().WithModel("openai", "fast-model");
+            public HelpAgent() => WithChatOptions().WithProvider("openai").WithModel("fast-model");
         }
         """;
 
@@ -248,7 +249,7 @@ public static class ReferenceSources
 
         public partial class HelpAgent : Agent
         {
-            public HelpAgent() => WithChatOptions().WithModel("openai", "fast-model");
+            public HelpAgent() => WithChatOptions().WithProvider("openai").WithModel("fast-model");
         }
         """;
 

@@ -101,7 +101,7 @@ internal static class AgentParser
             .Where(name => name.StartsWith("Configure", StringComparison.Ordinal))
             .Distinct();
 
-        ISymbol[] named = [agent, .. declarations.Used, .. declarations.Models.Select(model => model.Type)];
+        ISymbol[] named = [agent, .. declarations.Used, .. declarations.Providers.Select(provider => provider.Type)];
 
         return new AgentModel(
             TypeModels.From(agent),
@@ -192,7 +192,7 @@ internal static class AgentParser
                 break;
 
             case "WithChatOptions":
-                ReadModel(call, declarations);
+                ReadProvider(call, declarations);
                 ReadPicks(call, OptionMembers.Chat, declarations.ChatOptions, declarations.ProviderPicks, reporter);
                 break;
 
@@ -254,18 +254,18 @@ internal static class AgentParser
         }
     }
 
-    // D77: the static type of WithModel's provider is the agent's provider id type; WithModel(model) names none
-    private static void ReadModel(IInvocationOperation call, Declarations declarations)
+    // D86: the static type of WithProvider's provider is the agent's provider id type
+    private static void ReadProvider(IInvocationOperation call, Declarations declarations)
     {
-        var models = ConstructorChains.GetChainedCalls(call).Where(next => next.TargetMethod.Name == "WithModel");
+        var named = ConstructorChains.GetChainedCalls(call).Where(next => next.TargetMethod.Name == "WithProvider");
 
-        foreach (var model in models)
+        foreach (var provider in named)
         {
-            var provider = model.TargetMethod.TypeArguments.FirstOrDefault();
-            if (provider is not { TypeKind: not TypeKind.Error } type) continue;
+            if (provider.TargetMethod.TypeArguments.FirstOrDefault() is not { TypeKind: not TypeKind.Error } type)
+                continue;
 
-            var argument = model.Arguments.First(passed => passed.Parameter?.Ordinal == 0).Syntax;
-            declarations.Models.Add((type, argument));
+            var argument = provider.Arguments.First(passed => passed.Parameter?.Ordinal == 0).Syntax;
+            declarations.Providers.Add((type, argument));
         }
     }
 
@@ -320,7 +320,7 @@ internal static class AgentParser
 
             if (!picked.Contains(property.Name)) picked.Add(property.Name);
 
-            // D77: a configurable model brings the member of its provider
+            // D86: a configurable model brings the member of its provider
             if (option.Provider is not null) providerPicks.Add(pick.Arguments[0].Syntax);
         }
     }
@@ -436,7 +436,7 @@ internal static class AgentParser
             switches.ToEquatableArray());
     }
 
-    // D77: the agent's provider id type, from the WithModel that runs last, string without one. Settings that store
+    // D86: the agent's provider id type, from the WithProvider that runs last, string without one. Settings that store
     // a provider need a type they store as one value (TSH029) and can name (TSH006, D6), with string in its place
     // so the generated code stays valid; a public agent's Settings need a public one, or name it internal (TSH006)
     private static ProviderIdModel ReadProviderId(
@@ -445,7 +445,7 @@ internal static class AgentParser
         Declarations declarations,
         Reporter reporter)
     {
-        if (GetRunModel(agent, constructors, declarations.Models) is not var (type, argument))
+        if (GetRunProvider(agent, constructors, declarations.Providers) is not var (type, argument))
             return ProviderIdModel.String;
 
         var stored = declarations.ProviderPicks.Count > 0;
@@ -468,12 +468,12 @@ internal static class AgentParser
         return nameable ? providerId : ProviderIdModel.String;
     }
 
-    // D77: the WithModel that new TAgent() runs last: the parameterless constructor runs those it chains to with
-    // this(...) first, so the last WithModel of the outermost constructor that has one
-    private static (ITypeSymbol Type, SyntaxNode Argument)? GetRunModel(
+    // D86: the WithProvider that new TAgent() runs last: the parameterless constructor runs those it chains to with
+    // this(...) first, so the last WithProvider of the outermost constructor that has one
+    private static (ITypeSymbol Type, SyntaxNode Argument)? GetRunProvider(
         INamedTypeSymbol agent,
         IEnumerable<IOperation> constructors,
-        IReadOnlyList<(ITypeSymbol Type, SyntaxNode Argument)> models)
+        IReadOnlyList<(ITypeSymbol Type, SyntaxNode Argument)> providers)
     {
         var chained = new Dictionary<IMethodSymbol, IMethodSymbol>(SymbolEqualityComparer.Default);
 
@@ -490,8 +490,8 @@ internal static class AgentParser
 
         while (constructor is not null && visited.Add(constructor))
         {
-            var own = models
-                .Where(model => Declares(ConstructorChains.GetConstructor(agent, model.Argument), constructor))
+            var own = providers
+                .Where(named => Declares(ConstructorChains.GetConstructor(agent, named.Argument), constructor))
                 .ToList();
 
             if (own.Count > 0) return own[own.Count - 1];
@@ -575,8 +575,8 @@ internal static class AgentParser
 
         public List<SyntaxNode> ProviderPicks { get; } = [];
 
-        // Each WithModel's provider: its static type and the argument, in source order
-        public List<(ITypeSymbol Type, SyntaxNode Argument)> Models { get; } = [];
+        // Each WithProvider's provider: its static type and the argument, in source order
+        public List<(ITypeSymbol Type, SyntaxNode Argument)> Providers { get; } = [];
 
         public List<ToolsetUseModel> Toolsets { get; } = [];
 

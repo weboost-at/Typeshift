@@ -48,7 +48,7 @@ public partial class CompactingAgent : Agent
 
     public CompactingAgent()
     {
-        WithChatOptions().WithModel(ModelProvider, Model);
+        WithChatOptions().WithProvider(ModelProvider).WithModel(Model);
 
         WithRunOptions()
             .Configurable(r => r.MaxInputTokens)

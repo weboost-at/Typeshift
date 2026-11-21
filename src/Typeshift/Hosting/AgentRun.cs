@@ -115,7 +115,7 @@ public sealed class AgentRun
     // The answer of a pass as it was made, by the model, or none yet as a pass begins
     internal void Answered(ChatResponse? response) => _response = response;
 
-    // D77: the provider with its type, which the entries of the run's model responses name as text
+    // D86: the provider with its type, which the entries of the run's model responses name as text
     internal ProviderId? ResolvedProvider => (Options as ResolvedChatOptions)?.Provider;
 
     // The conversation's client begins every run with options of this type, which hold what else the run resolved

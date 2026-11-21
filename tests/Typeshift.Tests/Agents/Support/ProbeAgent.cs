@@ -32,7 +32,8 @@ public partial class ProbeAgent : Agent
         WithInstructions(Prompt);
 
         WithChatOptions()
-            .WithModel(ModelProvider, Model)
+            .WithProvider(ModelProvider)
+            .WithModel(Model)
             .WithTemperature(Temperature)
             .WithStopSequences(Stop)
             .WithTools(new HostedWebSearchTool())

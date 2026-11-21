@@ -8,7 +8,8 @@ public partial class ScopedInstructionsAgent : Agent
 {
     public ScopedInstructionsAgent() =>
         WithChatOptions()
-            .WithModel(ProbeAgent.ModelProvider, ProbeAgent.Model);
+            .WithProvider(ProbeAgent.ModelProvider)
+            .WithModel(ProbeAgent.Model);
 
     public static string For(Guid scope) => $"Answer the caller of scope {scope}.";
 

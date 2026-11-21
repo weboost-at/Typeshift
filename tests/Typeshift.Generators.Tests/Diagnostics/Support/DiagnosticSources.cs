@@ -955,7 +955,7 @@ public static class DiagnosticSources
         // begin-snippet: tsh016
         internal partial class EchoAgent : Agent
         {
-            public EchoAgent(string model) => WithChatOptions().WithModel("openai", model);
+            public EchoAgent(string model) => WithChatOptions().WithProvider("openai").WithModel(model);
         }
         // end-snippet
         """;
@@ -1248,7 +1248,7 @@ public static class DiagnosticSources
         }
         """;
 
-    // D77: WithModel makes the agent's providers of Demo.Vendor
+    // D86: WithProvider makes the agent's providers of Demo.Vendor
     public const string PublicAgentOfInternalProviderIdType =
         """
         #pragma warning disable CS1591
@@ -1266,7 +1266,7 @@ public static class DiagnosticSources
         public partial class SupportAgent : Agent
         {
             public SupportAgent() =>
-                WithChatOptions().WithModel(Vendor.OpenAi, "fast-model").Configurable(o => o.ModelId);
+                WithChatOptions().WithProvider(Vendor.OpenAi).WithModel("fast-model").Configurable(o => o.ModelId);
         }
         """;
 
@@ -1323,7 +1323,7 @@ public static class DiagnosticSources
         {
             internal partial class HelpAgent : Agent
             {
-                public HelpAgent() => WithChatOptions().WithModel("openai", "fast-model");
+                public HelpAgent() => WithChatOptions().WithProvider("openai").WithModel("fast-model");
             }
         }
 
@@ -1331,7 +1331,7 @@ public static class DiagnosticSources
         {
             internal partial class HelpAgent : Agent
             {
-                public HelpAgent() => WithChatOptions().WithModel("openai", "fast-model");
+                public HelpAgent() => WithChatOptions().WithProvider("openai").WithModel("fast-model");
             }
         }
         // end-snippet
@@ -1366,7 +1366,7 @@ public static class DiagnosticSources
         // begin-snippet: tsh023
         internal partial class HelpAgent : Agent
         {
-            public HelpAgent() => WithChatOptions().WithModel("openai", "fast-model");
+            public HelpAgent() => WithChatOptions().WithProvider("openai").WithModel("fast-model");
         }
 
         internal partial class LeadAgent : Agent
@@ -1384,7 +1384,7 @@ public static class DiagnosticSources
         /// <summary></summary>
         internal partial class HelpAgent : Agent
         {
-            public HelpAgent() => WithChatOptions().WithModel("openai", "fast-model");
+            public HelpAgent() => WithChatOptions().WithProvider("openai").WithModel("fast-model");
         }
 
         internal partial class LeadAgent : Agent
@@ -1420,7 +1420,7 @@ public static class DiagnosticSources
         /// <summary>Answers questions about the help center.</summary>
         internal partial class HelpAgent : Agent
         {
-            public HelpAgent() => WithChatOptions().WithModel("openai", "fast-model");
+            public HelpAgent() => WithChatOptions().WithProvider("openai").WithModel("fast-model");
         }
         """;
 
@@ -1431,7 +1431,7 @@ public static class DiagnosticSources
         /// <summary>Answers questions about the help center.</summary>
         internal partial class HelpAgent : Agent
         {
-            public HelpAgent() => WithChatOptions().WithModel("openai", "fast-model");
+            public HelpAgent() => WithChatOptions().WithProvider("openai").WithModel("fast-model");
         }
 
         internal partial class LeadAgent : Agent
@@ -2867,7 +2867,7 @@ public static class DiagnosticSources
         }
         """;
 
-    // D77: the generated Settings, in a file of their own, cannot name an enum nested as private in the agent
+    // D86: the generated Settings, in a file of their own, cannot name an enum nested as private in the agent
     public const string PrivateProviderIdType =
         """
         using Typeshift;
@@ -2875,7 +2875,7 @@ public static class DiagnosticSources
         internal partial class SupportAgent : Agent
         {
             public SupportAgent() =>
-                WithChatOptions().WithModel(Vendor.OpenAi, "fast-model").Configurable(o => o.ModelId);
+                WithChatOptions().WithProvider(Vendor.OpenAi).WithModel("fast-model").Configurable(o => o.ModelId);
 
             private enum Vendor
             {
@@ -2897,11 +2897,11 @@ public static class DiagnosticSources
         internal partial class SupportAgent : Agent
         {
             public SupportAgent() =>
-                WithChatOptions().WithModel(Vendor.OpenAi, "fast-model").Configurable(o => o.ModelId);
+                WithChatOptions().WithProvider(Vendor.OpenAi).WithModel("fast-model").Configurable(o => o.ModelId);
         }
         """;
 
-    // D77: new HelpAgent() runs the constructor it chains to, whose provider is a record
+    // D86: new HelpAgent() runs the constructor it chains to, whose provider is a record
     public const string ChainedUnstorableProvider =
         """
         using Typeshift;
@@ -2916,7 +2916,7 @@ public static class DiagnosticSources
             }
 
             private HelpAgent(ProviderKey key) =>
-                WithChatOptions().WithModel(key, "fast-model").Configurable(o => o.ModelId);
+                WithChatOptions().WithProvider(key).WithModel("fast-model").Configurable(o => o.ModelId);
         }
         """;
 
@@ -2930,10 +2930,10 @@ public static class DiagnosticSources
         public partial class HelpAgent : Agent
         {
             public HelpAgent() =>
-                WithChatOptions().WithModel("openai", "fast-model").Configurable(o => o.ModelId);
+                WithChatOptions().WithProvider("openai").WithModel("fast-model").Configurable(o => o.ModelId);
 
             public HelpAgent(string name) =>
-                WithChatOptions().WithModel(new ProviderKey(name), "fast-model");
+                WithChatOptions().WithProvider(new ProviderKey(name)).WithModel("fast-model");
         }
         """;
 
@@ -2954,7 +2954,7 @@ public static class DiagnosticSources
         }
         """;
 
-    // D77: settings store the agent's providers, which are records
+    // D86: settings store the agent's providers, which are records
     public const string UnstorableProvider =
         """
         using Typeshift;
@@ -2965,7 +2965,10 @@ public static class DiagnosticSources
         public partial class HelpAgent : Agent
         {
             public HelpAgent() =>
-                WithChatOptions().WithModel(new ProviderKey("openai"), "fast-model").Configurable(o => o.ModelId);
+                WithChatOptions()
+                    .WithProvider(new ProviderKey("openai"))
+                    .WithModel("fast-model")
+                    .Configurable(o => o.ModelId);
         }
         // end-snippet
         """;
@@ -2980,7 +2983,10 @@ public static class DiagnosticSources
         public partial class HelpAgent : Agent
         {
             public HelpAgent() =>
-                WithChatOptions().WithModel(new ProviderKey("openai"), "fast-model").Configurable(o => o.Temperature);
+                WithChatOptions()
+                    .WithProvider(new ProviderKey("openai"))
+                    .WithModel("fast-model")
+                    .Configurable(o => o.Temperature);
         }
         """;
 
@@ -3000,7 +3006,7 @@ public static class DiagnosticSources
         // end-snippet
         """;
 
-    // D77: an agent's providers may be ints, and a provider of them serves those agents
+    // D86: an agent's providers may be ints, and a provider of them serves those agents
     public const string ChatClientProviderOfInts =
         """
         #pragma warning disable CS1591
@@ -3013,7 +3019,8 @@ public static class DiagnosticSources
 
         public partial class HelpAgent : Agent
         {
-            public HelpAgent() => WithChatOptions().WithModel(42, "fast-model").Configurable(o => o.ModelId);
+            public HelpAgent() =>
+                WithChatOptions().WithProvider(42).WithModel("fast-model").Configurable(o => o.ModelId);
         }
 
         public sealed class NumberedClients : IChatClientProvider<int>

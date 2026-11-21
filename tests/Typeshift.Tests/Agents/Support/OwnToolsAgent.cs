@@ -8,7 +8,8 @@ public partial class OwnToolsAgent : Agent
     public OwnToolsAgent()
     {
         WithChatOptions()
-            .WithModel(ProbeAgent.ModelProvider, ProbeAgent.Model);
+            .WithProvider(ProbeAgent.ModelProvider)
+            .WithModel(ProbeAgent.Model);
 
         UseToolset<ProbeToolset>();
 

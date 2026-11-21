@@ -52,7 +52,7 @@ public partial class LookupContextAgent : Agent
 {
     public LookupContextAgent()
     {
-        WithChatOptions().WithModel("scripted", "context-model");
+        WithChatOptions().WithProvider("scripted").WithModel("context-model");
 
         UseContext<LookupContext>();
     }
@@ -62,7 +62,7 @@ public partial class ProfileContextAgent : Agent
 {
     public ProfileContextAgent()
     {
-        WithChatOptions().WithModel("scripted", "context-model");
+        WithChatOptions().WithProvider("scripted").WithModel("context-model");
 
         UseContext<ProfileContext>();
     }

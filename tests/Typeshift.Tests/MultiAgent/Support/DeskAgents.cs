@@ -12,7 +12,7 @@ public partial class FrontDeskAgent : Agent
     {
         WithDescription("Finds out what the customer needs.");
 
-        WithChatOptions().WithModel(ModelProvider, "front-model");
+        WithChatOptions().WithProvider(ModelProvider).WithModel("front-model");
 
         UseHandoff<BackOfficeAgent>();
     }
@@ -30,7 +30,7 @@ public partial class BackOfficeAgent : Agent
     {
         WithDescription("Settles what the customer needs.");
 
-        WithChatOptions().WithModel(ModelProvider, "back-model");
+        WithChatOptions().WithProvider(ModelProvider).WithModel("back-model");
 
         UseHandoff<FrontDeskAgent>();
     }

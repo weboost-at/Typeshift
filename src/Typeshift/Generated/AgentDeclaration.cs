@@ -76,7 +76,7 @@ public abstract class AgentDeclaration<TAgent, TSettings> : AgentDeclaration
     /// <returns>The run options with what the layer sets.</returns>
     protected abstract RunOptions ApplySettings(ChatOptions options, RunOptions run, TSettings settings);
 
-    // D77: the generated code knows the provider's type, so the run asks the IChatClientProvider of that type
+    // D86: the generated code knows the provider's type, so the run asks the IChatClientProvider of that type
     /// <summary>
     /// Sets the provider of the run's model, as a settings layer names it.
     /// </summary>

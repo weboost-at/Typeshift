@@ -10,7 +10,8 @@ public partial class InstructedAgent : Agent
         WithInstructions(Prompt);
 
         WithChatOptions()
-            .WithModel(ProbeAgent.ModelProvider, ProbeAgent.Model)
+            .WithProvider(ProbeAgent.ModelProvider)
+            .WithModel(ProbeAgent.Model)
             .Configurable(o => o.Instructions);
     }
 }

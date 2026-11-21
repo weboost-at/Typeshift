@@ -30,7 +30,7 @@ internal static class Telemetry
         activity.SetTag("gen_ai.agent.description", agent.Description);
         activity.SetTag("gen_ai.request.model", options.ModelId);
 
-        // D77: the provider the run resolved, which the chat spans name only as its client describes itself; none
+        // D86: the provider the run resolved, which the chat spans name only as its client describes itself; none
         // for a run on the default client
         activity.SetTag("typeshift.provider", options.Provider?.ToString());
         activity.SetTag("gen_ai.conversation.id", ConversationChatClient.GetConversation(options)?.ToString());

@@ -10,7 +10,8 @@ internal partial class ReviewDeskAgent : Agent
         WithInstructions("Help the customer with their tickets. Escalate a ticket only when it is urgent.");
 
         WithChatOptions()
-            .WithModel("openai", "gpt-5-mini");
+            .WithProvider("openai")
+            .WithModel("gpt-5-mini");
 
         // begin-snippet: use-requires-approval
         UseToolset<TicketEscalationToolset>()

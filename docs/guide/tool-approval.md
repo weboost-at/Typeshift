@@ -60,7 +60,7 @@ change. `RequiresApproval(t => t.X)` on the agent's `UseToolset<T>()` marks the 
 UseToolset<TicketEscalationToolset>()
     .RequiresApproval(t => t.EscalateTicket);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/ReviewDeskAgent.cs#L15-L18' title='Snippet source file'>snippet source</a> | <a href='#snippet-use-requires-approval' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/ReviewDeskAgent.cs#L16-L19' title='Snippet source file'>snippet source</a> | <a href='#snippet-use-requires-approval' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The pick names a tool the use offers. A pick of a tool the use excludes, or does not include, has no effect and
@@ -465,10 +465,11 @@ A tool of no toolset, such as a provider's web search, carries the mark when the
 <a id='snippet-read-only-tools'></a>
 ```cs
 WithChatOptions()
-    .WithModel("openai", "gpt-5-mini")
+    .WithProvider("openai")
+    .WithModel("gpt-5-mini")
     .WithReadOnlyTools(new HostedWebSearchTool());
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/TroubleshootingAgent.cs#L12-L16' title='Snippet source file'>snippet source</a> | <a href='#snippet-read-only-tools' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/TroubleshootingAgent.cs#L12-L17' title='Snippet source file'>snippet source</a> | <a href='#snippet-read-only-tools' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 - The provider receives the `HostedWebSearchTool` itself: the agent remembers which tools it marked and wraps none.
@@ -495,7 +496,7 @@ A call of it ends the run with a `QuestionDecision`, and what your app answers b
 ```cs
 UseQuestions();
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/SupportAgent.cs#L43-L45' title='Snippet source file'>snippet source</a> | <a href='#snippet-use-questions' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/SupportAgent.cs#L44-L46' title='Snippet source file'>snippet source</a> | <a href='#snippet-use-questions' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The model asks one to four questions in a call. Each has a short `Header`, the question's `Text` and two to four

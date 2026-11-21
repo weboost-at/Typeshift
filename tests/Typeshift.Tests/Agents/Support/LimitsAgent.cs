@@ -13,7 +13,8 @@ public partial class LimitsAgent : Agent
     public LimitsAgent()
     {
         WithChatOptions()
-            .WithModel(ModelProvider, Model)
+            .WithProvider(ModelProvider)
+            .WithModel(Model)
             .Configurable(o => o.ModelId);
 
         WithRunOptions()
@@ -33,7 +34,7 @@ public partial class LimitsAgent : Agent
             .WithMaxInputTokens(maximum)
             .WithTargetInputTokens(target);
 
-    public LimitsAgent(string provider, string model) => WithChatOptions().WithModel(provider, model);
+    public LimitsAgent(string provider, string model) => WithChatOptions().WithProvider(provider).WithModel(model);
 
     public LimitsAgent(string summaryModel) => WithRunOptions().WithSummaryModel(summaryModel);
 #pragma warning restore TSH044

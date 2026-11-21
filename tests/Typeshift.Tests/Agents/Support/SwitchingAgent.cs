@@ -9,7 +9,8 @@ public partial class SwitchingAgent : Agent
     public SwitchingAgent()
     {
         WithChatOptions()
-            .WithModel(ProbeAgent.ModelProvider, ProbeAgent.Model);
+            .WithProvider(ProbeAgent.ModelProvider)
+            .WithModel(ProbeAgent.Model);
 
         UseToolset<ProbeToolset>()
             .Configurable(t => t.Probe);

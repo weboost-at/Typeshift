@@ -35,7 +35,7 @@ public sealed class ClientCache : IDisposable
 /// <summary>
 /// Maps a provider the user defined and one of its models to a client.
 /// </summary>
-// The demos' agents make their models configurable without WithModel, so their providers are strings
+// The demos' agents make their models configurable without WithProvider, so their providers are strings
 public sealed class RoutingChatClientProvider(ProviderCatalog catalog, ClientCache cache, CannedModels canned)
     : IChatClientProvider<string>
 {

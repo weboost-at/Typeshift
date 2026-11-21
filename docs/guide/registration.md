@@ -134,8 +134,8 @@ ids ([Ids of your own types](./settings-and-stores.md#ids-of-your-own-types)).
 Typeshift creates an id only when you keep every conversation, for a conversation a run starts without one
 ([Keeping every conversation](./conversations.md#keeping-every-conversation)).
 
-Providers have an id type of their own, which each agent takes from the provider its `WithModel` names: `string`
-for `WithModel("openai", "gpt-5-mini")`, or an enum of yours. See
+Providers have an id type of their own, which each agent takes from the provider its `WithProvider` names: `string`
+for `WithProvider("openai")`, or an enum of yours. See
 [the provider id type](./models.md#the-provider-id-type).
 
 ## The runtime
@@ -165,8 +165,8 @@ Console.WriteLine($"{research.Agent.Name}: {answer.Text}");
   `AddTypeshift()` does. The generator intercepts the call, so write it as `TypeshiftRuntime.Create(...)`: a call
   through `using static`, an alias or a method group is not intercepted and would throw, which the analyzer reports
   ([TSH040](./diagnostics.md#tsh040)).
-- The client serves every agent that names no provider, as `WithModel("gpt-5-mini")` does. An agent that names
-  one, as in `WithModel("openai", "gpt-5-mini")`, does not run on it: its provider needs a client of its own,
+- The client serves every agent that names no provider, as one with `WithModel("gpt-5-mini")` alone. An agent that
+  names one, as in `WithProvider("openai")`, does not run on it: its provider needs a client of its own,
   registered through the chain's `Services`, as `typeshift.Services.AddKeyedChatClient("openai", openAi)` does
   ([Registering clients](./models.md#registering-clients)).
 - Create the runtime once and keep it while your app runs. Disposing it disposes its singletons, such as your

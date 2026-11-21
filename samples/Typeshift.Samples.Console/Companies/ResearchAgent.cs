@@ -13,7 +13,8 @@ internal partial class ResearchAgent : Agent
 
         // begin-snippet: provider-enum-model
         WithChatOptions()
-            .WithModel(Provider.Scripted, "scripted-model")
+            .WithProvider(Provider.Scripted)
+            .WithModel("scripted-model")
             .WithTemperature(0.2f)
             .Configurable(o => o.ModelId)
             .Configurable(o => o.Temperature);

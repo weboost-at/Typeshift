@@ -101,8 +101,8 @@ the client receives, so the provider's default applies:
 
 | Call | Sets | Default | May be configurable |
 |---|---|---|---|
-| `WithModel(string model)` | `ModelId` alone. An agent that names no provider runs on the client registered for every agent ([Naming a model](./models.md#naming-a-model)) | The model of the client that serves the run | Yes, as `Provider` and `Model` |
-| `WithModel(TProviderId provider, string model)` | `ModelId`, and the [provider](./models.md) that serves it, whose type is the agent's [provider id type](./models.md#the-provider-id-type) | The model of the client that serves the run | Yes, as `Provider` and `Model` |
+| `WithModel(string model)` | `ModelId`, the model as the API of the provider that serves the run names it ([Naming a model](./models.md#naming-a-model)) | The model of the client that serves the run | Yes, as `Model` |
+| `WithProvider(TProviderId provider)` | The [provider](./models.md) that serves the runs, by its key, whose type is the agent's [provider id type](./models.md#the-provider-id-type). Without it the client registered for every agent serves them | The client registered for every agent | Yes, as `Provider`, with `Configurable(o => o.ModelId)` |
 | [`WithInstructions`](#agent) in the agent, or `GetInstructions(services)` overridden | `Instructions` | None | Yes |
 | `WithTemperature(float temperature)` | `Temperature` | The provider's | Yes |
 | `WithMaxOutputTokens(int tokens)` | `MaxOutputTokens` | The provider's | Yes |

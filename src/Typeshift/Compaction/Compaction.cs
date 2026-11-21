@@ -248,7 +248,7 @@ internal sealed class Compaction(ReportedCall? last)
             : [new ChatMessage(ChatRole.Assistant, [call]), new ChatMessage(ChatRole.Tool, [result])];
     }
 
-    // D77: a summary is best effort. The provider and model named for it write it, the run's own unless the settings
+    // D86: a summary is best effort. The provider and model named for it write it, the run's own unless the settings
     // or the agent name others, and when they fail the run's own; D63: none for a run on the default client, and a
     // summary provider nothing serves failed the run when it started. Each failure is logged and recorded on the
     // run's span, and null says that no model wrote one
