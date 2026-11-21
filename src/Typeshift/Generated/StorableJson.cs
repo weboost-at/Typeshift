@@ -128,6 +128,7 @@ public static class StorableJson
         string name,
         StorableReader<TProviderId> read,
         string kind)
+        where TProviderId : notnull
     {
         var stored = Member(element, name);
         if (stored.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null || read(stored, out _)) return;

@@ -36,7 +36,7 @@ public static class TypeshiftExtensions
         /// <returns>The conversation's id.</returns>
         /// <exception cref="InvalidOperationException">The run stored no conversation.</exception>
         /// <exception cref="FormatException">The id is not a <typeparamref name="TId"/>.</exception>
-        public TId GetConversationId<TId>() where TId : IParsable<TId> =>
+        public TId GetConversationId<TId>() where TId : notnull, IParsable<TId> =>
             TId.Parse(
                 response.ConversationId
                 ?? throw new InvalidOperationException(

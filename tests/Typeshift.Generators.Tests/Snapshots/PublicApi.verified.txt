@@ -363,7 +363,7 @@ public static void Typeshift.Generated.StorableJson.CheckItems(System.Text.Json.
 public static void Typeshift.Generated.StorableJson.CheckMembers(System.Text.Json.JsonElement element, string path, System.ReadOnlySpan<string> members)
 public static void Typeshift.Generated.StorableJson.CheckReasoning(System.Text.Json.JsonElement element, string path)
 public static void Typeshift.Generated.StorableJson.CheckValues(System.Text.Json.JsonElement element, string path, Typeshift.Generated.StorableCheck check)
-public static void Typeshift.Generated.StorableJson.EnsureProvider<TProviderId>(System.Text.Json.JsonElement element, string name, Typeshift.Generated.StorableReader<TProviderId> read, string kind)
+public static void Typeshift.Generated.StorableJson.EnsureProvider<TProviderId>(System.Text.Json.JsonElement element, string name, Typeshift.Generated.StorableReader<TProviderId> read, string kind) where TProviderId : notnull
 public static void Typeshift.Generated.StorableJson.EnsureSchemaVersion(System.Text.Json.JsonElement element, int version, string kind)
 public static System.Text.Json.JsonElement Typeshift.Generated.StorableJson.Member(System.Text.Json.JsonElement element, string name)
 public static string Typeshift.Generated.StorableJson.Path(string path, string name)
@@ -511,7 +511,7 @@ public System.Threading.Tasks.Task<Typeshift.StoredDocument?> Typeshift.InMemory
 public System.Threading.Tasks.Task<long> Typeshift.InMemoryTypeshiftStore<TId>.SaveAsync(TId id, string kind, string json, long loadedVersion, System.Threading.CancellationToken ct)
 public System.Threading.Tasks.Task<long> Typeshift.InMemoryTypeshiftStore<TId>.SaveAsync(string kind, string json, long loadedVersion, System.Threading.CancellationToken ct)
 public System.Threading.Tasks.Task<long> Typeshift.InMemoryTypeshiftStore<TId>.SaveDecisionsAsync(TId conversation, string json, long loadedVersion, System.Threading.CancellationToken ct)
-public sealed record Typeshift.LiveRun<TId> : System.IEquatable<Typeshift.LiveRun<TId>>
+public sealed record Typeshift.LiveRun<TId> : System.IEquatable<Typeshift.LiveRun<TId>> where TId : notnull
 public required string Typeshift.LiveRun<TId>.Agent { get; init; }
 public required TId Typeshift.LiveRun<TId>.Conversation { get; init; }
 public bool Typeshift.LiveRun<TId>.Ended { get; init; }
@@ -807,7 +807,7 @@ public bool Typeshift.TypeshiftExtensions.extension(Microsoft.Extensions.AI.Chat
 public static Typeshift.TypeshiftExtensions.extension(Microsoft.Extensions.AI.ChatResponse)
 public bool Typeshift.TypeshiftExtensions.extension(Microsoft.Extensions.AI.ChatResponse).ConversationIncomplete { get; }
 public System.Collections.Generic.IReadOnlyList<Typeshift.Decision> Typeshift.TypeshiftExtensions.extension(Microsoft.Extensions.AI.ChatResponse).Decisions { get; }
-public TId Typeshift.TypeshiftExtensions.extension(Microsoft.Extensions.AI.ChatResponse).GetConversationId<TId>() where TId : System.IParsable<TId>
+public TId Typeshift.TypeshiftExtensions.extension(Microsoft.Extensions.AI.ChatResponse).GetConversationId<TId>() where TId : notnull, System.IParsable<TId>
 public static Typeshift.TypeshiftExtensions.extension(Microsoft.Extensions.AI.ChatResponseUpdate)
 public bool Typeshift.TypeshiftExtensions.extension(Microsoft.Extensions.AI.ChatResponseUpdate).ConversationIncomplete { get; }
 public System.Collections.Generic.IReadOnlyList<Typeshift.Decision> Typeshift.TypeshiftExtensions.extension(Microsoft.Extensions.AI.ChatResponseUpdate).Decisions { get; }

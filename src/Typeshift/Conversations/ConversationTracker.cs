@@ -164,7 +164,7 @@ public sealed class ConversationTracker<TId> where TId : notnull
 /// A run of a conversation in this container.
 /// </summary>
 /// <typeparam name="TId">The id type.</typeparam>
-public sealed record LiveRun<TId>
+public sealed record LiveRun<TId> where TId : notnull
 {
     /// <summary>
     /// The conversation's id.

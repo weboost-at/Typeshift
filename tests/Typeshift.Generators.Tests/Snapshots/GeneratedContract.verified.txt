@@ -1,4 +1,4 @@
-StampVersion = 23
+StampVersion = 24
 protected virtual Typeshift.Generated.AgentDeclaration Typeshift.Agent.Declaration { get; }
 public abstract class Typeshift.Generated.AgentDeclaration
 public abstract string? Typeshift.Generated.AgentDeclaration.Description { get; }
@@ -92,7 +92,7 @@ public static void Typeshift.Generated.StorableJson.CheckItems(System.Text.Json.
 public static void Typeshift.Generated.StorableJson.CheckMembers(System.Text.Json.JsonElement element, string path, System.ReadOnlySpan<string> members)
 public static void Typeshift.Generated.StorableJson.CheckReasoning(System.Text.Json.JsonElement element, string path)
 public static void Typeshift.Generated.StorableJson.CheckValues(System.Text.Json.JsonElement element, string path, Typeshift.Generated.StorableCheck check)
-public static void Typeshift.Generated.StorableJson.EnsureProvider<TProviderId>(System.Text.Json.JsonElement element, string name, Typeshift.Generated.StorableReader<TProviderId> read, string kind)
+public static void Typeshift.Generated.StorableJson.EnsureProvider<TProviderId>(System.Text.Json.JsonElement element, string name, Typeshift.Generated.StorableReader<TProviderId> read, string kind) where TProviderId : notnull
 public static void Typeshift.Generated.StorableJson.EnsureSchemaVersion(System.Text.Json.JsonElement element, int version, string kind)
 public static System.Text.Json.JsonElement Typeshift.Generated.StorableJson.Member(System.Text.Json.JsonElement element, string name)
 public static string Typeshift.Generated.StorableJson.Path(string path, string name)

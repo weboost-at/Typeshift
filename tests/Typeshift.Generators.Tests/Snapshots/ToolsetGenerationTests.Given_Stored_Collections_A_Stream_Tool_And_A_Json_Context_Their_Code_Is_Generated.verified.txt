@@ -546,7 +546,7 @@ partial class CrawlToolset
 #nullable enable
 #pragma warning disable CS0612, CS0618
 
-[assembly: global::Typeshift.Generated.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule), 23)]
+[assembly: global::Typeshift.Generated.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule), 24)]
 
 namespace Typeshift.Generated;
 
