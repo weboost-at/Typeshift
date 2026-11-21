@@ -3,8 +3,10 @@ using System.Collections.Immutable;
 using System.Linq;
 using Typeshift.Generators.Emitting;
 using Typeshift.Generators.Models;
+using Typeshift.Generators.Naming;
 using Typeshift.Generators.Parsing;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Typeshift.Generators;
@@ -13,6 +15,9 @@ namespace Typeshift.Generators;
 [Generator(LanguageNames.CSharp)]
 public sealed class TypeshiftGenerator : IIncrementalGenerator
 {
+    // The language version of the generated code, which the analyzer reports a project below (TSH031)
+    internal const LanguageVersion MinimumLanguageVersion = LanguageVersion.CSharp14;
+
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         var toolsets = context.SyntaxProvider
@@ -31,7 +36,8 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
             .CreateSyntaxProvider(Discovery.IsJsonContext, Discovery.ClassifyJsonContext)
             .Where(static name => name is not null)
             .Select(static (name, _) => name!)
-            .Collect();
+            .Collect()
+            .WithTrackingName(TrackingNames.JsonContexts);
 
         var annotations = context.SyntaxProvider
             .ForAttributeWithMetadataName(
@@ -40,13 +46,15 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
                 Discovery.ClassifySchemaAnnotations)
             .Where(static name => name is not null)
             .Select(static (name, _) => name!)
-            .Collect();
+            .Collect()
+            .WithTrackingName(TrackingNames.SchemaAnnotations);
 
         var calls = context.SyntaxProvider
             .CreateSyntaxProvider(InterceptParser.IsCandidate, InterceptParser.Parse)
             .Where(static call => call is not null)
             .Select(static (call, _) => call!)
-            .Collect();
+            .Collect()
+            .WithTrackingName(TrackingNames.Calls);
 
         // Every edit makes a new compilation; the stamps it yields compare equal, so what depends on them is cached
         var references = context.CompilationProvider
@@ -57,7 +65,8 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
             .Select(static (toolset, _) => Catalog.Summarize(toolset))
             .Collect()
             .Combine(references)
-            .Select(static (pair, _) => pair.Left.Concat(pair.Right.Toolsets).ToEquatableArray());
+            .Select(static (pair, _) => pair.Left.Concat(pair.Right.Toolsets).ToEquatableArray())
+            .WithTrackingName(TrackingNames.Catalog);
 
         var outputs = agents
             .Combine(catalog)
@@ -65,7 +74,8 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
             .WithTrackingName(TrackingNames.AgentOutputs);
 
         var assemblyName = context.CompilationProvider
-            .Select(static (compilation, _) => compilation.AssemblyName ?? "");
+            .Select(static (compilation, _) => compilation.AssemblyName ?? "")
+            .WithTrackingName(TrackingNames.AssemblyName);
 
         var module = toolsets
             .Collect()
@@ -81,30 +91,63 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
                 pair.Right))
             .WithTrackingName(TrackingNames.Module);
 
-        context.RegisterSourceOutput(toolsets, static (output, toolset) =>
-            output.AddSource(Names.HintName(toolset.Type.FullName), ToolsetEmitter.Emit(toolset)));
+        // The names stay equal across edits, so the outputs that take them stay cached
+        var caseClashes = toolsets
+            .Select(static (toolset, _) => toolset.Type.FullName)
+            .Collect()
+            .Combine(agents.Select(static (agent, _) => agent.Type.FullName).Collect())
+            .Select(static (names, _) => Names.GetCaseClashes(names.Left.Concat(names.Right)))
+            .WithTrackingName(TrackingNames.CaseClashes);
 
-        context.RegisterSourceOutput(outputs, static (output, agent) =>
+        // D12: the generated code is C# 14, extension blocks among it. A project that pins an earlier version gets
+        // none of it and one diagnostic of the analyzer (TSH031), where it would get an error per generated member
+        var supported = context.ParseOptionsProvider
+            .Select(static (options, _) => options is CSharpParseOptions { LanguageVersion: >= MinimumLanguageVersion })
+            .WithTrackingName(TrackingNames.LanguageVersion);
+
+        context.RegisterSourceOutput(toolsets.Combine(caseClashes).Combine(supported), static (output, pair) =>
         {
-            output.AddSource(Names.HintName(agent.Agent.Type.FullName), AgentEmitter.Emit(agent));
+            if (!pair.Right) return;
 
-            if (AgentEmitter.EmitHost(agent.Agent) is { } host)
-                output.AddSource(Names.HintName($"{agent.Agent.Type.FullName}+Host"), host);
+            var (toolset, clashes) = pair.Left;
+            output.AddSource(Names.HintName(toolset.Type.FullName, clashes), ToolsetEmitter.Emit(toolset));
+
+            if (ToolsetEmitter.EmitToolList(toolset) is { } list)
+                output.AddSource(Names.HintName(toolset.Type.FullName, clashes, "+Tools"), list);
         });
 
-        context.RegisterSourceOutput(module, static (output, model) =>
+        context.RegisterSourceOutput(outputs.Combine(caseClashes).Combine(supported), static (output, pair) =>
         {
-            if (model is null) return;
+            if (!pair.Right) return;
+
+            var (agentOutput, clashes) = pair.Left;
+            var agent = agentOutput.Agent;
+            output.AddSource(Names.HintName(agent.Type.FullName, clashes), AgentEmitter.Emit(agentOutput));
+
+            if (AgentEmitter.EmitHost(agent) is { } host)
+                output.AddSource(Names.HintName(agent.Type.FullName, clashes, "+Host"), host);
+        });
+
+        context.RegisterSourceOutput(module.Combine(supported), static (output, pair) =>
+        {
+            if (pair.Left is not { } model || !pair.Right) return;
 
             output.AddSource(Names.HintName($"{Names.GeneratedNamespace}.{model.Name}"), ModuleEmitter.Emit(model));
         });
 
-        context.RegisterSourceOutput(
-            calls.Combine(module).Combine(references),
-            static (output, pair) => EmitInterceptor(output, pair.Left.Left, pair.Left.Right, pair.Right));
+        var intercepts = calls.Combine(module).Combine(references).Combine(supported);
+
+        context.RegisterSourceOutput(intercepts, static (output, pair) =>
+        {
+            if (!pair.Right) return;
+
+            var ((intercepted, model), referenced) = pair.Left;
+            EmitInterceptor(output, intercepted, model, referenced);
+        });
     }
 
-    // D55: an assembly that only documents types still gets a module, so the tools of its referrers describe them
+    // D45, D55: an assembly that only holds a JSON context or only documents types still gets a module, so the
+    // tools of its referrers serialize with the one and describe the other
     private static ModuleModel? CreateModule(
         ImmutableArray<ToolsetModel> toolsets,
         ImmutableArray<AgentOutput> outputs,
@@ -112,11 +155,18 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
         ImmutableArray<string> annotations,
         string assemblyName)
     {
-        if (toolsets.IsEmpty && outputs.IsEmpty && annotations.IsEmpty) return null;
+        if (toolsets.IsEmpty && outputs.IsEmpty && contexts.IsEmpty && annotations.IsEmpty) return null;
+
+        // The library builds with the generator and registers its own JSON context itself
+        if (assemblyName == KnownTypes.LibraryAssembly) return null;
 
         var reachableToolsets = toolsets
             .Where(toolset => toolset.IsReachable)
-            .Select(toolset => toolset.Type.FullName)
+            .Select(toolset => new ModuleToolset(
+                toolset.Type.FullName,
+                toolset.Tools
+                    .Select(tool => new ModuleTool(tool.Name, tool.Description, tool.IsReadOnly, tool.RequiresApproval))
+                    .ToEquatableArray()))
             .ToEquatableArray();
 
         var reachableAgents = outputs
@@ -125,12 +175,19 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
             .ToEquatableArray();
 
         return new ModuleModel(
-            Name: ModuleEmitter.GetName(assemblyName),
+            Name: Names.ModuleName(assemblyName),
             AssemblyName: assemblyName,
             Toolsets: reachableToolsets,
             Agents: reachableAgents,
             JsonContexts: contexts.Distinct().ToEquatableArray(),
-            SchemaAnnotations: annotations.ToEquatableArray());
+            SchemaAnnotations: annotations.ToEquatableArray(),
+            ExperimentalIds: toolsets
+                .Where(toolset => toolset.IsReachable)
+                .SelectMany(toolset => toolset.ExperimentalIds)
+                .Concat(outputs
+                    .Where(output => output.Agent.IsReachable)
+                    .SelectMany(output => output.Agent.ExperimentalIds))
+                .ToEquatableArray());
     }
 
     private static void EmitInterceptor(

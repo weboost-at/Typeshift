@@ -1,9 +1,10 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using Typeshift.Generators.Diagnostics;
-using Typeshift.Generators.Emitting;
 using Typeshift.Generators.Models;
+using Typeshift.Generators.Naming;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
@@ -22,7 +23,7 @@ internal static class AgentParser
         bool documented,
         Reporter reporter,
         CancellationToken ct) =>
-        Parse(agent, constructors, documented, reporter, ct, out _, out _);
+        Parse(agent, constructors, documented, reporter, ct, out _, out _, out _);
 
     // The analyzer also needs the agents an agent uses, to check them against each other (D33, D34), and each of its
     // own tools' declaration, to report names that clash across the host
@@ -33,22 +34,24 @@ internal static class AgentParser
         Reporter reporter,
         CancellationToken ct,
         out IReadOnlyList<AgentUseDeclaration> agents,
-        out IReadOnlyList<(ToolModel Tool, IInvocationOperation AddTool)> tools)
+        out IReadOnlyList<(ToolModel Tool, IInvocationOperation AddTool)> tools,
+        out AgentAsks asks)
     {
-        var notPartial = agent.GetNotPartial(ct);
+        var (notPartial, unreachable) = ToolsetParser.ReadDeclaration(agent, reporter, ct);
 
-        if (notPartial is not null)
-            reporter.Report(Descriptors.NotPartial, notPartial.Locations.FirstOrDefault(), notPartial.Name);
-
-        var unreachable = agent.GetUnreachableReason();
-
-        if (unreachable is not null)
-            reporter.Report(Descriptors.Unreachable, agent.Locations.FirstOrDefault(), agent.Name, unreachable);
-
-        var clash = Members.SelectMany(name => agent.GetMembers(name)).FirstOrDefault(IsUsers);
+        // A class cannot hold a member of its own name, so the agent's name is none of the generated ones either
+        var clash = Members.Contains(agent.Name)
+            ? agent
+            : Members.SelectMany(name => agent.GetMembers(name)).FirstOrDefault(Names.IsUsers);
 
         if (clash is not null)
-            reporter.Report(Descriptors.GeneratedNameClash, clash.Locations.FirstOrDefault(), clash.Name, agent.Name);
+        {
+            reporter.Report(
+                Descriptors.GeneratedNameClash,
+                clash.Locations.FirstOrDefault(),
+                clash is INamedTypeSymbol ? $"The class '{clash.Name}'" : $"The member '{clash.Name}'",
+                agent.Name);
+        }
 
         var declarations = new Declarations();
 
@@ -71,30 +74,31 @@ internal static class AgentParser
         }
 
         agents = declarations.Agents;
+        asks = new AgentAsks(declarations.ServersAsk, declarations.Plans, declarations.ModePick);
         tools = ToolsetParser.ParseTools(agent, constructors, documented, reporter, ct);
 
-        // D14: as a tool's, an agent's summary describes it unless WithDescription says otherwise; without generated
-        // docs it is lost
-        var summary = XmlDocs.Read(agent, ct).Summary;
-        var description = declarations.Description ?? (string.IsNullOrEmpty(summary) ? null : summary);
-
-        if (description is null && !documented && XmlDocs.ReadUnparsed(agent, ct).Length > 0)
-        {
-            reporter.Report(
-                Descriptors.DocumentationOff,
-                agent.Locations.FirstOrDefault(),
-                $"The agent '{agent.Name}'");
-        }
+        // D14: as a tool's, an agent's summary describes it unless WithDescription says otherwise, with generated docs
+        // or without (D68). WithDescription("") describes as little as no call
+        var stated = string.IsNullOrWhiteSpace(declarations.Description) ? null : declarations.Description;
+        var description = stated ?? XmlDocs.Read(agent, ct).Summary;
 
         var providerId = ReadProviderId(agent, constructors, declarations, reporter);
+        var toolNamesClash = ToolsetParser.ClashesWithToolNames(agent, tools.Count, reporter);
 
-        if (notPartial is not null || clash is not null) return null;
+        // A partial in another file would declare another class than a file-local one
+        if (notPartial is not null || clash is not null || toolNamesClash || agent.IsFileLocalOrNestedInOne())
+            return null;
 
-        // The user's own Configure{Tool}() wins over the one the generator would write
+        // The user's own Configure{Tool}() wins over the one the generator would write, and so does the agent's own
+        // name, which no member of it can have
         var configures = agent.GetMembers()
-            .Where(member => member.Name.StartsWith("Configure") && IsUsers(member))
+            .Where(Names.IsUsers)
             .Select(member => member.Name)
+            .Append(agent.Name)
+            .Where(name => name.StartsWith("Configure", StringComparison.Ordinal))
             .Distinct();
+
+        ISymbol[] named = [agent, .. declarations.Used, .. declarations.Models.Select(model => model.Type)];
 
         return new AgentModel(
             TypeModels.From(agent),
@@ -108,17 +112,21 @@ internal static class AgentParser
             declarations.RunOptions.ToEquatableArray(),
             declarations.Toolsets.ToEquatableArray(),
             tools.Select(declaration => declaration.Tool).ToEquatableArray(),
-            configures.ToEquatableArray());
+            declarations.AsksUser,
+            configures.ToEquatableArray(),
+            named.GetExperimentalIds());
     }
 
-    // AddTool declares a tool, which ToolsetParser reads in an agent as in a toolset
+    // AddTool declares a tool, which ToolsetParser reads in an agent as in a toolset. The base constructor that
+    // `: base()` calls is a method of Agent too, and declares nothing
     public static bool IsDeclaration(IInvocationOperation invocation) =>
-        invocation.TargetMethod is { IsStatic: false, Name: not ("GetInstructions" or "AddTool") } method
+        invocation.TargetMethod is
+        {
+            MethodKind: MethodKind.Ordinary,
+            IsStatic: false,
+            Name: not ("GetInstructions" or "AddTool")
+        } method
         && method.ContainingType.Is(KnownTypes.Agent);
-
-    // The analyzer sees the generated members too; only the user's own can clash
-    private static bool IsUsers(ISymbol member) =>
-        member.DeclaringSyntaxReferences.Any(reference => !Names.IsGenerated(reference.SyntaxTree));
 
     private static void Read(
         INamedTypeSymbol agent,
@@ -129,24 +137,54 @@ internal static class AgentParser
         switch (call.TargetMethod.Name)
         {
             case "WithName":
-                declarations.Name = ReadConstant(call, "agent name", reporter) ?? declarations.Name;
+                declarations.Name = ConstructorChains.ReadConstant(call, "agent name", reporter) ?? declarations.Name;
                 break;
 
             case "WithDescription":
-                declarations.Description = ReadConstant(call, "agent description", reporter)
+                declarations.Description = ConstructorChains.ReadConstant(call, "agent description", reporter)
                     ?? declarations.Description;
                 break;
 
-            // D39, D40
+            // D39, D40: what every stored document of the agent names, so both are read as constants. A value no
+            // store could keep is reported, and the agent keeps its default, so the generated code stays valid
             case "WithStorageKind":
-                declarations.Kind = ReadConstant(call, "storage kind", reporter) ?? declarations.Kind;
+                if (ConstructorChains.ReadConstant(call, "storage kind", reporter) is not { } kind) break;
+
+                if (string.IsNullOrWhiteSpace(kind))
+                {
+                    reporter.Report(
+                        Descriptors.UnusableValue,
+                        call.Arguments[0].Syntax,
+                        "storage kind",
+                        "not be empty",
+                        "a store keeps the agent's settings under it");
+                }
+                else
+                {
+                    declarations.Kind = kind;
+                }
+
                 break;
 
             case "WithSchemaVersion":
-                if (call.Arguments[0].Value.ConstantValue is { HasValue: true, Value: int version })
-                    declarations.SchemaVersion = version;
-                else
+                if (call.Arguments[0].Value.ConstantValue is not { HasValue: true, Value: int version })
+                {
                     reporter.Report(Descriptors.NotConstant, call.Arguments[0].Syntax, "schema version");
+                }
+                else if (version < 1)
+                {
+                    reporter.Report(
+                        Descriptors.UnusableValue,
+                        call.Arguments[0].Syntax,
+                        "schema version",
+                        "be 1 or more",
+                        "a stored document that names none counts as version 1, and would read as newer than this "
+                        + "code");
+                }
+                else
+                {
+                    declarations.SchemaVersion = version;
+                }
 
                 break;
 
@@ -157,46 +195,89 @@ internal static class AgentParser
 
             case "WithRunOptions":
                 ReadPicks(call, OptionMembers.Run, declarations.RunOptions, declarations.ProviderPicks, reporter);
+                ReadMode(call, declarations);
+                break;
+
+            // D35: a server whose tools require approval makes the agent ask your app
+            case "UseMcpServer":
+                declarations.ServersAsk |= ConstructorChains.GetChainedCalls(call)
+                    .Any(next => next.TargetMethod.Name == "RequiresApproval");
+
                 break;
 
             case "UseToolset":
-                if (ReadUse(agent, call, declarations.Toolsets, reporter) is { } use) declarations.Toolsets.Add(use);
+                if (ReadUse(agent, call, declarations.Toolsets, reporter) is not { } use) break;
+
+                declarations.Toolsets.Add(use);
+                declarations.Used.Add(call.TargetMethod.TypeArguments[0]);
                 break;
 
-            // D33, D34
+            // D33, D34: another agent, called as a tool or handed the conversation
             case "UseAgent" or "UseHandoff":
-                var target = (INamedTypeSymbol)call.TargetMethod.TypeArguments[0];
+                if (call.TargetMethod.TypeArguments[0] is not INamedTypeSymbol { TypeKind: not TypeKind.Error } target)
+                    break;
+
                 var subAgent = call.TargetMethod.Name == "UseAgent";
                 var syntax = ConstructorChains.GetCalledName(call);
 
                 if (declarations.Agents.Any(other => other.SubAgent == subAgent && Same(other.Target, target)))
-                    reporter.Report(Descriptors.OfferedTwice, syntax, $"'{target.Name}'");
+                {
+                    reporter.Report(
+                        Descriptors.OfferedTwice,
+                        syntax,
+                        $"'{target.Name}'",
+                        "twice",
+                        subAgent ? "declare each sub-agent once" : "declare each handoff target once");
+                }
                 else
                     declarations.Agents.Add(new AgentUseDeclaration(target, subAgent, syntax));
 
                 break;
+
+            // D82: the agent records the flag itself at run time, so the generator writes no code, only the stamp
+            case "UseQuestions":
+                if (declarations.AsksUser)
+                {
+                    reporter.Report(
+                        Descriptors.OfferedTwice,
+                        ConstructorChains.GetCalledName(call),
+                        "'ask_user'",
+                        "twice",
+                        "call UseQuestions() once");
+                }
+
+                declarations.AsksUser = true;
+                break;
         }
     }
 
-    private static string? ReadConstant(IInvocationOperation call, string what, Reporter reporter)
-    {
-        if (ConstructorChains.GetConstantString(call) is { } text) return text;
-
-        reporter.Report(Descriptors.NotConstant, call.Arguments[0].Syntax, what);
-        return null;
-    }
-
-    // D77: the static type of WithModel's provider is the agent's provider id type
+    // D77: the static type of WithModel's provider is the agent's provider id type; WithModel(model) names none
     private static void ReadModel(IInvocationOperation call, Declarations declarations)
     {
         var models = ConstructorChains.GetChainedCalls(call).Where(next => next.TargetMethod.Name == "WithModel");
 
         foreach (var model in models)
         {
-            if (model.TargetMethod.TypeArguments[0] is not { TypeKind: not TypeKind.Error } type) continue;
+            var provider = model.TargetMethod.TypeArguments.FirstOrDefault();
+            if (provider is not { TypeKind: not TypeKind.Error } type) continue;
 
             var argument = model.Arguments.First(passed => passed.Parameter?.Ordinal == 0).Syntax;
             declarations.Models.Add((type, argument));
+        }
+    }
+
+    // D52: an agent plans when its code starts runs in plan mode, or when settings may put them there
+    private static void ReadMode(IInvocationOperation call, Declarations declarations)
+    {
+        foreach (var next in ConstructorChains.GetChainedCalls(call))
+        {
+            if (next.TargetMethod.Name == "WithMode"
+                && ConstructorChains.Unwrap(next.Arguments[0].Value) is IFieldReferenceOperation { Field.Name: "Plan" })
+                declarations.Plans = true;
+
+            if (next.TargetMethod.Name == "Configurable"
+                && ConstructorChains.GetPickedProperty(next) is { Name: "Mode" })
+                declarations.ModePick = next.Arguments[0].Syntax;
         }
     }
 
@@ -222,7 +303,15 @@ internal static class AgentParser
 
             if (option is null)
             {
-                reporter.Report(Descriptors.NotStorable, pick.Arguments[0].Syntax, property.Name);
+                var stored = string.Join(", ", options.Select(member => member.Option));
+
+                reporter.Report(
+                    Descriptors.NotStorable,
+                    pick.Arguments[0].Syntax,
+                    property.Name,
+                    $"of these options, settings store only {stored}",
+                    "remove the pick");
+
                 continue;
             }
 
@@ -240,30 +329,47 @@ internal static class AgentParser
         Reporter reporter)
     {
         var toolset = call.TargetMethod.TypeArguments[0];
+
+        // A type that does not resolve has no assembly to look a module up in; the compiler reports it
+        if (toolset.TypeKind == TypeKind.Error) return null;
+
         var type = toolset.ToTypeOf();
         var name = ConstructorChains.GetCalledName(call);
 
-        if (!IsGenerated(toolset))
+        // The generator writes nothing for an abstract class, Toolset itself included, so the use would offer nothing
+        if (toolset.IsAbstract)
         {
-            reporter.Report(Descriptors.NotGenerated, name, toolset.Name);
+            reporter.Report(
+                Descriptors.Unreachable,
+                name,
+                toolset.Name,
+                "it is abstract, so no tools are generated for it; use a toolset that is not abstract");
+
+            return null;
+        }
+
+        if (GetUnusableReason(agent, toolset) is var (reason, fix))
+        {
+            reporter.Report(Descriptors.NotGenerated, name, toolset.Name, reason, fix);
             return null;
         }
 
         if (uses.Any(use => use.Toolset == type))
         {
-            reporter.Report(Descriptors.OfferedTwice, name, $"'{toolset.Name}'");
+            reporter.Report(Descriptors.OfferedTwice, name, $"'{toolset.Name}'", "twice", "use each toolset once");
             return null;
         }
 
         var picks = new List<string>();
         var excludes = false;
+        var marks = new List<(string Method, string Picked, SyntaxNode Argument)>();
 
         // D4: the tool list's properties are the generator's own output, so the picks are read from syntax
         foreach (var pick in ConstructorChains.GetChain(call).Select(link => (InvocationExpressionSyntax)link.Syntax))
         {
             var argument = pick.ArgumentList.Arguments.FirstOrDefault()?.Expression;
             var method = ((MemberAccessExpressionSyntax)pick.Expression).Name;
-            excludes = method.Identifier.ValueText == "Exclude";
+            var called = method.Identifier.ValueText;
 
             // A pick still being typed has no argument yet
             if (argument is null || GetPickedName(argument) is not { } picked)
@@ -272,13 +378,44 @@ internal static class AgentParser
                 return null;
             }
 
+            // D84: a tool the use makes ask your app, or lets settings switch off, among those it offers
+            if (called is "RequiresApproval" or "Configurable")
+            {
+                marks.Add((called, picked, argument));
+                continue;
+            }
+
+            excludes = called == "Exclude";
+
             if (picks.Contains(picked))
             {
-                reporter.Report(Descriptors.OfferedTwice, argument, $"'{picked}'");
+                reporter.Report(Descriptors.OfferedTwice, argument, $"'{picked}'", "twice", "pick each tool once");
                 continue;
             }
 
             picks.Add(picked);
+        }
+
+        var approvals = new List<string>();
+        var switches = new List<string>();
+
+        foreach (var (method, picked, argument) in marks)
+        {
+            if (!Offers(excludes, picks, picked))
+            {
+                reporter.Report(
+                    Descriptors.MarkOnToolNotOffered,
+                    argument,
+                    method,
+                    picked,
+                    toolset.Name,
+                    excludes ? "excludes it" : "includes others only");
+
+                continue;
+            }
+
+            var marked = method == "RequiresApproval" ? approvals : switches;
+            if (!marked.Contains(picked)) marked.Add(picked);
         }
 
         // D6: the agent's Settings record names the overrides of what it offers; the stamps on the toolset say which
@@ -288,7 +425,12 @@ internal static class AgentParser
         if (hidden && ReferenceReader.GetOverridden(toolset).Any(property => Offers(excludes, picks, property)))
             reporter.Report(Descriptors.SettingsLessAccessible, name, toolset.Name, agent.Name);
 
-        return new ToolsetUseModel(type, excludes, picks.ToEquatableArray());
+        return new ToolsetUseModel(
+            type,
+            excludes,
+            picks.ToEquatableArray(),
+            approvals.ToEquatableArray(),
+            switches.ToEquatableArray());
     }
 
     // D77: the agent's provider id type, from the WithModel that runs last, string without one. Settings that store
@@ -362,11 +504,9 @@ internal static class AgentParser
         agent.InstanceConstructors.FirstOrDefault(constructor => constructor.DeclaringSyntaxReferences.Any(reference =>
             reference.SyntaxTree == syntax.SyntaxTree && reference.Span.Contains(syntax.Span)));
 
-    // The generated Settings, in a file of their own, can name it: visible in the assembly and not file-local
+    // The generated Settings, in a file of their own, can name it
     private static bool IsNameable(ITypeSymbol type) =>
-        type is not INamedTypeSymbol named
-        || (!named.IsFileLocal && named.IsVisibleInAssembly() && (named.ContainingType is null
-            || IsNameable(named.ContainingType)));
+        type is not INamedTypeSymbol named || named.IsVisibleInAssembly();
 
     // A string, a number, a Guid or an enum; a nullable value type would type the code's provider and the stored
     // one apart
@@ -394,10 +534,28 @@ internal static class AgentParser
             ? property
             : null;
 
-    // D7: a toolset of this compilation, or of an assembly that carries a module of this generator's stamps
-    private static bool IsGenerated(ITypeSymbol toolset) =>
-        toolset.Locations.Any(location => location.IsInSource)
-        || ReferenceReader.GetModule(toolset.ContainingAssembly) is not null;
+    // D7: null for a toolset of this compilation, or of an assembly that carries a module of this generator's stamps
+    // and that generated code can name
+    private static (string Reason, string Fix)? GetUnusableReason(INamedTypeSymbol agent, ITypeSymbol toolset)
+    {
+        if (toolset.Locations.Any(location => location.IsInSource)) return null;
+
+        var aliased = agent.ContainingAssembly is ISourceAssemblySymbol { Compilation: var compilation }
+            && ReferenceReader.IsUnderAliasOnly(compilation, toolset.ContainingAssembly);
+
+        if (aliased)
+        {
+            return (
+                "is in a reference under an extern alias, which generated code cannot name",
+                "reference its assembly without an alias");
+        }
+
+        return ReferenceReader.GetModule(toolset.ContainingAssembly) is null
+            ? (
+                "was built with another Typeshift version or without the Typeshift package",
+                "reference the Typeshift package in its project, at this version, and build it again")
+            : null;
+    }
 
     // What the declarations of one constructor say, before they are checked
     private sealed class Declarations
@@ -421,7 +579,18 @@ internal static class AgentParser
 
         public List<ToolsetUseModel> Toolsets { get; } = [];
 
+        // The toolsets the uses name, which the generated code names too
+        public List<ITypeSymbol> Used { get; } = [];
+
         public List<AgentUseDeclaration> Agents { get; } = [];
+
+        public bool AsksUser { get; set; }
+
+        public bool ServersAsk { get; set; }
+
+        public bool Plans { get; set; }
+
+        public SyntaxNode? ModePick { get; set; }
     }
 
     private static bool Same(ISymbol one, ISymbol other) => SymbolEqualityComparer.Default.Equals(one, other);
@@ -429,3 +598,7 @@ internal static class AgentParser
 
 // An agent another one offers as a sub-agent, or hands off to
 internal sealed record AgentUseDeclaration(INamedTypeSymbol Target, bool SubAgent, SyntaxNode Syntax);
+
+// What can make an agent ask your app beside its tools and UseQuestions(), for the analyzer alone: an MCP server
+// whose tools require approval, plan mode set in code, and the pick that makes its mode configurable
+internal sealed record AgentAsks(bool ServersAsk, bool Plans, SyntaxNode? ModePick);

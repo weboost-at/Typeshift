@@ -92,6 +92,36 @@ public class ToolSchemaTests : UnitTestBase
     }
 
     [Fact]
+    public void Given_A_Parameter_Type_Json_Cannot_Hold_The_Error_Names_The_Tool_And_The_Parameter()
+    {
+        // Arrange
+        var report = BindingToolset.CreateReport(Json);
+
+        // Act
+        var schema = () => report.JsonSchema;
+
+        // Assert
+        schema.Should()
+            .Throw<NotSupportedException>()
+            .WithMessage("The parameter 'lookup' of the tool 'report'*'exception.targetSite'*[JsonIgnore]*");
+    }
+
+    [Fact]
+    public void Given_A_Parameter_Json_Cannot_Hold_Itself_The_Error_Says_To_Use_Another_Type()
+    {
+        // Arrange
+        var wait = BindingToolset.CreateWait(Json);
+
+        // Act
+        var schema = () => wait.JsonSchema;
+
+        // Assert
+        schema.Should()
+            .Throw<NotSupportedException>()
+            .WithMessage("The parameter 'handle' of the tool 'wait'*IntPtr*use another type*");
+    }
+
+    [Fact]
     public void Given_Param_Docs_They_Become_The_Parameter_Descriptions()
     {
         // Act
@@ -99,6 +129,46 @@ public class ToolSchemaTests : UnitTestBase
 
         // Assert
         search.JsonSchema.Assert.ParameterDescription("query", "What to search for.");
+    }
+
+    [Fact]
+    public void Given_A_Parameter_With_A_Description_Attribute_And_No_Param_Docs_The_Schema_Describes_It()
+    {
+        // Act
+        var lookUp = DescribedToolset.CreateLookUpOrder(Json);
+
+        // Assert
+        lookUp.JsonSchema.Assert.ParameterDescription("number", "The order number, like A-123.");
+    }
+
+    [Fact]
+    public void Given_A_Parameter_With_Param_Docs_And_A_Description_Attribute_The_Docs_Describe_It()
+    {
+        // Act
+        var cancel = DescribedToolset.CreateCancelOrder(Json);
+
+        // Assert
+        cancel.JsonSchema.Assert.ParameterDescription("number", "The number of the order to cancel.");
+    }
+
+    [Fact]
+    public void Given_A_Method_With_A_Description_Attribute_And_No_Summary_The_Attribute_Describes_The_Tool()
+    {
+        // Act
+        var lookUp = DescribedToolset.CreateLookUpOrder(Json);
+
+        // Assert
+        lookUp.Description.Should().Be("Looks an order up by its number.");
+    }
+
+    [Fact]
+    public void Given_A_Method_With_A_Summary_And_A_Description_Attribute_The_Summary_Describes_The_Tool()
+    {
+        // Act
+        var cancel = DescribedToolset.CreateCancelOrder(Json);
+
+        // Assert
+        cancel.Description.Should().Be("Cancels an order.");
     }
 
     [Fact]

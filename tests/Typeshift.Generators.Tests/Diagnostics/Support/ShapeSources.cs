@@ -1,0 +1,2757 @@
+namespace Typeshift.Generators.Tests.Diagnostics.Support;
+
+// One shape each that the parsers accept without a diagnostic: the code generated for it compiles. A shape the
+// parser newly accepts gets a field here, and one it rejects gets a field in DiagnosticSources
+public static class ShapeSources
+{
+    public const string EnumToolTypeInAContextOfStringEnums =
+        """
+        using System.Text.Json.Serialization;
+        using Typeshift;
+
+        internal enum Mode
+        {
+            Fast,
+            Thorough
+        }
+
+        internal partial class PickToolset : Toolset
+        {
+            public PickToolset()
+            {
+                AddTool(Pick).WithDescription("Picks how to search.");
+            }
+
+            public static string Pick(Mode mode) => mode.ToString();
+        }
+
+        // The System.Text.Json generator does not run here; what it would write is stubbed
+        [JsonSourceGenerationOptions(UseStringEnumConverter = true)]
+        [JsonSerializable(typeof(Mode))]
+        internal partial class PickJson() : JsonSerializerContext(null)
+        {
+            public static PickJson Default { get; } = new();
+
+            protected override System.Text.Json.JsonSerializerOptions? GeneratedSerializerOptions => null;
+
+            public override System.Text.Json.Serialization.Metadata.JsonTypeInfo? GetTypeInfo(System.Type type) => null;
+        }
+        """;
+
+    public const string EnumToolTypeWhoseContextNamesItsConverter =
+        """
+        using System.Text.Json.Serialization;
+        using Typeshift;
+
+        internal enum Mode
+        {
+            Fast,
+            Thorough
+        }
+
+        internal partial class PickToolset : Toolset
+        {
+            public PickToolset()
+            {
+                AddTool(Pick).WithDescription("Picks how to search.");
+            }
+
+            public static string Pick(Mode mode) => mode.ToString();
+        }
+
+        // The System.Text.Json generator does not run here; what it would write is stubbed
+        [JsonSourceGenerationOptions(Converters = [typeof(JsonStringEnumConverter<Mode>)])]
+        [JsonSerializable(typeof(Mode))]
+        internal partial class PickJson() : JsonSerializerContext(null)
+        {
+            public static PickJson Default { get; } = new();
+
+            protected override System.Text.Json.JsonSerializerOptions? GeneratedSerializerOptions => null;
+
+            public override System.Text.Json.Serialization.Metadata.JsonTypeInfo? GetTypeInfo(System.Type type) => null;
+        }
+        """;
+
+    public const string EnumToolTypeWithAConverterOfItsOwn =
+        """
+        using System.Text.Json.Serialization;
+        using Typeshift;
+
+        [JsonConverter(typeof(JsonStringEnumConverter<Mode>))]
+        internal enum Mode
+        {
+            Fast,
+            Thorough
+        }
+
+        internal partial class PickToolset : Toolset
+        {
+            public PickToolset()
+            {
+                AddTool(Pick).WithDescription("Picks how to search.");
+            }
+
+            public static string Pick(Mode mode) => mode.ToString();
+        }
+
+        // The System.Text.Json generator does not run here; what it would write is stubbed
+        [JsonSerializable(typeof(Mode))]
+        internal partial class PickJson() : JsonSerializerContext(null)
+        {
+            public static PickJson Default { get; } = new();
+
+            protected override System.Text.Json.JsonSerializerOptions? GeneratedSerializerOptions => null;
+
+            public override System.Text.Json.Serialization.Metadata.JsonTypeInfo? GetTypeInfo(System.Type type) => null;
+        }
+        """;
+
+    // Interfaces and abstract types JSON reads all the same, and a record argument that is no settings: the model
+    // fills each of them, and nothing warns
+    public const string ParametersJsonCanCreate =
+        """
+        using System.Collections.Generic;
+        using System.Text.Json.Nodes;
+        using System.Text.Json.Serialization;
+        using Typeshift;
+
+        namespace Demo;
+
+        [JsonPolymorphic]
+        [JsonDerivedType(typeof(Circle), "circle")]
+        internal abstract record Shape;
+
+        internal record Circle(double Radius) : Shape;
+
+        internal record Paging
+        {
+            public int Page { get; init; }
+        }
+
+        internal partial class ShapeToolset : Toolset
+        {
+            public ShapeToolset() => AddTool(Draw).WithDescription("Draws a shape.");
+
+            public static string Draw(
+                Shape shape,
+                IEnumerable<string> tags,
+                IReadOnlyList<int> sizes,
+                IDictionary<string, string> labels,
+                JsonNode extra,
+                Paging paging,
+                Paging? more = null) => "";
+        }
+        """;
+
+    public const string EveryParameterKind =
+        """
+        using System;
+        using System.Collections.Generic;
+        using System.Threading;
+        using Microsoft.Extensions.AI;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal enum Priority
+        {
+            Low,
+            High
+        }
+
+        internal record Address(string Street, string City);
+
+        internal readonly record struct Cell(int Row, int Column);
+
+        internal record FilingSettings
+        {
+            public int Limit { get; init; } = 10;
+        }
+
+        internal partial class FilingToolset : Toolset
+        {
+            public FilingToolset() => AddTool(File).WithDescription("Files a letter.").WithSettings<FilingSettings>();
+
+            public static string File(
+                string text,
+                int count,
+                double? ratio,
+                Priority priority,
+                Priority? fallback,
+                Guid id,
+                DateTimeOffset due,
+                string[] tags,
+                List<int> numbers,
+                IReadOnlyDictionary<string, string> labels,
+                Address address,
+                Address? previous,
+                Cell cell,
+                (int Row, int Column) corner,
+                in int offset,
+                FilingSettings settings,
+                IServiceProvider services,
+                AIFunctionArguments arguments,
+                CancellationToken ct,
+                bool urgent = false,
+                params string[] recipients) =>
+                text;
+        }
+        """;
+
+    public const string EveryReturnKind =
+        """
+        using System.Collections.Generic;
+        using System.Threading.Tasks;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal record Reading(string Sensor, double Value);
+
+        internal partial class SensorToolset : Toolset
+        {
+            public SensorToolset()
+            {
+                AddTool(Reset).WithDescription("Resets the sensors.");
+                AddTool(ResetAsync).WithName("reset_later").WithDescription("Resets the sensors later.");
+                AddTool(Flush).WithDescription("Flushes the readings.");
+                AddTool(Read).WithDescription("Reads a sensor.");
+                AddTool(ReadAsync).WithName("read_later").WithDescription("Reads a sensor later.");
+                AddTool(Peek).WithDescription("Reads a sensor without waiting.");
+                AddTool(Find).WithDescription("Finds a sensor's last reading.");
+                AddTool(Count).WithDescription("Counts the sensors, if any answer.");
+                AddTool(List).WithDescription("Lists the readings.");
+                AddTool(Group).WithDescription("Groups the readings by sensor.");
+            }
+
+            public static void Reset()
+            {
+            }
+
+            public static Task ResetAsync() => Task.CompletedTask;
+
+            public static ValueTask Flush() => ValueTask.CompletedTask;
+
+            public static Reading Read(string sensor) => new(sensor, 0);
+
+            public static Task<Reading> ReadAsync(string sensor) => Task.FromResult(new Reading(sensor, 0));
+
+            public static ValueTask<Reading> Peek(string sensor) => ValueTask.FromResult(new Reading(sensor, 0));
+
+            public static Reading? Find(string sensor) => null;
+
+            public static int? Count() => null;
+
+            public static Reading[] List() => [];
+
+            public static Task<Dictionary<string, List<Reading>>> Group() =>
+                Task.FromResult(new Dictionary<string, List<Reading>>());
+        }
+        """;
+
+    public const string StreamTool =
+        """
+        using System.Collections.Generic;
+        using System.Runtime.CompilerServices;
+        using System.Threading;
+        using System.Threading.Tasks;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class WordToolset : Toolset
+        {
+            public WordToolset()
+            {
+                AddTool(Split).WithDescription("Splits a text into its words.");
+                AddTool(Spell).WithDescription("Spells a word.");
+            }
+
+            public static async IAsyncEnumerable<string> Split(
+                string text,
+                [EnumeratorCancellation] CancellationToken ct)
+            {
+                foreach (var word in text.Split(' '))
+                {
+                    await Task.Yield();
+                    ct.ThrowIfCancellationRequested();
+                    yield return word;
+                }
+            }
+
+            public static async IAsyncEnumerable<char> Spell(string word)
+            {
+                foreach (var letter in word)
+                {
+                    await Task.Yield();
+                    yield return letter;
+                }
+            }
+        }
+        """;
+
+    // D84: uses that require approval for a tool and let settings switch one off, beside an include and an exclude
+    public const string UseMarks =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        public record SearchSettings
+        {
+            public int Limit { get; init; } = 10;
+        }
+
+        public partial class TicketToolset : Toolset
+        {
+            public TicketToolset()
+            {
+                AddTool(SearchTickets)
+                    .WithDescription("Searches tickets.")
+                    .WithSettings<SearchSettings>()
+                    .Configurable(s => s.Limit);
+
+                AddTool(CloseTicket).WithDescription("Closes a ticket.").RequiresApproval();
+                AddTool(NoteTicket).WithDescription("Notes on a ticket.");
+                AddTool(SearchTicketsEnabled)
+                    .WithDescription("Says whether search is on.")
+                    .WithSettings<SearchSettings>()
+                    .Configurable(s => s.Limit);
+            }
+
+            public static string SearchTickets(string query, SearchSettings settings) => query;
+
+            public static void CloseTicket(int number)
+            {
+            }
+
+            public static void NoteTicket(int number, string text)
+            {
+            }
+
+            public static bool SearchTicketsEnabled(SearchSettings settings) => settings.Limit > 0;
+        }
+
+        public partial class DeskAgent : Agent
+        {
+            public DeskAgent()
+            {
+                UseToolset<TicketToolset>()
+                    .RequiresApproval(t => t.NoteTicket)
+                    .RequiresApproval(t => t.CloseTicket)
+                    .Configurable(t => t.SearchTickets)
+                    .Configurable(t => t.NoteTicket);
+            }
+        }
+
+        public partial class TriageAgent : Agent
+        {
+            public TriageAgent()
+            {
+                UseToolset<TicketToolset>()
+                    .Exclude(t => t.CloseTicket)
+                    .Configurable(t => t.NoteTicket)
+                    .RequiresApproval(t => t.NoteTicket);
+            }
+        }
+
+        public partial class ReaderAgent : Agent
+        {
+            public ReaderAgent()
+            {
+                UseToolset<TicketToolset>()
+                    .Include(t => t.SearchTickets)
+                    .Configurable(t => t.SearchTickets);
+            }
+        }
+        """;
+
+    // D45: content reaches the model as it is: one, a sequence, awaited or not, and none
+    public const string ContentTools =
+        """
+        using System.Collections.Generic;
+        using System.Threading.Tasks;
+        using Microsoft.Extensions.AI;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class CameraToolset : Toolset
+        {
+            public CameraToolset()
+            {
+                AddTool(Picture).WithDescription("Takes a picture.");
+                AddTool(ScanAsync).WithDescription("Scans a page.");
+                AddTool(Annotate).WithDescription("Takes a picture and describes it.");
+                AddTool(FramesAsync).WithDescription("Takes frames.");
+                AddTool(Maybe).WithDescription("Takes a picture if it can.");
+            }
+
+            public static DataContent Picture(string subject) => new(new byte[] { 1 }, "image/png");
+
+            public static Task<DataContent> ScanAsync(int page) =>
+                Task.FromResult(new DataContent(new byte[] { 2 }, "image/png"));
+
+            public static IEnumerable<AIContent> Annotate(string subject) => [new TextContent(subject)];
+
+            public static ValueTask<DataContent[]> FramesAsync(int count) => new(new DataContent[count]);
+
+            public static AIContent? Maybe() => null;
+        }
+        """;
+
+    // D45: tools ask the contexts in the order the module registers them, which is the order of the source. The
+    // System.Text.Json generator does not run here, so what it would write is stubbed
+    public const string SeveralJsonContexts =
+        """
+        using System;
+        using System.Text.Json;
+        using System.Text.Json.Serialization;
+        using System.Text.Json.Serialization.Metadata;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal sealed record Order(int Number);
+
+        internal partial class OrderToolset : Toolset
+        {
+            public OrderToolset() => AddTool(Find).WithDescription("Finds an order.");
+
+            public static Order Find(int number) => new(number);
+        }
+
+        [JsonSerializable(typeof(Order))]
+        internal partial class OrderJson() : JsonSerializerContext(null)
+        {
+            public static OrderJson Default { get; } = new();
+
+            protected override JsonSerializerOptions? GeneratedSerializerOptions => null;
+
+            public override JsonTypeInfo? GetTypeInfo(Type type) => null;
+        }
+
+        [JsonSerializable(typeof(Order[]))]
+        internal partial class ListJson() : JsonSerializerContext(null)
+        {
+            public static ListJson Default { get; } = new();
+
+            protected override JsonSerializerOptions? GeneratedSerializerOptions => null;
+
+            public override JsonTypeInfo? GetTypeInfo(Type type) => null;
+        }
+
+        [JsonSerializable(typeof(int))]
+        internal partial class NumberJson() : JsonSerializerContext(null)
+        {
+            public static NumberJson Default { get; } = new();
+
+            protected override JsonSerializerOptions? GeneratedSerializerOptions => null;
+
+            public override JsonTypeInfo? GetTypeInfo(Type type) => null;
+        }
+
+        [JsonSerializable(typeof(string))]
+        internal partial class TextJson() : JsonSerializerContext(null)
+        {
+            public static TextJson Default { get; } = new();
+
+            protected override JsonSerializerOptions? GeneratedSerializerOptions => null;
+
+            public override JsonTypeInfo? GetTypeInfo(Type type) => null;
+        }
+
+        [JsonSerializable(typeof(bool))]
+        internal partial class FlagJson() : JsonSerializerContext(null)
+        {
+            public static FlagJson Default { get; } = new();
+
+            protected override JsonSerializerOptions? GeneratedSerializerOptions => null;
+
+            public override JsonTypeInfo? GetTypeInfo(Type type) => null;
+        }
+        """;
+
+    // D19: a configurable member of every kind a store keeps beside the scalars: a list, an array, a set, a map, a
+    // map keyed by an enum, an object and a record struct. The two Endpoint records share their simple name, and one
+    // holds the other. The tool streams its result, whose list a JSON context lists (D45)
+    public const string StoredCollectionsAStreamAndAJsonContext =
+        """
+        using System;
+        using System.Collections.Generic;
+        using System.Text.Json;
+        using System.Text.Json.Serialization;
+        using System.Text.Json.Serialization.Metadata;
+        using System.Threading.Tasks;
+        using Typeshift;
+
+        namespace Demo.Mail
+        {
+            internal record Endpoint
+            {
+                public string Address { get; init; } = "";
+            }
+        }
+
+        namespace Demo
+        {
+            internal enum Depth
+            {
+                Shallow,
+                Deep
+            }
+
+            internal record Endpoint
+            {
+                public string Host { get; init; } = "localhost";
+
+                public int Port { get; init; } = 80;
+
+                public List<string> Paths { get; init; } = [];
+
+                public Mail.Endpoint Contact { get; init; } = new();
+            }
+
+            internal record struct Size(int Width, int Height);
+
+            internal record CrawlSettings
+            {
+                public List<string> Names { get; init; } = [];
+
+                public string[] Tags { get; init; } = [];
+
+                public HashSet<int> Ports { get; init; } = [];
+
+                public IReadOnlyList<Endpoint> Mirrors { get; init; } = [];
+
+                public Dictionary<string, int> Weights { get; init; } = [];
+
+                public IReadOnlyDictionary<Depth, Endpoint> Starts { get; init; } = new Dictionary<Depth, Endpoint>();
+
+                public Endpoint Primary { get; init; } = new();
+
+                public Size Window { get; init; }
+
+                public Depth? Reach { get; init; }
+            }
+
+            internal sealed record Page(string Url);
+
+            internal partial class CrawlToolset : Toolset
+            {
+                public CrawlToolset() =>
+                    AddTool(Crawl).WithDescription("Crawls a site.").WithConfigurableSettings<CrawlSettings>();
+
+                public static async IAsyncEnumerable<Page> Crawl(string url, CrawlSettings settings)
+                {
+                    await Task.Yield();
+                    yield return new(url);
+                }
+            }
+
+            [JsonSerializable(typeof(List<Page>))]
+            internal partial class CrawlJson() : JsonSerializerContext(null)
+            {
+                public static CrawlJson Default { get; } = new();
+
+                protected override JsonSerializerOptions? GeneratedSerializerOptions => null;
+
+                public override JsonTypeInfo? GetTypeInfo(Type type) => null;
+            }
+        }
+        """;
+
+    public const string PublicInTheGlobalNamespace =
+        """
+        using Typeshift;
+
+        /// <summary>
+        /// Echoes what it is given.
+        /// </summary>
+        public partial class EchoToolset : Toolset
+        {
+            /// <summary>
+            /// Declares the tools.
+            /// </summary>
+            public EchoToolset() => AddTool(Echo);
+
+            /// <summary>
+            /// Echoes a text.
+            /// </summary>
+            /// <param name="text">The text to echo.</param>
+            /// <returns>The text.</returns>
+            public static string Echo(string text) => text;
+        }
+
+        /// <summary>
+        /// Echoes for a user.
+        /// </summary>
+        public partial class EchoAgent : Agent
+        {
+            /// <summary>
+            /// Declares the agent.
+            /// </summary>
+            public EchoAgent() => UseToolset<EchoToolset>();
+        }
+        """;
+
+    public const string NestedNamespacesAndClasses =
+        """
+        using Typeshift;
+
+        namespace Demo
+        {
+            namespace Tools
+            {
+                internal static partial class Outer
+                {
+                    internal partial class Inner
+                    {
+                        internal record Limits
+                        {
+                            public int Most { get; init; } = 3;
+                        }
+
+                        internal partial class EchoToolset : Toolset
+                        {
+                            public EchoToolset() =>
+                                AddTool(Echo)
+                                    .WithDescription("Echoes.")
+                                    .WithSettings<Limits>()
+                                    .Configurable(s => s.Most);
+
+                            public static string Echo(string text, Limits limits) => text;
+                        }
+                    }
+                }
+            }
+
+            namespace Agents
+            {
+                internal partial class EchoAgent : Agent
+                {
+                    public EchoAgent()
+                    {
+                        WithDescription("Echoes.");
+                        UseToolset<Tools.Outer.Inner.EchoToolset>().Include(t => t.Echo);
+                    }
+                }
+            }
+        }
+        """;
+
+    public const string ToolOfAnotherClass =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal static class Texts
+        {
+            public static string Upper(string text) => text.ToUpperInvariant();
+
+            internal static class Counting
+            {
+                public static int Length(string text) => text.Length;
+            }
+        }
+
+        internal partial class TextToolset : Toolset
+        {
+            public TextToolset()
+            {
+                AddTool(Texts.Upper).WithDescription("Writes a text in capitals.");
+                AddTool(Texts.Counting.Length).WithDescription("Counts a text's characters.");
+                AddTool(Demo.TextToolset.Lower).WithDescription("Writes a text in small letters.");
+            }
+
+            private static string Lower(string text) => text.ToLowerInvariant();
+        }
+        """;
+
+    // D17: a tool's chain in any order, its flags, name and description after the settings call and between picks
+    public const string ToolFlagsAfterTheSettingsCall =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal record LimitSettings
+        {
+            public int Limit { get; init; } = 5;
+
+            public bool Archived { get; init; }
+        }
+
+        internal partial class TicketToolset : Toolset
+        {
+            public TicketToolset()
+            {
+                AddTool(SearchTickets)
+                    .WithSettings<LimitSettings>()
+                    .Configurable(s => s.Limit)
+                    .ReadOnly()
+                    .WithDescription("Searches tickets.");
+
+                AddTool(ListTickets)
+                    .WithSettings<LimitSettings>()
+                    .WithName("list_open_tickets")
+                    .ReadOnly()
+                    .Configurable(s => s.Archived)
+                    .WithDescription("Lists the open tickets.");
+
+                AddTool(CloseTicket)
+                    .WithConfigurableSettings<LimitSettings>()
+                    .NotConfigurable(s => s.Archived)
+                    .RequiresApproval()
+                    .WithDescription("Closes a ticket.");
+
+                AddTool(DeleteTicket)
+                    .WithConfigurableSettings<LimitSettings>()
+                    .RequiresApproval()
+                    .WithName("remove_ticket")
+                    .NotConfigurable(s => s.Limit)
+                    .WithDescription("Deletes a ticket.");
+            }
+
+            public static string SearchTickets(string query, LimitSettings settings) => query;
+
+            public static string ListTickets(LimitSettings settings) => "";
+
+            public static void CloseTicket(int number, LimitSettings settings)
+            {
+            }
+
+            public static void DeleteTicket(int number, LimitSettings settings)
+            {
+            }
+        }
+
+        internal partial class DeskAgent : Agent
+        {
+            public DeskAgent()
+            {
+                UseToolset<TicketToolset>();
+
+                AddTool(Escalate)
+                    .WithSettings<LimitSettings>()
+                    .Configurable(s => s.Limit)
+                    .RequiresApproval()
+                    .WithDescription("Escalates a ticket.");
+            }
+
+            public static void Escalate(int number, LimitSettings settings)
+            {
+            }
+        }
+        """;
+
+    // A cast names one of two methods of a name, and the generated call passes arguments of its parameter types
+    public const string OverloadsPickedByACast =
+        """
+        using System;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class FindToolset : Toolset
+        {
+            public FindToolset()
+            {
+                AddTool((Func<string, string>)Find).WithName("find_by_text").WithDescription("Finds by a text.");
+                AddTool((Func<int, string>)Find).WithName("find_by_number").WithDescription("Finds by a number.");
+            }
+
+            public static string Find(string text) => text;
+
+            public static string Find(int number) => "";
+        }
+        """;
+
+    // Public and documented, as the compiler checks it: the parameters the call fills have no <param>, in a class
+    // that is no toolset, under a cast that picks an overload, and as a nullable token
+    public const string HiddenParametersOfToolsInAnotherClass =
+        """
+        using System;
+        using System.Threading;
+        using Typeshift;
+
+        namespace Demo;
+
+        /// <summary>What a search may return.</summary>
+        public record SearchSettings
+        {
+            /// <summary>The most results.</summary>
+            public int Limit { get; init; } = 5;
+        }
+
+        /// <summary>The tools.</summary>
+        public partial class SearchToolset : Toolset
+        {
+            /// <summary>Declares the tools.</summary>
+            public SearchToolset()
+            {
+                AddTool(Searches.Find).WithSettings<SearchSettings>();
+                AddTool((Func<string, CancellationToken?, string>)Searches.Count);
+            }
+        }
+
+        /// <summary>Tool methods that toolsets share.</summary>
+        public static class Searches
+        {
+            /// <summary>Finds what a text names.</summary>
+            /// <param name="text">The text.</param>
+            /// <returns>What it found.</returns>
+            public static string Find(string text, SearchSettings settings, IServiceProvider services) => text;
+
+            /// <summary>Counts what a text names.</summary>
+            /// <param name="text">The text.</param>
+            /// <returns>The count.</returns>
+            public static string Count(string text, CancellationToken? ct) => text;
+
+            /// <summary>Counts what a number names.</summary>
+            /// <param name="number">The number.</param>
+            /// <returns>The count.</returns>
+            public static string Count(int number) => "";
+        }
+        """;
+
+    // A public method of a toolset that no AddTool names is the developer's own, and so are its missing docs
+    public const string HelperOfAToolsetThatIsNoTool =
+        """
+        using System.Threading;
+        using Typeshift;
+
+        namespace Demo;
+
+        /// <summary>The tools.</summary>
+        public partial class EchoToolset : Toolset
+        {
+            /// <summary>Declares the tools.</summary>
+            public EchoToolset() => AddTool(Echo);
+
+            /// <summary>Echoes a text.</summary>
+            /// <param name="text">The text.</param>
+            /// <returns>The text.</returns>
+            public static string Echo(string text, CancellationToken ct) => text;
+
+            /// <summary>Trims a text, for the tools.</summary>
+            /// <param name="text">The text.</param>
+            /// <returns>The text.</returns>
+            public static string Trim(string text, CancellationToken helperToken) => text.Trim();
+        }
+        """;
+
+    public const string EveryAgentDeclaration =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal record Verdict(bool Approved, string Reason);
+
+        internal record ArchiveSettings
+        {
+            public int Days { get; init; } = 30;
+        }
+
+        internal partial class MailToolset : Toolset
+        {
+            public MailToolset()
+            {
+                AddTool(Send).WithDescription("Sends a mail.").RequiresApproval();
+                AddTool(Read).WithDescription("Reads a mail.").ReadOnly();
+                AddTool(Delete).WithDescription("Deletes a mail.");
+            }
+
+            public static string Send(string to, string text) => to;
+
+            public static string Read(int number) => "";
+
+            public static void Delete(int number)
+            {
+            }
+        }
+
+        internal partial class CalendarToolset : Toolset
+        {
+            public CalendarToolset() => AddTool(Book).WithDescription("Books a meeting.");
+
+            public static string Book(string title) => title;
+        }
+
+        internal partial class ReviewAgent : Agent
+        {
+            public ReviewAgent() => WithDescription("Reviews a draft.");
+        }
+
+        internal partial class BillingAgent : Agent
+        {
+            public BillingAgent() => WithDescription("Answers questions about invoices.");
+        }
+
+        internal partial class OfficeAgent : Agent
+        {
+            private const string Kind = "office";
+
+            public OfficeAgent()
+            {
+                WithName("office_help");
+                WithDescription("Helps around the office.");
+                WithInstructions("Help.");
+                WithStorageKind(Kind);
+                WithSchemaVersion(3);
+
+                WithChatOptions()
+                    .WithModel("openai", "fast-model")
+                    .WithTemperature(0.2f)
+                    .WithMaxOutputTokens(500)
+                    .Configurable(o => o.ModelId)
+                    .Configurable(o => o.Temperature)
+                    .Configurable(o => o.MaxOutputTokens)
+                    .Configurable(o => o.TopP)
+                    .Configurable(o => o.TopK)
+                    .Configurable(o => o.FrequencyPenalty)
+                    .Configurable(o => o.PresencePenalty)
+                    .Configurable(o => o.Seed)
+                    .Configurable(o => o.StopSequences)
+                    .Configurable(o => o.Reasoning);
+
+                WithRunOptions()
+                    .WithMaxToolIterations(5)
+                    .Configurable(r => r.MaxToolIterations)
+                    .Configurable(r => r.MaxConsecutiveToolErrors)
+                    .Configurable(r => r.MaxInputTokens)
+                    .Configurable(r => r.TargetInputTokens);
+
+                UseToolset<MailToolset>().Exclude(t => t.Delete);
+                UseToolset<CalendarToolset>().Include(t => t.Book);
+                UseAgent<ReviewAgent>().WithResult<Verdict>();
+                UseHandoff<BillingAgent>();
+                UseQuestions();
+
+                AddTool(Archive)
+                    .WithDescription("Archives old mails.")
+                    .WithConfigurableSettings<ArchiveSettings>();
+            }
+
+            private static int Archive(ArchiveSettings settings) => settings.Days;
+        }
+        """;
+
+    // A store of conversations and one of decisions, each alone, for an agent that asks; each source below adds the
+    // registration that names both
+    private const string ChatAndDecisionStores =
+        """
+        using System;
+        using System.Collections.Generic;
+        using System.Threading;
+        using System.Threading.Tasks;
+        using Typeshift;
+        using Microsoft.Extensions.DependencyInjection;
+
+        internal sealed class ChatStore : IConversationStore<int>
+        {
+            public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(
+                int conversation,
+                CancellationToken ct) =>
+                throw new NotSupportedException();
+
+            public Task<IReadOnlyList<ConversationEntry>> LoadConversationSinceCompactionAsync(
+                int conversation,
+                CancellationToken ct) =>
+                throw new NotSupportedException();
+
+            public Task AppendConversationAsync(int conversation, ConversationEntry entry, CancellationToken ct) =>
+                throw new NotSupportedException();
+        }
+
+        internal sealed class WaitingStore : IDecisionStore<int>
+        {
+            public Task<StoredDocument?> LoadDecisionsAsync(int conversation, CancellationToken ct) =>
+                throw new NotSupportedException();
+
+            public Task<long> SaveDecisionsAsync(
+                int conversation,
+                string json,
+                long loadedVersion,
+                CancellationToken ct) =>
+                throw new NotSupportedException();
+        }
+
+        internal partial class DeskAgent : Agent
+        {
+            public DeskAgent() => UseQuestions();
+        }
+
+        """;
+
+    public const string ConversationAndDecisionStoresInOneChain = ChatAndDecisionStores +
+        """
+        internal static class Startup
+        {
+            public static void Register(IServiceCollection services) =>
+                services.AddTypeshift().WithStore<ChatStore>().WithStore<WaitingStore>();
+        }
+        """;
+
+    public const string ConversationAndDecisionStoresOnOneBuilder = ChatAndDecisionStores +
+        """
+        internal static class Startup
+        {
+            public static void Register(IServiceCollection services)
+            {
+                var typeshift = services.AddTypeshift();
+
+                typeshift.WithStore<ChatStore>();
+                typeshift.WithStore<WaitingStore>();
+            }
+        }
+        """;
+
+    public const string StoreOfEverythingForAnAgentThatAsks =
+        """
+        using Typeshift;
+        using Microsoft.Extensions.DependencyInjection;
+
+        internal partial class DeskAgent : Agent
+        {
+            public DeskAgent() => UseQuestions();
+        }
+
+        internal static class Startup
+        {
+            public static void Register(IServiceCollection services) =>
+                services.AddTypeshift().WithStore<InMemoryTypeshiftStore<int>>();
+        }
+        """;
+
+    public const string ConfigurableModeWithoutToolsThatNeedApproval =
+        """
+        using Typeshift;
+
+        internal partial class TicketToolset : Toolset
+        {
+            public TicketToolset() => AddTool(Read).WithDescription("Reads a ticket.").ReadOnly();
+
+            public static string Read(int number) => "";
+        }
+
+        internal partial class DeskAgent : Agent
+        {
+            public DeskAgent()
+            {
+                UseToolset<TicketToolset>();
+                UseMcpServer("status").ReadOnly();
+
+                WithRunOptions().WithMode(AgentMode.Plan).Configurable(r => r.Mode);
+            }
+        }
+        """;
+
+    public const string DescriptionOfMarkup =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        /// <summary>
+        /// What <see cref="MarkupToolset.Strip"/> keeps.
+        /// </summary>
+        public record MarkupSettings
+        {
+            /// <summary>
+            /// Whether <c>&amp;</c> and "quotes" are kept, as in {braces}.
+            /// </summary>
+            public bool Keep { get; init; }
+        }
+
+        /// <summary>
+        /// Tools whose descriptions hold markup.
+        /// </summary>
+        public partial class MarkupToolset : Toolset
+        {
+            /// <summary>
+            /// Declares the tools.
+            /// </summary>
+            public MarkupToolset() =>
+                AddTool(Strip)
+                    .WithDescription("Strips <b>tags</b> & \"quotes\", {braces}, a \\ and a */ from a text.")
+                    .WithConfigurableSettings<MarkupSettings>();
+
+            /// <param name="text">The text, with <i>tags</i>, "quotes", a \ &amp; more.</param>
+            public static string Strip(string text, MarkupSettings settings) => text;
+        }
+        """;
+
+    public const string ParametersNamedLikeGeneratedLocals =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal record RouteSettings
+        {
+            public int Hops { get; init; } = 3;
+        }
+
+        internal partial class RouteToolset : Toolset
+        {
+            public RouteToolset() =>
+                AddTool(Route).WithDescription("Routes.").WithSettings<RouteSettings>().Configurable(s => s.Hops);
+
+            public static string Route(
+                string arguments,
+                string services,
+                string ct,
+                string result,
+                string value,
+                string function,
+                string context,
+                string toolset,
+                string overrides,
+                string name,
+                RouteSettings settings) =>
+                arguments;
+        }
+        """;
+
+    public const string SameNamesInTwoNamespaces =
+        """
+        using Typeshift;
+
+        namespace Demo.Billing
+        {
+            internal partial class LookupToolset : Toolset
+            {
+                public LookupToolset() => AddTool(FindInvoice).WithDescription("Finds an invoice.");
+
+                public static string FindInvoice(int number) => "";
+            }
+        }
+
+        namespace Demo.Shipping
+        {
+            internal partial class LookupToolset : Toolset
+            {
+                public LookupToolset() => AddTool(FindParcel).WithDescription("Finds a parcel.");
+
+                public static string FindParcel(int number) => "";
+            }
+        }
+
+        namespace Demo
+        {
+            internal partial class DeskAgent : Agent
+            {
+                public DeskAgent()
+                {
+                    WithDescription("Finds invoices and parcels.");
+                    UseToolset<Billing.LookupToolset>().Include(t => t.FindInvoice);
+                    UseToolset<Shipping.LookupToolset>().Include(t => t.FindParcel);
+                }
+            }
+        }
+        """;
+
+    // Every name a type's full name starts with means something else here. Demo.System, Demo.Microsoft and
+    // Demo.Typeshift are namespaces of the project's, beside its toolset and its agent, and a global alias of each
+    // of the names, Demo among them, reaches the files in every other namespace. Generated code that names a type
+    // without global:: finds one of these instead, so the fixture holds what makes the generator name types:
+    // settings of every stored kind, a default, every kind of parameter and result, approval, options, a provider
+    // id type, a tool of the agent's own and both intercepted calls. The mode is configurable in an agent of its own,
+    // since beside a tool that requires approval it is TSH037
+    public const string NamespacesNamedLikeTheFrameworks =
+        """
+        global using Demo = Elsewhere.Marker;
+        global using Microsoft = Elsewhere.Marker;
+        global using System = Elsewhere.Marker;
+        global using Typeshift = Elsewhere.Marker;
+
+        using System;
+        using System.Collections.Generic;
+        using System.Runtime.CompilerServices;
+        using System.Runtime.InteropServices;
+        using System.Threading;
+        using System.Threading.Tasks;
+        using Microsoft.Extensions.AI;
+        using Microsoft.Extensions.DependencyInjection;
+        using Typeshift;
+
+        namespace Elsewhere
+        {
+            internal class Marker;
+        }
+
+        namespace Demo.System
+        {
+            internal class Marker;
+        }
+
+        namespace Demo.Microsoft
+        {
+            internal class Marker;
+        }
+
+        namespace Demo.Typeshift
+        {
+            internal class Marker;
+        }
+
+        namespace Demo
+        {
+            internal enum Vendor
+            {
+                OpenAi
+            }
+
+            internal record Endpoint
+            {
+                public string Host { get; init; } = "localhost";
+            }
+
+            internal record FindSettings
+            {
+                public int Limit { get; init; } = 1;
+
+                public TimeSpan Wait { get; init; }
+
+                public Vendor Preferred { get; init; }
+
+                public Endpoint Primary { get; init; } = new();
+
+                public List<string> Names { get; init; } = [];
+
+                public string[] Tags { get; init; } = [];
+
+                public HashSet<int> Ports { get; init; } = [];
+
+                public Dictionary<string, Endpoint> Mirrors { get; init; } = [];
+
+                public Dictionary<Vendor, int> Weights { get; init; } = [];
+            }
+
+            internal partial class HostileToolset : Toolset
+            {
+                public HostileToolset()
+                {
+                    AddTool(Find).WithDescription("Finds.").RequiresApproval().WithConfigurableSettings<FindSettings>();
+                    AddTool(List).WithDescription("Lists.").ReadOnly();
+                    AddTool(Wait).WithDescription("Waits.");
+                    AddTool(Reset).WithDescription("Resets.");
+                }
+
+                public static string Find(
+                    string query,
+                    FindSettings settings,
+                    IServiceProvider services,
+                    CancellationToken ct,
+                    [Optional, DateTimeConstant(0L)] DateTime since,
+                    int limit = 3) =>
+                    query;
+
+                public static async IAsyncEnumerable<string> List(string query)
+                {
+                    await Task.Yield();
+                    yield return query;
+                }
+
+                public static ValueTask<int> Wait(AIFunctionArguments arguments) => new(1);
+
+                public static Task Reset() => Task.CompletedTask;
+            }
+
+            internal partial class HostileAgent : Agent
+            {
+                public HostileAgent()
+                {
+                    WithDescription("Finds.");
+
+                    WithChatOptions()
+                        .WithModel(Vendor.OpenAi, "fast-model")
+                        .Configurable(o => o.ModelId)
+                        .Configurable(o => o.StopSequences)
+                        .Configurable(o => o.Reasoning);
+
+                    WithRunOptions().Configurable(r => r.SummaryModel);
+
+                    UseToolset<HostileToolset>();
+
+                    ConfigureFind().WithLimit(2);
+
+                    AddTool(Own).WithDescription("Is the agent's own.").WithConfigurableSettings<FindSettings>();
+                }
+
+                private static string Own(string query, FindSettings settings) => query;
+            }
+
+            internal partial class ModeAgent : Agent
+            {
+                public ModeAgent()
+                {
+                    WithDescription("Plans.");
+
+                    WithRunOptions().Configurable(r => r.Mode);
+                }
+            }
+
+            internal static class Startup
+            {
+                public static void Register(IServiceCollection services) => services.AddTypeshift();
+
+                public static TypeshiftRuntime Start(IChatClient client) => TypeshiftRuntime.Create(client);
+            }
+        }
+        """;
+
+    // The compiler tells the classes apart by case; a generator's hint names are compared without it
+    public const string NamesThatDifferByCase =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class TicketTools : Toolset
+        {
+            public TicketTools() => AddTool(Open).WithDescription("Opens a ticket.");
+
+            public static string Open(string title) => title;
+        }
+
+        internal partial class Tickettools : Toolset
+        {
+            public Tickettools() => AddTool(Close).WithDescription("Closes a ticket.");
+
+            public static string Close(int number) => "";
+        }
+
+        internal partial class HelpAgent : Agent
+        {
+            public HelpAgent()
+            {
+                WithDescription("Opens tickets.");
+                UseToolset<TicketTools>().Include(t => t.Open);
+            }
+        }
+
+        internal partial class Helpagent : Agent
+        {
+            public Helpagent()
+            {
+                WithDescription("Closes tickets.");
+                UseToolset<Tickettools>().Include(t => t.Close);
+            }
+        }
+        """;
+
+    public const string ConstructorWithOtherStatements =
+        """
+        using System.Collections.Generic;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class ClockToolset : Toolset
+        {
+            private readonly List<string> _zones = [];
+
+            public ClockToolset()
+            {
+                const string description = "Tells the time.";
+
+                _zones.Add("utc");
+                AddTool(Tell).WithDescription(description);
+                _zones.Sort();
+            }
+
+            public static string Tell() => "now";
+        }
+        """;
+
+    public const string GenericSettings =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal record Paged<T>
+        {
+            public T? First { get; init; }
+
+            public int Size { get; init; } = 20;
+        }
+
+        internal partial class PageToolset : Toolset
+        {
+            public PageToolset() =>
+                AddTool(Page).WithDescription("Pages.").WithSettings<Paged<string>>().Configurable(s => s.Size);
+
+            public static string Page(string query, Paged<string> paging) => query;
+        }
+
+        internal partial class PageAgent : Agent
+        {
+            public PageAgent()
+            {
+                WithDescription("Pages.");
+                UseToolset<PageToolset>();
+                ConfigurePage().WithSize(10);
+            }
+        }
+        """;
+
+    // A member a derived record declares again counts once, as the derived record declares it
+    public const string RedeclaredSettingsMember =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal record PageSettings
+        {
+            public int Size { get; init; } = 20;
+        }
+
+        internal record NamedPageSettings : PageSettings
+        {
+            public new string Size { get; init; } = "large";
+        }
+
+        internal partial class PageToolset : Toolset
+        {
+            public PageToolset() =>
+                AddTool(Page).WithDescription("Pages.").WithConfigurableSettings<NamedPageSettings>();
+
+            public static string Page(string query, NamedPageSettings paging) => query;
+        }
+
+        internal partial class PageAgent : Agent
+        {
+            public PageAgent()
+            {
+                WithDescription("Pages.");
+                UseToolset<PageToolset>();
+                ConfigurePage().WithSize("small");
+            }
+        }
+        """;
+
+    // The module creates the classes from inside their assembly, where an internal constructor is in reach. No agent
+    // uses the toolset: UseToolset<T>() takes a class with a public constructor
+    public const string InternalConstructors =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class EchoToolset : Toolset
+        {
+            internal EchoToolset() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+        }
+
+        internal partial class EchoAgent : Agent
+        {
+            protected internal EchoAgent() => WithDescription("Echoes.");
+        }
+        """;
+
+    // D77: the model that is set last is the one a run asks for, so its provider's type is the agent's
+    public const string TwoModelsInOneConstructor =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal enum Vendor
+        {
+            OpenAi
+        }
+
+        internal partial class SwitchingAgent : Agent
+        {
+            public SwitchingAgent()
+            {
+                WithChatOptions().WithModel(Vendor.OpenAi, "first-model");
+
+                WithChatOptions().WithModel("openai", "fast-model").Configurable(o => o.ModelId);
+            }
+        }
+        """;
+
+    // D13: both methods are Find, and WithName keeps the two tools apart, in the project and in the agent
+    public const string ToolsOfOneMethodNameRenamedApart =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class DeskToolset : Toolset
+        {
+            public DeskToolset() => AddTool(Find).WithDescription("Finds a desk.");
+
+            public static string Find(string query) => query;
+        }
+
+        internal partial class SeatToolset : Toolset
+        {
+            public SeatToolset() => AddTool(Find).WithName("find_seat").WithDescription("Finds a seat.");
+
+            public static string Find(string query) => query;
+        }
+
+        internal partial class DeskAgent : Agent
+        {
+            public DeskAgent()
+            {
+                WithDescription("Finds desks and seats.");
+                UseToolset<DeskToolset>();
+                UseToolset<SeatToolset>();
+            }
+        }
+        """;
+
+    // The compiler reports each use of an obsolete symbol where the user wrote it; the generated files name the same
+    // symbols and must not report them again
+    public const string DeprecatedToolsetAndAgent =
+        """
+        using System;
+        using Typeshift;
+
+        namespace Demo;
+
+        [Obsolete("Use NewTools")]
+        internal partial class OldTools : Toolset
+        {
+            public OldTools() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+        }
+
+        [Obsolete("Use NewAgent")]
+        internal partial class OldAgent : Agent
+        {
+            public OldAgent()
+            {
+                WithDescription("Echoes.");
+                UseToolset<OldTools>();
+            }
+        }
+        """;
+
+    public const string ObsoleteToolMethodAndParameterType =
+        """
+        using System;
+        using Typeshift;
+
+        namespace Demo;
+
+        [Obsolete("Use New")]
+        internal record Old(string Text);
+
+        [Obsolete]
+        internal record Older(string Text);
+
+        internal partial class LegacyTools : Toolset
+        {
+            public LegacyTools()
+            {
+        #pragma warning disable CS0612, CS0618
+                AddTool(Legacy).WithDescription("Kept for old conversations.");
+                AddTool(TakeOld).WithDescription("Takes the old shape.");
+                AddTool(GiveOlder).WithDescription("Gives the oldest shape.");
+        #pragma warning restore CS0612, CS0618
+            }
+
+            [Obsolete("Old tool")]
+            public static string Legacy(string text) => text;
+
+        #pragma warning disable CS0612, CS0618
+            public static string TakeOld(Old old) => old.Text;
+
+            public static Older GiveOlder(string text) => new(text);
+        #pragma warning restore CS0612, CS0618
+        }
+        """;
+
+    // An [Experimental] symbol is an error under an id of its own, wherever it is named
+    public const string ExperimentalToolTypesAndAgent =
+        """
+        using System.Collections.Generic;
+        using System.Diagnostics.CodeAnalysis;
+        using Typeshift;
+
+        namespace Demo;
+
+        [Experimental("DEMO001")]
+        internal record Preview(string Text);
+
+        internal partial class PreviewTools : Toolset
+        {
+            public PreviewTools()
+            {
+        #pragma warning disable DEMO001
+                AddTool(Take).WithDescription("Takes a preview.");
+                AddTool(Give).WithDescription("Gives a preview.");
+                AddTool(List).WithDescription("Lists the previews.");
+        #pragma warning restore DEMO001
+            }
+
+        #pragma warning disable DEMO001
+            public static string Take(Preview preview) => preview.Text;
+
+            public static Preview Give(string text) => new(text);
+
+            public static Dictionary<string, Preview[]> List() => [];
+        #pragma warning restore DEMO001
+        }
+
+        [Experimental("DEMO002")]
+        internal partial class PreviewAgent : Agent
+        {
+            public PreviewAgent() => WithDescription("Previews.");
+        }
+        """;
+
+    public const string ExperimentalToolsetSettingsAndProviderId =
+        """
+        using System.Diagnostics.CodeAnalysis;
+        using Typeshift;
+
+        namespace Demo;
+
+        [Experimental("DEMO003")]
+        internal enum Depth
+        {
+            Shallow,
+            Deep
+        }
+
+        [Experimental("DEMO004")]
+        internal enum Lab
+        {
+            Small,
+            Large
+        }
+
+        [Experimental("DEMO005")]
+        internal record TrialSettings
+        {
+        #pragma warning disable DEMO003
+            public Depth Depth { get; init; }
+        #pragma warning restore DEMO003
+
+            [Experimental("DEMO006")]
+            public int Limit { get; init; } = 3;
+        }
+
+        [Experimental("DEMO007")]
+        internal partial class TrialTools : Toolset
+        {
+            public TrialTools()
+            {
+        #pragma warning disable DEMO005, DEMO008
+                AddTool(Try).WithDescription("Tries.").WithConfigurableSettings<TrialSettings>();
+        #pragma warning restore DEMO005, DEMO008
+            }
+
+        #pragma warning disable DEMO005
+            [Experimental("DEMO008")]
+            public static string Try(string text, TrialSettings settings) => text;
+        #pragma warning restore DEMO005
+        }
+
+        internal partial class TrialAgent : Agent
+        {
+            public TrialAgent()
+            {
+                WithDescription("Tries.");
+
+        #pragma warning disable DEMO004, DEMO006, DEMO007
+                WithChatOptions()
+                    .WithModel(Lab.Small, "trial-model")
+                    .Configurable(o => o.ModelId);
+
+                UseToolset<TrialTools>();
+                ConfigureTry().WithLimit(5);
+        #pragma warning restore DEMO004, DEMO006, DEMO007
+            }
+        }
+        """;
+
+    // A nested type is named through its class, so the class's [Experimental] id holds wherever the type is named
+    public const string ToolTypeNestedInAnExperimentalClass =
+        """
+        using System.Diagnostics.CodeAnalysis;
+        using Typeshift;
+
+        namespace Demo;
+
+        [Experimental("DEMO009")]
+        public static class Lab
+        {
+            public record Sample(string Text);
+        }
+
+        internal partial class LabTools : Toolset
+        {
+            public LabTools()
+            {
+                AddTool(Take).WithDescription("Takes a sample.");
+            }
+
+        #pragma warning disable DEMO009
+            public static string Take(Lab.Sample sample) => sample.Text;
+        #pragma warning restore DEMO009
+        }
+        """;
+
+    public const string NullDefaultsWithoutAnnotation =
+        """
+        using System;
+        using System.Collections.Generic;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class NullToolset : Toolset
+        {
+            public NullToolset()
+            {
+                AddTool(Search).WithDescription("Searches.");
+                AddTool(Oblivious).WithDescription("Searches, in a file without nullable annotations.");
+                AddTool(Open).WithDescription("Opens.");
+            }
+
+            public static string Search(string query = null!) => query;
+
+        #nullable disable
+            public static string Oblivious(string query = null, List<string> tags = null) => query;
+        #nullable enable
+
+            public static string Open(Uri uri = default!) => "";
+        }
+        """;
+
+    public const string MemberOfAnExtensionBlock =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal static class TextExtensions
+        {
+            extension(string)
+            {
+                public static string Shout(string text) => text.ToUpperInvariant();
+            }
+        }
+
+        internal partial class ShoutTools : Toolset
+        {
+            public ShoutTools() => AddTool(string.Shout).WithDescription("Shouts.");
+        }
+        """;
+
+    public const string ToolOfAClassClosedOverANullableType =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal static class Finder<T>
+        {
+            public static string Find(T value) => "";
+        }
+
+        internal partial class FindTools : Toolset
+        {
+            public FindTools() => AddTool(Finder<string?>.Find).WithDescription("Finds.");
+        }
+        """;
+
+    // The call fills a parameter by its type, nullable or not; the model never sees it
+    public const string NullableParametersTheCallFills =
+        """
+        using System;
+        using System.Threading;
+        using Microsoft.Extensions.AI;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal record WaitSettings
+        {
+            public int Seconds { get; init; } = 1;
+        }
+
+        internal partial class WaitTools : Toolset
+        {
+            public WaitTools() => AddTool(Wait).WithDescription("Waits.").WithSettings<WaitSettings>();
+
+            public static string Wait(
+                string text,
+                WaitSettings? settings,
+                IServiceProvider? services,
+                AIFunctionArguments? arguments,
+                CancellationToken? ct = null) =>
+                text;
+        }
+        """;
+
+    public const string ResultByReference =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class CounterTools : Toolset
+        {
+            private static int _count;
+
+            public CounterTools()
+            {
+                AddTool(Count).WithDescription("Counts.");
+                AddTool(Peek).WithDescription("Reads the count.");
+            }
+
+            public static ref int Count() => ref _count;
+
+            public static ref readonly int Peek() => ref _count;
+        }
+        """;
+
+    // dynamic inside another type is object, which the JSON reads and writes
+    public const string DynamicInsideAType =
+        """
+        using System.Collections.Generic;
+        using System.Threading.Tasks;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class InspectTools : Toolset
+        {
+            public InspectTools()
+            {
+                AddTool(Inspect).WithDescription("Inspects.");
+                AddTool(ListAsync).WithDescription("Lists.");
+                AddTool(Stream).WithDescription("Streams.");
+            }
+
+            public static string Inspect(List<dynamic> values, dynamic[] more, Dictionary<string, dynamic> named) => "";
+
+            public static Task<List<dynamic>> ListAsync() => Task.FromResult(new List<dynamic>());
+
+            public static async IAsyncEnumerable<dynamic> Stream()
+            {
+                await Task.Yield();
+                yield return 1;
+            }
+        }
+        """;
+
+    // Nothing to configure: the agent gets no Configure{Tool}() for the tool
+    public const string SettingsWithoutSettableMembers =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal record Nothing
+        {
+            public int Computed => 1;
+        }
+
+        internal partial class NothingToolset : Toolset
+        {
+            public NothingToolset() => AddTool(Echo).WithDescription("Echoes.").WithSettings<Nothing>();
+
+            public static string Echo(string text, Nothing nothing) => text;
+        }
+
+        internal partial class NothingAgent : Agent
+        {
+            public NothingAgent()
+            {
+                WithDescription("Nothing.");
+                UseToolset<NothingToolset>();
+            }
+        }
+        """;
+
+    // XML has no form for a control character, so the doc comments leave it out
+    public const string ControlCharactersInADescription =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class ControlToolset : Toolset
+        {
+            public ControlToolset() => AddTool(Echo).WithDescription("ctl \0 \u0001 \uFFFE \u2028 end");
+
+            public static string Echo(string text) => text;
+        }
+
+        internal partial class ControlAgent : Agent
+        {
+            public ControlAgent()
+            {
+                WithDescription("ctl \0 \u0001 \uFFFE \u2028 end");
+                UseToolset<ControlToolset>();
+            }
+        }
+        """;
+
+    public const string DefaultsDeclaredByAttribute =
+        """
+        using System;
+        using System.Runtime.CompilerServices;
+        using System.Runtime.InteropServices;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class WhenToolset : Toolset
+        {
+            public WhenToolset() => AddTool(When).WithDescription("Tells when.");
+
+            public static string When(
+                [Optional, DateTimeConstant(5)] DateTime at,
+                [Optional, DecimalConstant(2, 0, 0, 0, 125)] decimal price,
+                [Optional, DefaultParameterValue(7)] long count,
+                [Optional, DefaultParameterValue("soon")] object note,
+                [Optional] string zone,
+                sbyte step = -1,
+                ushort port = 80) =>
+                "";
+        }
+        """;
+
+    // An agent's Settings would hide what every record inherits from object, so these members get a suffix
+    public const string ToolsNamedLikeMembersOfObject =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal record Limits
+        {
+            public int Max { get; init; } = 10;
+        }
+
+        internal partial class TypeToolset : Toolset
+        {
+            public TypeToolset()
+            {
+                AddTool(TypeOf).WithName("get_type").WithDescription("Gets.").WithConfigurableSettings<Limits>();
+                AddTool(Clone).WithName("memberwise_clone").WithDescription("Clones.").WithSettings<Limits>();
+                AddTool(Same).WithName("reference_equals").WithDescription("Is.").WithConfigurableSettings<Limits>();
+                AddTool(Hash).WithName("get_hash_code").WithDescription("Hashes.").WithConfigurableSettings<Limits>();
+                AddTool(Text).WithName("to_string").WithDescription("Writes.").WithConfigurableSettings<Limits>();
+            }
+
+            public static string TypeOf(string text, Limits limits) => text;
+
+            public static string Clone(string text, Limits limits) => text;
+
+            public static string Same(string text, Limits limits) => text;
+
+            public static string Hash(string text, Limits limits) => text;
+
+            public static string Text(string text, Limits limits) => text;
+        }
+
+        internal partial class TypeAgent : Agent
+        {
+            public TypeAgent()
+            {
+                WithDescription("Types.");
+
+                UseToolset<TypeToolset>()
+                    .Include(t => t.GetTypeTool)
+                    .Include(t => t.MemberwiseCloneTool)
+                    .Include(t => t.ReferenceEqualsTool)
+                    .Include(t => t.GetHashCodeTool)
+                    .Include(t => t.ToStringTool);
+            }
+        }
+        """;
+
+    // The generated ApplyTo and JSON members have parameters and locals of these names
+    public const string SettingsMembersNamedLikeGeneratedLocals =
+        """
+        #pragma warning disable CS8981
+
+        using Typeshift;
+
+        namespace Demo;
+
+        internal record nested
+        {
+            public int writer { get; init; } = 1;
+
+            public int value { get; init; } = 1;
+
+            public int element { get; init; } = 1;
+
+            public int defaults { get; init; } = 1;
+
+            public int member0 { get; init; } = 1;
+        }
+
+        internal record Lower
+        {
+            public int settings { get; init; } = 1;
+
+            public int writer { get; init; } = 1;
+
+            public int element { get; init; } = 1;
+
+            public int value { get; init; } = 1;
+
+            public int member0 { get; init; } = 1;
+
+            public int member1 { get; init; } = 1;
+
+            public nested nested { get; init; } = new();
+        }
+
+        internal partial class LowerToolset : Toolset
+        {
+            public LowerToolset() => AddTool(Echo).WithDescription("Echoes.").WithConfigurableSettings<Lower>();
+
+            public static string Echo(string text, Lower lower) => text;
+        }
+
+        internal partial class LowerAgent : Agent
+        {
+            public LowerAgent()
+            {
+                WithDescription("Lower.");
+                UseToolset<LowerToolset>();
+                ConfigureEcho().Withvalue(2).Withsettings(3);
+            }
+        }
+        """;
+
+    // The overrides and the agent's Settings have a CheckJson of their own, so the member and the tool get a suffix
+    public const string SettingsMemberAndToolNamedLikeTheCheck =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal record Checks
+        {
+            public int CheckJson { get; init; } = 1;
+        }
+
+        internal partial class CheckToolset : Toolset
+        {
+            public CheckToolset() =>
+                AddTool(Check).WithName("check_json").WithDescription("Checks.").WithConfigurableSettings<Checks>();
+
+            public static string Check(string text, Checks checks) => text;
+        }
+
+        internal partial class CheckAgent : Agent
+        {
+            public CheckAgent()
+            {
+                WithDescription("Checks.");
+                UseToolset<CheckToolset>();
+            }
+        }
+        """;
+
+    // A class cannot hold a member of its own name, so this agent gets no Configure{Tool}() for the tool
+    public const string AgentNamedLikeAConfigureMethod =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal record EchoSettings
+        {
+            public int Repeat { get; init; } = 1;
+        }
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithDescription("Echoes.").WithConfigurableSettings<EchoSettings>();
+
+            public static string Echo(string text, EchoSettings settings) => text;
+        }
+
+        internal partial class ConfigureEcho : Agent
+        {
+            public ConfigureEcho()
+            {
+                WithDescription("Echoes.");
+                UseToolset<EchoToolset>();
+            }
+        }
+        """;
+
+    // The tool list's CreateReport property and the toolset's CreateReport factory live in two classes
+    public const string ToolsWhoseGeneratedNamesMeetAcrossClasses =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class ReportToolset : Toolset
+        {
+            public ReportToolset()
+            {
+                AddTool(Find).WithName("report").WithDescription("Finds a report.");
+                AddTool(Make).WithName("create_report").WithDescription("Creates a report.");
+            }
+
+            public static string Find(string title) => title;
+
+            public static string Make(string title) => title;
+        }
+
+        internal partial class ReportAgent : Agent
+        {
+            public ReportAgent()
+            {
+                WithDescription("Reports.");
+                UseToolset<ReportToolset>().Include(t => t.Report).Include(t => t.CreateReport);
+            }
+        }
+        """;
+
+    // The agent offers the tools it includes in the order of its picks, which is not the toolset's here
+    public const string ToolsIncludedInAnotherOrder =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class ReportToolset : Toolset
+        {
+            public ReportToolset()
+            {
+                AddTool(Find).WithDescription("Finds a report.");
+                AddTool(Print).WithDescription("Prints a report.");
+                AddTool(Send).WithDescription("Sends a report.");
+            }
+
+            public static string Find(string title) => title;
+
+            public static string Print(string title) => title;
+
+            public static string Send(string title) => title;
+        }
+
+        internal partial class ReportAgent : Agent
+        {
+            public ReportAgent()
+            {
+                WithDescription("Reports.");
+                UseToolset<ReportToolset>().Include(t => t.Send).Include(t => t.Find);
+            }
+        }
+        """;
+
+    // The picks are in scope in every file, whatever it imports: the agents' file has no using for the toolset's
+    // namespace
+    public const string ToolsetNamedInFullOrByAnAlias =
+        """
+        using Typeshift;
+        using Tickets = Tools.TicketToolset;
+
+        namespace Tools
+        {
+            internal partial class TicketToolset : Toolset
+            {
+                public TicketToolset()
+                {
+                    AddTool(Search).WithDescription("Searches.");
+                    AddTool(Close).WithDescription("Closes.");
+                }
+
+                public static string Search(string text) => text;
+
+                public static string Close(int number) => "";
+            }
+        }
+
+        namespace Agents
+        {
+            internal partial class AliasAgent : Agent
+            {
+                public AliasAgent()
+                {
+                    WithDescription("Names the toolset through an alias.");
+                    UseToolset<Tickets>().Include(t => t.Search);
+                }
+            }
+
+            internal partial class QualifiedAgent : Agent
+            {
+                public QualifiedAgent()
+                {
+                    WithDescription("Names the toolset in full.");
+                    UseToolset<Tools.TicketToolset>().Exclude(t => t.Close);
+                }
+            }
+        }
+        """;
+
+    // The tool lists live in the global namespace under names of their own, so no type beside a toolset meets one
+    public const string TypesNamedLikeAToolsetsToolList =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class Echo : Toolset
+        {
+            public Echo() => AddTool(Say).WithDescription("Echoes.");
+
+            public static string Say(string text) => text;
+        }
+
+        internal class EchoToolList;
+
+        internal partial class Outer
+        {
+            internal partial class Tools : Toolset
+            {
+                public Tools() => AddTool(Repeat).WithDescription("Repeats.");
+
+                public static string Repeat(string text) => text;
+            }
+        }
+
+        internal partial class Outer_Tools : Toolset
+        {
+            public Outer_Tools() => AddTool(Shout).WithDescription("Shouts.");
+
+            public static string Shout(string text) => text;
+        }
+
+        internal partial class EchoAgent : Agent
+        {
+            public EchoAgent()
+            {
+                WithDescription("Echoes.");
+                UseToolset<Echo>().Include(t => t.Say);
+                UseToolset<Outer.Tools>().Include(t => t.Repeat);
+                UseToolset<Outer_Tools>().Include(t => t.Shout);
+            }
+        }
+        """;
+
+    // kind gets a suffix in the agent's Settings, which have a Kind of their own, and would then meet kind_tool
+    public const string ToolsThatMeetInSettingsThroughTheSuffix =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal record Limits
+        {
+            public int Max { get; init; } = 10;
+        }
+
+        internal partial class KindToolset : Toolset
+        {
+            public KindToolset()
+            {
+                AddTool(One).WithName("kind").WithDescription("One.").WithConfigurableSettings<Limits>();
+                AddTool(Two).WithName("kind_tool").WithDescription("Two.").WithConfigurableSettings<Limits>();
+            }
+
+            public static string One(string text, Limits limits) => text;
+
+            public static string Two(string text, Limits limits) => text;
+        }
+
+        internal partial class KindAgent : Agent
+        {
+            public KindAgent()
+            {
+                WithDescription("Kinds.");
+                UseToolset<KindToolset>();
+            }
+        }
+        """;
+
+    // Parentheses and the ! operator are syntax without an operation of their own: the picks are still read
+    public const string PicksOnAWrappedReceiver =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class FirstToolset : Toolset
+        {
+            public FirstToolset()
+            {
+                AddTool(OpenFirst).WithDescription("Opens.");
+                AddTool(CloseFirst).WithDescription("Closes.");
+            }
+
+            public static string OpenFirst(int number) => "open";
+
+            public static string CloseFirst(int number) => "closed";
+        }
+
+        internal partial class SecondToolset : Toolset
+        {
+            public SecondToolset()
+            {
+                AddTool(OpenSecond).WithDescription("Opens.");
+                AddTool(CloseSecond).WithDescription("Closes.");
+            }
+
+            public static string OpenSecond(int number) => "open";
+
+            public static string CloseSecond(int number) => "closed";
+        }
+
+        internal partial class ThirdToolset : Toolset
+        {
+            public ThirdToolset()
+            {
+                AddTool(OpenThird).WithDescription("Opens.");
+                AddTool(CloseThird).WithDescription("Closes.");
+            }
+
+            public static string OpenThird(int number) => "open";
+
+            public static string CloseThird(int number) => "closed";
+        }
+
+        internal partial class PickAgent : Agent
+        {
+            public PickAgent()
+            {
+                WithDescription("Picks.");
+                (UseToolset<FirstToolset>()).Include(t => t.OpenFirst);
+                UseToolset<SecondToolset>()!.Include(t => t.OpenSecond);
+                ((UseToolset<ThirdToolset>())!).Exclude(t => t.OpenThird);
+            }
+        }
+        """;
+
+    // The spellings of the two intercepted calls beside the plain ones, and their names, which call nothing
+    public const string AddTypeshiftAfterANullCheck =
+        """
+        using System;
+        using Microsoft.Extensions.AI;
+        using Microsoft.Extensions.DependencyInjection;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal static class Startup
+        {
+            public static object? Start(IServiceCollection? services, IChatClient client) =>
+                services?.AddTypeshift();
+        }
+        """;
+
+    public const string AddTypeshiftInItsStaticForm =
+        """
+        using System;
+        using Microsoft.Extensions.AI;
+        using Microsoft.Extensions.DependencyInjection;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal static class Startup
+        {
+            public static object? Start(IServiceCollection services, IChatClient client) =>
+                TypeshiftServiceCollectionExtensions.AddTypeshift(services);
+        }
+        """;
+
+    public const string NamesOfTheInterceptedMethods =
+        """
+        using System;
+        using Microsoft.Extensions.AI;
+        using Microsoft.Extensions.DependencyInjection;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal static class Startup
+        {
+            public static object? Start(IServiceCollection services, IChatClient client) =>
+                nameof(TypeshiftRuntime.Create) + nameof(TypeshiftServiceCollectionExtensions.AddTypeshift);
+        }
+        """;
+
+    // D72, D76: copies that are run, kept, or disposed where their host's work ends
+    public const string HostCopiesThatAreUsed =
+        """
+        using System.Collections.Generic;
+        using System.Threading.Tasks;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class SupportAgent : Agent
+        {
+            public SupportAgent() => WithInstructions("Answer questions about refunds.");
+        }
+
+        internal sealed class Desk(TypeshiftRuntime runtime, AgentHost<SupportAgent> support)
+        {
+            public async Task<string> AnswerAsync(string question, int customer)
+            {
+                var answer = await support.WithSettingsId(customer).RunAsync(question);
+                var chat = support.WithConversationId(question);
+                await chat.RunAsync(question);
+
+                return answer.Text;
+            }
+
+            public async Task FollowUpAsync(IEnumerable<string> tickets)
+            {
+                foreach (var ticket in tickets)
+                {
+                    await using var chat = runtime.CreateHost<SupportAgent>()
+                        .WithSettingsId(7)
+                        .WithConversationId(ticket);
+                    await chat.RunAsync("Is the ticket solved?");
+                }
+            }
+
+            public async Task DigestAsync(string ticket)
+            {
+                await using var job = runtime.CreateHost<SupportAgent>();
+                await using var chat = job.WithConversationId(ticket);
+                await chat.RunAsync("Summarize the ticket.");
+            }
+
+            public async Task ReviewAsync(string ticket)
+            {
+                using (var job = runtime.CreateHost<SupportAgent>())
+                {
+                    using var chat = job.WithConversationId(ticket);
+                    await chat.RunAsync("Review the ticket.");
+                }
+            }
+        }
+        """;
+
+    // Methods of the project's own that are named like the library's, called in every way the analyzer has a rule
+    // for when the library's are: in a local function, on a variable, outside a constructor
+    public const string MethodsNamedLikeTheLibrarys =
+        """
+        using System.Collections.Generic;
+        using System.Text;
+
+        namespace Demo;
+
+        internal sealed class Registry
+        {
+            private readonly List<string> _names = [];
+
+            public Registry AddTool(string name)
+            {
+                _names.Add(name);
+                return this;
+            }
+
+            public Registry WithName(string name) => AddTool(name);
+
+            public Registry WithStore<T>() => this;
+
+            public string Describe()
+            {
+                void Add() => AddTool("local").WithName("named").WithStore<int>();
+
+                Add();
+
+                var registry = WithStore<string>();
+                registry.WithName("later");
+
+                return new StringBuilder().Append(_names.Count).ToString();
+            }
+        }
+        """;
+
+    // A context written by hand has no Default unless it declares one, so the module has nothing to register
+    public const string JsonContextWithoutDefault =
+        """
+        using System;
+        using System.Text.Json;
+        using System.Text.Json.Serialization;
+        using System.Text.Json.Serialization.Metadata;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+        }
+
+        internal class HandWritten : JsonSerializerContext
+        {
+            public HandWritten() : base(null) { }
+
+            protected override JsonSerializerOptions? GeneratedSerializerOptions => null;
+
+            public override JsonTypeInfo? GetTypeInfo(Type type) => null;
+        }
+        """;
+
+    public const string JsonContextWithADefaultField =
+        """
+        using System;
+        using System.Text.Json;
+        using System.Text.Json.Serialization;
+        using System.Text.Json.Serialization.Metadata;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+        }
+
+        internal class HandWritten : JsonSerializerContext
+        {
+            public static readonly JsonSerializerContext Default = new HandWritten();
+
+            private HandWritten() : base(null) { }
+
+            protected override JsonSerializerOptions? GeneratedSerializerOptions => null;
+
+            public override JsonTypeInfo? GetTypeInfo(Type type) => null;
+        }
+        """;
+
+    // The module of the toolset's own assembly creates it, so its constructor may be internal
+    public const string ToolsetWithAnInternalConstructor =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class CompanyToolset : Toolset
+        {
+            internal CompanyToolset() => AddTool(Find).WithDescription("Finds companies.");
+
+            public static string Find(string city) => city;
+        }
+
+        internal partial class ResearchAgent : Agent
+        {
+            public ResearchAgent()
+            {
+                WithDescription("Researches.");
+                UseToolset<CompanyToolset>();
+            }
+        }
+        """;
+
+    // `: base()` calls a constructor of Agent, which is no declaration
+    public const string AgentWithABaseInitializer =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class ProbeAgent : Agent
+        {
+            public ProbeAgent() : base()
+            {
+                WithDescription("Probes.");
+            }
+        }
+        """;
+
+    public const string AgentWithAPrimaryConstructor =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class ProbeAgent() : Agent()
+        {
+        }
+        """;
+
+    // Docs of every kind a description reads: crefs to a type, a keyword type, a generic type, a constructor, a method
+    // and an alias, entities, CDATA, blocks, links, adjacent elements and a /** */ comment. A comment of the
+    // compilation is read where it is written, and XmlDocsTests compares that reading with the compiler's XML
+    public const string DocsOfEveryKind =
+        """
+        using System.Collections.Generic;
+        using Typeshift;
+        using Numbers = System.Collections.Generic.List<int>;
+
+        namespace Demo;
+
+        /// <summary>Kept as <see cref="Kept"/>, made with <see cref="Kept()"/>.</summary>
+        public record Kept
+        {
+            /// <summary>The <see langword="null"/> case, &lt;none&gt; &amp; more.</summary>
+            public int Limit { get; init; } = 1;
+
+            /// <summary><![CDATA[a < b]]> as <c>code</c><para>A block.</para>then <c> spaced </c>text.</summary>
+            public string Name { get; init; } = "";
+        }
+
+        /// <summary>Tools documented <b>every</b> way.</summary>
+        public partial class DocumentedToolset : Toolset
+        {
+            /// <summary>Declares the tools.</summary>
+            public DocumentedToolset()
+            {
+                AddTool(Find).WithSettings<Kept>().Configurable(s => s.Limit).Configurable(s => s.Name);
+                AddTool(Count);
+                AddTool(Link);
+            }
+
+            /// <summary>
+            /// Finds a <see cref="string"/> in a <see cref="List{T}"/> of <see cref="Numbers"/>, as
+            /// <see cref="System.Linq.Enumerable.Count{TSource}(IEnumerable{TSource})"/> or
+            /// <see cref="Count(int[])"/> do.
+            /// </summary>
+            /// <param name="query">The <paramref name="query"/> <paramref name="settings"/> read.</param>
+            /// <param name="settings">How <see cref="Find"/> runs.</param>
+            /// <returns>The query.</returns>
+            public static string Find(string query, Kept settings) => query;
+
+            /**
+             * <summary>Counts <see cref="int"/> values,
+             * <list type="bullet"><item>each</item><item>once</item></list>.</summary>
+             * <param name="values">The values<br/>to count.</param>
+             * <returns>How many.</returns>
+             */
+            public static int Count(int[] values) => values.Length;
+
+            /// <summary>
+            /// See <see href="https://example.com"/> or <see href="https://example.com">the site</see>.
+            /// </summary>
+            /// <param name="text"> </param>
+            /// <returns>The text.</returns>
+            public static string Link(string text) => text;
+        }
+        """;
+
+    // D77: WithModel(model) names no provider, alone and after a WithModel that names one
+    public const string ModelWithoutAProvider =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal enum Vendor
+        {
+            OpenAi
+        }
+
+        internal partial class ModelAgent : Agent
+        {
+            public ModelAgent()
+            {
+                WithDescription("Names a model.");
+
+                WithChatOptions()
+                    .WithModel("fast-model")
+                    .Configurable(o => o.ModelId);
+            }
+        }
+
+        internal partial class SwitchingAgent : Agent
+        {
+            public SwitchingAgent()
+            {
+                WithDescription("Names a provider, then another model.");
+
+                WithChatOptions()
+                    .WithModel(Vendor.OpenAi, "fast-model")
+                    .WithModel("faster-model")
+                    .Configurable(o => o.ModelId);
+            }
+        }
+        """;
+
+    // D13: code outside a chain names a tool by the constant of its toolset or agent, in a pattern too; a tool named
+    // like the class of constants takes a suffix
+    public const string ToolNamesMatchedOutsideAChain =
+        """
+        using System.Threading;
+        using System.Threading.Tasks;
+        using Microsoft.Extensions.AI;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class ShellToolset : Toolset
+        {
+            public ShellToolset()
+            {
+                AddTool(RunCommand).WithDescription("Runs a command.").RequiresApproval();
+                AddTool(ListNames).WithName("tool_names").WithDescription("Lists names.");
+            }
+
+            public static string RunCommand(string command) => command;
+
+            public static string ListNames() => "";
+        }
+
+        internal partial class ShellAgent : Agent
+        {
+            public ShellAgent()
+            {
+                WithDescription("Runs commands.");
+                UseToolset<ShellToolset>().Include(t => t.RunCommand).Include(t => t.ToolNamesTool);
+                AddTool(Echo).WithDescription("Echoes.");
+            }
+
+            public static string Echo(string text) => text;
+        }
+
+        internal sealed class ShellGuard : IToolApprovalRule
+        {
+            public ValueTask<RuleVerdict> DecideAsync(FunctionCallContent call, AgentRun run, CancellationToken ct) =>
+                ValueTask.FromResult(call.Name switch
+                {
+                    ShellToolset.ToolNames.RunCommand => RuleVerdict.Reject("No commands."),
+                    ShellToolset.ToolNames.ToolNamesTool or ShellAgent.ToolNames.Echo => RuleVerdict.Approve,
+                    _ => RuleVerdict.Abstain
+                });
+        }
+        """;
+
+    // D14: Microsoft.Extensions.AI's [Description] describes a tool and its parameters where the XML docs say nothing
+    public const string DescriptionAttributes =
+        """
+        using System.ComponentModel;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class OrderToolset : Toolset
+        {
+            public OrderToolset()
+            {
+                AddTool(LookUpOrder);
+            }
+
+            [Description("Looks an order up by its number.")]
+            public static string LookUpOrder([Description("The order number, like A-123.")] string number) => number;
+        }
+        """;
+}

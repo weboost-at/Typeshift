@@ -1,12 +1,13 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis;
 
 namespace Typeshift.Generators.Tests.Testing;
 
 // Snapshots/{TestClass}.{TestName}.verified.txt; a mismatch writes .received.txt, ACCEPT_SNAPSHOTS=1 accepts it
-public static class Snapshot
+public static partial class Snapshot
 {
     private const string AcceptVariable = "ACCEPT_SNAPSHOTS";
 
@@ -15,13 +16,19 @@ public static class Snapshot
         .Single(attribute => attribute.Key == "SnapshotsDirectory")
         .Value!;
 
+    // The files of the hint names, or every generated file when none is named: a file one test pins is left out of
+    // the others, so a change of it is one snapshot's diff
     public static void Verify(
         GeneratorDriverRunResult result,
+        string[]? hintNames = null,
         [CallerMemberName] string testName = "",
-        [CallerFilePath] string testFile = "")
+        [CallerFilePath] string testFile = "") =>
+        Verify($"{Path.GetFileNameWithoutExtension(testFile)}.{testName}", Render(result, hintNames));
+
+    // Snapshots/{name}.verified.txt, for text that belongs to the repository rather than to one test's source
+    public static void Verify(string name, string text)
     {
-        var actual = Render(result);
-        var name = $"{Path.GetFileNameWithoutExtension(testFile)}.{testName}";
+        var actual = Normalize(text);
         var verifiedPath = Path.Combine(Directory, $"{name}.verified.txt");
         var receivedPath = Path.Combine(Directory, $"{name}.received.txt");
 
@@ -34,7 +41,7 @@ public static class Snapshot
             return;
         }
 
-        var expected = File.Exists(verifiedPath) ? Normalize(File.ReadAllText(verifiedPath)) : null;
+        var expected = Read(name);
 
         if (expected == actual)
         {
@@ -48,15 +55,25 @@ public static class Snapshot
             + $"and rename it to .verified.txt, or rerun with {AcceptVariable}=1.");
     }
 
-    private static string Render(GeneratorDriverRunResult result)
+    // The verified text under a name, or null before its first snapshot
+    public static string? Read(string name) =>
+        Path.Combine(Directory, $"{name}.verified.txt") is var path && File.Exists(path)
+            ? Normalize(File.ReadAllText(path))
+            : null;
+
+    private static string Render(GeneratorDriverRunResult result, string[]? hintNames)
     {
         var builder = new StringBuilder();
 
         var sources = result.Results
             .SelectMany(generator => generator.GeneratedSources)
-            .OrderBy(source => source.HintName, StringComparer.Ordinal);
+            .OrderBy(source => source.HintName, StringComparer.Ordinal)
+            .ToList();
 
-        foreach (var source in sources)
+        var missing = (hintNames ?? []).Except(sources.Select(source => source.HintName)).ToList();
+        if (missing.Count > 0) Assert.Fail($"The generator wrote no {string.Join(", ", missing)}.");
+
+        foreach (var source in sources.Where(source => hintNames?.Contains(source.HintName) ?? true))
         {
             builder.Append("// HintName: ").AppendLine(source.HintName);
             builder.AppendLine(source.SourceText.ToString().TrimEnd());
@@ -75,9 +92,18 @@ public static class Snapshot
             builder.Append("// ").AppendLine(diagnostic.ToString());
         }
 
-        return Normalize(builder.ToString());
+        var text = InterceptedLocation().Replace(builder.ToString(), "<location>");
+        return Normalize(GeneratorVersion().Replace(text, "<version>"));
     }
 
     private static string Normalize(string text) =>
         text.Replace("\r\n", "\n", StringComparison.Ordinal).TrimEnd() + "\n";
+
+    // The data hashes the text of the intercepted call's file, so it differs with every edit and every line ending
+    [GeneratedRegex(@"(?<=InterceptsLocationAttribute\(\d+, "")[^""]+")]
+    private static partial Regex InterceptedLocation();
+
+    // The version of the generator that wrote the code, which differs with every commit
+    [GeneratedRegex(@"(?<=GeneratedCode\(""Typeshift\.Generators"", "")[^""]*")]
+    private static partial Regex GeneratorVersion();
 }

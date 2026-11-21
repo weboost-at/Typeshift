@@ -26,7 +26,7 @@ slogan, rewrite it.
 | "The analyzer rejects `ref` and `out` parameters with TSH004." | "`ref` and `out` parameters are TSH004." |
 | "A tool is named after its method in snake_case, without `Async`." | "The name is, by default, derived from the method in snake_case form." |
 | "Stored settings are keyed by the tool's name, so renaming the method orphans them." | "A tool's name keys its stored settings. Rename the method. The settings no longer apply." |
-| "Write the exception's message as a hint, and the model can correct its call." | "It's worth noting that exception messages are seamlessly surfaced to the model." |
+| "Write the `ToolException`'s message as a hint, and the model can correct its call." | "It's worth noting that exception messages are seamlessly surfaced to the model." |
 | "A UI can forward the updates over SignalR, for example." | "A UI forwards them over SignalR, say." |
 
 - **Present tense**, describing what the library does today. What is not built yet belongs in
@@ -40,8 +40,8 @@ slogan, rewrite it.
   options, as the toolset example above does.
 - **Vary the rhythm.** Join two short sentences that belong together with "so", "because" or "but", and split one
   that needs a colon and a semicolon. Most sentences stay under 25 words.
-- **The subject first.** "`ConfigureAsync` retries on a conflict", not "On a conflict, which another save causes,
-  retrying is what `ConfigureAsync` does".
+- **The subject first.** "`UpdateSettingsAsync` retries on a conflict", not "On a conflict, which another save causes,
+  retrying is what `UpdateSettingsAsync` does".
 - **Concrete over abstract.** Name the example in the prose: "closing a ticket", not "an operation with side
   effects".
 - **Short paragraphs** of whole sentences that make sense on their own. Several facts about a snippet become a list,
@@ -61,6 +61,10 @@ slogan, rewrite it.
 
 The README and the home page sell Typeshift and get a reader running. The guide holds the details, so the README
 stays light: a short pitch, a quick start, and a table of links into the guide.
+
+`src/Typeshift/PACKAGE.md` is the README of the package, the first text a visitor of nuget.org reads. It follows the
+rules below, and its quick start takes the same steps as the README's. Its links are full addresses, because
+nuget.org has no repository to resolve a relative one against.
 
 - **Lead with what the reader does.** Name the task, such as "Create an agent" or "Design your toolsets", and say
   how little it takes. What the generator emits, such as functions, records, one registration call or Native AOT
@@ -135,7 +139,8 @@ diagnostics. They also beat a list of bullets that each start with a bold call n
 ### Code
 
 - **C# comes from the samples**, through mdsnippets (see [Where the code comes from](#where-the-code-comes-from)).
-  The check fails on a hand-written C# block.
+  The check fails on a hand-written C# block. The failing example of a diagnostic is the one exception, and comes
+  from the generator's tests.
 - **Every code block has a language**: `bash`, `xml`, `json`, `yaml`, `text`, `mermaid`.
 - **Shell commands are copy-pasteable.** Placeholders look like `<version>`, never like real values.
 - **Show the code before you explain it**, then say what the reader needs to know, in the order the code reads.
@@ -143,6 +148,8 @@ diagnostics. They also beat a list of bullets that each start with a bold call n
 ### Links
 
 - Link the first mention of another page's topic in a section, and not again in that section.
+- A link that names a whole page calls it by its title, `[Running an agent](../guide/running-agents.md)`, so the
+  reader finds the name in the sidebar. A term links a page in its own words: `[settings](./tool-settings.md)`.
 - Link pages relatively, with the extension: `[tool settings](./tool-settings.md)`, or `./page.md#section`.
 - Link a diagnostic by its ID: `[TSH007](./diagnostics.md#tsh007)`.
 - Link repository files with their full GitHub URL, because VitePress fails on links that leave `docs/`.
@@ -174,13 +181,15 @@ of each kind of fact, and its change checklist names the pages a kind of change 
 | Decision IDs (`D25`) on guide pages | Plain reasons; the IDs belong to the contributing pages |
 | The same explanation on two pages | One canonical page and links |
 | "Updated on …" or "new in …" notes | Git history and the [changelog](https://github.com/weboost-at/Typeshift/blob/main/CHANGELOG.md) |
-| A page named `agents.md` | Any other name: mdsnippets skips every file of that name, whatever its folder |
+| A page named `agents.md`, `claude.md`, `gemini.md` or `copilot-instructions.md` | Any other name: mdsnippets skips every file of these names, whatever its folder and case |
 
 ## Where the code comes from
 
-Every C# block is a region of `samples/Typeshift.Samples.Docs`, which builds with the solution. CI runs its program,
-which executes each documented scenario and throws when one breaks. A region is marked in the source with comments,
-in any file type:
+Every C# block is a region of `samples/Typeshift.Samples.Docs`, which builds with the solution. CI runs its program
+on a canned chat client: each scenario runs the agents, toolsets, rules and providers of its page, checks what the page
+says about them, and throws when one breaks, and every registration a page shows is built and resolved on services of
+its own. Only a call to a real provider stays unrun: its clients are built with a key that is no key, and nothing
+calls them. A region is marked in the source with comments, in any file type:
 
 ```text
 // begin-snippet: settings-picks
@@ -193,12 +202,23 @@ A page uses it by its name, on a line of its own: `snippet: settings-picks`.
 `<!-- snippet: settings-picks -->` and `<!-- endSnippet -->`, plus a link to the source. A whole file is used by its
 path from the repository root.
 
+One kind of code cannot come from the samples: the failing example of a diagnostic, which the analyzer rejects, so
+the samples would not build with it. [Diagnostics](../guide/diagnostics.md) takes these examples from
+`tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs`, the sources the generator's tests
+compile. A region there is named after its diagnostic, `tsh005` for TSH005, and marks the lines the page shows. Two
+tests guard it: the source that holds the region reports that diagnostic, and the diagnostic's section shows the
+region. The fix beside a failing example is a sentence, or a snippet of the samples where one fits.
+
+The link under a snippet names the lines of its region, so a line added above a region changes the page. Run
+`npm run docs:snippets` after you edit a sample or `DiagnosticSources.cs`, and commit the pages with the code.
+
 ## Changing a page or its code
 
 1. Change the sample code, keeping the markers, and run the docs program:
    `dotnet run --project samples/Typeshift.Samples.Docs -c Release`.
-2. Run `dotnet mdsnippets` from the repository root. It rewrites every snippet in place, so never edit between the
-   markers by hand.
+2. Run `npm run docs:snippets`, never `dotnet mdsnippets` itself. The tool rewrites every snippet of every Markdown
+   file in place, so never edit between the markers by hand. When a run replaces lines you had not committed, the
+   script prints them and keeps the file as it was under `.context/mdsnippets-backup/`.
 3. Write the prose to this page, on the page the fact map names.
 4. Run `npm ci` once, then `npm run docs:check`, and `npm run docs:dev` to look at the page.
 5. Commit the code and the regenerated Markdown together.
@@ -208,31 +228,58 @@ path from the repository root.
 1. Copy a [template](#templates): a guide, a concept or a reference page.
 2. Add it to the sidebar in `docs/.vitepress/config.mts`, in reading order. A new group of the guide sidebar gets `collapsed: true`, like every group except the Introduction.
 3. Link it from the `## Related` of its neighbours.
-4. When it becomes the home of a kind of fact, add a row to the fact map in `AGENTS.md`.
+4. A guide page gets a row in the fact map of `AGENTS.md` for the facts it owns, and the docs rules fail on one
+   that no row names as canonical.
 
 Before you add one, check whether the topic fits as a section of an existing page. Fewer, fuller pages are easier
 to find than many thin ones.
+
+A section a reader looks for in the sidebar, such as context providers, gets an entry of its own with its anchor:
+`{ text: 'Context providers', link: '/guide/middleware#context-providers' }`. Place it after its page's entry,
+because VitePress takes a page's first sidebar link for the previous and next links at the foot of the page, and an
+entry placed earlier would move them.
 
 ## The checks
 
 | Command | Fails on |
 |---|---|
-| `dotnet mdsnippets && git diff --exit-code` | Any C# in the Markdown that differs from the samples |
+| `npm run docs:snippets:check` | Any snippet in the Markdown that differs from its source. It runs mdsnippets on a copy and changes no file |
 | `npm run docs:lint` | markdownlint (`.markdownlint-cli2.jsonc`), then the docs rules (`docs/.vitepress/lint.mjs`) |
 | `npm run docs:build` | A dead page link |
-| `npm run docs:check` | `docs:lint`, then `docs:build` |
+| `npm run docs:check` | `docs:snippets:check`, `docs:lint`, then `docs:build` |
 
 The docs rules check what a machine can:
 
 - every page has a title and a description, and its H1 matches the title;
-- every page ends with `## Related`;
-- every page is in the sidebar, and every sidebar link has a page;
-- every code block has a language, and C# appears only where mdsnippets wrote it;
+- every page ends with `## Related`, and an entry that links a whole page calls it by its title;
+- in the guide, a link to a whole page whose label starts with a capital, other than an acronym's, calls the page by
+  its title, and no link target repeats under one heading, outside tables and `## Related`;
+- every page is in the sidebar, every sidebar and nav link reaches its page and its anchor, and the entry of a
+  section comes after its page's entry;
+- every code block has a language, and C# appears only where mdsnippets wrote it, in `README.md` and
+  `src/Typeshift/PACKAGE.md` too;
+- no page has a name mdsnippets skips, and no `snippet:` line is left as the tool should have found it;
 - every callout has a title;
-- every link into the docs reaches its page and its anchor.
+- every link into the docs reaches its page and its anchor: from a page, from the home page's cards, and by the
+  page's address on the site, as `README.md` and `PACKAGE.md` link it. A link to a file on GitHub, or a relative one
+  in those two files, reaches a file of the repository;
+- the guide and the home page hold nothing the [Voice](#voice) section and [What never goes in](#what-never-goes-in)
+  ban by name: an em dash, a trailing "say", "plain C#", the fillers "basically", "simply", "note that", "it's worth
+  noting", "seamless" and "robust", a decision ID, and a note such as "updated on" a date or "new in" a version. The
+  two readmes are checked for "plain C#";
+- Getting started has at most five numbered steps;
+- every repository path and every anchor of a docs page that `AGENTS.md`, the playbooks and the contributing pages
+  name in backticks exists, and every decision ID their prose cites is an entry of [Decisions](./decisions.md) that
+  is in force;
+- every guide page is the canonical page of a row of the fact map in `AGENTS.md`;
+- every test class that [Status](./status.md) names exists, and every test class is named in a row of it;
+- every link from the XML docs to this site reaches its page and its anchor: those in `src/`, which an editor shows
+  in a tooltip, and those the generator writes, as its snapshots hold them.
 
-The `docs` workflow runs mdsnippets, `docs:lint` and the build on every pull request, and deploys the site from
-`main`. Everything else on this page is for the reviewer.
+The `docs` workflow runs `docs:snippets:check`, `docs:lint` and the build on every pull request, and deploys the site
+from `main`. Everything else on this page is for the reviewer, because no pattern can tell it: a "just" that softens,
+a rhetorical question, staging, a lead that does not answer, a sentence the reader has to read twice, and a fact
+explained on two pages.
 
 ## Templates
 

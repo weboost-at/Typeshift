@@ -7,6 +7,894 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- `host.CreateChatClientAsync()`, and the agent's generated `CreateChatClientAsync(settings)`, create the client of the
+  raw path in one call: they resolve the run's options as `ResolveOptionsAsync` does, and the client keeps them, so
+  `using var client = await support.CreateChatClientAsync();` is all a library that takes an `IChatClient` needs.
+- TSH031 reports a project that compiles below C# 14, for example through a `<LangVersion>` pinned in a shared
+  `Directory.Build.props`, and declares a toolset or an agent or calls `AddTypeshift()`. The generator writes nothing
+  for such a project. It got an error for every generated member, such as CS9260, CS0708 and CS0710, in files it did
+  not write.
+- `store.VerifyAsync(settingsId, otherSettingsId, conversationId, otherConversationId)` checks a store whose settings
+  ids and conversation ids have different types, such as settings per tenant under a `string` and conversations
+  under a `Guid`, in one call. A call with the ids of one type checks only the interfaces of that id type.
+- `IDecisionStore<TId>` keeps one decisions document per conversation: JSON guarded by a version, saved like a
+  settings document. `WithStore<T>()` registers it with the other store interfaces of a class,
+  `InMemoryTypeshiftStore<TId>` implements it, and `VerifyAsync` checks it.
+- What a run asks your app is a decision, a record with an id of its own that is stored with the conversation.
+  `response.Decisions` lists an `ApprovalDecision` for each call of a tool that requires approval, with the tool, its
+  MCP server and the arguments the model sent, and a `PlanDecision` for a plan. A streaming run has them on its last
+  update, as `update.Decisions`.
+- `AnswerAsync(answers)` and `AnswerStreamingAsync(answers)` on an agent's host, with typed forms, record your app's
+  answers and continue the run once no decision is left open. Decisions can be answered one at a time: while others
+  are open no model is called, and the response lists the rest. `decision.Approve()`, `ApproveForConversation()`,
+  `Reject(reason)` and `plan.Approve(mode)` make the answers, and a `DecisionAnswer` binds from JSON such as
+  `{"decisionId":"...","approved":true}`, so an endpoint takes it as its body.
+- `UseQuestions()` in an agent's constructor lets the model ask the user through a built-in tool, `ask_user`: one to
+  four questions, each with a short header and two to four options. A call of it ends the run with a
+  `QuestionDecision`, and `question.Answer(...)` takes one answer for each question, the labels the user picked or
+  their own words, which the model reads as the call's result. `Reject(reason)` declines. A UI posts
+  `{"decisionId":"...","answers":[{"selected":["..."]},{"text":"..."}]}`. The tool is offered in a run with a
+  conversation, in every mode, and never to a sub-agent.
+- TSH034 warns at the `UseAgent<T>()` of an agent that declares `UseQuestions()`: a sub-agent cannot ask the user,
+  so it is not offered `ask_user`.
+- TSH035 reports a tool of a toolset or an agent named `ask_user`, `exit_plan_mode` or `handoff_to_...`, the names
+  of the tools a run offers itself. The model saw two tools of one name, or the tool never ran.
+- TSH037 warns about an agent that makes its mode configurable with `Configurable(r => r.Mode)` and offers tools
+  that require approval. Settings that are stored or posted could name `Auto`, in which those tools run unasked.
+  Its message names `SetModeAsync`, which switches a conversation's mode without the pick.
+- TSH036 warns about a `WithStore<T>()` whose store keeps conversations while no store of the same chain keeps
+  their decisions, when an agent of the project can ask your app. The first run that asked failed at run time.
+- A run's `invoke_agent` span records its decisions: `typeshift.decisions.asked` counts what the run asked, a
+  `typeshift.decision.asked` event names each decision with its id, its kind and its tool, and the run that
+  settles them adds a `typeshift.decision.settled` event for each call with its outcome, such as `approved`,
+  `rejected`, `answered`, `expired` or `unknown`. The events carry the call's arguments and your app's answers
+  only where message content is captured.
+- `host.GetDecisionsAsync()` loads what a conversation waits for without a run, for a page that was reloaded: the
+  open decisions, whether the answered ones wait to be carried out, and the tools approved for the conversation,
+  each with the time the approval took effect. `host.RecordAnswersAsync(answers)` records answers without a run,
+  and `ResumeAsync()` then carries them out.
+- TSH032 warns when the generator read a toolset or an agent differently from what its code says, because a
+  declaration names code that a source generator writes, such as `AddTool(Generated.Find)`,
+  `WithStorageKind(Generated.Kind)` or a tool that takes another agent's generated `Settings`. The generator cannot
+  see such code and left the declaration out without a word: the tool was missing, or the agent's settings were
+  stored under the kind of its class. The message names the first difference.
+- TSH033 warns about a `JsonSerializerContext` that lists a tool type with an enum and has no
+  `UseStringEnumConverter = true`, in an app published with Native AOT or trimmed. There the context decides how an
+  enum travels, and without the option the model reads `integer` in the tool's schema, gets numbers back, and fails
+  the call when it sends the enum's name, as it does in an app that keeps JSON reflection. Add
+  `[JsonSourceGenerationOptions(UseStringEnumConverter = true)]` to the context.
+- `TypeshiftBuilder.Services` is the service collection the chain registers into. An app on
+  `TypeshiftRuntime.Create` registers its logging and the services its tools resolve there, as in
+  `TypeshiftRuntime.Create(client, typeshift => typeshift.Services.AddLogging(logging => logging.AddConsole()))`.
+  Before, such a runtime had no logger and no way to get one, so a tool's exception, a save that failed and the
+  warning that nothing is stored were written nowhere, and a tool could not resolve a service of the app.
+- `WithStore(provider => new MyStore(...))` registers a store the container builds with your factory, for a store
+  whose constructor takes a folder or a connection string.
+- Every entry Typeshift logs is an event with an id and a name that stay, such as `2`, `StepNotStored`, for a failed
+  append, so a filter or an alert no longer matches text. The guide's page on observability lists them all.
+- New log events: at `Debug`, `RunResolved` names the model and the provider a run resolved, the client that serves
+  it and the settings that applied, `Compacted` what compaction took out of a model call, `RuleDecided` the
+  approval rule that approved or rejected a call, and `HandedOff` the agent a conversation was handed to.
+  `UpdatesDropped` warns once for each watcher of live updates that fell behind and lost updates, which left no
+  trace before.
+- A failed run's `invoke_agent` span carries the exception as an event, with its type, its message and its stack,
+  beside the span's error status.
+- The file store logs the folder it keeps the settings in at its first save, as the event `FileStoreFolder` at
+  `Information`. The default folder lies in the app's output, which a new build or deployment leaves behind, and
+  the guide's page on settings and stores now says so.
+- `ToolException`: a tool throws it to tell the model why a call failed. The model reads its message as the call's
+  result, so write it as a hint, such as "No ticket 4711 exists. Search for it first."
+- `host.SetModeAsync(mode)` switches a conversation's mode without a run, and the agent needs no
+  `Configurable(r => r.Mode)` for it. It is the way back to the default mode after a plan was approved into auto
+  mode. `GetDecisionsAsync()` returns the conversation's mode as `Mode`.
+- `host.CancelDecisionsAsync()` withdraws what a conversation waits for: every open decision, and every answer no
+  run has carried out yet. None of the calls runs, the conversation's next run tells the model that the request
+  was withdrawn, and a late answer throws `DecisionClosedException` with the reason
+  `DecisionClosedReason.Cancelled`. With each decision's `AskedAt`, an app can time a prompt out.
+- `host.RevokeStandingApprovalAsync(tool, server)` withdraws an approval your app gave for the conversation, so the
+  tool asks again from the conversation's next run on. `GetDecisionsAsync().Standing` lists what stands.
+- TSH038 warns about a tool parameter the model fills although it looks as if the call did: a settings record on a
+  tool whose `AddTool` lacks `WithSettings<T>()`, and a service such as `ITicketRepository` or `ILogger<T>`, an
+  interface, an abstract class or a delegate that JSON cannot create. Both built without a word. The settings
+  became arguments the model set, and a tool with a service parameter failed on every call.
+- TSH039 reports `WithSchemaVersion(n)` below 1 and an empty or blank `WithStorageKind("...")`. Both built and failed
+  at run time: an agent with schema version 0 saved its settings once and could never load them again, since the
+  document read back as version 1, "newer than this code's 0", and an empty kind threw an `ArgumentException` in
+  the file store that named no agent. A negative version also failed to compile under cultures that write another
+  minus sign, such as Swedish, Norwegian and Finnish.
+- TSH040 reports a way to reach `AddTypeshift()` or `TypeshiftRuntime.Create(...)` that the generator cannot
+  intercept: `Create(client)` through `using static`, `Runtime.Create(client)` through a using alias, a method group
+  of either, and `TypeshiftRuntime.Create(client)` with a `dynamic` argument. Each compiled and threw an
+  `InvalidOperationException` when the app started.
+- `services?.AddTypeshift()` is intercepted like `services.AddTypeshift()`. It compiled and threw at startup.
+- `WithChatOptions().WithModel(model)` names a model and no provider, as in `WithModel("gpt-5-mini")`. The run takes
+  the client registered for every agent, with `services.AddChatClient(client)` or `TypeshiftRuntime.Create(client)`,
+  and sends it the model. An app with one client no longer needs a provider name that nothing reads.
+- A run says which provider it resolved. Its `invoke_agent` span carries the tag `typeshift.provider`,
+  `AgentRun.Provider` gives run middleware, context providers and approval rules the provider's value, and
+  `ConversationEntry.Provider` keeps it as text on each model response, next to `Model`. A run on the default client
+  names none. Entries stored before load as they are, and a store that keeps an entry's JSON needs no change; one
+  that maps an entry's members to columns of its own adds a column to keep the provider.
+- TSH041 reports a `WithSettingsId(id)` or `WithConversationId(id)` whose copy goes nowhere, such as
+  `support.WithSettingsId(customer);` as a statement of its own. The call leaves the host as it was, so the next run
+  had no id: it stored and resumed no conversation, and its settings members changed the agent's own settings, which
+  every customer's runs apply.
+- TSH042 warns about a `using` on a copy of a host that your code still holds, in an outer block, a field, a property
+  or a parameter. Disposing the copy disposes the host's scope, so the host fails in a loop's next round, for
+  example. `await using var chat = runtime.CreateHost<SupportAgent>().WithConversationId(ticket);` is not reported.
+- `WithSettingsId(id)` and `WithConversationId(id)` take an id of a nullable value type, such as the `Guid?` a
+  request often holds, and name what its value names. Without a value they throw an `ArgumentNullException`. Before,
+  such an id compiled with a nullable warning and was an id of its own type, `Guid?`: a store of `Guid` ids did not
+  keep it, and in memory it was another conversation than the same `Guid`.
+- A tool's chain takes its calls in any order: `RequiresApproval()`, `ReadOnly()`, `WithName(...)` and
+  `WithDescription(...)` may follow `WithSettings<T>()`, `WithConfigurableSettings<T>()` and their picks, as in
+  `AddTool(CloseTicket).WithSettings<CloseSettings>().Configurable(s => s.Notify).RequiresApproval()`. After a
+  settings call they were a compiler error, CS1061, which read as if a tool with settings could not require
+  approval.
+- `IRunMiddleware.OnSteeringAsync(run, input, ct)` shows a run middleware each input your app steers into a run with
+  `TrySteer`, before the model receives it and before the conversation stores it. It returns the input, another
+  message to take in its place, or null to drop it. The member has a default that lets the input pass, so a
+  middleware you wrote compiles as it is.
+- `ConversationBusyException` is thrown by a run that starts while another run of its conversation goes on in the
+  same container, and `NothingToResumeException` by a resume of a conversation with nothing to continue. Both are
+  `InvalidOperationException`s, as these refusals were before, so a `catch` you wrote keeps working, and an
+  endpoint now tells a double click on send from a mistake by type: "A chat that is answering" in the guide's page
+  on chat endpoints maps the first to 409 Conflict. Their `Conversation` names the conversation.
+- `ConversationStoreException` is what a run throws when the store failed to append a step of its conversation. Its
+  `Response` holds what the run answered, its `Decisions` included, and its inner exception is the store's.
+  `TypeshiftOptions.StoreFailure = StoreFailure.ContinueRun` has such a run return instead, and then
+  `response.ConversationIncomplete`, and `update.ConversationIncomplete` on a stream's last update, says that the
+  conversation lacks a step.
+- Each conversation entry carries a number, `ConversationEntry.Sequence`, so two instances of your app no longer
+  interleave one conversation's entries: a store with a unique key on the conversation and the number refuses the
+  entry of the run that appends second, which stops with a `ConversationBusyException`. A store says that it does
+  with `RefusesTakenSequences => true`, and `VerifyAsync` then checks it. `InMemoryTypeshiftStore<TId>` refuses such
+  entries. A store that never looks at the number works as before, and entries stored before load with none, the
+  next run numbering on from their count. "Refuse a second run" in the guide's store page shows the key and the
+  insert.
+- `AgentHost<TAgent>` runs, answers, resumes and resolves options itself, without the agent's `Settings`: a method
+  generic over the agent, such as `AskAsync<TAgent>(AgentHost<TAgent> host, string question)`, calls
+  `host.RunAsync(question, ct)` and runs any agent. It was CS1929, since only each agent's generated members could
+  run it. A run takes its token second, as in `RunAsync(input.Text, ct)`, which was CS1503 and needed `ct: ct`. A
+  call with settings reaches the agent's generated member as before.
+- `AgentRun` gives run middleware, context providers and approval rules the ids your app gave the host, typed as
+  it gave them, with `run.TryGetSettingsId<int>(out var customer)` and `run.TryGetConversationId<Guid>(out var
+  conversation)`, and the run's `RunOptions` with every layer of settings applied. A tool middleware reads the run
+  of a call as `call.Run`, so it names the agent and the customer a tool ran for without a scoped service of your
+  own that holds them.
+- `ResumeAsync<TResult>()` and `ResumeStreamingAsync<TResult>()` resume a typed run that a crash cut off, asking the
+  model for `TResult` again; before, it resumed untyped. `tracker.TrySteer(conversation, message)` steers with a
+  user's `ChatMessage`, which may carry images or files, beside the overload that takes text.
+- `host.LoadConversationAsync()` loads the entries of the host's conversation, for a chat page that reloads, also
+  where your app registered no store and Typeshift keeps conversations in memory. Before, the page resolved
+  `IConversationStore<TId>` itself, which throws without a registered store.
+- `response.GetConversationId<Guid>()` reads the id of the conversation a run stored, typed as your store keeps it,
+  so `support.WithConversationId(response.GetConversationId<Guid>())` continues a conversation that
+  `PersistAllConversations` started. `WithConversationId(response.ConversationId!)` compiled and named another
+  conversation, under a `string` id.
+- `host.Services` is the scope a host's runs resolve their services from. A background job sets your app's scoped
+  state there before it runs, as in `support.Services.GetRequiredService<CurrentTenant>().Id = tenant;`, where a
+  request's middleware would. Before, a host from the runtime hid its scope, so a job's tools ran with that state
+  empty.
+- Each toolset, and each agent with tools of its own, gets a nested `ToolNames` class with one constant per tool, so
+  an approval rule or a tool middleware writes `call is { Name: ShellToolset.ToolNames.RunCommand }` in place of the
+  string `"run_command"`. Renaming the tool's method now breaks the build at the rule, where the string kept
+  compiling and stopped matching. A member of yours named `ToolNames` is TSH018, and a tool named `tool_names` is
+  `ToolNamesTool` on the tool list. `BuiltInTools` holds the names of the tools a run offers itself: `AskUser`,
+  `ExitPlanMode` and `HandoffPrefix`.
+- A `[Description]` on a tool's method describes the tool, and one on a parameter describes the parameter in the
+  schema, where neither `WithDescription` nor the XML docs say anything. A tool moved over from a
+  Microsoft.Extensions.AI sample got TSH009 for its method's attribute and lost its parameters' descriptions without
+  a word. The XML docs still win where both are written.
+- `runtime.Agents` lists every agent of your project and of the projects it references, with its type, name, kind
+  and description, and `runtime.Toolsets` every toolset, with its display name and its tools, each with its name,
+  description and whether it is read-only or requires approval. `runtime.CreateHost("SupportAgent")` and
+  `runtime.CreateHost(typeof(SupportAgent))` create the host of an agent your code does not name, as an
+  `IAgentHost`, and a request resolves the same host as a service keyed by the agent's kind. An endpoint for several
+  agents needed a switch with one arm per agent before, and `WithDisplayName` named a toolset that nothing listed.
+- A project that turns `GenerateDocumentationFile` off keeps the descriptions of its tools, their parameters and its
+  agents: the generator reads the `///` comments the compiler keeps as plain comments then. They were lost, and
+  TSH011 named each such tool and agent. TSH011 now names a tool's parameter whose type has XML docs, which reach
+  the schema only with the setting on.
+- `WithChatOptions().WithReadOnlyTools(new HostedWebSearchTool())` adds tools of no toolset that only read, and plan
+  mode offers them beside the toolsets' read-only tools. The provider receives each tool as it was given. Before,
+  plan mode hid every tool of the chat options, so an agent whose research is a provider's web search planned with
+  `exit_plan_mode` alone.
+- A tool that returns an `AIContent`, such as a `DataContent` with an image, or a sequence of contents, as its value
+  or from a `Task<T>` or `ValueTask<T>`, hands the model the content as it is, and the stored conversation reads it
+  back as content for later runs. Such a result needs no JSON metadata under Native AOT. Before, the generated tool
+  serialized it to JSON, so the model read an image as base64 text and paid for its tokens.
+- `UseToolset<T>().RequiresApproval(t => t.X)` makes the calls of a toolset's tool wait for your app's approval in
+  this agent only, as the toolset's own `RequiresApproval()` does, and sub-agents' TSH024 sees it. Before, an agent
+  could not put a toolset's tool behind approval, though `UseMcpServer(...).RequiresApproval()` could for a server.
+- `UseToolset<T>().Configurable(t => t.X)` lets stored settings or a run switch the tool off: the agent's `Settings`
+  gain `bool? XEnabled`, and `WithSettingsId(customer).UpdateSettingsAsync(s => s with { SearchTicketsEnabled =
+  false })` leaves `search_tickets` out of that customer's runs only. Only the tools an agent picks get a switch,
+  and `runtime.Agents` lists them in `AgentInfo.SwitchableTools`.
+- TSH043 reports a `RequiresApproval(t => t.X)` or `Configurable(t => t.X)` on a use that excludes the tool or
+  includes others only, which would have no effect.
+- A watcher that joins while a run goes on first receives what the run published that the store does not hold yet,
+  such as the answer the model is writing, merged. Before, a page that opened during an answer showed it from the
+  middle, since the store holds a response once its model call ends.
+- `RetryAsync()` on an agent's host, with `RetryStreamingAsync` and typed forms, continues a conversation whose last
+  run failed at the provider, was cancelled or was left, from its stored steps, so the model receives the user's
+  message once and the conversation stores it once. Before, running again with the same input stored it twice, and
+  `ResumeAsync` refused a conversation whose last run ended.
+- `WithRunOptions().WithSummaryInstructions(text)` replaces the English instructions of compaction's summary model,
+  for an app in another language or domain, and `Configurable(r => r.SummaryInstructions)` puts them into the
+  agent's `Settings`. Before, the instructions were a constant nothing could change.
+- Each run ends its watchers' feed with an update whose `update.EndsRun` is true, after its other updates: with the
+  finish reason of its last model call, or the error a failed run's end stores. A handoff ends once, after the
+  answer of the agent handed to. Before, `WatchAsync` gave no sign that a run ended, so a watcher waiting for one
+  answer had nothing to stop at.
+
+### Changed
+
+- **Breaking:** `host.CreateChatClientAsync(options)` takes only options that `ResolveOptionsAsync` returned, and
+  throws an `ArgumentException` for `ChatOptions` your code made, such as `new ChatOptions()`. Create the client from
+  `await host.ResolveOptionsAsync()` instead. The client keeps those options: a call without options runs with them,
+  and a call with `ChatOptions` of its own, as a library that takes an `IChatClient` passes them, changes only the
+  conversation id, the response format and the tools it adds. Before, such a call ran the bare model, the provider's
+  default model without the agent's instructions or tools. With `PersistAllConversations`, such a call starts a
+  conversation as a call with the resolved options does. A call with options resolved for another provider or model
+  throws an `InvalidOperationException`: create a client from those options. Before, it sent their model to the
+  provider the client was created for.
+- `runtime.CreateHost<TAgent>()`, and a run that calls a sub-agent or hands over to an agent, throw an
+  `InvalidOperationException` that names an agent no module registered and the likely causes: `AddTypeshift()`
+  called only in a library the app references, an abstract agent, a base named through a using alias, a project
+  built with another Typeshift version. They threw the container's "No service for type" for the agent's class.
+- **Breaking:** once your app registers stores, a `ConversationTracker<TId>` whose id type none of them keeps
+  conversations under throws an `InvalidOperationException` at its first call, naming the `IConversationStore<TId>`
+  it needs, as a run under such an id does. It answered as if no conversation ran, forever: a
+  `ConversationTracker<long>` in an app whose ids are `int`s watched nothing. Take the tracker of your conversation
+  ids' type. A store's messages name a nullable id type as C# does, `Guid?`.
+- **Breaking:** a tool result that is a JSON object or array reaches the provider's client as a `string`, the JSON
+  without white space. It was a `JsonElement`, which the provider's client indented as it wrote the request: a tool
+  returning 20 records cost about 60 percent more tokens on every model call that carried its result. A client of
+  your own in the provider's place, a wrapper or a fake in your tests, that cast a result to `JsonElement` parses
+  the text instead, and none may depend on indented text. Middleware, the stored conversation, the response and
+  live updates keep the `JsonElement`, whose text is without white space now too.
+- Typeshift logs under one category, `Typeshift`. A failed append was logged under
+  `Typeshift.ConversationChatClient` and a waiting save of the file store under `Typeshift.FileAgentSettingsStore`,
+  the names of internal classes: a logging filter that names one of them names `Typeshift` now. The tool loop's
+  entries, a tool's exception among them, stay under `Microsoft.Extensions.AI.FunctionInvokingChatClient`.
+- `ITypeshiftStore<TId>` includes `IDecisionStore<TId>`, so a class that implements it needs two more methods,
+  `LoadDecisionsAsync` and `SaveDecisionsAsync`. "Keep decisions" in the guide's page on implementing a store shows
+  them over a table of their own.
+- TSH025 also reports a sub-agent named like one of the agent's tools, two sub-agents of one name and two handoff
+  targets of one name, at the `UseAgent<T>()` or `UseHandoff<T>()` that brings the name a second time. TSH023 reports
+  a sub-agent whose name is one a run offers itself, such as `ask_user`.
+- TSH019 is titled "Toolset of a referenced assembly cannot be used" and TSH020 "Toolsets and agents of a referenced
+  assembly cannot be registered", and each message names its cause: a build with another Typeshift version or
+  without the generator, or a reference under an `extern alias` only. Both read as if the reference had never run
+  the generator, whatever the cause.
+- TSH024 says that a sub-agent cannot ask "your app". It said "the host", which the guide uses for
+  `AgentHost<TAgent>` alone.
+- TSH020 is titled "Referenced assembly was built with another Typeshift version or without the generator", and its
+  message names both causes. It read as if the reference had never run the generator, also when it was built with
+  another Typeshift version.
+- **Breaking:** resolving `AgentHost<TAgent>` from the root provider throws an `InvalidOperationException`, with
+  scope validation on or off. A host injected into a singleton, such as a `BackgroundService`, comes from the root:
+  inject `TypeshiftRuntime` there and call `runtime.CreateHost<TAgent>()` for each job. A console app that resolved the
+  host from what `BuildServiceProvider()` returned creates a scope first, or moves to `TypeshiftRuntime.Create`.
+  Before, such a host ran every request on one instance of each scoped service where scopes are not validated, so
+  one customer's chat client provider and its key served all customers.
+- **Breaking:** disposing a copy of a host from `runtime.CreateHost<TAgent>()`, made by `WithSettingsId` or
+  `WithConversationId`, disposes the host's scope, as disposing the host does. So
+  `await using var chat = runtime.CreateHost<SupportAgent>().WithConversationId(ticket);` disposes the scope and its
+  scoped services when the job ends. Before, it disposed a copy that owned nothing and leaked the scope, with every
+  scoped service its runs resolved. Disposing the host and its copies each is safe, and once one of them is disposed, a
+  run of any of them throws an `ObjectDisposedException`: code that disposed a copy and ran the host after it keeps the
+  copy without `using`.
+- **Breaking:** a run fails before its first model call when its chat client runs a tool loop of its own, as one
+  registered with `services.AddChatClient(client).UseFunctionInvocation()` does. Register the client without
+  `UseFunctionInvocation()`: Typeshift runs the tool loop. Before, the tools of such a run ran outside tool
+  middleware and the run's limits, and a tool that requires approval read "not approved" without your app being
+  asked.
+- **Breaking:** a store interface has one store. A chain call whose store implements an interface that another
+  call's store is registered as throws an `InvalidOperationException` when the app registers it, naming both stores
+  and the interface. Before, the last call won without a word: `WithFileStore()` followed by
+  `WithStore<InMemoryTypeshiftStore<Guid>>()` kept the agents' own settings in memory, and a memory store added
+  after a database store of the same id type took its settings and conversations. Remove one of the two calls, or
+  pass `replace: true` to the later one when its store is meant to take over, as in a test host:
+  `WithStore<InMemoryTypeshiftStore<Guid>>(replace: true)`. A store your app registers in the container itself,
+  with `AddSingleton`, still follows the container's rule.
+- `InMemoryTypeshiftStore<TId>` keeps agents' own settings only while no other store does, in either order of the
+  two calls, so `WithFileStore()` beside it keeps them in files. Of several memory stores the first registered
+  keeps them, where the last did.
+- The message for a missing store ends with the store interfaces the app registered, and the one for agents' own
+  settings names `WithFileStore()` or a store of your own instead of `InMemoryTypeshiftStore<TId>`.
+- `WithFileStore` is a method of `TypeshiftBuilder`, and the class `FileStoreExtensions` is gone. `VerifyAsync` has
+  no method on `ITypeshiftStore<TId>` any more: a call on such a store takes the one on `ISettingsStore<TId>`, which
+  runs the same rules. Calls compile as before; an assembly compiled against an earlier version is rebuilt.
+- **Breaking:** `store.VerifyAsync(id)` is now `store.VerifyAsync(id, otherId)`. The check stores a document and an
+  entry under the second id first and fails when they changed, or when they load under the first id, so a store that
+  forgets the id in a query no longer passes. Such a store served one customer's settings or conversation to another.
+  Pass two ids nothing is stored under; the same id twice throws an `ArgumentException`.
+- `VerifyAsync` also fails a store that orders a conversation by its entries' times, since the entries it appends
+  now carry times that tie and run backwards, and a store that writes a document which is not stored when a save
+  names a version other than 0, where a `StoreConflictException` belongs. Agents' own settings are checked under
+  kinds named after the id, from `typeshift_check_<id>` on, instead of new kinds on every call.
+- **Breaking:** a store registered in the container with `AddScoped` or `AddTransient` fails the first run with an
+  `InvalidOperationException` that names it: register it with `WithStore<T>()` or `AddSingleton`, and let it take a
+  factory such as `IDbContextFactory<T>`. Typeshift takes its stores from the root container. Before, such a run
+  failed with the container's own message where scopes are validated, and elsewhere one instance of the store, with
+  the `DbContext` it took, served every request.
+- Stored JSON keeps text outside ASCII as it is written, in settings, conversation entries and the file store's
+  files. Before, every such character was stored as `\uXXXX`, so Chinese, Japanese and Korean text took about twice
+  the bytes, a row could not be read in a database tool, and a `LIKE` search found nothing. Quotes, `<`, `>` and `&`
+  are still escaped, and JSON stored by earlier versions reads as before. Compaction now counts a tool result that
+  is a JSON string by its text, so its estimate no longer grows when a conversation is loaded from the store.
+- A tool result that compaction cleared asks the model to call the tool again only when the tool is marked
+  `ReadOnly()`. Every other cleared result now reads `[Cleared to save context.]`, so the model is not invited to
+  send, pay or delete a second time. Mark the tools that only read.
+- A compaction summary that fails no longer ends the run. When the summary named a model or a provider of its own,
+  the run's own provider and model write it instead. When that fails too, the run's call goes out without a summary,
+  with the oldest tool results cleared, and the provider decides. Each failed summary call is logged as a warning and
+  recorded on the run's span. Before, a summary model that was down, or one the run's provider did not know after a
+  user switched providers, failed every later run of the conversation before its own model was called.
+- TSH003's message says why the method cannot be a tool, as in "'Lookups.LookUp' cannot be a tool: its class
+  'Lookups' is file-local, and generated code is written to other files".
+- TSH004 is titled "Tool parameter or result cannot be bound". It covers a tool's result too, and its message names
+  the reason, as in "The result of the tool 'chars' cannot be returned to the model: its type is a ref struct".
+- A tool named `get_type`, `memberwise_clone` or `reference_equals` is `GetTypeTool`, `MemberwiseCloneTool` or
+  `ReferenceEqualsTool` in an agent's `Settings`, as on the tool list. Without the suffix the member hid one that
+  every record has from `object`, which is CS0108. Settings stored under the tool's name are not affected.
+- The module of an assembly whose name holds other characters than letters, digits and dots carries a hash of the
+  name, as `Acme_Tools_1a2b3c4dModule` for `Acme-Tools`. The generated registration names it for you.
+- Module stamps are at version 16, so a referenced project built with an earlier Typeshift is TSH020 until it is
+  rebuilt.
+- The class that holds a toolset's picks for `Include` and `Exclude` lives in the global namespace, as the classes
+  of the host members do. It was `{Toolset}ToolList` in the toolset's namespace and is `TypeshiftTools_` followed by
+  the toolset's full name, each part after its length, hidden from code completion. Picks are written as before.
+  Code that named the class itself, which no docs showed, names the new one.
+- Generated classes and members carry `[GeneratedCode]` and `[ExcludeFromCodeCoverage]`, so coverage tools leave
+  them out of your numbers. The host's members and the tools' factories carry `[DebuggerStepThrough]`, so a step
+  into `host.RunAsync(...)` does not stop in a generated forwarder.
+- `Configure{Tool}().With{Member}(...)` shows the `<summary>` of the settings member it sets.
+- `ToolDecision`, what an `IToolApprovalRule` returns, is now `RuleVerdict`, with the same `Approve`, `Abstain` and
+  `Reject(reason)`. Rename it in your rules.
+- A layer taken out of the client `CreateChatClientAsync` created, such as its `FunctionInvokingChatClient` through
+  `GetService`, throws when it is called on its own. Such a call ran the tools, stored nothing in the conversation
+  and counted no model call. Call the created client itself.
+- **Breaking:** approvals no longer travel in messages. `response.ApprovalRequests`, `request.ApproveForConversation()`
+  and `request.ApprovePlan(mode)` are gone, and a `ChatMessage` that carries Microsoft.Extensions.AI's approval
+  contents throws an `ArgumentException` in `RunAsync`. Read `response.Decisions` in place of `ApprovalRequests`,
+  answer with `decision.Approve()` or `decision.Reject(reason)` in place of `request.CreateResponse(...)`, with
+  `ApproveForConversation()` on the decision, and with `plan.Approve(mode)` in place of `ApprovePlan(mode)`. Pass the
+  answers to `chat.AnswerAsync(answers)` in place of `chat.RunAsync(new ChatMessage(ChatRole.User, answers))`.
+- **Breaking:** `ApprovalClosedException` and `ApprovalClosedReason` are `DecisionClosedException` and
+  `DecisionClosedReason`. `Requests` is `Decisions`, and `PassedBy` is `Expired`. The same answer posted again is no
+  error while the answers are not carried out yet.
+- **Breaking:** a streaming run no longer sends `ToolApprovalRequestContent`. Its decisions arrive with its last
+  update, once the run has ended, so an app can answer each one the moment it shows it.
+- **Breaking:** `ResumeAsync` on a conversation whose decisions are open returns them without a model call, where it
+  threw.
+- **Breaking:** `ConversationEntry.StandingApprovals` is gone. Standing approvals are stored with the conversation's
+  decisions, listed by `GetDecisionsAsync()`, and take effect when a run carries their answer out. An MCP server's
+  tool is approved together with its server, so the approval reaches no other tool of that name.
+- **Breaking:** conversations stored by earlier versions load, with two losses. An approval request that was open
+  cannot be answered any more: the model decides again and asks again. Standing approvals given before are not
+  carried over, so the conversation asks once more.
+- A run of a conversation that was handed off loads the conversation once and resolves only the agent that
+  answers. It loaded it twice, and first resolved the agent the run was started on: its settings, its MCP servers'
+  tools and its chat client, so that agent's MCP server being down failed a run the other agent would have
+  answered. Such a run is now traced as one `invoke_agent` span, of the agent that answers; it was nested in a
+  span of the agent it was started on, which reported the same tokens again. A host's run loads its conversation
+  before that span opens, so a span your store writes for the load is no longer its child. A run on a conversation
+  that is busy is refused before its options resolve.
+- **Breaking:** a conversation's mode is stored with its decisions. The entry that ends a run and a summary no
+  longer carry it in `ConversationEntry.Mode`, and the `ConversationDecisions` record has a fourth member, `Mode`.
+  A run whose settings name a mode, an approved plan and `SetModeAsync` set the conversation's mode. Until one of
+  them does, each run is in the mode of its agent's code and stored settings, where the mode of the conversation's
+  first run used to stay. A run that names a mode needs a store that keeps decisions: an app with an
+  `IConversationStore<TId>` of its own and no `IDecisionStore<TId>` of that id type fails such a run, naming the
+  interface. A mode an earlier version stored on a conversation's entries holds until the conversation's decisions
+  name one, and `GetDecisionsAsync().Mode` is null for such a conversation until then.
+- A run without a conversation that must ask throws `DecisionUnavailableException`, an `InvalidOperationException`
+  as before. An app with an `IConversationStore<TId>` of its own and no `IDecisionStore<TId>` of that id type fails
+  the first run that must ask, naming the interface.
+- A new message while decisions wait still closes them. The model now reads, for each call of that response, that
+  the call did not run, where the calls were left out of what it saw.
+- A call that a rule, a standing approval or auto mode approves runs in the round the model called it and writes
+  nothing to the store. A run with such calls keeps to `WithMaxToolIterations`, which it could exceed by a round.
+- A provider's client wrapped in `UseFunctionInvocation()`, which the guide advises against, runs no tool that
+  requires approval: the model reads that the call was not approved.
+- **Breaking:** a configurable settings member of type `object`, of a class without a settable member, or of a
+  list or a dictionary of those, such as `Dictionary<string, object>`, is TSH012. It compiled before, was stored as
+  `{}` and read back as an empty object, so its value was lost with the first save. Leave the member out with
+  `NotConfigurable(...)` so that it stays in code, or give it a type settings can store, such as a record with
+  settable members or a `Dictionary<string, string>`.
+- **Breaking:** a configurable list of nullable items or dictionary of nullable values, such as `List<string?>`
+  or `Dictionary<string, Place?>`, is TSH012. Such a member gave CS8619 and CS8620 in a generated file, and a null in
+  it was dropped when the settings were read. Make the items non-nullable.
+- A null in a stored list or dictionary fails the save with an `InvalidOperationException` that names the member,
+  as in "'History' holds a null item, which settings cannot store". A null record failed the save with a
+  `NullReferenceException` that named nothing, and a null string was stored and then missing when read.
+- Stored `TimeSpan`, `DateOnly` and `TimeOnly` values read only in the format settings write them in:
+  `"00:00:30"`, `"2026-01-02"` and `"13:45:30.0000000"`. Any other form now counts as missing, so the layer below
+  applies. In a settings file edited by hand, `"30"` was read as thirty days and `"01/02/2026"` as the second of
+  January. "The stored JSON" in the guide's page on settings and stores lists the formats.
+- When two declarations in different files clash, TSH007 and TSH022 are reported on the one in the file that comes
+  later by the ordinal order of the file names, on every build machine. The order followed the culture of the
+  machine that builds, so the same code could be reported in another file there. In a project whose file names mix
+  upper and lower case, such as `agents.cs` and `Billing.cs`, the diagnostic may now sit on the other declaration:
+  ordinal order puts upper case first.
+- TSH017 is titled "Toolset or agent does not derive from its base directly" and also reports a toolset or an
+  agent that names its base through a using alias, as in `using AgentBase = Typeshift.Agent;` and
+  `class DeskAgent : AgentBase`. The generator finds a class by the name `Toolset` or `Agent` in its base list, so
+  it wrote nothing for such a class: the build passed, a toolset's tools were missing from every agent, and an agent
+  failed at run time with "was not compiled with the Typeshift generator". Name the base itself, with its namespace
+  where your app has an `Agent` of its own: `class DeskAgent : Typeshift.Agent`.
+- The analyzer costs code that uses nothing of Typeshift next to nothing. It ran its rules over every method call
+  and every class of the project, building several strings for each, which cost build and editor time in a project
+  with many calls. It now checks only the calls of Typeshift's own methods, tells a class of the library by its name
+  before it builds a string, and reads the references once at the end of a build. For 100,000 calls and 2,000
+  classes that use nothing of the library, the time in its own code fell from about 600 ms to about 10 ms.
+- The analyzer checks toolsets and agents in files the compiler treats as generated code: a file that starts with
+  `// <auto-generated/>`, or is named `*.g.cs` or `*.designer.cs`. The generator always read such files, so a toolset
+  that a script, a template or another tool wrote got no diagnostic for any mistake, and an agent that used it was
+  generated without its tools. A project with such files may see TSH diagnostics in them for the first time.
+- A tool argument that does not fit its parameter fails with a message that names the argument and the tool, as in
+  "The argument 'number' of the tool 'close_ticket' does not fit its schema: The JSON value could not be converted
+  to System.Int32." The model read System.Text.Json's message alone and could not tell which argument was wrong.
+- Inside a record or class a tool takes, a member without a default that the model leaves out fails the call, and
+  so does a null for a member whose type takes none. The message names the member. Such a member arrived as null,
+  although the tool's schema lists it as required, and the method failed on it later.
+- The error for a tool parameter whose type System.Text.Json cannot read or write names the tool and the parameter.
+  For a parameter that is such a type itself it says to use another type, where it advised `[JsonIgnore]`.
+- **Breaking:** the model no longer reads the message of every exception a tool throws. It reads the message of a
+  `ToolException`, and of any other exception one fixed sentence: "Error: Function failed. The details of the
+  failure are not available to you." Where a tool throws a hint for the model, as in
+  `throw new InvalidOperationException("No ticket 4711 exists. Search for it first.")`, throw
+  `new ToolException(...)` with the same text. Before, what a database driver or an HTTP client wrote into its
+  exception, a server's name or a connection string for example, went to the model provider, into the response and
+  into the stored conversation. The exception is not lost: the tool loop logs it as an error, the call's
+  `execute_tool` span carries its type and message, and past `WithMaxConsecutiveToolErrors` it ends the run and
+  reaches your code as before.
+- A call whose arguments do not fit fails with a `ToolException` where it failed with an `ArgumentException`, so
+  the model reads "The tool 'probe' requires the argument 'query'." without "(Parameter 'query')" behind it.
+- TSH027 is also reported in an app published trimmed (`PublishTrimmed`) and in a library that sets `IsTrimmable`,
+  and is titled "Tool type has no JSON metadata for Native AOT or a trimmed app". The SDK turns System.Text.Json's
+  reflection off for a trimmed app as for a Native AOT one. Such an app built and published without a diagnostic,
+  and every tool that takes or returns a record or a list failed when the model called it. List the types in a
+  `JsonSerializerContext`, as the guide's Native AOT page shows. An app that turns JSON reflection back on, as a
+  Blazor WebAssembly app does, is not reported.
+- A sub-agent whose run fails, for example because no client serves its model, tells the calling model only that
+  the call failed, in the foreground and in the background. The exception is logged as an error and set on the
+  span. An answer outside the type of `WithResult<T>()` still tells the calling model what the sub-agent answered.
+- TSH003 also reports `AddTool(Find)` where two methods are named `Find`, and names the cast that picks one, such as
+  `AddTool((Func<string, string>)Find)`. The compiler's CS1503, "cannot convert from 'method group' to
+  'System.Delegate'", stood alone and named no way out.
+- `WithSettings<T>()`, `WithConfigurableSettings<T>()` and `UseToolset<T>()` no longer require `new()` of their type
+  argument, so the analyzer answers where the compiler's CS0310 did. A settings record without a public
+  parameterless constructor, such as the positional `record FindSettings(int Limit = 5)`, is TSH005, whose message
+  shows the property form. It got CS0310, and TSH015 about a chain that was fine. An abstract settings record is
+  TSH005 too. A toolset with an internal constructor can be used by an agent of its assembly, as TSH016 always
+  said, and `UseToolset<T>()` of an abstract toolset is TSH016.
+- TSH007 names both tools and where each is declared: the two toolsets, a referenced toolset in full and with its
+  assembly, or the two agents a standing approval reaches. It says that tool names are unique across a project and
+  its references, ends with the fix, `WithName("...")`, and has the first declaration as its second location. It read
+  "Another tool is already named 'search', or maps to the same member 'Search'", also between two referenced
+  projects, where it has no location to look at.
+- TSH025 for a tool name that an agent offers twice sits on the declaration that brings the name a second time, the
+  agent's own `AddTool(...)` or the second `UseToolset<T>()`, and names both sources. It sat on the agent's class
+  name. Every TSH025 message ends with the fix of its own case, such as "use each toolset once". All of them ended
+  with "use each toolset once, pick each tool once, and leave out one of two tools of a name".
+- Three messages say more. TSH003 names what `AddTool` got, as in "it is generic", "it is an instance method" or "it
+  is a lambda", where it said "pass a static method that is not generic" for each. TSH012 names the member's type
+  and the way out, `NotConfigurable(s => s.Member)` under `WithConfigurableSettings<T>()` or removing the pick, and
+  for a chat option the options settings do store. It said "settings cannot store it". TSH016 for a class without a
+  parameterless constructor says where services go: a tool's `IServiceProvider` parameter, or an agent's context
+  provider.
+- The diagnostics that only a build reports say so to the editor, through the `CompilationEnd` tag: TSH020, TSH022,
+  TSH023, TSH024, TSH026, TSH027, TSH033, TSH034, TSH036 and TSH037, beside TSH031. They compare classes or
+  projects, which an editor does on a build and not while you type. The table of the diagnostics page says for each
+  diagnostic when it is reported.
+- TSH023 also reports `UseAgent<T>()` and `UseHandoff<T>()` of an abstract agent. The generator writes nothing for
+  an abstract class, so such a use compiled and had no agent behind it.
+- The tooltips of an agent's generated host members name what they throw. `RunAsync` and `RunStreamingAsync` list
+  `DecisionUnavailableException`, an `InvalidOperationException` for a conversation with a run going on or for a
+  chat client or store that is not registered, and a `JsonException` for stored settings of a newer schema version.
+  The answer, resume and settings members list theirs, and so do `WithSettingsId`, `WithConversationId`,
+  `WithModel`, `WithStore`, `WithChatClientProvider`, `WithOptions` and `NewConversationIds`. The summaries of
+  these host members, of `Agent`, `Toolset`, `AgentHost<TAgent>`, `AddTypeshift()` and `TypeshiftRuntime.Create`,
+  and of the interfaces an app implements end with a link to their section of the guide.
+- The guide's approval rule, `ShellGuard` in "Approval rules", fails closed in auto mode: there it rejects every
+  shell command that is not one of a few whole commands it names, and in the other modes it abstains, so your app
+  asks. It rejected commands that contain one of five words and let the rest run in auto mode, so `rm -r -f /` or
+  `su''do id` ran unasked. A rule you copied from it guards auto mode only once it names what it allows.
+- **Breaking:** a run option outside its range is refused where it enters, by its name. `WithMaxToolIterations`
+  takes 1 or more, `WithMaxConsecutiveToolErrors` 0 or more, `WithMaxInputTokens` and `WithTargetInputTokens` a
+  value above 0, and the target a value below the maximum. Each throws an `ArgumentOutOfRangeException` from the
+  agent's constructor for any other value. `SaveSettingsAsync` and `UpdateSettingsAsync` throw an `ArgumentException`
+  and store nothing for settings that set such a value, and a run whose settings layers resolve one throws an
+  `InvalidOperationException` before it starts, as in "The agent 'support_agent' resolved MaxToolIterations 0 from
+  the settings of its code, settings id 42: it must be 1 or more." Before, `MaxToolIterations = 0` saved, and every
+  run with that settings id then failed inside the tool loop with "Specified argument was out of the range of valid
+  values. (Parameter 'value')". Stored settings that hold such a value fail their runs until your app saves valid
+  ones.
+- **Breaking:** `WithModel` and `WithSummaryModel` throw an `ArgumentException` for a blank model, and `WithModel`
+  for a blank provider too. A save refuses a blank `Provider`, `Model`, `SummaryProvider` or `SummaryModel`, and a
+  run whose settings resolve one throws before it starts. Before, the empty field of a settings form was stored and
+  sent to the provider as the model. Pass null for a field the user left empty, which keeps the layer below.
+- **Breaking:** the client registered for every agent, with `services.AddChatClient(client)` or
+  `TypeshiftRuntime.Create(client)`, is the default client and serves only a run that names no provider. A run that
+  names a provider nothing is registered for throws an `InvalidOperationException` before it calls a model or
+  stores an entry, and the message lists the keys your app registered clients under. Before, such a run was answered
+  by the client for every agent without a word: `WithModel("opnai", "gpt-5-mini")`, a stored `Provider` in another
+  case and an enum provider beside a provider class for strings all ran on another client, which may be another
+  account. Where an agent names a provider over one client, as `WithModel("openai", "gpt-5-mini")` over
+  `TypeshiftRuntime.Create(client)`, name the model alone, `WithModel("gpt-5-mini")`, or register the client under
+  the provider, `services.AddKeyedChatClient("openai", client)`.
+- **Breaking:** a run that names a provider and no model throws when an `IChatClientProvider<T>` of the provider's
+  type is registered, since the class serves a provider and a model. Before, it went on to a client registered under
+  the provider or to the one for every agent, which beside a provider class for a key per customer is your app's own
+  key. Name the model too.
+- **Breaking:** a `SummaryProvider` in settings that no client is registered for fails a run that can compact when
+  it starts. Before, the client for every agent wrote the summary, or the failure was a warning and the run's own
+  model wrote it. A summary call that fails is still a warning.
+- **Breaking:** stored settings whose `provider` or `summaryProvider` is no value of the agent's provider id type
+  fail to load, with a `JsonException` that names the stored text, as in "The 'SupportAgent' settings store the
+  provider "Anthropic", which is no Vendor". That fails the runs that apply them and `LoadSettingsAsync`. Before,
+  such a provider read as missing, so after a member of an enum of providers was renamed, the model stored beside
+  it went to the provider of the layer below. Change the stored values when you rename or remove a provider, in
+  your store's `LoadAsync` or with a script over your database.
+- Setting `run.Response` in a run middleware once it called `next` throws an `InvalidOperationException`. It
+  changed the answer for the caller of `RunAsync` alone: the stream of `RunStreamingAsync`, the stored
+  conversation, watchers and the next model call kept the model's text, so an output filter written that way passed
+  its test and leaked everywhere else. Set the response in place of calling `next` to answer in place of the
+  model. To check or change what a model says, wrap the provider's client in a `DelegatingChatClient`: "Guarding
+  the answer" in the guide's page on middleware shows one that holds in every place the answer goes.
+- A run whose conversation the store failed to append a step of fails as it ends, with a
+  `ConversationStoreException`. It returned its answer as if everything was kept: a lost end made a finished run
+  look interrupted, so a resume ran it again, and a lost answer was gone at the next page load, behind a success.
+  To keep the answer, catch the exception and use its `Response`. To have such runs return as before, set
+  `AddTypeshift().WithOptions(options => options.StoreFailure = StoreFailure.ContinueRun)`, and read
+  `response.ConversationIncomplete` to tell the user. "When the store fails" on the guide's conversations page has
+  both.
+- **Breaking:** an agent's `Settings` and a tool's overrides read through `System.Text.Json`, as an ASP.NET endpoint
+  binds its body, refuse a member they do not have and a value that does not read, with a `JsonException` that
+  names it, as in "'Temperature' is no settings member: member names are camelCase, such as 'temperature'.", which
+  ASP.NET answers with 400. Before, such members read as missing, so a body with PascalCase names, a number sent as
+  a string or one misspelled member bound to empty settings, and saving them erased the customer's stored values. A
+  JSON `null` still reads as missing. `Settings.Deserialize(json)`, the read of a store's load, is as lenient as
+  before: code that read stored JSON with `JsonSerializer.Deserialize<SupportAgent.Settings>(json)` writes
+  `SupportAgent.Settings.Deserialize(json)` instead, so a member renamed since the save keeps reading as missing.
+- **Breaking:** an agent's host member `ConfigureAsync(configure)` is `UpdateSettingsAsync(update)`, and it returns a
+  `Stored<Settings>`: the settings it saved and their new version, which the next `SaveSettingsAsync` takes without
+  loading them again. Write `UpdateSettingsAsync` where you wrote `ConfigureAsync`, and read `.Data` where you used
+  its result. A function that returns null throws an `InvalidOperationException` that names the agent, and nothing
+  is saved; before, the save failed later with a `NullReferenceException`.
+- **Breaking:** `VerifyAsync` appends entries that carry a `Sequence`, so a store that rebuilds entries from columns
+  of its own and leaves the number out fails with "An entry came back changed". Keep the entry's JSON whole, or add
+  a column for `entry.Sequence`. It also fails a store that refuses an entry under a number its conversation holds
+  with an exception other than `StoreConflictException`: put the database's duplicate-key error inside a
+  `StoreConflictException`.
+- A run whose append the store refuses with a `StoreConflictException` stops with a `ConversationBusyException`
+  that holds it, before its next model call or tool call, and stores nothing more. It logged the failure, went on
+  and failed with a `ConversationStoreException` as it ended. A store throws it for an entry under a number its
+  conversation holds, which a run in another instance of your app appended first, so an endpoint that answers a
+  busy chat with 409 Conflict answers that run the same way.
+- **Breaking:** a run without a conversation throws `DecisionUnavailableException` before it calls the model when
+  its agent offers what only your app could decide: a tool that requires approval while no approval rule is
+  registered and the run is not in auto mode, or the plan of plan mode. It threw only when the model called such a
+  tool, after the model call was paid for and earlier tools had run, so a test in which the model never called it
+  passed. To run such an agent, give the host a conversation id with `WithConversationId(id)`, or keep every
+  conversation with `WithOptions(options => options.PersistAllConversations = true)`. For tools that require
+  approval, a rule registered with `WithApprovalRule<T>()` or `AgentMode.Auto` works too, and with a rule
+  registered a call no rule decides still throws when the model makes it.
+- **Breaking:** every stream of a host is a `StreamingRun`, read once, as the typed one was: `RunStreamingAsync`,
+  `AnswerStreamingAsync` and `ResumeStreamingAsync`. Read to its end, `run.Response` holds the run's `ChatResponse`,
+  its `Decisions` included. A second read throws an `InvalidOperationException`; before, it ran the agent again,
+  called the model and stored the input a second time, as `ToChatResponseAsync()` after an `await foreach` over the
+  same stream did. Read `Response` instead of the second read. `await foreach` and variables of type
+  `IAsyncEnumerable<ChatResponseUpdate>` compile as before; an assembly compiled against an earlier version is
+  rebuilt.
+- **Breaking:** `runtime.Agent<TAgent>()` is `runtime.CreateHost<TAgent>()`, a name that says the call creates a host
+  your code owns and disposes, as in `await using var support = runtime.CreateHost<SupportAgent>();`. The old name read
+  as a property beside the host's own `Agent`. Write `CreateHost` where you wrote `Agent<...>()` on the runtime.
+- **Breaking:** the limits of live updates are `TypeshiftOptions.LiveUpdates`, set in the chain's one call for
+  options: `WithOptions(options => options.LiveUpdates.MaxPendingUpdates = 1024)` in place of
+  `WithRealtimeTracking(new RealtimeTrackingOptions { MaxPendingUpdates = 1024 })`. `WithRealtimeTracking` and
+  `RealtimeTrackingOptions` are gone; the options are `LiveUpdateOptions`, whose setters throw an
+  `ArgumentOutOfRangeException` for a negative `PublishInterval` and a `MaxPendingUpdates` below 1. A
+  `WithRealtimeTracking()` without options, which only reset the defaults, goes without a replacement: live updates
+  are on.
+- **Breaking:** an agent's `GetInstructions()` is `GetInstructions(IServiceProvider services)`, called for each run
+  with the run's services, so instructions can name the customer a run serves:
+  `services.GetRequiredService<ICurrentCustomer>().Name`. One instance of an agent serves every run, so the override
+  that took nothing could only return the same text each time. Move such a constant into `WithInstructions("...")`
+  in the agent's constructor, and give an override that builds its text the `IServiceProvider services` parameter.
+  An override of the old method is CS0115.
+- **Breaking:** `TrySteer` throws a `ConversationBusyException` when the run already holds 32 inputs, or 262,144
+  characters of their text, that its model has not received yet. It took any number, so a client that steered faster
+  than the model answered grew the next model call, and the stored conversation, without end. Catch the exception
+  where your endpoint steers and answer that the chat is busy; steer again once the run's next model call took the
+  input. `TrySteer` with a `ChatMessage` throws an `ArgumentException` for a message that carries the mark of a
+  background sub-agent's answer, which run middleware lets pass unseen.
+- **Breaking:** a run's `ChatResponse.Usage`, the usage of a streamed run's updates and the `invoke_agent` span count
+  everything the run spent: its own model calls, the runs of its sub-agents, theirs included, and the calls that
+  write a compaction summary. They counted the run's own model calls only, so an app that billed from them missed its
+  sub-agents' share, 120 of 140 input tokens in a measurement. A stored entry that is no model response, such as the
+  one with a sub-agent's result, a background answer or a summary, holds in `Usage` what the run spent beside its
+  model calls, so the entries' usage adds up to the responses'. An app that wants the model calls of one agent alone
+  sums the `chat` spans, or the entries that have a `Model`.
+- A run on a long conversation allocates a third less for each stored entry, 1,303 bytes where it took 2,061: it
+  builds the history it starts from without a list and an enumerator for each message. Steering input goes back
+  into each later model call of a run in one pass over the call, where each input was searched for on its own.
+- `InMemoryTypeshiftStore<TId>`, the store of an app without one, loads a conversation for a run from its last
+  summary without reading the entries before it: it deserialized every entry, 15.7 MB to return 3 of 5,000. A run
+  with compaction on writes out the JSON of each call, result and tool schema once to estimate its tokens, where each
+  estimate before each model call wrote out the whole history again, 7.9 MB for 2,000 messages.
+- The hidden classes the generator and the package's build write into the global namespace start with `Ts`:
+  `Tshost_4Demo12SupportAgent`, `Tstools_4Demo13TicketToolset` and `Tsannotations_{Assembly}`, where they started
+  with `TypeshiftHost_`, `TypeshiftTools_` and `TypeshiftSchemaAnnotations_`. Code completion in your own project
+  listed one of them for each agent and toolset when you typed `Type`, beside `TypeshiftRuntime`. Your code calls
+  the members of these classes and never names them, so nothing changes for it.
+- A run started on a UI thread, in a WPF, WinForms, MAUI or Blazor app, no longer comes back to that thread's
+  synchronization context: Typeshift and the code the generator writes await with `ConfigureAwait(false)`, and a run,
+  each step of its stream, the raw path's client and the settings and decisions members call your tools,
+  middleware, context providers and store without the context, so their awaits go on on the thread pool. Before,
+  nearly every step of a run went back to the UI thread, a streamed run posted to it several times per update, the
+  store appended there, and blocking on a run there deadlocked. Your code that started the run still comes back to
+  its own context.
+
+### Fixed
+
+- `typeshift.WithFileStore()` compiles inside `TypeshiftRuntime.Create(client, typeshift => ...)` in a file with
+  `using Typeshift;` alone. It was CS1061 there: the method was an extension in
+  `Microsoft.Extensions.DependencyInjection`, which such a file does not import.
+- `store.VerifyAsync(id, otherId)` compiles for a store that implements several store interfaces without
+  `ITypeshiftStore<TId>`, such as one of conversations and their decisions. It was CS0121, ambiguous between the
+  interfaces, and needed a cast.
+- A null for a required tool argument fails the call, and the model reads which argument was null. The method ran
+  with `0`, `false` or a null string in its place, so a model that sent `number: null` closed ticket 0 and read
+  that it had succeeded. A nullable parameter such as `int?` or `string?`, a union and an optional parameter take
+  null as before.
+- An object or a list sent as a JSON string binds also when the string arrives as JSON, as provider clients
+  deliver it. Only a .NET string was read that way. A text that starts with `[` or `{` binds a `string` case of a
+  union, where it failed as invalid JSON.
+
+- A run fails with an `InvalidOperationException` before its first model call when two of its tools share a name
+  or one is named `ask_user`, `exit_plan_mode` or `handoff_to_...`, and the message names where each tool comes
+  from. That held only for an MCP server's tool named like one of the agent's. A tool of a context provider or of
+  `WithTools(...)` named like another tool reached the provider as a second tool of that name, and a server's tool
+  named `exit_plan_mode` stood beside the built-in one in plan mode.
+- `RuleVerdict.Reject(reason)` throws an `ArgumentException` for a null or blank reason. Such a rejection counted as
+  no opinion, so a rule that built its reason from data let the call run in auto mode whenever the reason was
+  missing.
+- A store that failed to save one model response no longer breaks the conversation. Its tool result stayed in the
+  history without the call it answers, and providers rejected every later run. A run now leaves such a result out,
+  and sends each tool result directly after the message that made its call, wherever the store holds it.
+- An approved call never starts twice. A run that was cancelled, or whose process stopped, while it carried out an
+  approval left the answer in the conversation, and the next run ran the call again, whatever its input. The next
+  run now tells the model that it is not known whether the call took effect.
+- A new message in place of an answer no longer runs the calls that waited beside the one that needed approval,
+  such as a call in the same response that a rule had approved.
+- No approval request or answer reaches a provider, and none is stored among a conversation's entries. Answered
+  pairs were sent with later model calls, and the app's answer was stored again on every pass of a steered run.
+- A background sub-agent's answer starts no model call while a decision is open. The model did not see the call
+  that waited, asked for it again, and the tool ran twice once both were approved.
+- An answer cannot reach another call that reuses its call id, also after a compaction summary, since a decision
+  has an id of its own.
+- `exit_plan_mode` called outside plan mode asks nobody: the model reads that it is not planning. A model in the
+  default mode that named the tool raised a plan prompt, and approving it into auto mode switched every later
+  approval off. In auto mode without a conversation such a call failed the run.
+- A tool call the model makes in the same response as a handoff gets a result: it reads that it did not run
+  because the conversation was handed off, and the agent that takes over reads the call with it. Such a call was
+  dropped without a trace. It never ran, nothing failed, and neither agent saw it again.
+- A run hands off at most ten times. The next handoff call is answered with a note that none is left, and the
+  agent that made it answers the user. Two agents that handed the conversation back and forth made any number of
+  model calls in one run, since each handoff started a count of tool rounds of its own.
+- A handoff stops the background sub-agents the handing agent left working, and waits until they have stopped,
+  before the other agent takes over. That agent reads which of them were lost. They kept calling their model and
+  running tools after the run had returned, in a scope the request had disposed, and their answers were dropped.
+- A mode named in a run's settings reaches the agent that answers after a handoff. It was dropped there: on a
+  conversation in auto mode that had been handed off, a run with `Mode = AgentMode.Default` asked for nothing, and
+  the tools behind `RequiresApproval()` kept running. A plan approved into auto mode before a handoff put the agent
+  handed to back into plan mode.
+- A run that asks your app throws the store's exception when the store could not save the model's response or the
+  decision. It returned a request that was never stored, and the answer to it was refused as unknown.
+- The update of a streaming run that carries what it asks keeps the message id, response id, model and finish
+  reason of the response that asked.
+- A streaming run's spans form one tree: its `execute_tool` spans and its `chat` spans after the first update are
+  children of the run's `invoke_agent` span, as in a run that does not stream. They attached to the span of the
+  caller, such as the web request's, or started traces of their own.
+- With `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT` set, every run's `execute_tool` spans carry the call's
+  arguments and result, in `gen_ai.tool.call.arguments` and `gen_ai.tool.call.result`. A run that does not stream
+  left them out.
+- A `chat` span and its metrics name the backend that answered the call. With several clients under one provider
+  id, such as a client per customer, every span carried the provider name and server address of the client the app
+  used first.
+- An app whose model names or provider ids come from data, such as a model per customer, no longer keeps a meter and
+  its instruments for each of them as long as it runs. Typeshift instruments each backend once, whatever provider
+  ids and models the runs name.
+- A project on another framework than .NET 11 fails at restore with NU1202, which names `net11.0`. The restore
+  passed before, and the build then failed with CS0246 on `Agent` and `Toolset` and with CS0400 in a generated file,
+  none of which named the framework.
+- The package hid CS1591, the warning for undocumented public members, in every project that turned XML docs on in
+  its project file. It hides it only in a project that leaves `GenerateDocumentationFile` unset, as the docs said.
+- In a project that leaves `GenerateDocumentationFile` unset, the compiler's warnings about XML comments, such as
+  CS1573 for a missing `<param>`, no longer fail a build that treats warnings as errors. They show as warnings.
+- The XML file of a project that leaves `GenerateDocumentationFile` unset stays in `obj`. It was copied to the output
+  folder, published with the app and packed with the project.
+- A `UseToolset<T>()` whose type does not resolve yet, such as `UseToolset<>()` while you type, no longer stops the
+  generator: it failed with CS8785 and every generated member of the project disappeared until the name resolved.
+- Tool names no longer depend on the culture of the machine that builds. Under Danish, Norwegian and Faroese
+  cultures (`da`, `nb`, `nn`, `no`, `fo`), a method whose name ends in an upper-case `A` before `Async`, such as
+  `EnableMFAAsync`, kept the suffix and became `enable_mfa_async`, while every other machine built `enable_mfa`. A
+  project built only under one of those cultures now gets the name without the suffix. Stored settings and standing
+  approvals are kept under the tool's name, so pin the old one with `WithName("enable_mfa_async")` or let it change.
+- Two toolsets or agents whose full names differ only by case, such as `TicketTools` and `Tickettools` in one
+  namespace, no longer stop the generator with CS8785.
+- A type that does not resolve yet, as while you type its name, is left to the compiler. Generated code no longer
+  names it, so its error is not repeated in a generated file, and TSH005, TSH012, TSH015, TSH025, TSH028 and TSH030
+  are no longer reported beside it, some of them about a type named `''`.
+- A model response with a content of a type Microsoft.Extensions.AI's JSON contract does not know, such as one a
+  provider's client adds, is stored without that content, and a warning names the type. Before, the whole step was
+  missing from the conversation. A stored content that the installed version of Microsoft.Extensions.AI cannot read
+  is left out when its entry loads, where the whole conversation failed to load, and the next run logs how many
+  contents it went without.
+- A stored enum value without a name reads back: a `[Flags]` value with no flag set where the enum has no member for
+  zero, a combination with a bit no member names, a number cast to the enum, or such a value as a dictionary's key.
+  It is stored as its number. Before, it was saved without an error and read back as missing, so the layer below
+  applied instead, and settings saved that way take effect once you upgrade.
+- The file store of `WithFileStore()` fails a load with an `InvalidDataException` that names the file and its shape
+  for every file of another shape, such as `[]`, a `version` in quotes or a `kind` that is a number. Those threw
+  System.Text.Json's `InvalidOperationException` without the file's name. A save that cannot take its lock file
+  within 30 seconds throws a `TimeoutException` that names the lock file, where it waited for ever without a word,
+  and a save removes the unfinished files that saves of its kind left when their process died.
+- A store of agents' own settings whose creation failed once, such as one whose database was not up at the first
+  run, is created again on the next run. Before, every later run of every agent failed with that first exception
+  until the app restarted.
+- Compaction keeps a conversation under `MaxInputTokens` in the runs after one that cleared tool results. A run
+  corrected its first estimate against the stored history, which keeps the full results, so its first call could
+  exceed the maximum up to four times, and a provider with a smaller context window refused every later run. Each
+  model response of a run with a maximum now stores what its call was estimated at, in the new optional
+  `ConversationEntry.EstimatedInputTokens`, and the next run corrects its estimate by that. Entries stored before
+  load as they are, and a run after them starts with the plain estimate.
+- The summary model reads what the tools were called with and what they returned. It read a .NET type name in place
+  of each call's arguments, and the placeholder of a cleared result in place of almost every result. It now reads
+  each call's arguments and the first 2,000 characters of each result, as text where the result is text.
+- Compaction leaves alone what a context provider added to a run, and what run middleware added to the messages it
+  received. Such a message among the summarized turns went to the summary model, could come back in the stored
+  summary, and was missing from the run's later calls. It now stays in every call of the run and counts toward the
+  target, and no summary reads or stores it.
+- Clearing skips a tool result that is no longer than the note that replaces it. Clearing such a result made the call
+  longer and took a value, such as an id or a count, that the model was still using.
+- A toolset, an agent, a tool method and a type a tool takes or returns may be marked `[Obsolete]` or
+  `[Experimental]`. The generated files named them without a `#pragma`, so CS0612, CS0618 or the experimental id was
+  reported once more in files your own `#pragma` does not reach. That failed a build that treats warnings as errors
+  and, for `[Experimental]`, every build.
+- A tool parameter of a reference type that defaults to null without a `?`, as `string query = null!` or as
+  `string query = null` in a project without nullable annotations, no longer gives CS8625 in the generated file. Its
+  schema allows null, as that of a `string?` parameter does.
+- A `file` class is reported where generated code would have to name it: as a toolset or an agent, or nested in one,
+  by TSH016, as the class of a tool's method by TSH003, and as a settings record or its type argument by TSH006. Each
+  compiled into errors such as CS0115 and CS0234 inside generated files, and two file-local toolsets of one name
+  stopped the generator with CS8785.
+- TSH004 reports the tool signatures that generated code cannot compile: a `dynamic` parameter, a parameter of an
+  array of pointers, a result that is a pointer, a ref struct or `dynamic`, and a task or a stream that may itself
+  be null, such as `Task<string>?`. Each ended in errors or warnings inside a generated file, such as CS1962 and
+  CS8602.
+- A static member of a C# 14 extension block can be a tool, as in `AddTool(string.Shout)`. The generated code
+  called it by a name that does not compile. A tool method of a class closed over a nullable type, such as
+  `Finder<string?>.Find`, no longer gives a nullability warning in the generated file.
+- A `CancellationToken?` parameter receives the call's token. It was offered to the model as an argument.
+- Four rare declarations no longer end in errors or warnings inside generated files. A tool name that ends in a
+  line break, as `WithName("echo\n")`, is TSH008. A tool whose settings record has no settable member gets no
+  `Configure{Tool}()`, which was a builder with nothing to set and warned with CS9113. A control character in a
+  description stays out of the generated doc comments. A default declared by `[DateTimeConstant]` compiles.
+- A reference under an `extern alias` alone is reported: TSH019 on a `UseToolset<T>()` of one of its toolsets, and
+  TSH020 for the reference, whose toolsets and agents `AddTypeshift()` cannot register. Generated code named its
+  types from `global::`, which gave CS0400 in the generated agent and CS0234 in the generated registration.
+- Names that met a generated one no longer end in errors inside generated files:
+  - Two tools of one toolset that would share a generated member, such as `create_report` and `report_function`,
+    are TSH007, which names the member. They gave CS0102.
+  - A class named like a member the generator writes into it, such as an agent named `Settings` or a toolset named
+    `EchoFunction` with a tool `echo`, is TSH018. It gave CS0542.
+  - Two referenced assemblies whose names differ only in punctuation, such as `Acme.Tools` and `Acme-Tools`, no
+    longer share one module name, which gave CS0433.
+  - A settings member named like a parameter or a local of the generated code, such as `settings`, `writer` or
+    `value`, compiles. It gave CS0019 and CS0165.
+  - Two tools that met in an agent's `Settings` through the `Tool` suffix, such as `kind` and `kind_tool`, compile:
+    beside `kind_tool`, the tool `kind` is `KindToolTool` there. They gave CS0102.
+- A toolset with a tool that returns `IAsyncEnumerable<T>` builds in a project whose packages bring System.Linq.Async
+  before 7.0. The generated code named `System.Linq.AsyncEnumerable`, which exists twice there, and failed with
+  CS0433.
+- A cancelled call stops reading a stream tool at its next item, also when the tool's method takes no
+  `CancellationToken`. Such a stream was read to its end before the cancellation showed.
+- `UseToolset<T>().Include(t => t.X)` and `Exclude` compile in a file that does not import the toolset's namespace,
+  as when it names the toolset in full or through an alias. The pick was CS1061 there, with no hint at the missing
+  `using`.
+- A type named like a toolset's tool list class, such as `EchoToolList` beside a toolset `Echo`, or `Outer_Tools`
+  beside a nested toolset `Outer.Tools`, no longer gives CS0101.
+- A description read from XML docs keeps the space between two elements that stand next to each other, as in
+  `<paramref name="amount"/> <paramref name="from"/>`, and sets `<para>`, `<list>` items, `<code>` and `<br/>` apart
+  from the text around them. A `<see href="..."/>` without a text reads as its address. Before, the model read
+  `Converts amountfrom`, and a list of allowed values as one word, such as `One of fastslow`.
+- A project that holds a JSON context and no toolset, agent or XML docs gets a module, so `AddTypeshift()`
+  registers the context. An app that kept its agents in a library and turned `GenerateDocumentationFile` or
+  `TypeshiftSchemaAnnotations` off registered none, and under Native AOT its first `RunAsync<T>` failed for lack of
+  JSON metadata.
+- The module registers only a JSON context whose static `Default` it can read: a `partial` one with a
+  `[JsonSerializable]`, or one that declares `Default` itself. A context written by hand without one gave CS0117 in
+  the generated module. TSH027 counts the same contexts, so a type that only such a context lists is reported under
+  Native AOT.
+- An empty description counts as none. A tool with an empty `<summary></summary>`, which an editor writes when you
+  type `///`, with `WithDescription("")` or with a text of spaces is TSH009, and a sub-agent or handoff target
+  described that way is TSH023. Both passed, and the model was offered a tool or an agent described as `""`. An empty
+  `<param>` no longer gives its parameter an empty description either.
+- A dictionary's enum key that is a negative value without a name is stored in digits with `-`, whatever the
+  culture of the machine that saves. Under a culture that writes another minus sign, such as Swedish, the key was
+  stored with that sign and its entry was missing when the settings were read.
+- A tool method of a generic class named without its type argument, as `AddTool(Finder<>.Find)` while you type
+  the argument, no longer overflows the stack of the generator and the analyzer, which ended the compiler and the
+  editor's analysis with them. Only the compiler reports the missing argument, as CS0305.
+- An `AddTool` whose argument the compiler rejects, such as a name that does not exist or the instance property
+  in `AddTool(List<int>.Capacity)`, gets the compiler's error alone. TSH015 was reported on the chain beside it,
+  with advice about a chain that was fine.
+- `UseToolset<T>()` in parentheses or followed by `!`, as in `(UseToolset<TicketToolset>()).Include(t => t.Close)`
+  or `UseToolset<TicketToolset>()!.Exclude(t => t.Close)`, is read with its picks. The agent offered none of the
+  toolset's tools, and nothing reported it.
+- An agent's constructor with an explicit `: base()`, or a primary constructor as in
+  `partial class HelpAgent() : Agent()`, no longer gives TSH014 with the text "'.ctor' is read by the generator only
+  directly in the constructor".
+- A tool chain with a call that does not bind yet, such as `AddTool(Echo).WithSettings()` while its type is typed,
+  gets the compiler's error alone. TSH009 was reported beside it, about a description the chain had no place for yet.
+- A declaration stored in a variable and continued there, as in `var tool = AddTool(Echo);` followed by
+  `tool.WithDescription(...)`, gets one TSH015, on the declaration. It got a second one on the call that continues
+  the chain.
+- The compiler's CS1573, a missing `<param>`, is suppressed for the parameters the call fills of every tool method,
+  also one that lives in another class than its toolset, as shared tool methods do, and for a nullable
+  `CancellationToken?`. Such a method warned for each of them, which failed a build that treats warnings as errors.
+  A public method of a toolset or an agent that is no tool keeps its CS1573. It was hidden there.
+- Steering input passes run middleware. A guardrail in an `IRunMiddleware` saw the input that starts a run and
+  never the input steered into one, so a text it refused reached the model and the stored conversation when the user
+  sent it while an answer was under way. Implement `OnSteeringAsync` on such a middleware, since `InvokeAsync` still
+  does not find steered input among `run.Messages`. Input that a middleware drops starts no model call and expires
+  no decision.
+- A run started with input that `TrySteer` refused while a run of the conversation stored its end waits for that
+  run and answers. It threw that a run was going on and told your app to steer it, so the fallback the guide shows,
+  `if (!tracker.TrySteer(id, input)) await chat.RunAsync(input);`, failed for input that arrived in that moment.
+- A streaming run that fails or is cancelled ends its stored conversation with the exception's message, as a run
+  that does not stream does. It stored "The run stopped before it answered." for every failure, so a chat UI that
+  streams could not tell from the store why a run had failed. A stream your code leaves early keeps that text.
+- A watcher of `WatchAsync` gets the end of an answer when the model's call ends. The last text of an answer waited
+  for the run's next update, so while a run waited for steering input or a background agent the watcher lacked the
+  end of the answer, and then received it merged with the first words of the next answer, under the first one's
+  ids. Text of two messages no longer merges into one update, and a streamed handoff's result reaches watchers, so
+  a UI that pairs calls with results no longer shows the handoff as running.
+- With nobody watching a conversation, its streamed updates are no longer merged for watchers: 2,000 updates within
+  one publish interval allocated 10.7 times what 500 did.
+- `ResumeAsync` on a conversation whose last entry is the model's answer, with the entry that ends the run missing
+  after a crash or a failed save, stores the end and returns that answer. It called the model again, with the
+  answer as the last message, and stored a second answer.
+- A background sub-agent's answer joins the calling run with the sub-agent's name as its `AuthorName` and a first
+  line that tells the model it is that agent's output, not a message from the user, and `message.IsBackgroundAnswer`
+  tells such a message, and the note that a sub-agent failed or was lost, from the user's. It came as an unmarked
+  user message, so what the sub-agent read, a web page for example, reached the calling model in the user's role,
+  and a chat view built from the stored conversation showed it as something the user wrote.
+- A run whose token was cancelled before it began throws an `OperationCanceledException` before it claims its
+  conversation, and stores and asks nothing. Nothing checked the token first, so with a chat client that ignores
+  it the run went to its end, stored its input and answered.
+- A context provider your app does not register, which `UseContext<T>()` creates for each pass of a run, is disposed
+  once the pass has ended, after the tools it returned ran, when it implements `IDisposable` or `IAsyncDisposable`.
+  It was never disposed, so a provider that opened a connection leaked one per pass. Register a provider that keeps
+  something between passes as scoped; its scope disposes it, as before.
+- A Typeshift agent run in Agent Framework with `ChatClientAgentRunOptions` of its own continues the conversation of
+  the host its options were resolved on. It stored nothing, and with a session it took the session's id as a
+  conversation under a `string` id: a separate conversation in memory, or an `InvalidOperationException` where only
+  stores of another id type are registered.
+- A call on the raw path's client with options resolved with other run options runs with their error limit and the
+  concurrency of their tool calls. It took them from the options the client was created with, and only the
+  iteration limit from the call's.
+
+## [0.1.0-alpha.6] - 2026-11-12
+
+### Added
+
 - `TypeshiftRuntime.Create(client)` runs the agents of an app without a container of its own, with one chat client
   for every run: `await using var research = runtime.Agent<ResearchAgent>()`, then `research.RunAsync("Vienna")`.
   `AddTypeshift()` registers the runtime as a singleton too, so a background service injects it and takes a host for
@@ -171,11 +1059,11 @@ All notable changes to this project are documented here. The format follows
 - The typed members of an agent's host, such as `RunAsync`, are in scope in every file. They lived in the agent's
   namespace, so a file that named the agent in full, without importing its namespace, found no `RunAsync` on
   `AgentHost<TAgent>`.
-
-## [0.1.0-alpha.5] - 2026-10-30
 - A tool parameter or a `RunAsync<T>` type with a member System.Text.Json cannot handle, such as an `Exception`, sent
   the provider a schema it rejected, with a message about a missing type. It now fails before the model is called,
   naming the member.
+
+## [0.1.0-alpha.5] - 2026-10-30
 
 ### Added
 

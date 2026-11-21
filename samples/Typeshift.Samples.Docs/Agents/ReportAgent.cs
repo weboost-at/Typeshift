@@ -7,13 +7,12 @@ internal partial class ReportAgent : Agent
 {
     public ReportAgent()
     {
+        WithInstructions("Write a market report. Ask research_agent for the companies of each city you cover.");
+
         WithChatOptions()
             .WithModel("anthropic", "claude-sonnet-5-5");
 
         UseAgent<ResearchAgent>();
     }
-
-    protected override string GetInstructions() =>
-        "Write a market report. Ask research_agent for the companies of each city you cover.";
 }
 // end-snippet

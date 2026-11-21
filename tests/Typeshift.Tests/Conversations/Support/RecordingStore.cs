@@ -30,4 +30,10 @@ public sealed class RecordingStore : ITypeshiftStore<Guid>
         _appended.Enqueue(conversation);
         return _store.AppendConversationAsync(conversation, entry, ct);
     }
+
+    public Task<StoredDocument?> LoadDecisionsAsync(Guid conversation, CancellationToken ct) =>
+        _store.LoadDecisionsAsync(conversation, ct);
+
+    public Task<long> SaveDecisionsAsync(Guid conversation, string json, long loadedVersion, CancellationToken ct) =>
+        _store.SaveDecisionsAsync(conversation, json, loadedVersion, ct);
 }

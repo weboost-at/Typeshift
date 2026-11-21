@@ -74,7 +74,39 @@ public sealed class JsonSchemaAssertions(JsonElement schema)
         return schema;
     }
 
+    // Every $ref names a schema inside the document, as a provider that resolves references reads it
+    public JsonElement ReferencesResolve()
+    {
+        var root = JsonNode.Parse(schema.GetRawText())!;
+        var references = References(root).ToList();
+
+        references.Should().NotBeEmpty();
+        references.Where(reference => Resolve(root, reference) is not JsonObject).Should().BeEmpty();
+        return schema;
+    }
+
     private JsonElement Parameter(string name) => schema.GetProperty("properties").GetProperty(name);
+
+    private static IEnumerable<string> References(JsonNode? node) =>
+        node switch
+        {
+            JsonObject members => members.SelectMany(member => member.Key == "$ref" && member.Value is JsonValue value
+                ? [value.GetValue<string>()]
+                : References(member.Value)),
+            JsonArray elements => elements.SelectMany(References),
+            _ => []
+        };
+
+    // A pointer of the form #/a/b/0, from the document's root
+    private static JsonNode? Resolve(JsonNode root, string reference) =>
+        reference.TrimStart('#')
+            .Split('/', StringSplitOptions.RemoveEmptyEntries)
+            .Aggregate((JsonNode?)root, (node, part) => node switch
+            {
+                JsonObject members => members[part],
+                JsonArray elements when int.TryParse(part, out var index) && index < elements.Count => elements[index],
+                _ => null
+            });
 
     private JsonElement Equivalent(JsonElement element, string json)
     {

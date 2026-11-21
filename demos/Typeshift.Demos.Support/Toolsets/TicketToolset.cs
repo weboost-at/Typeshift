@@ -33,7 +33,10 @@ internal partial class TicketToolset : Toolset
     /// Searches the customer's own tickets, newest first.
     /// </summary>
     /// <param name="query">Words of the ticket's title; empty for all.</param>
-    public static IReadOnlyList<Ticket> SearchTickets(string query, SearchTicketsSettings settings, IServiceProvider services)
+    public static IReadOnlyList<Ticket> SearchTickets(
+        string query,
+        SearchTicketsSettings settings,
+        IServiceProvider services)
     {
         var customer = services.GetRequiredService<CurrentCustomer>().Id;
         var words = query.Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -59,7 +62,7 @@ internal partial class TicketToolset : Toolset
 
         return services.GetRequiredService<CrmData>().Tickets
             .FirstOrDefault(ticket => ticket.Number == number && ticket.Customer == customer)
-            ?? throw new InvalidOperationException($"The customer has no ticket {number}; search for it first.");
+            ?? throw new ToolException($"The customer has no ticket {number}; search for it first.");
     }
 
     /// <summary>

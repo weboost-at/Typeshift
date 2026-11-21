@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Typeshift.Generators.Models;
+using Typeshift.Generators.Naming;
 
 namespace Typeshift.Generators.Emitting;
 
@@ -18,17 +19,22 @@ internal sealed class StorageEmitter
 
     private readonly List<StorageModel> _helpers = [];
 
-    // WriteJson and TryReadJson of an IJsonStorable record; writeMore and readMore add what is not a stored member
+    // WriteJson, TryReadJson and CheckJson of an IJsonStorable record; writeMore and readMore add what is not a
+    // stored member, tools the overrides an agent's Settings keeps under "tools" by name, and providers names the
+    // members that are refused when their stored value does not read (D77)
     public static void WriteRecordJson(
         SourceWriter writer,
         string type,
         bool versioned,
         IEnumerable<(string Property, string JsonName, StorageModel Storage)> members,
         System.Action<SourceWriter>? writeMore = null,
-        IReadOnlyList<string>? readMore = null)
+        IReadOnlyList<string>? readMore = null,
+        IEnumerable<string>? providers = null,
+        IReadOnlyList<(string Name, string Overrides)>? tools = null)
     {
         var storage = new StorageEmitter();
         var list = members.ToList();
+        var ensured = list.Where(member => providers?.Contains(member.Property) is true).ToList();
 
         writer.Line();
         Docs.WriteInheritDoc(writer);
@@ -39,7 +45,9 @@ internal sealed class StorageEmitter
             writer.Line("writer.WriteStartObject();");
             if (versioned) writer.Line($"{Json}.WriteSchemaVersion(writer, SchemaVersion);");
             writer.Line();
-            storage.WriteMembers(writer, list);
+
+            // this, since a member may be named like the parameter or a local
+            storage.WriteMembers(writer, "this", list);
 
             if (writeMore is not null)
             {
@@ -61,6 +69,13 @@ internal sealed class StorageEmitter
             writer.Line("value = null!;");
             writer.Line("if (element.ValueKind is not global::System.Text.Json.JsonValueKind.Object) return false;");
             if (versioned) writer.Line($"{Json}.EnsureSchemaVersion(element, SchemaVersion, Kind);");
+
+            foreach (var (_, name, model) in ensured)
+            {
+                var provider = $"{Json}.EnsureProvider<{model.Type}>";
+                writer.Line($"{provider}(element, {Names.Literal(name)}, {storage.Reader(model)}, Kind);");
+            }
+
             writer.Line();
 
             var assignments = storage.ReadMembers(list, "element", _ => "null").Concat(readMore ?? []).ToList();
@@ -83,18 +98,91 @@ internal sealed class StorageEmitter
             writer.Line("return true;");
         }
 
+        storage.WriteCheck(writer, versioned, list, tools ?? []);
         storage.WriteHelpers(writer);
     }
 
+    // D44: what a request's body binds through the record's JsonConverter is checked after the read, so a member the
+    // record does not have or a value that does not read throws instead of reading as missing
+    private void WriteCheck(
+        SourceWriter writer,
+        bool versioned,
+        IReadOnlyList<(string Property, string JsonName, StorageModel Storage)> members,
+        IReadOnlyList<(string Name, string Overrides)> tools)
+    {
+        var names = members.Select(member => member.JsonName).ToList();
+        if (versioned) names.Insert(0, "$schemaVersion");
+        if (tools.Count > 0) names.Add("tools");
 
-    // A statement that writes value
-    public string Write(StorageModel model, string writer, string value) =>
+        writer.Line();
+        Docs.WriteInheritDoc(writer);
+        writer.Line(Names.Hidden);
+
+        using (writer.Block("public static void CheckJson(global::System.Text.Json.JsonElement element, string path)"))
+        {
+            writer.Line($"{Json}.CheckMembers(element, path, {NameList(names)});");
+            WriteMemberChecks(writer, members);
+
+            if (tools.Count == 0) return;
+
+            var toolNames = NameList(tools.Select(tool => tool.Name));
+
+            writer.Line();
+            writer.Line($"var tools = {Json}.Member(element, \"tools\");");
+            writer.Line($"{Json}.CheckMembers(tools, {Json}.Path(path, \"tools\"), {toolNames});");
+
+            foreach (var (name, overrides) in tools)
+            {
+                var path = $"{Json}.Path(path, {Names.Literal($"tools.{name}")})";
+                writer.Line($"{overrides}.CheckJson({Json}.Member(tools, {Names.Literal(name)}), {path});");
+            }
+        }
+    }
+
+    // Each member's check, on its value and at its path under the object's
+    private void WriteMemberChecks(
+        SourceWriter writer,
+        IEnumerable<(string Property, string JsonName, StorageModel Storage)> members)
+    {
+        foreach (var (_, jsonName, storage) in members)
+        {
+            var name = Names.Literal(jsonName);
+            writer.Line(Check(storage, $"{Json}.Member(element, {name})", $"{Json}.Path(path, {name})") + ";");
+        }
+    }
+
+    // An expression that checks element, a value of the model, at path
+    private string Check(StorageModel model, string element, string path) =>
+        model.Kind switch
+        {
+            StorageKind.Scalar when model.Type == OptionMembers.Reasoning =>
+                $"{Json}.CheckReasoning({element}, {path})",
+            StorageKind.Scalar or StorageKind.Number =>
+                $"{Json}.Check<{model.Type}>({element}, {path}, {Reader(model)})",
+            StorageKind.Enum => $"{Json}.CheckEnum<{model.Type}>({element}, {path})",
+            _ => $"CheckStored{Helper(model)}({element}, {path})"
+        };
+
+    // The StorableCheck of an item or a dictionary's value
+    private string Checker(StorageModel model) =>
+        model.Kind is StorageKind.Scalar or StorageKind.Number or StorageKind.Enum
+            ? $"static (value, at) => {Check(model, "value", "at")}"
+            : $"CheckStored{Helper(model)}";
+
+    private static string NameList(IEnumerable<string> names) =>
+        $"[{string.Join(", ", names.Select(Names.Literal))}]";
+
+
+    // A statement that writes value; member is an expression for the name of the settings member it belongs to,
+    // which a collection names when it holds a null
+    public string Write(StorageModel model, string writer, string value, string member) =>
         model.Kind switch
         {
             StorageKind.Scalar => $"{Json}.Write({writer}, {value});",
             StorageKind.Number => $"{Json}.WriteNumber({writer}, {value});",
             StorageKind.Enum => $"{Json}.WriteEnum({writer}, {value});",
-            _ => $"WriteStored{Helper(model)}({writer}, {value});"
+            StorageKind.Object => $"WriteStored{Helper(model)}({writer}, {value});",
+            _ => $"WriteStored{Helper(model)}({writer}, {value}, {member});"
         };
 
     // A Boolean expression that reads element into a new variable target
@@ -104,6 +192,7 @@ internal sealed class StorageEmitter
     // The members a record writes as a JSON object, each left out when null; the caller opens and closes the object
     public void WriteMembers(
         SourceWriter writer,
+        string owner,
         IEnumerable<(string Property, string JsonName, StorageModel Storage)> members)
     {
         var index = 0;
@@ -114,10 +203,10 @@ internal sealed class StorageEmitter
 
             if (index > 1) writer.Line();
 
-            using (writer.Block($"if ({property} is {{ }} {local})"))
+            using (writer.Block($"if ({owner}.{property} is {{ }} {local})"))
             {
                 writer.Line($"writer.WritePropertyName({Names.Literal(jsonName)});");
-                writer.Line(Write(storage, "writer", local));
+                writer.Line(Write(storage, "writer", local, Names.Literal(property.TrimStart('@'))));
             }
         }
     }
@@ -141,10 +230,11 @@ internal sealed class StorageEmitter
         for (var index = 0; index < _helpers.Count; index++)
         {
             var model = _helpers[index];
+            var member = model.Kind == StorageKind.Object ? "" : ", string member";
 
             writer.Line();
 
-            using (writer.Block($"private static void WriteStored{index}({Writer} writer, {model.Type} value)"))
+            using (writer.Block($"private static void WriteStored{index}({Writer} writer, {model.Type} value{member})"))
             {
                 WriteValue(writer, model);
             }
@@ -155,6 +245,39 @@ internal sealed class StorageEmitter
             {
                 ReadValue(writer, model);
             }
+
+            writer.Line();
+
+            using (writer.Block($"private static void CheckStored{index}({Element} element, string path)"))
+            {
+                CheckValue(writer, model);
+            }
+        }
+    }
+
+    private void CheckValue(SourceWriter writer, StorageModel model)
+    {
+        switch (model.Kind)
+        {
+            case StorageKind.Object:
+                var names = NameList(model.Members.Select(member => member.JsonName));
+
+                writer.Line($"{Json}.CheckMembers(element, path, {names});");
+                WriteMemberChecks(writer, model.Members.Select(member =>
+                    (member.Property, member.JsonName, member.Storage)));
+                break;
+
+            case StorageKind.Map:
+                writer.Line($"{Json}.CheckValues(element, path, {Checker(model.Element!)});");
+                break;
+
+            case StorageKind.EnumMap:
+                writer.Line($"{Json}.CheckEnumKeys<{model.Key}>(element, path, {Checker(model.Element!)});");
+                break;
+
+            default:
+                writer.Line($"{Json}.CheckItems(element, path, {Checker(model.Element!)});");
+                break;
         }
     }
 
@@ -182,20 +305,24 @@ internal sealed class StorageEmitter
         {
             case StorageKind.Object:
                 writer.Line("writer.WriteStartObject();");
-                WriteMembers(writer, model.Members.Select(member =>
-                    ($"value.{Names.Identifier(member.Property)}", member.JsonName, member.Storage)));
+                WriteMembers(writer, "value", model.Members.Select(member =>
+                    (Names.Identifier(member.Property), member.JsonName, member.Storage)));
                 writer.Line("writer.WriteEndObject();");
                 break;
 
             case StorageKind.Map or StorageKind.EnumMap:
-                var key = model.Kind == StorageKind.Map ? "entry.Key" : "entry.Key.ToString()";
+                // ToString would put the current culture's minus sign before a negative key without a name
+                var key = model.Kind == StorageKind.Map
+                    ? "writer.WritePropertyName(entry.Key);"
+                    : $"{Json}.WriteEnumKey(writer, entry.Key);";
 
                 writer.Line("writer.WriteStartObject();");
 
                 using (writer.Block("foreach (var entry in value)"))
                 {
-                    writer.Line($"writer.WritePropertyName({key});");
-                    writer.Line(Write(model.Element!, "writer", "entry.Value"));
+                    WriteNullCheck(writer, model.Element!, "entry.Value", "value");
+                    writer.Line(key);
+                    writer.Line(Write(model.Element!, "writer", "entry.Value", "member"));
                 }
 
                 writer.Line("writer.WriteEndObject();");
@@ -206,12 +333,31 @@ internal sealed class StorageEmitter
 
                 using (writer.Block("foreach (var item in value)"))
                 {
-                    writer.Line(Write(model.Element!, "writer", "item"));
+                    WriteNullCheck(writer, model.Element!, "item", "item");
+                    writer.Line(Write(model.Element!, "writer", "item", "member"));
                 }
 
                 writer.Line("writer.WriteEndArray();");
                 break;
         }
+    }
+
+    // D19: an item is a value, yet a class may be null where its type says it is not. Written on, it would be a JSON
+    // null no reader takes, or an exception that names nothing
+    private static void WriteNullCheck(SourceWriter writer, StorageModel element, string value, string what)
+    {
+        if (!element.IsReference) return;
+
+        writer.Line($"if ({value} is null)");
+
+        using (writer.Indent())
+        {
+            writer.Line(
+                "throw new global::System.InvalidOperationException("
+                + $"$\"'{{member}}' holds a null {what}, which settings cannot store.\");");
+        }
+
+        writer.Line();
     }
 
     private void ReadValue(SourceWriter writer, StorageModel model)

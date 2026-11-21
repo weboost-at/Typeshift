@@ -17,31 +17,113 @@ dotnet add package Typeshift --prerelease
 
 | Requirement | Why |
 |---|---|
-| .NET 11 | The package targets `net11.0`. Generated members are extension blocks, which need C# 14 or later. |
-| The package in every project that declares toolsets or agents, or calls `AddTypeshift()` | The package carries the generator, and NuGet does not pass a generator on to the projects that reference yours ([TSH019](./diagnostics.md#tsh019), [TSH020](./diagnostics.md#tsh020)). |
-| `GenerateDocumentationFile` | Tools, agents and the types tools take get their descriptions from XML docs. The package turns it on unless your project sets it, and hides CS1591, the warning for undocumented public members, when it does ([TSH011](./diagnostics.md#tsh011)). |
+| .NET 11 | The package targets `net11.0`, and a project on another framework fails at restore with NU1202, which names `net11.0`. Generated members are extension blocks, which need C# 14 or later, the default on .NET 11. A project that pins an earlier `<LangVersion>` gets no generated code and [TSH031](./diagnostics.md#tsh031). |
+| The package in every project that declares toolsets or agents, or calls `AddTypeshift()` or `TypeshiftRuntime.Create(...)` | The package carries the generator. The .NET 11 SDK also passes it on to the projects that reference yours, but NuGet's documented default keeps a package's analyzers private, and a reference with `PrivateAssets="all"` or to a compiled DLL stops it. A direct reference is the setup you can rely on ([TSH019](./diagnostics.md#tsh019), [TSH020](./diagnostics.md#tsh020)). |
+| `GenerateDocumentationFile` | The types tools take get their descriptions from XML docs, which only the XML the compiler writes holds; tools and agents read their own docs without it too. The package turns it on unless your project sets it ([TSH011](./diagnostics.md#tsh011)). When the package turned it on, it hides CS1591, the warning for undocumented public members, the compiler's other warnings about XML comments never fail a build that treats warnings as errors, and the XML file stays in `obj`: it is not copied, published or packed. A project that sets the property keeps all of that as it chose. |
 | `Typeshift.Generated` in `InterceptorsNamespaces` | The generator intercepts `AddTypeshift()` from that namespace. The package adds it for you. |
 
-## XML docs of parameter types
+While the SDK passes the package on, a project that references yours gets the package's build settings along with
+the generator. Its XML docs are turned on and CS1591 is hidden, unless it sets `GenerateDocumentationFile` itself, and
+with XML docs on it gets a [registration module](#what-addtypeshift-registers) of its own.
 
-The package brings [Weboost.SchemaAnnotations](https://github.com/weboost-at/SchemaAnnotations), which turns the XML
-docs of your types into descriptions of their properties, in the schemas of a tool's parameters and of the answer
-`RunAsync<T>` and `RunStreamingAsync<T>` ask for. Typeshift adds a hidden class to every project with
-`GenerateDocumentationFile` on, as it is unless the project turns it off. Weboost.SchemaAnnotations collects the
-project's XML docs in that class, and the project's [registration module](#what-addtypeshift-registers) registers them
-when `AddTypeshift()` runs. A project of contracts with no toolsets or agents gets a module too, so the tools of the
-projects that reference it describe its types; it needs the package like any other. To leave these
-descriptions out, set:
+## What `AddTypeshift()` registers
 
-```xml
-<TypeshiftSchemaAnnotations>false</TypeshiftSchemaAnnotations>
+A typical registration, with the chain:
+
+<!-- snippet: registration -->
+<a id='snippet-registration'></a>
+```cs
+services.AddTypeshift()
+    .WithStore<EfTypeshiftStore>()
+    .WithRunMiddleware<BlockedTopics>()
+    .WithToolMiddleware<AuditToolCalls>();
+
+services.AddKeyedChatClient("openai", fast);
+services.AddKeyedChatClient("anthropic", reasoning);
 ```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L19-L27' title='Snippet source file'>snippet source</a> | <a href='#snippet-registration' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
 
-::: warning Delete your own `[SchemaAnnotations]` class
-If your project already marks a class with `[SchemaAnnotations]`, adding the Typeshift package gives it a second one.
-Weboost.SchemaAnnotations then generates no `AIJsonSchemaCreateOptions.Annotated`, and code that uses it stops
-compiling. Delete your own class, and the one the package adds brings `Annotated` back.
+`fast` and `reasoning` are `IChatClient`s your app creates. The last two lines register them under the keys `openai`
+and `anthropic`, and a run takes the client registered under its provider
+([Registering clients](./models.md#registering-clients)).
+
+`AddTypeshift()` itself registers these:
+
+| Service | Lifetime |
+|---|---|
+| Each toolset | Singleton |
+| Each agent | Singleton |
+| `AgentHost<TAgent>` per agent | Transient, so it runs with the services of the scope it was resolved from. Resolving it from the root provider throws ([Using an agent](./using-an-agent.md#run-from-a-console-app)) |
+| `TypeshiftRuntime`, which gives each host a scope of its own ([The runtime](#the-runtime)) | Singleton |
+| The JSON contexts of each assembly, which tools ask before the defaults | Singleton |
+| `ConversationTracker<TId>` of each id type your app asks for ([Live runs](./conversations.md#live-runs)), and the core services runs need | Singleton |
+
+The generator writes a registration module for each project that declares toolsets or agents, and for each project
+whose XML docs the package collects, which is every project that leaves them on
+([XML docs of parameter types](#xml-docs-of-parameter-types)). A module registers its project's toolsets, agents,
+JSON contexts and XML docs. `AddTypeshift()` runs the module of the project that calls it and the modules of the
+projects it references. Each module registers once per service collection, so a second call to `AddTypeshift()` only
+returns another chain.
+
+Because the generator intercepts the call, it works only in a project that references the package, and only when you
+call it on the service collection, such as `services.AddTypeshift()` or `builder.Services.AddTypeshift()`. A call the
+generator did not intercept throws an `InvalidOperationException` that says what to check, and the analyzer reports
+the spellings it cannot intercept, such as a method group ([TSH040](./diagnostics.md#tsh040)).
+
+::: warning A library's call registers the library's agents, not your app's
+A library that calls `AddTypeshift()` in its own `AddX()` registers its own toolsets and agents and those of its
+references. Your app's own toolsets and agents need a call to `AddTypeshift()` in your app. Without one,
+`runtime.CreateHost<TAgent>()`, and a run that calls the agent as a sub-agent or hands over to it, throw an
+`InvalidOperationException` that names the agent and this cause.
 :::
+
+## The chain
+
+| Call | Registers | Lifetime |
+|---|---|---|
+| `WithStore<TStore>()` | `TStore`, as each store interface it implements; `replace: true` on any store call takes an interface over from another store | Singleton |
+| `WithStore(store)` | A store you created yourself, as each store interface its declared type implements | Singleton, your app's |
+| `WithStore(provider => ...)` | A store the container builds with your factory, as each store interface the factory's return type implements | Singleton |
+| `WithFileStore(configure)` | The file store, as `IAgentSettingsStore` | Singleton |
+| `WithChatClientProvider<TProvider>()` | `TProvider`, as each `IChatClientProvider<T>` it implements | Scoped |
+| `WithOptions(options => ...)` | `TypeshiftOptions`, such as `PersistAllConversations`, `StoreFailure` and the limits of live updates, `LiveUpdates` | Singleton |
+| `WithConversationTracker<TId>()` | The `ConversationTracker<TId>` of one id type | Singleton |
+| `WithApprovalRule<TRule>()` | One more `IToolApprovalRule`, which decides calls before your app is asked | Scoped |
+| `WithRunMiddleware<TMiddleware>()` | One more `IRunMiddleware`, which wraps every run | Scoped |
+| `WithToolMiddleware<TMiddleware>()` | One more `IToolMiddleware`, which wraps every tool call | Scoped |
+| `WithMcpToolProvider<TProvider>()` | The `IMcpToolProvider` of agents with `UseMcpServer` | Scoped |
+
+- A store keeps agents' own settings, settings ids, conversations and their decisions across restarts. Without any
+  store, they are kept in memory, and the first save logs a warning. `WithStore<TStore>()` registers your class as
+  each of `IAgentSettingsStore`, `ISettingsStore<TId>`, `IConversationStore<TId>`, `IDecisionStore<TId>` and
+  `ITypeshiftStore<TId>` it implements, of any id type, so call it once for each class. All of them resolve to one
+  instance, a singleton, so a store takes no scoped services
+  ([Implementing a store](./implementing-a-store.md#register-your-store)). The container never disposes a store you
+  pass to `WithStore(store)`.
+- A store interface has one store. A second store call for an interface throws when your app registers it, unless
+  it passes `replace: true`, and the memory store leaves agents' own settings to any other store
+  ([Which store serves a call](./implementing-a-store.md#which-store-serves-a-call)).
+- The file store keeps agents' own settings in files
+  ([Keep them in a file](./settings-and-stores.md#keep-them-in-a-file)). `WithFileStore` takes an optional
+  `Action<FileStoreOptions>`, and the container builds the store with your app's `TimeProvider`. By default,
+  `Folder` is `typeshift` under `AppContext.BaseDirectory`, and the settings files lie in its `settings` folder.
+- A chat client provider serves every run with a provider and a model of its type, before any `IChatClient` you
+  registered ([Registering clients](./models.md#registering-clients)). One class may implement
+  `IChatClientProvider<T>` for several provider types, and for each type the last call wins.
+- Each `WithOptions` call changes the same `TypeshiftOptions` further. `PersistAllConversations` keeps the runs
+  without a conversation id ([Keeping every conversation](./conversations.md#keeping-every-conversation)), and
+  `StoreFailure` says what a run does when its conversation could not be saved
+  ([When the store fails](./conversations.md#when-the-store-fails)). Live updates are on without it, and
+  `LiveUpdates` tunes what `ConversationTracker<TId>.WatchAsync` follows: a `PublishInterval` of 100 ms and
+  `MaxPendingUpdates` of 256 unless you set them ([Live updates](./conversations.md#live-updates)).
+- `WithConversationTracker<TId>()` registers the closed tracker as a singleton of its own. An app published with
+  Native AOT needs it to inject the tracker of a value type, such as `Guid` or `int`
+  ([Native AOT](./native-aot.md#trackers-of-value-type-ids)).
+- Run middleware and tool middleware wrap in the order you register them, so the first registered is the outermost.
+
+Scoped services resolve from the run's scope, so they can differ per request and use the current customer's
+credentials, folder or rules, for example.
 
 ## Ids
 
@@ -62,27 +144,59 @@ for `WithModel("openai", "gpt-5-mini")`, or an enum of yours. See
 the projects it references. Each host it gives you is one unit of work, such as a job, with scoped services of its
 own.
 
-A console tool or a script without a container of its own creates the runtime, and one chat client serves all its
-runs:
+A console tool or a script without a container of its own creates the runtime with one chat client, the default
+client of its runs:
 
 <!-- snippet: typeshift-runtime -->
 <a id='snippet-typeshift-runtime'></a>
 ```cs
 await using var runtime = TypeshiftRuntime.Create(client);
-await using var research = runtime.Agent<ResearchAgent>();
+await using var research = runtime.CreateHost<ResearchAgent>();
 
 var answer = await research.RunAsync("Vienna");
+
+Console.WriteLine($"{research.Agent.Name}: {answer.Text}");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/NoContainer.cs#L11-L16' title='Snippet source file'>snippet source</a> | <a href='#snippet-typeshift-runtime' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/NoContainer.cs#L14-L21' title='Snippet source file'>snippet source</a> | <a href='#snippet-typeshift-runtime' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 - `TypeshiftRuntime.Create(client, typeshift => typeshift.WithStore<MyStore>())` takes the rest of the chain, as
   `AddTypeshift()` does. The generator intercepts the call, so write it as `TypeshiftRuntime.Create(...)`: a call
-  through `using static` or a method group is not intercepted and throws.
+  through `using static`, an alias or a method group is not intercepted and would throw, which the analyzer reports
+  ([TSH040](./diagnostics.md#tsh040)).
+- The client serves every agent that names no provider, as `WithModel("gpt-5-mini")` does. An agent that names
+  one, as in `WithModel("openai", "gpt-5-mini")`, does not run on it: its provider needs a client of its own,
+  registered through the chain's `Services`, as `typeshift.Services.AddKeyedChatClient("openai", openAi)` does
+  ([Registering clients](./models.md#registering-clients)).
 - Create the runtime once and keep it while your app runs. Disposing it disposes its singletons, such as your
   store, but not the client. A host's scoped services are disposed only with the host, so dispose each host as well.
-- An app whose tools or stores need services of its own calls `services.AddTypeshift()` instead, so it can register
-  them.
+- A copy of a host, from `WithSettingsId` or `WithConversationId`, runs in the host's scope and disposes it as the
+  host would. So `await using var chat = runtime.CreateHost<SupportAgent>().WithConversationId(ticket);` takes the host,
+  its id and its disposal in one line. Once the host or one of its copies is disposed, a run of any of them throws an
+  `ObjectDisposedException`, so a `using` on the copy of a host your code still holds, in a loop for example, is
+  [TSH042](./diagnostics.md#tsh042).
+
+The chain's `Services` are the service collection of the container the runtime builds. Register there what the
+chain has no call for, such as logging and the services your tools resolve:
+
+<!-- snippet: typeshift-runtime-services -->
+<a id='snippet-typeshift-runtime-services'></a>
+```cs
+await using var runtime = TypeshiftRuntime.Create(client, typeshift =>
+{
+    typeshift.Services.AddLogging(logging => logging.AddConsole());
+    typeshift.Services.AddSingleton<ITicketClient>(new InMemoryTicketClient(TimeProvider.System));
+});
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/NoContainer.cs#L32-L38' title='Snippet source file'>snippet source</a> | <a href='#snippet-typeshift-runtime-services' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+- `AddLogging` gives the runtime a logger. Without one it logs nothing, so a tool's exception, a save that failed
+  and the warning that nothing is stored leave no trace ([Logs](./observability.md#logs)). `AddConsole` comes with
+  the `Microsoft.Extensions.Logging.Console` package.
+- A tool finds `ITicketClient` in the `IServiceProvider` it takes, in the scope of its host.
+- After `services.AddTypeshift()`, the chain's `Services` are the `services` you called it on, so a `With...` call of
+  your own, written as an extension of `TypeshiftBuilder`, registers into either kind of app.
 
 An app with a container gets the runtime from `services.AddTypeshift()`, which registers it as a singleton. Inject it
 where no request's scope is at hand, such as in a background service, and take a host from it for each job, as
@@ -91,10 +205,22 @@ so disposing it does nothing. A request injects the host itself, from the reques
 ([Using an agent](./using-an-agent.md)).
 
 `runtime.Services` holds the root services, for singletons such as a `ConversationTracker<TId>`. Scoped services are
-not among them, since each lives in a scope, such as the one a host has.
+not among them, since each lives in a scope, such as the one a host has. An agent's host is not among them either:
+resolving `AgentHost<TAgent>` there throws, so take it with `runtime.CreateHost<TAgent>()`.
+
+The runtime's members:
+
+| Member | Does |
+|---|---|
+| `TypeshiftRuntime.Create(client, configure)` | Creates a runtime without a container. `client` serves the runs that name no provider, and `configure` takes the rest of the chain. |
+| `CreateHost<TAgent>()` | Creates the host of an agent: a unit of work with scoped services of its own, which you dispose. |
+| `CreateHost(Type agent)`, `CreateHost(string kind)` | Creates the host of an agent by its type or its kind, as an `IAgentHost` ([The catalog](#the-catalog)). |
+| `Agents`, `Toolsets` | Lists the agents and toolsets of your project and the projects it references ([The catalog](#the-catalog)). |
+| `Services` | The root services, for singletons such as a `ConversationTracker<TId>`. |
+| `DisposeAsync()`, `Dispose()` | Disposes the singletons of a runtime from `Create`. Your container owns the runtime `AddTypeshift()` registers, so disposing that one does nothing. |
 
 ::: warning Dispose every host the runtime gives you
-`runtime.Agent<TAgent>()` creates a scope for the host. The services the chain registers as scoped, such as the
+`runtime.CreateHost<TAgent>()` creates a scope for the host. The services the chain registers as scoped, such as the
 `WithChatClientProvider<T>()` provider, approval rules, middleware and the MCP tool provider, and the scoped services
 your tools resolve, are created in it. Every run of that host shares them, and no other host sees them. Disposing the
 host disposes the scope and its services, so write `await using`, and let every run and stream of the host finish
@@ -102,76 +228,98 @@ first: a stream read after its host was disposed throws an `ObjectDisposedExcept
 request's scope owns nothing, and disposing it leaves the request's services alone.
 :::
 
-## What `AddTypeshift()` registers
+## The catalog
 
-A typical registration, with the chain:
+`runtime.Agents` and `runtime.Toolsets` list the agents and toolsets of your project and of the projects it
+references, for a page that shows them or a tool picker:
 
-<!-- snippet: registration -->
-<a id='snippet-registration'></a>
+<!-- snippet: catalog-list -->
+<a id='snippet-catalog-list'></a>
 ```cs
-services.AddTypeshift()
-    .WithStore<EfTypeshiftStore>()
-    .WithRunMiddleware<BlockedTopics>()
-    .WithToolMiddleware<AuditToolCalls>();
+foreach (var agent in runtime.Agents)
+    Console.WriteLine($"{agent.Kind}: {agent.Description}");
 
-services.AddKeyedSingleton("openai", fast);
-services.AddKeyedSingleton("anthropic", reasoning);
+foreach (var toolset in runtime.Toolsets)
+{
+    var tools = toolset.Tools.Select(tool => tool.RequiresApproval ? $"{tool.Name} (asks first)" : tool.Name);
+    Console.WriteLine($"{toolset.DisplayName ?? toolset.Type.Name}: {string.Join(", ", tools)}");
+}
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L18-L26' title='Snippet source file'>snippet source</a> | <a href='#snippet-registration' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Catalog.cs#L15-L24' title='Snippet source file'>snippet source</a> | <a href='#snippet-catalog-list' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-`fast` and `reasoning` are `IChatClient`s your app creates. The last two lines register them under the keys `openai`
-and `anthropic`, and a run takes the client registered under its provider
-([Registering clients](./models.md#registering-clients)).
+- An `AgentInfo` holds the agent's type, its name, its kind and its description. The kind is the one its stored
+  settings go by, from `WithStorageKind("...")` or else the class name. No two agents share a kind, while two may
+  share a name. Its `SwitchableTools` names the tools a customer's settings may
+  [switch off](./defining-agents.md#switching-a-tool-off), for a settings page that shows a switch for each.
+- A `ToolsetInfo` holds the toolset's type, the display name its `WithDisplayName(...)` gives and its tools. Each
+  `ToolInfo` holds a tool's name and description, and whether it is read-only or requires approval, as the generator
+  read them from the toolset.
+- The lists come in the order the modules registered them. The runtime reads the names, descriptions and display
+  names from the agents and toolsets their constructors created, the first time you ask for a list.
 
-`AddTypeshift()` itself registers these:
+An endpoint for several agents takes the agent's kind from its route or its body, and the runtime creates the host:
 
-| Service | Lifetime |
-|---|---|
-| Each toolset | Singleton |
-| Each agent | Singleton |
-| `AgentHost<TAgent>` per agent | Transient, so it runs with the services of the scope it was resolved from ([Using an agent](./using-an-agent.md)) |
-| `TypeshiftRuntime`, which gives each host a scope of its own ([The runtime](#the-runtime)) | Singleton |
-| The JSON contexts of each assembly, which tools ask before the defaults | Singleton |
-| `ConversationTracker<TId>` of each id type your app asks for ([Live runs](./conversations.md#live-runs)), and the core services runs need | Singleton |
+<!-- snippet: catalog-host -->
+<a id='snippet-catalog-host'></a>
+```cs
+await using var host = runtime.CreateHost(kind);
+var answer = await host.RunAsync(question);
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Catalog.cs#L36-L39' title='Snippet source file'>snippet source</a> | <a href='#snippet-catalog-host' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
 
-The generator writes a registration module for each project that declares toolsets or agents. `AddTypeshift()` runs the
-modules of the project that calls it and of every project it references that declares toolsets or agents. Each module
-registers once per service collection, so a second call to `AddTypeshift()` only returns another chain.
+- `CreateHost(kind)` creates the host in a scope of its own, as `CreateHost<TAgent>()` does, so dispose it when its
+  runs and streams are done. `CreateHost(type)` takes the agent's `Type` instead. Both throw an `ArgumentException`
+  for an agent no module registered, and the message of `CreateHost(kind)` lists the kinds there are.
+- The host is an `IAgentHost`, with the members of `AgentHost<TAgent>` that take none of the agent's generated
+  `Settings`: its runs, answers and resumes, its ids, its conversation and its decisions
+  ([AgentHost and generated members](./generated-members.md#the-agent-host)). Its copies from `WithSettingsId` and
+  `WithConversationId` are `IAgentHost`s too.
+- In a request, resolve the host from the request's services as a service keyed by the kind,
+  `services.GetRequiredKeyedService<IAgentHost>(kind)`, or take it as an endpoint's parameter marked
+  `[FromKeyedServices("SupportAgent")]`. Its runs then use the request's scope, as an
+  [injected host](./using-an-agent.md#inject-the-host-in-a-web-app) does, and your app disposes nothing.
+- Each module registers the host of each agent closed over the agent's type, so no lookup makes a type or reflects
+  over yours, and it works in an app published with [Native AOT](./native-aot.md).
 
-Because the generator intercepts the call, it works only in a project that references the package, and only when you
-call it on the service collection, such as `services.AddTypeshift()` or `builder.Services.AddTypeshift()`. A call the
-generator did not intercept throws an `InvalidOperationException` that says what to check.
+## XML docs of parameter types
 
-::: warning A library's call registers the library's agents, not your app's
-A library that calls `AddTypeshift()` in its own `AddX()` registers its own toolsets and agents and those of its
-references. Your app's own toolsets and agents need a call to `AddTypeshift()` in your app.
+The package brings [Weboost.SchemaAnnotations](https://github.com/weboost-at/SchemaAnnotations), which turns the XML
+docs of your types into descriptions of their properties, in the schemas of a tool's parameters and of the answer
+`RunAsync<T>` and `RunStreamingAsync<T>` ask for. Typeshift adds a hidden class to every project with
+`GenerateDocumentationFile` on, as it is unless the project turns it off. Weboost.SchemaAnnotations collects the
+project's XML docs in that class, and the project's [registration module](#what-addtypeshift-registers) registers them
+when `AddTypeshift()` runs. A project of contracts with no toolsets or agents gets a module too, so the tools of the
+projects that reference it describe its types; it needs the package like any other.
+
+Weboost.SchemaAnnotations collects the docs of every documented type and property of the project, internal ones
+included, whether a tool takes the type or not. Their text is compiled into the project's assembly, which grows by
+it, and whoever has the assembly can read it. To leave these descriptions out, set:
+
+```xml
+<TypeshiftSchemaAnnotations>false</TypeshiftSchemaAnnotations>
+```
+
+::: warning A documented `[Obsolete]` or `[Experimental]` type fails the build
+The collected docs name each documented type in a generated file under `obj`. For a type marked `[Obsolete]` that is
+the warning CS0618, an error in a build that treats warnings as errors. For a type marked `[Experimental]` it is an
+error under the type's own diagnostic ID, in any build. No `#pragma` of yours reaches the generated file. Until
+Weboost.SchemaAnnotations handles such types, set `TypeshiftSchemaAnnotations` to `false` in that project, or remove
+the type's XML docs. An obsolete member of a type that is not obsolete itself is fine.
 :::
 
-## The chain
-
-| Call | Registers | Lifetime | Needed by |
-|---|---|---|---|
-| `WithStore<TStore>()` | `TStore`, and each of `IAgentSettingsStore`, `ISettingsStore<TId>`, `IConversationStore<TId>` and `ITypeshiftStore<TId>` it implements, of any id type, resolving to it. Call it once for each class. | Singleton, so it takes no scoped services ([Implementing a store](./implementing-a-store.md#register-your-store)) | Keeping agents' own settings, settings ids and conversations across restarts. Without any store, they are kept in memory, and the first save logs a warning. |
-| `WithStore(store)` | The store you created yourself, as each store interface its declared type implements. The container never disposes it. | Singleton, your app's | The same. |
-| `WithFileStore(Action<FileStoreOptions>? configure = null)` | The file store as `IAgentSettingsStore`, built by the container with your app's `TimeProvider`. By default, `Folder` is `typeshift` under `AppContext.BaseDirectory`; the settings files lie in its `settings` folder. | Singleton | Agents' own settings, kept in files ([Agent settings](./settings-and-stores.md#agent-settings)). |
-| `WithChatClientProvider<TProvider>()` | `TProvider`, and each `IChatClientProvider<T>` it implements, of any provider type, resolving to it. For each provider type, the last call wins. | Scoped | Every run with a provider and a model of that type, before any `IChatClient` you registered ([Registering clients](./models.md#registering-clients)). |
-| `WithOptions(options => ...)` | `TypeshiftOptions`, which each call changes further, such as `PersistAllConversations` | Singleton | Keeping the runs without a conversation id ([Keeping every conversation](./conversations.md#keeping-every-conversation)). |
-| `WithRealtimeTracking(RealtimeTrackingOptions? options = null)` | The options of live updates, in place of the defaults: `PublishInterval` of 100 ms and `MaxPendingUpdates` of 256. Live updates are on without it. | Singleton | Tuning `ConversationTracker<TId>.WatchAsync`. |
-| `WithConversationTracker<TId>()` | The `ConversationTracker<TId>` of one id type, closed, as a singleton of its own | Singleton | An app published with Native AOT that injects the tracker of a value type, such as `Guid` or `int` ([Native AOT](./native-aot.md#trackers-of-value-type-ids)). |
-| `WithApprovalRule<TRule>()` | One more `IToolApprovalRule` | Scoped | Deciding calls before your app is asked. |
-| `WithRunMiddleware<TMiddleware>()` | One more `IRunMiddleware`. The first registered is the outermost. | Scoped | Wrapping every run. |
-| `WithToolMiddleware<TMiddleware>()` | One more `IToolMiddleware`. The first registered is the outermost. | Scoped | Wrapping every tool call. |
-| `WithMcpToolProvider<TProvider>()` | `IMcpToolProvider` | Scoped | Agents with `UseMcpServer`. |
-
-Scoped services resolve from the run's scope, so they can differ per request and use the current customer's
-credentials, folder or rules, for example.
+::: warning Delete your own `[SchemaAnnotations]` class
+If your project already marks a class with `[SchemaAnnotations]`, adding the Typeshift package gives it a second one.
+Weboost.SchemaAnnotations then generates no `AIJsonSchemaCreateOptions.Annotated`, and code that uses it stops
+compiling. Delete your own class, and the one the package adds brings `Annotated` back.
+:::
 
 ## Related
 
 - [Getting started](./getting-started.md): the setup, step by step.
 - [Using an agent](./using-an-agent.md): injecting a host or resolving it from a scope.
-- [Running agents](./running-agents.md): running an agent.
+- [Running an agent](./running-agents.md): what a run takes and returns.
 - [Implementing a store](./implementing-a-store.md#register-your-store): the store `WithStore<T>()` registers, and the
   memory without one.
 - [Generated members](./generated-members.md#per-project): the module and the interceptor the generator writes.

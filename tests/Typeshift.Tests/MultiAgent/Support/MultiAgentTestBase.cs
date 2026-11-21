@@ -10,7 +10,9 @@ namespace Typeshift.Tests.MultiAgent.Support;
 // its caller answers from its own script
 public abstract class MultiAgentTestBase : AgentTestBase
 {
-    protected ScriptedChatClient HelperClient { get; } = new();
+    protected MultiAgentTestBase() => HelperClient = CreateScriptedClient();
+
+    protected ScriptedChatClient HelperClient { get; }
 
     protected ToolCalls ToolCalls { get; } = [];
 
@@ -64,6 +66,19 @@ public partial class LeadAgent : Agent
         WithChatOptions().WithModel("scripted", "lead-model");
 
         WithRunOptions().Configurable(r => r.Mode);
+
+        UseAgent<HelperAgent>();
+    }
+}
+
+// A tool of its chat options under its sub-agent's name, which no declaration shows and only a run sees
+public partial class ShadowedLeadAgent : Agent
+{
+    public ShadowedLeadAgent()
+    {
+        WithChatOptions()
+            .WithModel("scripted", "lead-model")
+            .WithTools(AIFunctionFactory.Create(() => "", "helper_agent"));
 
         UseAgent<HelperAgent>();
     }
@@ -127,6 +142,21 @@ public partial class BackgroundLeadAgent : Agent
     }
 }
 
+// Hands the conversation off while its helper works in the background
+public partial class BackgroundFrontAgent : Agent
+{
+    public BackgroundFrontAgent()
+    {
+        WithDescription("Finds out what the customer needs.");
+
+        WithChatOptions().WithModel("scripted", "front-model");
+
+        UseAgent<HelperAgent>().InBackground();
+
+        UseHandoff<BackAgent>();
+    }
+}
+
 // Asks for approval while its helper works in the background
 public partial class GuardedBackgroundLeadAgent : Agent
 {
@@ -154,6 +184,21 @@ public partial class GuardedFrontAgent : Agent
     }
 }
 
+// A front desk whose runs may name a mode, handing off to the agent that closes tickets behind approval
+public partial class ModeFrontAgent : Agent
+{
+    public ModeFrontAgent()
+    {
+        WithDescription("Finds out what the customer needs.");
+
+        WithChatOptions().WithModel("scripted", "front-model");
+
+        WithRunOptions().Configurable(r => r.Mode);
+
+        UseHandoff<GuardedBackAgent>();
+    }
+}
+
 public partial class GuardedBackAgent : Agent
 {
     public GuardedBackAgent()
@@ -163,6 +208,37 @@ public partial class GuardedBackAgent : Agent
         WithChatOptions().WithModel("scripted", "back-model");
 
         UseToolset<GuardedToolset>().Include(t => t.CloseTicket);
+
+        UseHandoff<GuardedFrontAgent>();
+    }
+}
+
+// Notes what the customer needs and hands off, to either of two agents
+public partial class NotingFrontAgent : Agent
+{
+    public NotingFrontAgent()
+    {
+        WithDescription("Notes what the customer needs, then hands off.");
+
+        WithChatOptions().WithModel("scripted", "front-model");
+
+        UseToolset<GuardedToolset>().Include(t => t.Note);
+
+        UseHandoff<BackAgent>();
+        UseHandoff<GuardedBackAgent>();
+    }
+}
+
+// Hands off to the front agent alone, which hands on to the back agent: a chain of two handoffs
+public partial class EntryAgent : Agent
+{
+    public EntryAgent()
+    {
+        WithDescription("Greets the customer.");
+
+        WithChatOptions().WithModel("scripted", "entry-model");
+
+        UseHandoff<FrontAgent>();
     }
 }
 
@@ -172,12 +248,12 @@ public partial class FrontAgent : Agent
     {
         WithDescription("Finds out what the customer needs.");
 
+        WithInstructions("Find out what the customer needs.");
+
         WithChatOptions().WithModel("scripted", "front-model");
 
         UseHandoff<BackAgent>();
     }
-
-    protected override string GetInstructions() => "Find out what the customer needs.";
 }
 
 public partial class BackAgent : Agent
@@ -188,12 +264,12 @@ public partial class BackAgent : Agent
     {
         WithDescription("Settles billing.");
 
+        WithInstructions(Prompt);
+
         WithChatOptions()
             .WithModel("scripted", "back-model")
             .Configurable(o => o.Temperature);
 
         UseHandoff<FrontAgent>();
     }
-
-    protected override string GetInstructions() => Prompt;
 }

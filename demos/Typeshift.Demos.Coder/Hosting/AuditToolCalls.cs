@@ -1,11 +1,10 @@
-using System.Diagnostics;
 using Microsoft.Extensions.AI;
 using Typeshift.Demos.Hosting;
 
 namespace Typeshift.Demos.Coder.Hosting;
 
 // Prints every tool call with its arguments and how long it took; a host would log or meter this
-public sealed class AuditToolCalls : IToolMiddleware
+public sealed class AuditToolCalls(TimeProvider time) : IToolMiddleware
 {
     public async ValueTask<object?> InvokeAsync(
         FunctionInvocationContext call,
@@ -16,11 +15,11 @@ public sealed class AuditToolCalls : IToolMiddleware
             ? Demo.Arguments(new FunctionCallContent(call.CallContent.CallId, call.Function.Name, sent))
             : "";
 
-        var started = Stopwatch.GetTimestamp();
+        var started = time.GetTimestamp();
         var result = await next();
 
         Console.Error.WriteLine(
-            $"  [tool] {call.Function.Name}({arguments}) {Stopwatch.GetElapsedTime(started).TotalMilliseconds:F0}ms");
+            $"  [tool] {call.Function.Name}({arguments}) {time.GetElapsedTime(started).TotalMilliseconds:F0}ms");
 
         return result;
     }

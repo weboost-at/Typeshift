@@ -1,7 +1,7 @@
 namespace Typeshift;
 
 /// <summary>
-/// The chain of one tool. The generator reads it at compile time; settings come last.
+/// The chain of one tool. The generator reads it at compile time, its calls in any order.
 /// </summary>
 public sealed class ToolBuilder
 {
@@ -15,7 +15,7 @@ public sealed class ToolBuilder
     /// Overrides the name derived from the method. The name keys the tool's stored settings, so pin it here before
     /// renaming a method whose settings are stored.
     /// </summary>
-    /// <param name="name">A lower_snake_case constant, unique across everything the host sees.</param>
+    /// <param name="name">A lower_snake_case constant, unique across everything your app sees.</param>
     /// <returns>The same chain.</returns>
     public ToolBuilder WithName(string name) => this;
 
@@ -27,7 +27,7 @@ public sealed class ToolBuilder
     public ToolBuilder WithDescription(string description) => this;
 
     /// <summary>
-    /// Pauses a run that calls the tool until the host approves or rejects the call.
+    /// Pauses a run that calls the tool until your app approves or rejects the call.
     /// </summary>
     /// <returns>The same chain.</returns>
     public ToolBuilder RequiresApproval() => this;
@@ -44,7 +44,7 @@ public sealed class ToolBuilder
     /// </summary>
     /// <typeparam name="TSettings">A record; its parameterless constructor sets the code defaults.</typeparam>
     /// <returns>The allow list.</returns>
-    public ToolBuilder<TSettings> WithSettings<TSettings>() where TSettings : class, new() =>
+    public ToolBuilder<TSettings> WithSettings<TSettings>() where TSettings : class =>
         ToolBuilder<TSettings>.Instance;
 
     /// <summary>
@@ -54,7 +54,7 @@ public sealed class ToolBuilder
     /// <typeparam name="TSettings">A record; its parameterless constructor sets the code defaults.</typeparam>
     /// <returns>The deny list.</returns>
     public ConfigurableSettingsBuilder<TSettings> WithConfigurableSettings<TSettings>()
-        where TSettings : class, new() =>
+        where TSettings : class =>
         ConfigurableSettingsBuilder<TSettings>.Instance;
 }
 
@@ -62,7 +62,7 @@ public sealed class ToolBuilder
 /// The allow list of a tool's configurable settings members.
 /// </summary>
 /// <typeparam name="TSettings">The tool's settings record.</typeparam>
-public sealed class ToolBuilder<TSettings> where TSettings : class, new()
+public sealed class ToolBuilder<TSettings> where TSettings : class
 {
     internal static readonly ToolBuilder<TSettings> Instance = new();
 
@@ -77,13 +77,39 @@ public sealed class ToolBuilder<TSettings> where TSettings : class, new()
     /// <param name="member">The member, <c>s => s.Limit</c>.</param>
     /// <returns>The same list.</returns>
     public ToolBuilder<TSettings> Configurable<TMember>(Func<TSettings, TMember> member) => this;
+
+    /// <summary>
+    /// Overrides the name derived from the method, as <see cref="ToolBuilder.WithName"/> does.
+    /// </summary>
+    /// <param name="name">A lower_snake_case constant, unique across everything your app sees.</param>
+    /// <returns>The same chain.</returns>
+    public ToolBuilder<TSettings> WithName(string name) => this;
+
+    /// <summary>
+    /// Overrides the description taken from the method's <c>&lt;summary&gt;</c>.
+    /// </summary>
+    /// <param name="description">A constant.</param>
+    /// <returns>The same chain.</returns>
+    public ToolBuilder<TSettings> WithDescription(string description) => this;
+
+    /// <summary>
+    /// Pauses a run that calls the tool until your app approves or rejects the call.
+    /// </summary>
+    /// <returns>The same chain.</returns>
+    public ToolBuilder<TSettings> RequiresApproval() => this;
+
+    /// <summary>
+    /// Marks the tool as reading only, without side effects, so plan mode offers it.
+    /// </summary>
+    /// <returns>The same chain.</returns>
+    public ToolBuilder<TSettings> ReadOnly() => this;
 }
 
 /// <summary>
 /// The deny list of a tool's configurable settings members.
 /// </summary>
 /// <typeparam name="TSettings">The tool's settings record.</typeparam>
-public sealed class ConfigurableSettingsBuilder<TSettings> where TSettings : class, new()
+public sealed class ConfigurableSettingsBuilder<TSettings> where TSettings : class
 {
     internal static readonly ConfigurableSettingsBuilder<TSettings> Instance = new();
 
@@ -98,4 +124,30 @@ public sealed class ConfigurableSettingsBuilder<TSettings> where TSettings : cla
     /// <param name="member">The member, <c>s => s.Timeout</c>.</param>
     /// <returns>The same list.</returns>
     public ConfigurableSettingsBuilder<TSettings> NotConfigurable<TMember>(Func<TSettings, TMember> member) => this;
+
+    /// <summary>
+    /// Overrides the name derived from the method, as <see cref="ToolBuilder.WithName"/> does.
+    /// </summary>
+    /// <param name="name">A lower_snake_case constant, unique across everything your app sees.</param>
+    /// <returns>The same chain.</returns>
+    public ConfigurableSettingsBuilder<TSettings> WithName(string name) => this;
+
+    /// <summary>
+    /// Overrides the description taken from the method's <c>&lt;summary&gt;</c>.
+    /// </summary>
+    /// <param name="description">A constant.</param>
+    /// <returns>The same chain.</returns>
+    public ConfigurableSettingsBuilder<TSettings> WithDescription(string description) => this;
+
+    /// <summary>
+    /// Pauses a run that calls the tool until your app approves or rejects the call.
+    /// </summary>
+    /// <returns>The same chain.</returns>
+    public ConfigurableSettingsBuilder<TSettings> RequiresApproval() => this;
+
+    /// <summary>
+    /// Marks the tool as reading only, without side effects, so plan mode offers it.
+    /// </summary>
+    /// <returns>The same chain.</returns>
+    public ConfigurableSettingsBuilder<TSettings> ReadOnly() => this;
 }

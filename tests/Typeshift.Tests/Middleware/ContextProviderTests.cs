@@ -1,27 +1,39 @@
 using Typeshift.Tests.Middleware.Support;
 using FluentAssertions;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Typeshift.Tests.Middleware;
 
 public class ContextProviderTests : MiddlewareTestBase
 {
-    [Fact]
-    public async Task Given_A_Context_Provider_Its_Instructions_Follow_The_Agents()
+    protected override void ConfigureServices(IServiceCollection services)
+    {
+        base.ConfigureServices(services);
+
+        services.AddScoped<ProfileContext>();
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Given_A_Context_Provider_Its_Instructions_Follow_The_Agents(bool streaming)
     {
         // Arrange
         ChatClient.Reply(Text(Data.Tool.Answer));
         Script.Context = new AgentContext { Instructions = Data.Agent.Instructions };
 
         // Act
-        await RunAsync(Data.Tool.Question);
+        await RunAsync(Data.Tool.Question, settings: null, streaming);
 
         // Assert
         ChatClient.Options[0]!.Instructions.Should().Be($"{ContextAgent.Prompt}\n\n{Data.Agent.Instructions}");
     }
 
-    [Fact]
-    public async Task Given_A_Context_Provider_Its_Messages_Go_Ahead_Of_The_Input_And_Are_Not_Stored()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Given_A_Context_Provider_Its_Messages_Go_Ahead_Of_The_Input_And_Are_Not_Stored(bool streaming)
     {
         // Arrange
         ChatClient
@@ -30,10 +42,10 @@ public class ContextProviderTests : MiddlewareTestBase
 
         Script.Context = new AgentContext { Messages = [new ChatMessage(ChatRole.User, Data.Agent.CompanyName)] };
 
-        await RunAsync(Data.Tool.Question);
+        await RunAsync(Data.Tool.Question, settings: null, streaming);
 
         // Act
-        await RunAsync(Data.Agent.FollowUp);
+        await RunAsync(Data.Agent.FollowUp, settings: null, streaming);
 
         // Assert
         ChatClient.Requests[1].Select(message => message.Text).Should().Equal(
@@ -49,7 +61,179 @@ public class ContextProviderTests : MiddlewareTestBase
     }
 
     [Fact]
-    public async Task Given_Steering_And_Context_That_Grows_The_Steering_Input_Stays_After_The_Tool_Result()
+    public async Task Given_A_Run_With_A_Conversation_Id_The_Provider_Reads_It_Typed()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await RunAsync(Data.Tool.Question);
+        var read = Script.ContextRuns[0].TryGetConversationId<Guid>(out var conversation);
+
+        // Assert
+        read.Should().BeTrue();
+        conversation.Should().Be(Data.Agent.ConversationId);
+    }
+
+    [Fact]
+    public async Task Given_An_Id_Of_Another_Type_The_Read_Is_False()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await RunAsync(Data.Tool.Question);
+        var read = Script.ContextRuns[0].TryGetConversationId<string>(out _);
+
+        // Assert
+        read.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Given_Run_Settings_Of_A_Run_Option_The_Provider_Reads_The_Layered_Value()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await RunAsync(Data.Tool.Question, new() { MaxInputTokens = 100_000 });
+
+        // Assert
+        Script.ContextRuns[0].RunOptions.MaxInputTokens.Should().Be(100_000);
+    }
+
+    [Fact]
+    public async Task Given_A_Compaction_In_A_Run_With_Context_Its_Summary_Leaves_The_Context_Out()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(Text(Data.Agent.Reason))
+            .Reply(Text(Data.Tool.Answer));
+
+        Script.Context = new AgentContext { Messages = [new ChatMessage(ChatRole.User, Data.Agent.CompanyName)] };
+
+        await RunAsync(new string('x', Page));
+
+        // Act
+        await RunAsync(Data.Agent.FollowUp, new() { MaxInputTokens = 1_000 });
+
+        // Assert
+        var summary = (await EntriesAsync(Data.Agent.ConversationId)).Single(entry => entry.IsSummary);
+        summary.Messages.Skip(1).Select(message => message.Text).Should().Equal(Data.Tool.Answer, Data.Agent.FollowUp);
+    }
+
+    [Fact]
+    public async Task Given_Context_Among_The_Summarized_Turns_The_Summary_Model_Does_Not_Read_It()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "note", ("text", new string('x', Page))))
+            .Reply(Text(Data.Agent.Reason))
+            .Reply(Text(Data.Tool.Answer));
+
+        Script.Context = new AgentContext { Messages = [new ChatMessage(ChatRole.User, Data.Agent.CompanyName)] };
+
+        // Act
+        await RunAsync(Data.Tool.Question, new() { MaxInputTokens = 1_000 });
+
+        // Assert
+        ChatClient.Requests[1][1].Text.Should().Be($"user: {Data.Tool.Question}{Environment.NewLine}");
+    }
+
+    [Fact]
+    public async Task Given_Context_Among_The_Summarized_Turns_The_Runs_Later_Calls_Keep_It()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "note", ("text", Data.Tool.Query)))
+            .Reply(Text(Data.Agent.Reason))
+            .Reply(Call(Data.Tool.SecondCallId, "note", ("text", Data.Tool.Query)))
+            .Reply(Text(Data.Tool.Answer));
+
+        Script.Context = new AgentContext { Messages = [new ChatMessage(ChatRole.User, Data.Agent.CompanyName)] };
+
+        // Act
+        await RunAsync(new string('x', Page), new() { MaxInputTokens = 1_000 });
+
+        // Assert
+        ChatClient.Requests[2][1].Text.Should().Be(Data.Agent.CompanyName);
+        ChatClient.Requests[3][1].Text.Should().Be(Data.Agent.CompanyName);
+    }
+
+    [Fact]
+    public async Task Given_A_Steered_Run_With_Context_Its_Later_Pass_Starts_From_The_Summary_With_The_New_Context()
+    {
+        // Arrange
+        var gate = new TaskCompletionSource();
+        Script.Context = new AgentContext { Messages = [new ChatMessage(ChatRole.User, Data.Agent.Instructions)] };
+
+        ChatClient
+            .Reply(Text(new string('y', Page)))
+            .Reply(Text(Data.Agent.Reason))
+            .Reply(gate, Text(Data.Tool.Answer))
+            .Reply(Text(Data.Agent.FollowUp));
+
+        await RunAsync(new string('x', Page));
+        var run = RunAsync(Data.Tool.Question, new() { MaxInputTokens = 1_000, TargetInputTokens = 900 });
+        await ChatClient.RequestedAsync(3);
+        Script.Context = new AgentContext { Messages = [new ChatMessage(ChatRole.User, Data.Agent.CompanyName)] };
+
+        // Act
+        Tracker.TrySteer(Data.Agent.ConversationId, Data.Agent.Steering);
+        gate.SetResult();
+        await run;
+
+        // Assert
+        ChatClient.Requests[3].Skip(1).Select(message => message.Text).Should().Equal(
+            Data.Agent.CompanyName,
+            Data.Tool.Question,
+            Data.Tool.Answer,
+            Data.Agent.Steering);
+    }
+
+    [Fact]
+    public async Task Given_Context_Among_The_Summarized_Turns_The_Kept_Turns_Fit_With_It()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "note", ("text", new string('x', Page))))
+            .Reply(Call(Data.Tool.SecondCallId, "note", ("text", new string('x', Page))))
+            .Reply(Text(Data.Agent.Reason))
+            .Reply(Text(Data.Tool.Answer));
+
+        Script.Context = new AgentContext { Messages = [new ChatMessage(ChatRole.User, new string('c', 2 * Page))] };
+
+        // Act
+        await RunAsync(Data.Tool.Question, new() { MaxInputTokens = 4_000, TargetInputTokens = 3_900 });
+
+        // Assert
+        ChatClient.Requests[3].SelectMany(message => message.Contents)
+            .OfType<FunctionCallContent>()
+            .Select(call => call.CallId)
+            .Should()
+            .Equal(Data.Tool.SecondCallId);
+    }
+
+    [Fact]
+    public async Task Given_Only_Context_Ahead_Of_The_Input_Nothing_Is_Summarized()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+        Script.Context = new AgentContext { Messages = [new ChatMessage(ChatRole.User, Data.Agent.CompanyName)] };
+
+        // Act
+        await RunAsync(new string('x', Page), new() { MaxInputTokens = 1_000 });
+
+        // Assert
+        ChatClient.Requests.Should().ContainSingle();
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Given_Steering_And_Context_That_Grows_The_Steering_Input_Stays_After_The_Tool_Result(
+        bool streaming)
     {
         // Arrange
         var first = new TaskCompletionSource();
@@ -61,7 +245,7 @@ public class ContextProviderTests : MiddlewareTestBase
             .Reply(second, Text(Data.Tool.Answer))
             .Reply(Text(Data.Tool.Answer));
 
-        var run = RunAsync(Data.Tool.Question);
+        var run = RunAsync(Data.Tool.Question, settings: null, streaming);
         await ChatClient.Requested;
         Tracker.TrySteer(Data.Agent.ConversationId, Data.Agent.Steering);
         first.SetResult();
@@ -83,15 +267,17 @@ public class ContextProviderTests : MiddlewareTestBase
         last[result + 1].Text.Should().Be(Data.Agent.Steering);
     }
 
-    [Fact]
-    public async Task Given_A_Context_Provider_Its_Tools_Are_Offered_After_The_Agents()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Given_A_Context_Provider_Its_Tools_Are_Offered_After_The_Agents(bool streaming)
     {
         // Arrange
         ChatClient.Reply(Text(Data.Tool.Answer));
         Script.Context = new AgentContext { Tools = [AIFunctionFactory.Create(() => Data.Tool.Answer, "lookup")] };
 
         // Act
-        await RunAsync(Data.Tool.Question);
+        await RunAsync(Data.Tool.Question, settings: null, streaming);
 
         // Assert
         ChatClient.Options[0]!.Tools!.Select(tool => tool.Name)
@@ -100,7 +286,46 @@ public class ContextProviderTests : MiddlewareTestBase
     }
 
     [Fact]
-    public async Task Given_A_Context_Tool_That_Requires_Approval_The_Run_Asks_For_It()
+    public async Task Given_A_Context_Tool_Named_Like_One_Of_The_Agents_The_Run_Fails_Naming_Both()
+    {
+        // Arrange
+        Script.Context = new AgentContext { Tools = [AIFunctionFactory.Create(() => Data.Tool.Answer, "note")] };
+
+        // Act
+        var run = () => RunAsync(Data.Tool.Question);
+
+        // Assert
+        await run.Should()
+            .ThrowAsync<InvalidOperationException>()
+            .WithMessage("*'note' twice, through its toolsets or its own tools and through its chat options or a*");
+        ChatClient.Requests.Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData("ask_user", "the tool that asks the user")]
+    [InlineData("exit_plan_mode", "the tool that presents a plan")]
+    [InlineData("handoff_to_billing", "the handoffs of UseHandoff<T>()")]
+    public async Task Given_A_Context_Tool_Of_A_Name_A_Run_Offers_Itself_The_Run_Fails_Naming_What_It_Is_Reserved_For(
+        string name,
+        string reserved)
+    {
+        // Arrange
+        Script.Context = new AgentContext { Tools = [AIFunctionFactory.Create(() => Data.Tool.Answer, name)] };
+
+        // Act
+        var run = () => RunAsync(Data.Tool.Question);
+
+        // Assert
+        await run.Should()
+            .ThrowAsync<InvalidOperationException>()
+            .WithMessage($"*'{name}' through its chat options or a context provider*reserved for {reserved}*");
+        ChatClient.Requests.Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Given_A_Context_Tool_That_Requires_Approval_The_Run_Asks_For_It(bool streaming)
     {
         // Arrange
         ChatClient.Reply(Call(Data.Tool.CallId, "lookup"));
@@ -109,11 +334,65 @@ public class ContextProviderTests : MiddlewareTestBase
         Script.Context = new AgentContext { Tools = [lookup] };
 
         // Act
-        var response = await RunAsync(Data.Tool.Question);
+        var response = await RunAsync(Data.Tool.Question, settings: null, streaming);
 
         // Assert
-        response.ApprovalRequests.Select(request => ((FunctionCallContent)request.ToolCall).Name)
-            .Should()
-            .Equal("lookup");
+        response.Decisions.OfType<ApprovalDecision>().Select(decision => decision.Tool).Should().Equal("lookup");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Given_A_Provider_Nobody_Registered_The_Pass_Disposes_It_After_Its_Tools_Ran(bool streaming)
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, LookupContext.Tool))
+            .Reply(Text(Data.Tool.Answer));
+
+        var host = Host<LookupContextAgent>();
+
+        // Act
+        if (streaming) await host.RunStreamingAsync(Data.Tool.Question, ct: Ct).ToListAsync(Ct);
+        else await host.RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        Script.Lifetimes.Should().Equal("lookup created", "lookup called", "lookup disposed");
+    }
+
+    [Fact]
+    public async Task Given_A_Provider_Nobody_Registered_Each_Pass_Creates_And_Disposes_Its_Own()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(Text(Data.Tool.Answer));
+
+        var host = Host<LookupContextAgent>();
+
+        // Act
+        await host.RunAsync(Data.Tool.Question, ct: Ct);
+        await host.RunAsync(Data.Agent.FollowUp, ct: Ct);
+
+        // Assert
+        Script.Lifetimes.Should().Equal("lookup created", "lookup disposed", "lookup created", "lookup disposed");
+    }
+
+    [Fact]
+    public async Task Given_A_Registered_Provider_The_Run_Leaves_It_To_Its_Scope()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(Text(Data.Tool.Answer));
+
+        var host = Host<ProfileContextAgent>();
+
+        // Act
+        await host.RunAsync(Data.Tool.Question, ct: Ct);
+        await host.RunAsync(Data.Agent.FollowUp, ct: Ct);
+
+        // Assert
+        Script.Lifetimes.Should().Equal("profile created");
     }
 }

@@ -4,12 +4,13 @@ using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using OpenAI;
+using OpenAI.Chat;
 using Typeshift.Samples.Agents;
 using Typeshift.Samples.Hosting;
 
 namespace Typeshift.Samples.Scenarios;
 
-internal static class Models
+internal static partial class Models
 {
     public static void ShowKeyedChatClients(IServiceCollection services, IChatClient openAi, IChatClient anthropic)
     {
@@ -93,6 +94,19 @@ internal static class Models
         // end-snippet
     }
 
+    public static void ShowRequestOptions(IServiceCollection services, string apiKey)
+    {
+        // begin-snippet: client-request-options
+        var openAi = new OpenAIClient(apiKey)
+            .GetChatClient("gpt-5-mini")
+            .AsIChatClient();
+
+        services.AddKeyedChatClient("openai", openAi)
+            .ConfigureOptions(options =>
+                options.RawRepresentationFactory = _ => new ChatCompletionOptions { StoredOutputEnabled = false });
+        // end-snippet
+    }
+
     public static void ShowRetries(IServiceCollection services, string apiKey)
     {
         // begin-snippet: client-retries
@@ -128,6 +142,19 @@ internal static class Models
         var client = new OpenAIClient(apiKey)
             .GetChatClient("gpt-5-mini")
             .AsIChatClient();
+        // end-snippet
+
+        return client;
+    }
+
+    public static IChatClient ShowOpenAiResponsesClient(string apiKey)
+    {
+        // begin-snippet: openai-responses-client
+        #pragma warning disable OPENAI001
+        var client = new OpenAIClient(apiKey)
+            .GetResponsesClient()
+            .AsIChatClient("gpt-5-mini");
+        #pragma warning restore OPENAI001
         // end-snippet
 
         return client;

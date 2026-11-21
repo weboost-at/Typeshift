@@ -1,6 +1,6 @@
 using System.Collections.Generic;
-using Typeshift.Generators.Emitting;
 using Typeshift.Generators.Models;
+using Typeshift.Generators.Naming;
 using Microsoft.CodeAnalysis;
 
 namespace Typeshift.Generators.Parsing;

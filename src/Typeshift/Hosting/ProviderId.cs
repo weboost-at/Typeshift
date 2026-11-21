@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -5,8 +6,7 @@ namespace Typeshift;
 
 // D77: a provider with its type, made where the type is known, in WithModel and in the generated code that applies a
 // settings layer. It asks the IChatClientProvider of its type through a generic call, so agents of several provider
-// types serve one app and no type is made at run time. Equal when type and value are, as the instrumented clients are
-// kept by it
+// types serve one app and no type is made at run time
 internal abstract record ProviderId
 {
     public abstract object Value { get; }
@@ -14,13 +14,16 @@ internal abstract record ProviderId
     // The interface that serves the provider, for the message of a run no client serves
     public abstract string Contract { get; }
 
-    // Null when no IChatClientProvider of the provider's type is registered
-    public abstract ValueTask<IChatClient?> GetChatClientAsync(
+    // D63: whether an IChatClientProvider of the provider's type is registered, which then alone serves it
+    public abstract bool HasChatClientProvider(IServiceProvider services);
+
+    public abstract ValueTask<IChatClient> GetChatClientAsync(
         IServiceProvider services,
         string model,
         CancellationToken ct);
 
-    public sealed override string ToString() => Value.ToString() ?? "";
+    // The provider as a span and a conversation entry name it, the same whatever the culture
+    public sealed override string ToString() => Convert.ToString(Value, CultureInfo.InvariantCulture) ?? "";
 }
 
 internal sealed record ProviderId<TProviderId>(TProviderId Id) : ProviderId where TProviderId : notnull
@@ -29,13 +32,16 @@ internal sealed record ProviderId<TProviderId>(TProviderId Id) : ProviderId wher
 
     public override string Contract => $"IChatClientProvider<{TypeNames.Of<TProviderId>()}>";
 
-    public override async ValueTask<IChatClient?> GetChatClientAsync(
+    public override bool HasChatClientProvider(IServiceProvider services) =>
+        services.GetService<IChatClientProvider<TProviderId>>() is not null;
+
+    public override async ValueTask<IChatClient> GetChatClientAsync(
         IServiceProvider services,
         string model,
         CancellationToken ct) =>
-        services.GetService<IChatClientProvider<TProviderId>>() is { } clients
-            ? await clients.GetChatClientAsync(Id, model, ct)
-                ?? throw new InvalidOperationException(
-                    $"The {Contract} returned no client for '{model}' of '{Id}'.")
-            : null;
+        await services
+            .GetRequiredService<IChatClientProvider<TProviderId>>()
+            .GetChatClientAsync(Id, model, ct)
+            .ConfigureAwait(false)
+        ?? throw new InvalidOperationException($"The {Contract} returned no client for '{model}' of '{Id}'.");
 }

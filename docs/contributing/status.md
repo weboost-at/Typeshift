@@ -1,12 +1,12 @@
 ---
 title: Status
-description: "Where the library stands: the slices of the rewrite, the test that covers each behavior, and the known gaps."
+description: "Where the library stands: the slices of the rewrite, the test classes of each area, and the known gaps."
 ---
 
 # Status
 
-What is built, which test covers each behavior, and what is still open. Open items live here, never as TODOs in
-code.
+What is built, which test classes cover each area, and what is still open. Open items live here, never as TODOs
+in code.
 
 ## Slices
 
@@ -25,157 +25,113 @@ The rewrite built the API the owner approved in ten slices, one at a time, and a
 
 ## Behavior coverage
 
-A number is the rule's row in v0's behavior table, where that rule still holds. Rows marked "new" came with the
-rewrite.
+Each test class covers one subject, and each test's name states the rule it checks, so the classes of an area are
+where you find the test of a behavior. A new test class goes into the row of its area: the docs rules fail on a class
+that no row names, and on a name that is no test class.
 
-| # | Behavior | Test |
-|---|---|---|
-| new | `TypeshiftRuntime.Create` runs an agent on its client, takes the chain's store, leaves the client undisposed after a run and the runtime's dispose, disposes the container's singletons with the runtime, asynchronously or not, refuses a host once disposed, takes a second dispose, and rejects a null client; the generator intercepts the call through each receiver that names `TypeshiftRuntime`, in a project without `AddTypeshift()` too, and leaves a `Create` of the project's own and a call bound at run time alone; the code compiles cleanly (D75) | `TypeshiftRuntimeTests.Given_A_Runtime_Over_A_Client_An_Agent_Runs_On_It`, `..._Given_A_Runtime_With_A_Store_An_Agents_Configured_Settings_Apply_To_Its_Runs`, `..._Given_A_Runtime_Disposed_After_A_Run_The_Client_It_Was_Given_Stays_Undisposed`, `..._Given_A_Runtime_Disposed_After_A_Run_Its_Containers_Singletons_Are_Disposed`, `..._Given_A_Runtime_Disposed_Synchronously_After_A_Run_Its_Containers_Singletons_Are_Disposed`, `..._Given_A_Disposed_Runtime_Creating_A_Host_Throws`, `..._Given_A_Disposed_Runtime_Disposing_It_Again_Throws_Nothing`, `..._Given_No_Client_Creating_A_Runtime_Throws`, `AgentGenerationTests.Given_A_TypeshiftRuntime_Create_Call_The_Interceptor_Builds_The_Runtime_With_The_Projects_Module`, `..._Given_A_TypeshiftRuntime_Create_Call_The_Generated_Code_Compiles_Without_Warnings`, `..._Given_Only_A_TypeshiftRuntime_Create_Call_It_Is_Intercepted`, `..._Given_Only_A_TypeshiftRuntime_Create_Call_The_Generated_Code_Compiles_Without_Warnings`, `..._Given_A_Create_Method_Of_The_Projects_Own_The_Generator_Does_Not_Intercept_It`, `..._Given_A_TypeshiftRuntime_Create_Call_Bound_At_Run_Time_The_Generator_Does_Not_Intercept_It` |
-| new | `AddTypeshift()` registers one `TypeshiftRuntime`, whose hosts run agents; each host from `Agent<T>()` has scoped services of its own, the same for every run of that host, and disposing it, asynchronously or not, disposes them and takes a second dispose; its runs leave no host of a sub-agent or a handoff in its scope; disposing an injected host leaves the request's scope alone, and disposing a runtime the container created leaves the container working (D76) | `TypeshiftRuntimeTests.Given_A_Container_The_Root_And_A_Scope_Resolve_One_Runtime`, `..._Given_A_Runtime_From_The_Container_An_Agent_Runs_On_Its_Host`, `..._Given_Two_Hosts_Of_The_Runtime_Their_Runs_Resolve_From_Scopes_Of_Their_Own`, `..._Given_Two_Runs_Of_One_Host_Of_The_Runtime_Both_Resolve_From_Its_Scope`, `..._Given_A_Host_Of_The_Runtime_Disposed_The_Scoped_Services_Of_Its_Runs_Are_Disposed`, `..._Given_A_Host_Of_The_Runtime_Disposed_Synchronously_The_Scoped_Services_Of_Its_Runs_Are_Disposed`, `..._Given_A_Disposed_Host_Of_The_Runtime_Disposing_It_Again_Throws_Nothing`, `..._Given_Runs_Of_One_Host_That_Call_A_Sub_Agent_The_Container_Builds_No_Host_Its_Scope_Keeps`, `..._Given_Runs_Of_One_Host_That_Offer_A_Handoff_The_Container_Builds_No_Host_Its_Scope_Keeps`, `..._Given_An_Injected_Host_Disposed_The_Request_Scopes_Services_Stay_Undisposed`, `..._Given_A_Runtime_From_The_Container_Disposed_The_Container_Keeps_Working` |
-| new | A copy of a runtime host from `WithSettingsId` or `WithConversationId` runs in its scope and owns none of it: disposing the copy leaves the host running and its scoped services undisposed, and the host disposes them once (D72, D76) | `TypeshiftRuntimeTests.Given_A_Copy_Of_A_Host_Of_The_Runtime_Disposed_The_Host_Still_Runs_In_Its_Scope`, `..._Given_A_Copy_Of_A_Host_Of_The_Runtime_Disposed_The_Scoped_Services_Of_Its_Runs_Stay_Undisposed`, `..._Given_A_Host_Of_The_Runtime_Disposed_After_Its_Copy_The_Scoped_Services_Are_Disposed_Once` |
-| 1 | A tool's schema holds only the model-facing parameters | `ToolSchemaTests.Given_Parameters_The_Call_Fills_They_Stay_Out_Of_The_Schema` |
-| 3 | Overrides apply over the settings below; members that are not configurable have no override | `ToolOverridesTests` |
-| 4 | A call receives its arguments, its settings, the run's services and the call's token; the result reaches the model as JSON | `ToolInvocationTests.Given_A_Scripted_Call_The_Tool_Receives_Its_Arguments`, `..._Given_Settings_The_Tool_Runs_With_Them`, `..._Given_Two_Calls_Of_One_Run_Both_Resolve_From_The_Runs_Scope`, `..._Given_A_Call_The_Tool_Receives_The_Calls_Token`, `..._Given_A_Scripted_Call_The_Result_Reaches_The_Model_As_Json` |
-| 5 | A missing required argument fails the call; an absent optional one takes its default | `ToolInvocationTests.Given_A_Missing_Required_Argument_The_Call_Fails_With_An_ArgumentException`, `..._Given_An_Absent_Optional_Argument_The_Tool_Takes_Its_Default` |
-| 6 | A struct parameter defaulting to `default` | `ToolInvocationTests.Given_A_Struct_Parameter_Defaulting_To_Default_The_Tool_Runs_Without_It`, `ToolSchemaTests.Given_A_Struct_Parameter_Defaulting_To_Default_Its_Schema_Carries_The_Default` |
-| new | A project that only documents types gets a module, so a referencing host registers its docs (D55) | `ToolsetGenerationTests.Given_A_Schema_Annotations_Class_And_No_Toolsets_Or_Agents_A_Module_Registers_Its_Docs`, `AgentGenerationTests.Given_A_Reference_Of_Docs_Only_The_Interceptor_Registers_Its_Module` |
-| new | A tool returning `IAsyncEnumerable<T>` gives the model its items as one array; under AOT the list needs JSON metadata (D45) | `ToolInvocationTests.Given_A_Tool_That_Streams_Its_Results_The_Model_Receives_Them_As_One_Array`, `DiagnosticTests.Given_A_Stream_Whose_List_No_Context_Lists_Under_Native_Aot_TSH027_Is_Reported_On_Its_Tool` |
-| 7 | A nullable reference parameter is typed nullable | `ToolSchemaTests.Given_A_Nullable_Reference_Parameter_It_Is_Typed_As_Nullable` |
-| new | Each case of a union or polymorphic type's schema names its type, and accepts null when the parameter does (D62) | `ToolSchemaTests.Given_A_Polymorphic_Parameter_Each_Case_Of_Its_Schema_Names_Its_Type`, `..._Given_A_Nullable_Polymorphic_Parameter_Each_Case_Of_Its_Schema_Accepts_Null`, `UnionToolTests.Given_A_Union_Parameter_Each_Case_Of_Its_Schema_Names_Its_Type` |
-| new | A union argument binds the case its JSON token picks, a number read from a string when no case takes a string, and an object the case whose properties it carries; a union's own classifier wins, and a value that fits no single case fails naming the cases (D62) | `UnionToolTests` |
-| 8 | The schema matches `AIFunctionFactory`'s | `ToolSchemaTests.Given_The_Same_Method_The_Schema_Matches_AIFunctionFactory_Without_Descriptions` |
-| new | A recursive parameter type's `$ref`s point into its parameter, as `AIFunctionFactory`'s do | `ToolSchemaTests.Given_A_Recursive_Parameter_Type_The_Schema_Matches_AIFunctionFactory` |
-| 9 | Docs become descriptions, of tools and of agents (D14) | `ToolSchemaTests.Given_Param_Docs_They_Become_The_Parameter_Descriptions`, `..._Given_No_WithDescription_The_Summary_Is_The_Tool_Description`, `AgentRunTests.Given_No_WithDescription_The_Summary_Of_The_Agents_Docs_Describes_It`, `..._Given_WithDescription_And_A_Summary_WithDescription_Describes_The_Agent`, `DiagnosticTests.Given_A_Sub_Agent_Described_By_Its_Summary_No_TSH023_Is_Reported` |
-| 10 | Tool names are unique | `DiagnosticTests.Given_Two_Tools_Mapping_To_One_Member_TSH007_Is_Reported_On_The_Second`, `..._Given_Two_Toolsets_With_A_Tool_Of_One_Name_TSH007_Is_Reported_On_The_Second` |
-| new | A tool name is unique across the host, two references' tools included (TSH007) | `DiagnosticTests.Given_A_Tool_Named_Like_One_Of_A_Reference_TSH007_Is_Reported_On_The_Own`, `..._Given_Two_References_With_A_Tool_Of_One_Name_TSH007_Is_Reported` |
-| new | Tool names derive from the method, without `Async` (D13) | `ToolSchemaTests.Given_An_Async_Method_Without_WithName_The_Tool_Is_Named_Without_The_Suffix`, `ToolNamesTests` |
-| new | A call without services fails, saying how to run the tool | `ToolInvocationTests.Given_No_Services_The_Call_Fails_Saying_How_To_Run_It` |
-| new | Every shape the generator cannot handle is a diagnostic, and the generated code holds no error | `DiagnosticTests`, `DiagnosticTests.Given_Any_Mistake_The_Generated_Code_Holds_No_Error` |
-| new | Parameters the model never sees need no `<param>` | `ToolsetGenerationTests.Given_Parameters_The_Model_Never_Sees_Their_Missing_Docs_Are_Suppressed` |
-| 11 | `AddTypeshift()` registers the project's and the references' toolsets and agents, once | `AddTypeshiftTests` |
-| 12 | A call the generator did not intercept throws, saying what to check | `AddTypeshiftTests.Given_A_Call_The_Generator_Did_Not_Intercept_It_Fails_Saying_What_To_Check` |
-| 13 | A run gets the agent's code options; run settings override the configurable ones, null keeps the code | `AgentRunTests.Given_A_Run_The_Model_Receives_The_Agents_Code_Options`, `..._Given_Run_Settings_They_Override_The_Configurable_Options`, `..._Given_Run_Settings_That_Leave_An_Option_Null_The_Agents_Code_Holds` |
-| 14 | An agent offers its toolsets' tools, included in pick order or all but the excluded, then its own | `AgentRunTests.Given_The_Agents_Toolsets_The_Model_Is_Offered_Their_Tools_Then_Its_Own`, `..._Given_Exclude_Every_Other_Tool_Is_Offered_In_Declaration_Order` |
-| 15 | Tool settings layer: code defaults, `Configure{Tool}()`, the run's overrides | `AgentRunTests.Given_Configure_The_Tool_Runs_With_The_Agents_Settings`, `..._Given_Run_Overrides_Of_A_Tool_They_Apply_Over_The_Agents_Settings` |
-| new | A failed tool call reaches the model with its exception's message (D53) | `AgentRunTests.Given_A_Failing_Tool_Call_The_Model_Reads_Why_It_Failed` |
-| new | A run's tools resolve from the scope its host came from (D25) | `AgentRunTests.Given_Two_Tool_Calls_Of_A_Run_Both_Resolve_From_The_Hosts_Scope` |
-| new | Messages and updates carry the agent's name (D26) | `AgentRunTests.Given_A_Run_Its_Messages_Carry_The_Agents_Name_As_Their_Author`, `..._Given_A_Streaming_Run_Its_Updates_Carry_The_Text_And_The_Agents_Name` |
-| new | Run options limit the tool loop and may be configurable (D32) | `AgentRunTests.Given_Run_Settings_Of_A_Run_Option_The_Tool_Loop_Stops_After_It` |
-| new | Calls the host approves run in the next run, within its own limit (D24, D32) | `ToolApprovalTests.Given_A_Run_That_Asked_At_Its_Limit_The_Next_Run_Runs_The_Approved_Call_Within_Its_Own` |
-| new | Without an `IChatClientProvider` for it, a run takes the `IChatClient` keyed by its provider or the one for every agent, which also serves an agent with no model and sends no `ModelId`; the provider wins over a keyed client; the error names what to register (D63) | `ChatClientResolutionTests` |
-| new | A run asks the chat client provider for the provider and model of code, stored settings or the run; the request names the model alone (D77) | `AgentRunTests.Given_Run_Settings_They_Override_The_Configurable_Options`, `..._Given_A_Provider_And_A_Model_The_Request_Names_Only_The_Model`, `..._Given_Options_Of_Its_Own_The_Created_Client_Asks_The_Agents_Provider`, `StoredSettingsTests.Given_Stored_Settings_A_Run_With_Their_Id_Applies_Them` |
-| new | The type of the provider `WithModel` names types the agent's `Provider` members, and `string` those of an agent without one; agents of several provider types share a project (D77) | `AgentGenerationTests.Given_A_Model_Of_A_Provider_Of_A_Type_The_Settings_Store_Providers_Of_That_Type`, `..._Given_Agents_Of_Two_Provider_Types_Each_Settings_Store_Providers_Of_Its_Own` |
-| new | Each run asks the `IChatClientProvider<T>` of its agent's provider type, one class may serve several, and a stored provider of an enum reaches the provider of the enum; without one, a client keyed by the provider's value serves, and the error names the provider type it needs; a class that serves no provider type fails to register (D77, TSH030) | `ChatClientResolutionTests.Given_Agents_Of_Two_Provider_Types_Each_Run_Asks_The_Chat_Client_Provider_Of_Its_Type`, `..._Given_A_Chat_Client_Provider_Of_Two_Provider_Types_It_Serves_The_Agents_Of_Both`, `..._Given_Settings_Naming_Another_Provider_Of_An_Enum_Its_Chat_Client_Provider_Receives_It`, `..._Given_A_Configurable_Model_Without_WithModel_Its_String_Provider_Reaches_The_Provider`, `..._Given_A_Chat_Client_Keyed_By_An_Enum_Provider_The_Run_Answers_On_It`, `..._Given_Only_A_Chat_Client_Provider_Of_Another_Type_The_Run_Fails_Naming_The_Type_It_Needs`, `..._Given_A_Type_That_Is_No_Chat_Client_Provider_Registering_It_Fails_Naming_TSH030` |
-| new | A provider of an enum is stored by its name and read back (D77) | `SettingsJsonTests.Given_A_Provider_Of_An_Enum_It_Reads_Back`, `..._Given_A_Provider_Of_An_Enum_It_Is_Stored_By_Its_Name` |
-| new | Settings that store a provider need a type of one value (TSH029), a public agent's one as accessible (TSH006, D6), and `WithChatClientProvider<T>()` a class that serves some provider type (TSH030); a leftover `TypeshiftProviderIdType` is ignored (D77) | `DiagnosticTests.Given_A_Configurable_Model_Of_A_Provider_Of_More_Than_One_Value_TSH029_Is_Reported_On_It`, `..._Given_A_Provider_Of_More_Than_One_Value_That_Settings_Do_Not_Store_TSH029_Is_Not_Reported`, `..._Given_A_Public_Agent_Of_An_Internal_Provider_Id_Type_TSH006_Is_Reported_On_The_Model_Pick`, `..._Given_A_Type_That_Is_No_Chat_Client_Provider_TSH030_Is_Reported_On_WithChatClientProvider`, `..._Given_An_Agent_Of_Int_Providers_And_A_Chat_Client_Provider_Of_Ints_It_Compiles_Cleanly`, `..._Given_A_Leftover_Id_Type_Property_Naming_An_Unknown_Type_TSH029_Is_Not_Reported` |
-| new | Structured output and the raw path | `AgentRunTests.Given_A_Result_Type_The_Run_Returns_The_Models_Json_Typed`, `..._Given_Resolved_Options_The_Created_Client_Runs_The_Agent` |
-| new | A member System.Text.Json cannot handle fails the typed run before the model is called, naming the member (D62) | `AgentRunTests.Given_A_Result_Type_With_An_Exception_The_Run_Fails_Naming_The_Member` |
-| new | A streaming run of a result type yields the updates, asks for the type's schema and holds the typed answer once read; it runs once (D64) | `StreamingResultTests` |
-| new | A typed run keeps its format through an approval, a handoff and the agent a handed-off conversation goes to; an untyped one asks for none (D64) | `ToolApprovalTests.Given_An_Approval_In_A_Typed_Run_The_Run_Goes_On_In_Its_Format`, `HandoffTests.Given_A_Typed_Run_Handed_Off_The_Agent_Handed_To_Answers_In_Its_Format`, `..._Given_A_Typed_Streaming_Run_Handed_Off_The_Agent_Handed_To_Answers_In_Its_Format`, `..._Given_A_Conversation_Handed_Off_A_Typed_Run_Asks_The_Agent_That_Answered_For_Its_Format`, `..._Given_An_Untyped_Run_Handed_Off_The_Agent_Handed_To_Answers_In_Text` |
-| new | A sub-agent with a result type is asked for its schema, and its caller reads the result as JSON, a number without `data`; an answer without it fails the call, saying so; in the background, the JSON or the failure arrives as the answer (D65) | `SubAgentResultTests` |
-| new | A typed answer's schema carries `T`'s XML docs; a `T` other than an object of properties, a union among them, is asked for under `data` and read from there (D62) | `AgentRunTests.Given_A_Result_Type_With_Xml_Docs_The_Response_Schema_Describes_Its_Properties`, `..._Given_A_Number_Result_Type_The_Run_Reads_It_Under_Data`, `..._Given_An_Enum_Result_Type_The_Run_Reads_It_Under_Data`, `..._Given_A_Polymorphic_Result_Type_The_Run_Reads_It_Under_Data`, `..._Given_A_Dictionary_Result_Type_The_Response_Schema_Holds_It_Under_Data`, `..._Given_An_Answer_Without_Data_Its_Result_Cannot_Be_Read`, `UnionResultTests` |
-| new | A run without a model or a provider fails, saying how to fix it | `AgentRunTests.Given_No_Model_The_Run_Fails_Saying_How_To_Set_One`, `AddTypeshiftTests.Given_No_Chat_Client_Provider_A_Run_Fails_Naming_The_Registration` |
-| new | Disposing a run's client leaves the provider's client alone | `AgentRunTests.Given_A_Run_The_Providers_Client_Outlives_It` |
-| new | An agent's own tools (`AddTool` in its constructor) are offered after its toolsets' tools, with settings, approval and the analyzer's tool rules (D57) | `OwnToolsTests`, `AgentGenerationTests.Given_Tools_Of_The_Agents_Own_They_Are_Generated_In_It_And_Offered_After_The_Toolsets`, `..._Given_Tools_Of_The_Agents_Own_The_Generated_Code_Compiles_Without_Warnings`, `DiagnosticTests.Given_An_Agents_Tool_Of_An_Instance_Method_TSH003_Is_Reported_On_The_Argument`, `..._Given_A_Sub_Agent_With_A_Tool_Of_Its_Own_That_Needs_Approval_TSH024_Is_Reported_On_The_Use` |
-| new | An agent's own tool needs a unique name only among the agents its standing approvals reach or come from: handoffs, directly or through others, and sub-agents, a referenced project's agent included (D33, D57) | `DiagnosticTests.Given_Two_Agents_With_Tools_Of_One_Name_And_No_Handoff_TSH007_Is_Not_Reported`, `..._Given_A_Handoff_Between_Agents_With_Tools_Of_One_Name_TSH007_Is_Reported_On_Both_Tools`, `..._Given_A_Sub_Agent_With_A_Tool_Named_Like_Its_Callers_TSH007_Is_Reported_On_Both_Tools`, `..._Given_Agents_Handing_Off_To_Each_Other_With_Tools_Of_One_Name_TSH007_Is_Reported_Once_On_Each_Tool`, `..._Given_Handoffs_Reaching_An_Agent_With_A_Toolset_Tool_Of_One_Name_TSH007_Is_Reported_On_The_Own_Tool`, `..._Given_A_Handoff_To_A_References_Agent_With_A_Tool_Of_One_Name_TSH007_Is_Reported_On_The_Own_Tool`, `..._Given_A_Handoff_To_A_References_Agent_With_A_Tool_Of_A_Toolsets_Name_TSH007_Is_Reported_On_The_Agent`, `..._Given_An_Agents_Tool_Named_Like_Its_Toolsets_But_For_Underscores_TSH007_Is_Reported_On_The_Own_Tool`, `..._Given_An_Agents_Tool_Named_Like_A_Toolsets_It_Does_Not_Use_TSH007_Is_Not_Reported` |
-| new | The XML docs of a parameter's type describe its properties; the module registers a marked class's docs (D55) | `AddTypeshiftTests.Given_Xml_Docs_On_A_Parameters_Type_Its_Schema_Describes_Its_Properties`, `ToolsetGenerationTests.Given_A_Schema_Annotations_Class_The_Module_Registers_Its_Docs`, `..._Given_A_Schema_Annotations_Class_That_Is_Not_Partial_The_Module_Leaves_It_Out` |
-| new | Toolsets of referenced assemblies: stamps, settings, JSON contexts (D7, D45) | `AgentRunTests.Given_A_Toolset_Of_A_Referenced_Assembly_Its_Tool_Runs_With_Its_Settings`, `AddTypeshiftTests.Given_A_Json_Context_In_A_Toolsets_Assembly_Tools_Ask_It_Before_The_Defaults`, `AgentGenerationTests` |
-| new | An agent's output is generated again only when what it offers changes | `IncrementalTests` |
-| 16 | Stored settings apply under their id, run settings over them, tool overrides included | `StoredSettingsTests.Given_Stored_Settings_A_Run_With_Their_Id_Applies_Them`, `..._Given_Stored_And_Run_Settings_The_Runs_Apply_Over_The_Stored`, `..._Given_Stored_Tool_Overrides_The_Tool_Runs_With_Them_Over_The_Agents_Settings` |
-| 17 | Saves are guarded by versions; `ConfigureAsync` retries until it wins, ten times at most (D41) | `StoredSettingsTests.Given_A_Version_Another_Save_Replaced_Saving_Throws_A_StoreConflictException`, `..._Given_A_Stale_Version_Saving_Throws_A_StoreConflictException`, `..._Given_A_Save_Between_Load_And_Save_Configuring_Applies_The_Change_Again_And_Wins`, `..._Given_A_Save_Between_Every_Load_And_Save_Configuring_Gives_Up_After_Ten_Attempts` |
-| new | Every conversation store implements the load from the last summary, which `SinceLastSummary()` serves for a store that reads whole conversations, and runs load nothing else (D71) | `ConversationStoreTests.Given_A_Summary_The_Store_Loads_It_And_The_Entries_After_It`, `..._Given_A_Summary_The_Next_Run_Never_Loads_The_Whole_Conversation` |
-| new | A store keeps each agent's settings as JSON under its kind, so one id holds a document per agent (D38) | `StoredSettingsTests.Given_One_Id_For_Two_Agents_The_Store_Keeps_The_Json_Of_Each_Under_Its_Kind` |
-| new | The docs' EF Core store checks and writes each save in one statement, and a save that changed no row (an insert at version 0 or an update of a stale version) throws `StoreConflictException` and leaves the settings as they were (D41) | `samples/Typeshift.Samples.Docs`, `AgentSettings` scenario, run by CI |
-| new | The in-memory store passes `VerifyAsync` through each of its interfaces, a store that breaks a rule (kinds under one id, conflicts, the order of entries, the last summary) fails with a message naming it, and a store that is both fails on either interface's rules whichever it is called through (D58) | `StoreExtensionsTests` |
-| new | An agent's own settings apply to every run, under those of a settings id, which leave them alone; they load empty at version 0 and save with a version; a store of them alone serves runs, one without them leaves runs to the code and fails a save naming `IAgentSettingsStore` (D66) | `AgentSettingsTests`, `DiagnosticTests.Given_A_Store_Of_Agent_Settings_Alone_TSH028_Is_Not_Reported` |
-| new | A folder keeps agents' own settings across store instances, passes the check, and holds the kind, the version and the settings as JSON; two stores saving at once get a version each; any kind gets a file of its own in the folder; a save leaves no unfinished file; a file of another shape or kind fails naming it; a store your app created is registered as its interfaces and left undisposed; `WithFileStore` registers a store the container builds, which waits on the app's clock, with the settings in the `settings` folder of the options' folder, by default under the app's base directory; a blank folder fails registration naming the option (D67) | `FileAgentSettingsStoreTests`, `DiagnosticTests.Given_A_Store_Held_As_IAgentSettingsStore_TSH028_Is_Not_Reported`, `samples/Typeshift.Samples.Docs` (`FileSettings`) |
-| new | A project that leaves `GenerateDocumentationFile` unset gets XML docs, tool and type descriptions, and no CS1591 (D68) | `samples/Typeshift.Samples.PackageConsumer`, run by CI |
-| new | Instructions set in the constructor reach the model, and a run's own replace them (D70) | `AgentRunTests.Given_Instructions_Set_In_The_Constructor_A_Run_Sends_Them`, `..._Given_Instructions_Set_In_The_Constructor_A_Runs_Own_Replace_Them` |
-| 18 | Without any store, settings and conversations are kept in memory, and the first save warns once, naming `WithStore<T>()` and `WithFileStore()` (D69) | `StoredSettingsTests.Given_No_Store_Settings_Under_An_Id_Are_Kept_In_Memory_And_A_Run_Applies_Them`, `ConversationStoreTests.Given_No_Store_A_Conversation_Is_Kept_In_Memory_And_Its_Next_Run_Resumes_It`, `..._Given_No_Store_The_First_Run_That_Stores_Warns_Once_That_It_Keeps_Them_In_Memory` |
-| new | A store keeps settings, conversations or both; `WithStore<T>()` registers each interface it implements, and a missing one is named (D38, D43) | `StoredSettingsTests.Given_A_Store_Of_Settings_Alone_A_Run_With_Their_Id_Applies_Them`, `..._Given_A_Store_Of_Conversations_Alone_Loading_Settings_Fails_Naming_ISettingsStore`, `ConversationStoreTests.Given_A_Store_Of_Settings_Alone_A_Run_With_A_Conversation_Fails_Naming_IConversationStore`, `..._Given_A_Store_Of_Settings_And_One_Of_Conversations_A_Run_Uses_Each` |
-| new | A type that is no store is TSH028, at build time and at registration; a store of any id type is not (D38, D72) | `DiagnosticTests.Given_A_Type_That_Is_No_Store_TSH028_Is_Reported_On_WithStore`, `..._Given_A_Store_Of_Another_Id_Type_TSH028_Is_Not_Reported`, `..._Given_A_Store_Of_Conversations_Of_Another_Id_Type_TSH028_Is_Not_Reported`, `AgentSettingsTests.Given_A_Type_That_Is_No_Store_Registering_It_Fails_Naming_TSH028` |
-| new | Without `WithRealtimeTracking`, a watcher receives a streaming run's updates, and its options replace the defaults (D74) | `ConversationStoreTests.Given_No_WithRealtimeTracking_A_Watcher_Receives_The_Updates_Of_A_Streaming_Run`, `..._Given_Realtime_Options_They_Replace_The_Defaults` |
-| new | With every conversation kept, a run without an id starts one and the response names it, so the next run with that id resumes it; two runs start two; a streaming run names it and its next model call still gets the whole history; a new id is a `Guid` of version 7 at the injected clock's time, and without a store of `Guid` conversations the run fails naming `NewConversationIds`; a raw call's new id is the `Guid`'s text, or a string of `NewConversationIds`, so a raw call with the id its response names resumes the conversation; ids of another type come from `NewConversationIds`; a raw call without input or with options of its own starts none; a sub-agent's run stores only its caller's conversation, and a handoff, streamed or not, answers in the caller's new one; without the option, a run without an id names none (D73) | `PersistAllConversationsTests`, `..._Given_No_NewConversationIds_A_New_Conversation_Id_Is_A_Guid_Of_Version_7_At_The_Clocks_Time`, `..._Given_No_NewConversationIds_And_No_Store_Of_Guid_Conversations_A_Run_Fails_Naming_Them`, `..._Given_The_Id_A_Raw_Response_Names_A_Raw_Call_With_It_Resumes_The_Conversation`, `..._Given_Every_Conversation_Kept_A_Raw_Call_Stores_One_Under_The_Text_Of_A_Guid_Of_Version_7`, `..._Given_New_Conversation_Ids_Of_Strings_A_Raw_Call_Stores_Its_Conversation_Under_One`, `..._Given_Every_Conversation_Kept_A_Raw_Call_Without_Input_Starts_No_Conversation`, `..._Given_Every_Conversation_Kept_A_Raw_Call_With_Options_Of_Its_Own_Starts_No_Conversation`, `..._Given_Every_Conversation_Kept_A_Sub_Agents_Run_Stores_Only_Its_Callers_Conversation`, `..._Given_Every_Conversation_Kept_A_Handoff_Answers_In_The_Callers_New_Conversation`, `..._Given_Every_Conversation_Kept_A_Streamed_Handoff_Answers_In_The_Callers_New_Conversation` |
-| new | Ids given in code pick the stores of their types: settings under an `int` id apply and save there, the host they came from keeps the agent's own, a conversation under a `string` id resumes, equal values of two types are two conversations, the `Guid` tracker leaves out the runs of `int` ids and the `int` tracker lists and steers them, an id no store keeps fails naming the interface, the raw path's `ChatOptions.ConversationId` names a `string` id, and a resume needs the host's conversation; without a store any id type is kept in memory, and a store added to the container without `WithStore<T>()` turns the memory off, so what it does not keep fails naming the store it needs (D69, D72) | `IdScopeTests` |
-| new | The container has one tracker per id type, a singleton, and `WithConversationTracker<TId>()` registers one closed, which Native AOT needs for a value type (D72) | `AddTypeshiftTests.Given_AddTypeshift_The_Tracker_Of_An_Id_Type_Is_One_Singleton`, `..._Given_WithConversationTracker_Its_Tracker_Is_Registered_Closed_So_Native_Aot_Needs_No_Generic_Type`, `samples/Typeshift.Samples.Console`, run by CI |
-| new | A streaming raw call that fails, here on a conversation no store keeps, fails its span (D36) | `TelemetryTests.Given_A_Streaming_Raw_Call_Whose_Conversation_No_Store_Keeps_Its_Span_Carries_The_Error` |
-| 19 | Settings of every storable kind read back equivalent; nulls left out; mistyped members read as null | `SettingsJsonTests` |
-| new | A record struct stores like a record; another struct is TSH012 (D19) | `SettingsJsonTests.Given_Settings_Of_Every_Kind_They_Read_Back_Equivalent`, `DiagnosticTests.Given_A_Configurable_Struct_That_Is_Not_A_Record_TSH012_Is_Reported_On_The_Pick` |
-| new | `System.Text.Json` writes and reads the stored shape (D44) | `SettingsJsonTests.Given_Settings_System_Text_Json_Writes_What_The_Store_Keeps`, `..._Given_Stored_Json_System_Text_Json_Reads_The_Settings` |
-| new | A conversation entry serializes as it is: `System.Text.Json` in its stored shape, Newtonsoft.Json as that JSON in a string (D44) | `ConversationEntryJsonTests` |
-| new | Kinds and schema versions (D39, D40) | `SettingsJsonTests.Given_WithStorageKind_And_WithSchemaVersion_The_Settings_Carry_Them`, `..._Given_A_Schema_Version_Newer_Than_The_Codes_Reading_Throws_A_JsonException` |
-| new | The JSON carries the schema version as `"$schemaVersion"`, left out at 1, so a store keeps no schema version; every reader refuses a newer one (D40) | `SettingsJsonTests.Given_WithSchemaVersion_The_Json_Carries_The_Schema_Version`, `..._Given_Schema_Version_1_Settings_Without_Values_They_Are_Stored_As_An_Empty_Object`, `..._Given_A_Schema_Version_Newer_Than_The_Codes_System_Text_Json_Throws_A_JsonException`, `..._Given_A_Schema_Version_That_Is_No_Whole_Number_Reading_Throws_A_JsonException`, `ConversationEntryJsonTests.Given_An_Entry_Of_A_Newer_Schema_Version_Reading_Throws_A_JsonException` |
-| new | A kind is unique, two referenced projects' agents included (TSH022, D39) | `DiagnosticTests.Given_Two_Agents_Of_One_Class_Name_TSH022_Is_Reported_On_The_Second`, `..._Given_Two_References_With_Agents_Of_One_Kind_TSH022_Is_Reported` |
-| new | The typed members take no ids, and the generator writes no aliases (D12, D72, D77) | `AgentGenerationTests.Given_An_Agent_Its_Settings_Declaration_Host_Members_Module_And_Interceptor_Are_Generated` |
-| new | An agent's host members are in scope in every file, whatever it imports, and two agents never share their class (D12) | `AgentGenerationTests.Given_A_Caller_Outside_The_Agents_Namespace_Its_Host_Still_Offers_The_Typed_Members`, `..._Given_A_Caller_In_The_Agents_Namespace_Without_Typeshift_Its_Host_Offers_The_Typed_Members`, `..._Given_An_Agent_With_A_Nested_Type_Named_Host_Its_Host_Members_Are_Generated`, `..._Given_Two_Agents_Whose_Namespaces_Join_Alike_Each_Gets_Host_Members_Of_Its_Own` |
-| 20 | A conversation's next run starts from its stored messages; the provider never sees its id | `ConversationRunTests.Given_A_Conversation_A_Second_Run_Starts_From_The_First`, `..._Given_A_Conversation_The_Provider_Never_Receives_Its_Id` |
-| 21 | Each step is stored as it happens; the last entry ends the run (D50) | `ConversationRunTests.Given_A_Run_Its_Input_Responses_And_Tool_Results_Are_Stored_Step_By_Step`, `..._Given_A_Run_Only_Its_Last_Entry_Ends_It`, `..._Given_A_Model_Response_Its_Entry_Carries_The_Model_And_The_Agent` |
-| 22 | A failed run ends with its error, which the next run leaves out; a stream left early is stored (D46) | `ConversationRunTests.Given_A_Failing_Run_It_Ends_With_Its_Error_And_The_Exception_Surfaces`, `..._Given_A_Failed_Run_The_Next_Run_Leaves_Out_Its_Error`, `..._Given_A_Stream_Left_Early_The_Run_Ends_With_The_Updates_That_Arrived` |
-| 23 | A store that fails to append does not fail the run | `ConversationStoreTests.Given_A_Store_That_Fails_To_Append_The_Run_Still_Answers` |
-| new | Resuming continues an interrupted run without the call in flight (D50) | `ConversationRunTests.Given_An_Interrupted_Run_Resuming_Continues_From_Its_Last_Step_Without_The_Call_In_Flight`, `..._Given_A_Conversation_Whose_Last_Run_Ended_Resuming_Fails` |
-| new | One run per conversation in a process, claimed before the run loads it; the tracker lists it (D50) | `ConversationRunTests.Given_A_Run_Going_On_A_Second_Run_Of_The_Conversation_Fails`, `..._Given_A_Run_Going_On_The_Tracker_Lists_It`, `..._Given_A_Run_That_Failed_To_Begin_The_Next_Run_Of_The_Conversation_Runs`, `ConversationStoreTests.Given_A_Run_Loading_Its_Conversation_A_Second_Run_Of_It_Fails_Once_The_First_Began`, `..._Given_A_Run_Loading_Its_Conversation_That_Fails_To_Begin_A_Second_Run_Of_It_Runs` |
-| new | Steering reaches the next model call, is stored, and keeps the run going (D51) | `ConversationRunTests.Given_Steering_Input_The_Run_Answers_It_Before_It_Ends`, `..._Given_Steering_Input_During_The_Answer_To_Steering_The_Run_Answers_Both_In_Order`, `..._Given_Steering_Input_It_Is_Stored_With_The_Conversation` |
-| new | Run watchers hear the runs going on, then each start and end (D54) | `ConversationRunTests.Given_A_Run_Watcher_It_Hears_The_Run_Start_And_End`, `..._Given_A_Run_Going_On_A_Run_Watcher_Hears_It_Once_Then_Its_End` |
-| new | Watchers receive streamed updates (D47) | `ConversationRunTests.Given_A_Watcher_It_Receives_The_Updates_Of_A_Streaming_Run` |
-| new | Text streamed within the publish interval reaches watchers merged, ahead of the next call (D47) | `ConversationRunTests.Given_Text_Within_The_Interval_A_Watcher_Receives_It_Merged_Ahead_Of_The_Next_Call` |
-| new | A run that does not stream publishes each response and tool result to watchers (D47) | `ConversationRunTests.Given_A_Watcher_It_Receives_Each_Step_Of_A_Run_That_Does_Not_Stream` |
-| new | The raw path names its conversation in `ChatOptions.ConversationId` | `ConversationRunTests.Given_A_Conversation_Id_In_The_Options_The_Raw_Path_Stores_The_Run` |
-| new | Concurrent calls on one created client each keep their own iteration limit (D29, D32) | `AgentRunTests.Given_Two_Calls_On_One_Created_Client_Each_Keeps_Its_Own_Limit` |
-| new | A call that requires approval ends the run with its request; the next run's answer runs or rejects it (D24) | `ToolApprovalTests.Given_A_Call_That_Needs_Approval_The_Run_Ends_With_Its_Request_And_It_Does_Not_Run`, `..._Given_An_Approval_The_Next_Run_Of_The_Conversation_Runs_The_Call`, `..._Given_A_Rejection_The_Model_Receives_Its_Reason_And_The_Call_Does_Not_Run`, `..._Given_A_Streaming_Run_The_Host_Receives_The_Request_And_Its_Approval_Runs_The_Call`, `..._Given_A_Streaming_Run_Left_At_Its_Request_The_Approval_Still_Runs_The_Call` |
-| new | The stored request is the call that runs; stray and second answers change nothing (D24) | `ToolApprovalTests.Given_An_Answer_Carrying_Other_Arguments_The_Call_The_Conversation_Stored_Runs`, `..._Given_An_Answer_To_No_Stored_Request_The_Run_Throws_And_Nothing_Runs`, `..._Given_A_Second_Answer_To_A_Request_The_First_Stands`, `..._Given_An_Answered_Approval_Later_Runs_Send_The_Call_Once_With_Its_Result`, `..._Given_An_Input_Carrying_A_Request_Of_Its_Own_And_Its_Approval_It_Throws_And_Nothing_Runs` |
-| new | Only the requests the last run left open can be answered: an answer to a request a later run passed by throws, runs nothing and approves nothing for the conversation (D24, D60) | `ToolApprovalTests.Given_A_Request_A_Later_Run_Passed_By_An_Answer_To_It_Throws_And_Runs_Nothing`, `..._Given_A_Request_A_Later_Run_Passed_By_Its_Approval_For_The_Conversation_Holds_Nothing` |
-| new | An answer to a closed request throws `ApprovalClosedException`, naming each request and why it is closed, before the run stores anything or calls the model, also through a handoff and without a conversation (D60) | `ToolApprovalTests.Given_Answers_To_Closed_Requests_The_Exception_Names_Each_With_Why_It_Is_Closed`, `..._Given_An_Answer_To_A_Closed_Request_Nothing_Of_The_Run_Is_Stored`, `..._Given_A_Streaming_Run_Answering_A_Closed_Request_It_Throws`, `..._Given_No_Conversation_An_Answer_Throws_Asking_For_The_Conversation`, `HandoffTests.Given_A_Closed_Request_Of_The_Agent_Handed_To_An_Answer_Throws_And_Frees_The_Conversation` |
-| new | A run that answers steering input after asking for approval closes its requests and leaves them out of `ApprovalRequests`, also when it answers by asking again; a model call that fails first leaves them open, and a background agent's answer closes none (D60) | `ToolApprovalTests.Given_Steering_The_Model_Answers_After_A_Request_The_Run_Returns_No_Request`, `..._Given_A_Request_Its_Steered_Run_Passed_By_An_Answer_To_It_Throws_And_Runs_Nothing`, `..._Given_A_Streaming_Run_Steered_After_Its_Request_An_Answer_To_It_Throws`, `..._Given_A_Steered_Run_That_Failed_Before_The_Model_Answered_Its_Request_Stays_Open`, `..._Given_Steering_The_Model_Answers_By_Asking_Again_Only_The_New_Request_Is_Returned`, `..._Given_Steering_The_Model_Answers_By_Asking_Again_The_New_Requests_Approval_Runs_It`, `SubAgentTests.Given_A_Request_While_A_Background_Sub_Agent_Works_The_Run_Returns_It_And_Its_Approval_Runs` |
-| new | Watchers see only the approval requests left to the host (D24, D60) | `ToolApprovalTests.Given_A_Watcher_It_Sees_Only_The_Requests_Left_To_The_Host` |
-| new | A call id the conversation holds already is renamed, so a provider that reuses ids across runs still gets its later approvals run (D59) | `ToolApprovalTests.Given_A_Provider_That_Reuses_Call_Ids_Across_Runs_A_Later_Approval_Runs_Its_Call`, `..._Given_A_Provider_That_Reuses_Call_Ids_Across_Streaming_Runs_A_Later_Approval_Runs_Its_Call`, `..._Given_An_Unanswered_Request_Whose_Id_A_Later_Call_Reuses_That_Calls_Approval_Runs_It`, `..._Given_An_Unanswered_Streamed_Request_Whose_Id_A_Later_Call_Reuses_That_Calls_Approval_Runs_It`, `..._Given_A_Call_Left_At_The_Limit_Whose_Id_A_Later_Call_Reuses_Each_Call_Goes_Out_With_Its_Result` |
-| new | Calls next to one that requires approval wait with it; without a conversation a run that asks fails | `ToolApprovalTests.Given_A_Call_Needing_Approval_Next_To_One_That_Does_Not_Only_The_First_Waits_And_Both_Run`, `..._Given_No_Conversation_A_Call_Needing_Approval_Fails_Naming_The_Tool` |
-| new | Standing approvals and rules decide before the host; a rejection wins (D24) | `ToolApprovalTests.Given_An_Approval_For_The_Conversation_A_Later_Call_Of_The_Tool_Runs_Without_Asking`, `..._Given_A_Rule_That_Approves_The_Call_Runs_Without_Asking`, `..._Given_A_Rule_That_Rejects_The_Model_Receives_Its_Reason`, `..._Given_One_Rule_That_Approves_And_One_That_Rejects_The_Rejection_Wins`, `..._Given_A_Call_Needing_Approval_A_Rule_Sees_It_With_The_Runs_Mode`, `..._Given_A_Rule_Answering_One_Call_And_The_Host_Another_Both_Run_Once_The_Host_Answered`, `..._Given_A_Streaming_Run_And_A_Rule_That_Approves_No_Request_Reaches_The_Host` |
-| new | Auto mode runs what requires approval unless a rule rejects it (D52) | `ModeTests.Given_Auto_Mode_A_Call_Needing_Approval_Runs_Without_Asking`, `..._Given_Auto_Mode_A_Rule_That_Rejects_Still_Wins`, `..._Given_Auto_Mode_The_Calls_It_Approves_Count_Toward_The_Runs_Limit` |
-| new | Plan mode offers the read-only tools and `exit_plan_mode`; the approved plan continues in the chosen mode (D52) | `ModeTests.Given_Plan_Mode_Only_The_Read_Only_Tools_And_Exit_Plan_Mode_Are_Offered`, `..._Given_Plan_Mode_The_Instructions_Ask_For_A_Plan`, `..._Given_Plan_Mode_Presenting_The_Plan_Ends_The_Run_With_A_Request_That_Carries_It`, `..._Given_An_Approved_Plan_The_Run_Continues_In_The_Chosen_Mode`, `..._Given_A_Rejected_Plan_The_Model_Receives_The_Feedback_And_Stays_In_Plan_Mode` |
-| new | A conversation keeps its mode unless a run names one (D52) | `ModeTests.Given_A_Conversation_A_Run_Without_A_Mode_Continues_In_The_Mode_The_Last_Run_Ended_In`, `..._Given_A_Run_Naming_A_Mode_It_Leaves_The_Conversations_Mode` |
-| new | Run middleware wraps runs in order, may change the messages, and may answer in place of the model (D30) | `RunMiddlewareTests` |
-| new | Streaming runs pass through run middleware, which reads the response once the stream ended (D30) | `RunMiddlewareTests.Given_A_Streaming_Run_The_Middleware_Reads_The_Response_Once_The_Stream_Ended`, `..._Given_A_Streaming_Run_Middleware_That_Answers_Is_Streamed`, `..._Given_A_Streaming_Run_Left_Early_The_Run_Ends_With_What_Arrived` |
-| new | Tool middleware wraps calls in order and may answer in place of the tool (D30) | `ToolMiddlewareTests` |
-| new | Context providers add instructions, unstored messages ahead of the input, and tools (D31) | `ContextProviderTests` |
-| new | A run is an `invoke_agent` span around its chat and tool spans, with usage and errors (D36) | `TelemetryTests` |
-| new | Runs on one provider and model share one instrumented client, whatever client instances the provider returns (D36) | `TelemetryTests.Given_Two_Runs_On_A_Provider_Client_Per_Call_Their_Chat_Spans_Come_From_One_Source`, `..._Given_Two_Runs_On_One_Provider_Client_Their_Chat_Spans_Come_From_One_Source` |
-| new | Compaction clears the oldest read results, then summarizes the oldest turns, by calibrated estimate (D32) | `CompactionTests` |
-| new | The summary runs on the run's provider and model unless the agent or the settings name others (D56) | `CompactionTests.Given_No_Summary_Model_The_Runs_Model_Summarizes`, `..._Given_Clearing_Is_Not_Enough_The_Oldest_Turns_Are_Summarized`, `..._Given_A_Summary_Provider_It_Serves_The_Summary_Model` |
-| new | A summary is stored, and later runs start from it (D32) | `CompactionTests.Given_A_Summary_Later_Runs_Start_From_It` |
-| new | A run loads its conversation from the last summary on, which keeps the mode, the standing approvals and the background calls still working (D24, D32, D33, D52) | `ConversationStoreTests.Given_A_Summary_The_Next_Run_Never_Loads_The_Whole_Conversation`, `..._Given_A_Summary_The_Store_Loads_It_And_The_Entries_After_It`, `ToolApprovalTests.Given_An_Approval_For_The_Conversation_The_Summary_Keeps_It_For_Later_Runs`, `ModeTests.Given_A_Compaction_In_Plan_Mode_Its_Summary_Keeps_The_Mode`, `SubAgentTests.Given_A_Compaction_While_A_Background_Sub_Agent_Works_Its_Summary_Keeps_The_Call`, `..._Given_A_Summary_That_Left_A_Background_Sub_Agent_Working_The_Next_Run_Hears_It_Was_Lost` |
-| new | A steered run's later pass starts from the summary its first pass made (D32, D51) | `CompactionTests.Given_A_Steered_Streaming_Run_Its_Later_Pass_Starts_From_The_Summary` |
-| new | A run's first estimate is calibrated by the conversation's last reported call (D32) | `CompactionTests.Given_A_Report_Of_The_Last_Run_The_Next_Runs_First_Call_Compacts_By_It` |
-| new | Summarizing keeps the latest call of a tool named `write_todos` with its result (D32, D37) | `CompactionTests.Given_Summarized_Turns_The_Latest_Todo_List_Stays_With_Its_Result` |
-| new | A sub-agent is a tool of its description and one input, answering in a fresh context in its caller's mode (D33) | `SubAgentTests` |
-| new | Plan mode offers the sub-agents, which plan with their read-only tools and no `exit_plan_mode` (D33, D52) | `SubAgentTests.Given_A_Caller_In_Plan_Mode_Its_Sub_Agents_Are_Offered`, `..._Given_A_Caller_In_Plan_Mode_Its_Sub_Agent_Is_Offered_Only_Its_Read_Only_Tools` |
-| new | A sub-agent's calls that need approval are rejected unless something approves them (D33) | `SubAgentTests.Given_A_Sub_Agent_In_The_Default_Mode_A_Call_That_Needs_Approval_Is_Rejected` |
-| new | A sub-agent inherits the standing approvals of its caller's conversation (D24, D33) | `SubAgentTests.Given_A_Tool_Approved_For_The_Callers_Conversation_The_Sub_Agents_Call_Of_It_Runs` |
-| new | A background sub-agent's answer joins the run, which waits for it; a run cancelled while one works ends only after it stopped; a lost one is reported on resume (D33) | `SubAgentTests.Given_A_Background_Sub_Agent_The_Caller_Works_On_And_Receives_Its_Answer_Before_It_Ends`, `..._Given_An_Interrupted_Run_With_A_Background_Sub_Agent_The_Model_Hears_It_Was_Lost`, `..._Given_A_Run_Cancelled_While_A_Background_Sub_Agent_Works_It_Ends_After_The_Sub_Agent` |
-| new | A handoff continues the run with the other agent, which answers the conversation's later runs (D34) | `HandoffTests` |
-| new | A run that starts while a handoff passes the conversation on is refused, and the agent handed to answers (D34, D50) | `HandoffTests.Given_A_Run_Starting_While_A_Handoff_Passes_On_The_Conversation_The_Agent_Handed_To_Answers`, `..._Given_A_Run_Starting_While_A_Streamed_Handoff_Passes_On_The_Conversation_The_Agent_Answers`, `..._Given_A_Handoff_Whose_Agent_Fails_Before_It_Begins_A_Run_Waiting_For_The_Conversation_Runs`, `..._Given_A_Handoff_Back_To_The_First_Agent_In_The_Same_Run_The_First_Agent_Answers` |
-| new | Sub-agents and handoff targets are checked at compile time (TSH023, TSH024, TSH026) | `DiagnosticTests` |
-| new | A referenced sub-agent is checked against its module stamp (TSH023, TSH024; D33) | `DiagnosticTests.Given_A_Sub_Agent_Of_A_Reference_Without_A_Description_TSH023_Is_Reported_On_The_Use`, `..._Given_A_Sub_Agent_Of_A_Reference_Offering_A_Tool_That_Needs_Approval_TSH024_Is_Reported_On_The_Use` |
-| new | MCP servers' tools follow the agent's own, read-only or behind approval; a clash or no provider fails (D35) | `McpTests` |
-| new | Under Native AOT, a tool type no context lists is TSH027 (D45) | `DiagnosticTests.Given_A_Tool_Type_No_Context_Lists_Under_Native_Aot_TSH027_Is_Reported_On_Its_Tool` |
-| new | Tools, settings with a provider of an enum, conversations, streaming and structured output run published as Native AOT | `samples/Typeshift.Samples.Console`, run by CI |
-| new | A consumer of the package, not of the projects, generates and registers its agents | `samples/Typeshift.Samples.PackageConsumer`, run by CI |
+| Area | Test classes |
+|---|---|
+| The runtime, its hosts and its catalog | `TypeshiftRuntimeTests`, `RuntimeCatalogTests` |
+| Registration: the chain, its stores, the interceptor | `AddTypeshiftTests`, `StoreRegistrationTests` |
+| Providers and chat clients | `ChatClientResolutionTests` |
+| Tools: schemas, arguments, overrides, unions | `ToolSchemaTests`, `ToolInvocationTests`, `ToolOverridesTests`, `UnionToolTests` |
+| Tool results and failed calls | `ToolResultWireTests`, `ToolFailureTests` |
+| Runs: options, instructions, own tools, usage, the raw path, the caller's context | `AgentRunTests`, `ChatOptionsBuilderTests`, `ResolvedChatOptionsTests`, `OwnToolsTests`, `ChatResponsesTests`, `SynchronizationContextTests` |
+| Structured output | `StreamingResultTests`, `UnionResultTests` |
+| Settings, their layers and ids | `StoredSettingsTests`, `AgentSettingsTests`, `IdScopeTests` |
+| Stored JSON | `SettingsJsonTests`, `ConversationEntryJsonTests`, `DecisionDocumentJsonTests` |
+| Stores and their contract | `StoreExtensionsTests`, `FileAgentSettingsStoreTests`, `DecisionStoreTests` |
+| Conversations: storage, resume, steering, live updates | `ConversationRunTests`, `ConversationStoreTests`, `ConversationHistoryTests`, `PersistAllConversationsTests`, `ChatMessagesTests` |
+| Approval, rules and modes | `ToolApprovalTests`, `ModeTests`, `LegacyApprovalTests` |
+| Decisions: answers, expiry, recovery, standing approvals | `DecisionAnswerTests`, `DecisionLedgerTests`, `ExpiredDecisionTests`, `CancelledDecisionTests`, `DecisionRecoveryTests`, `DecisionConcurrencyTests`, `StandingApprovalTests`, `ToolLoopGuardTests` |
+| Questions to the user | `QuestionTests` |
+| Middleware and context providers | `RunMiddlewareTests`, `ToolMiddlewareTests`, `ContextProviderTests` |
+| Compaction | `CompactionTests`, `SummaryTranscriptTests` |
+| Sub-agents | `SubAgentTests`, `SubAgentResultTests`, `SubAgentUsageTests`, `OpenDecisionBackgroundTests` |
+| Handoffs | `HandoffTests` |
+| MCP servers | `McpTests` |
+| Spans, metrics and logs | `TelemetryTests`, `DecisionTelemetryTests`, `LogEventTests` |
+| What a run allocates | `AllocationBudgetTests` |
+| The generator: toolsets, tool names, XML docs | `ToolsetGenerationTests`, `ToolNamesTests`, `XmlDocsTests` |
+| The generator: agents, their hosts, modules | `AgentGenerationTests` |
+| Diagnostics | `DiagnosticTests`, `DiagnosticCatalogTests`, `HalfTypedCodeTests` |
+| Incremental generation and its cost | `IncrementalTests`, `IncrementalCostTests`, `DiscoveryTests`, `InterceptParserTests`, `EquatableArrayTests` |
+| The repository's rules | `TestConventionTests`, `SourceConventionTests`, `PublicApiSurfaceTests`, `PublicApiDocumentationTests`, `DecisionCitationTests`, `RunTimeErrorTests`, `LogEventCatalogTests`, `ModelShapeTests`, `ReservedToolNameTests`, `SnapshotFileTests`, `BuildFileTests` |
+| The code of the guide | `samples/Typeshift.Samples.Docs`, whose scenarios CI runs on a canned client |
+| Native AOT, trimming and the package | `samples/Typeshift.Samples.Console`, published both ways and run by CI; `samples/Typeshift.Samples.PackageConsumer`, run by CI after the pack |
 
 ## Known gaps
 
-- **Run limit across approval rounds.** The rounds the approval layer continues, after a rule, a standing approval or
-  auto mode approved calls, share the run's `MaxToolIterations`, so a round that runs tools before it asks again may
-  run one round of tools past it. Calls the host approves are not affected: they run in the next run.
+- **Every edit parses every toolset and agent.** The outputs stay cached after an edit of an unrelated file, but the
+  generator binds the constructors of each toolset and agent and parses them again (D3). Measured with
+  `dotnet run --project tools/Typeshift.Tools.Generators -c Release -- measure`, the least CPU time of 15 runs on a
+  shared machine of 4 cores and the median bytes; a pair is a toolset of three tools and an agent that uses two
+  toolsets:
+
+  | Pairs | CPU per run | Allocated per run | Per pair |
+  |---|---|---|---|
+  | 0 | 0.5 ms | 81 KB | |
+  | 5 | 16 ms | 1.5 MB | 296 KB |
+  | 10 | 29 ms | 2.7 MB | 273 KB |
+  | 50 | 126 ms | 12.7 MB | 255 KB |
+  | 100 | 166 ms | 25.3 MB | 253 KB |
+
+  A toolset of ten tools that share one settings type costs about 765 KB per pair. Binding the constructors is 70%
+  of a pair's cost; binding only what each chain names would cut into it, and waits for projects that need it.
+- **A run's limit across sub-agents.** `WithMaxToolIterations` bounds the model calls of one agent's run. Each run
+  of a sub-agent counts its own, and one response may call a sub-agent many times, so an agent limited to three
+  rounds made four model calls and its sub-agents 615 in a measurement. Nothing bounds the model calls, the tokens or
+  the sub-agents working at once of a whole run. A budget the run's tree shares, which `AgentRun` carries and each
+  sub-agent's run takes on from its caller, is a design of its own next to D32 and D33.
+- **No run timeout.** A run ends when its model stops calling tools, it fails or its token is cancelled. No run option
+  ends it after a time, and a run that waits for a background sub-agent waits with the run's token only, so a tool
+  that never returns holds the run and its claim on the conversation. Your app cancels the token, for example with a
+  `CancellationTokenSource` built on a `TimeProvider`.
+- **Sub-agents cannot ask.** A call of a sub-agent that would wait for your app is rejected, and a sub-agent is not
+  offered `ask_user` (D33, D82). Passing its decision up to the caller's conversation would pause the calling run
+  inside a tool call.
+- **No feed of decisions for watchers.** A watcher receives a run's decisions with the run's last update, as the
+  caller does. An answer recorded from another request or process reaches no watcher, so a page that shows a
+  chat's prompts in two places loads them with `GetDecisionsAsync`.
+- **A run going on keeps its mode and its standing approvals.** `SetModeAsync` and `RevokeStandingApprovalAsync`
+  change the conversation's decisions, which a run reads when it begins. A run going on, in this container or
+  another, ends in the mode and with the approvals it began with; cancelling the run's token stops it at once.
+- **The last answer during a run.** `AnswerAsync` records and then resumes. While a run of the conversation goes
+  on in the container, the answers are recorded and the resume throws as any second run does, so the app answers
+  again or calls `ResumeAsync` once that run ended.
+- **A stopped run and the calls it had not begun.** A batch counts as started from the moment a run begins to
+  carry it out (D80), so after a run stopped, the approved calls it had not reached are not run either: the model
+  reads that their effect is unknown and asks again if it still wants them.
 - **Compaction's estimate.** About four characters make a token, corrected by the provider's report of the run's
-  last call, or of the conversation's last call before it, so only a conversation's first call trusts the estimate
-  alone. The summary model reads results cut to 2,000 characters.
+  last call against the estimate sent with it, or of the conversation's last call that stored both. A conversation's
+  first call trusts the estimate alone, and so does the first call after runs without a maximum, or after entries
+  stored before a model response kept its estimate. The summary model reads results cut to 2,000 characters. A
+  result a run cleared among the turns its summary kept is stored cleared with that summary, so a later run's
+  summary reads the placeholder in its place.
+- **No output guardrail of its own.** Run middleware cannot change an answer a model gave: `run.Response` is
+  read-only once `next` was called (D30). What a model says is checked or changed by a `DelegatingChatClient`
+  around the provider's client, which the guide shows. A guardrail the chain names, applied below the checkpoints
+  so that it also sees a streamed answer update by update, is not built.
+- **Messages run middleware replaces, under compaction.** Compaction sees the message middleware put in place of
+  another, never the stored one. Among the summarized turns it is summarized as it reads, so the stored summary
+  follows the replacement. Among the turns a summary keeps it is left out of the stored summary, as every message the
+  conversation never stores is, so later runs see neither the message your app sent nor its replacement.
 - **Uses inside a referenced project.** TSH007 follows the handoffs and sub-agents of your project's agents into a
   referenced project's agent, but not that agent's own uses, which no stamp lists. An own tool of yours and one of an
   agent the referenced agent hands off to are not compared, in either project.
-- **Steering in a typed stream.** `StreamingRun<T>.Response` is built from the whole stream. When the provider sets
-  no `MessageId` on its updates, two answers in one run (steering input, a background sub-agent's answer) merge into
-  one message, and `Result` reads the first of them, where `RunAsync<T>` reads the last.
+- **Steering in a stream.** `StreamingRun.Response`, typed or not, is built from the whole stream. When the provider
+  sets no `MessageId` on its updates, two answers in one run (steering input, a background sub-agent's answer) merge
+  into one message, and `Result` reads the first of them, where `RunAsync<T>` reads the last.
 - **Unions in settings.** A configurable member cannot be a union (TSH012), since the generator writes no stored
   form for one.
+- **The file store's save on the caller's thread.** Until its first wait, a save creates the folder and opens the
+  lock file on the thread that called it, so a desktop app's UI thread waits for the disk. D85 leaves the caller's
+  context without a hop to the thread pool; a hop for the file store alone would move this work off that thread.
+- **What TSH032 does not compare.** The analyzer compares its reading of a declaration with the generated code by
+  the stamps, which hold the tools and an agent's name, kind and whether it is described (D2). A schema version, a
+  provider type, a chat option or the text of a description that names another generator's output is in no stamp,
+  so the generator's fallback goes unreported. An agent that another generator writes as a whole class has no
+  generated part and no stamp, so nothing reports it at build time and its host is missing at run time.
 - **The empty union as a default.** A union parameter that defaults to `default` states `"default": null` in its
   schema, which none of its cases accepts, although the tool binds JSON null to that default.
 - **Trackers of value-type ids under Native AOT.** The container closes the tracker's open generic over reference
@@ -183,14 +139,58 @@ rewrite.
   A generator that read the injected trackers could register them itself.
 - **A provider type nothing serves.** No diagnostic sees an agent whose provider id type no registered
   `IChatClientProvider<T>` serves, since the registration may lie in another project. Its runs take a client keyed
-  by the provider or the one for every agent, even when a provider class of another type is registered, and fail,
-  naming the `IChatClientProvider<T>` they need, only when neither is registered.
+  by the provider and fail without one, naming the `IChatClientProvider<T>` they need (D63), so the mistake shows
+  at the first run, not at build time.
+- **An id type no store keeps.** As for provider types, no diagnostic sees a `WithSettingsId`, a
+  `WithConversationId` or a `ConversationTracker<TId>` whose id type none of the registered stores keeps, since the
+  registration may lie in another project. Without stores every id type works in memory, so the first call with
+  such an id fails only once a store is registered, naming the store interface it needs. A check at startup of the
+  id types the call sites name would need the generator to collect them across projects.
+- **A model nobody configured.** A run that names no model reaches its client without a `ModelId`, and nothing
+  checks that the client has a model of its own, so the provider rejects the call. Whether the model a client was
+  built with counts as the configured default is open with the owner.
+- **A sub-agent's provider nothing serves.** A run finds its own client before it stores an entry (D63), but not
+  those of the agents it may call or hand off to. A sub-agent whose provider nothing serves fails each call of it,
+  logged as an error, while the calling run goes on, and a handoff to such an agent fails the run when it happens.
+- **No fallback, no model catalog.** A failed model call ends the run: Typeshift moves to no other model or
+  provider, and `RetryAsync` continues the run on what its settings name. It keeps no list of a provider's models,
+  so a model a settings page stores is checked for being a name at all (D28) and no further.
+- **No effective settings for a settings page.** `LoadSettingsAsync` returns what is stored, so a form shows empty
+  fields where the agent's code or a record's default applies, and `ResolveOptionsAsync` returns the chat options
+  without the tools' settings. A generated `ResolveSettingsAsync()` that fills every member of `Settings` from the
+  layers below a run would close it; it needs the provider in its typed form and each tool's overrides made from
+  its resolved settings, which no generated member writes yet.
 - **Declarations of constructors that never run.** The generator reads the declarations of every constructor of an
   agent, while the module creates it with the parameterless one, which runs only the constructors it chains to with
   `this(...)`. Only the provider id type follows that chain (D77); a pick or a toolset use in another constructor
   still reaches the generated `Settings` and tools.
+- **Obsolete and experimental types in the collected docs.** The class the package adds to a project makes
+  Weboost.SchemaAnnotations name every documented type of the project in a generated file (D55). A documented type
+  marked `[Obsolete]` is CS0618 there, an error where warnings are errors, and one marked `[Experimental]` an error
+  in any build. `TypeshiftSchemaAnnotations=false` or removing the type's docs is the way out today. The fix is a
+  version of Weboost.SchemaAnnotations whose generated file suppresses both. Typeshift's own generated files suppress
+  both already, so the package consumer sample holds an obsolete toolset, without docs until this repository
+  references that version. The same collection compiles the docs of every documented type into the
+  assembly, where only the types that tools and typed runs reach are needed.
+- **A project below C# 14 that only documents types.** The generator writes nothing below C# 14 (TSH031), also not
+  the module of a project without toolsets and agents, which gets no diagnostic. The XML docs of its types then
+  describe nothing in the schemas of the tools that take them, and a JSON context it holds is not registered.
 - **One conversation through unrelated hosts.** An app that runs one conversation id through the hosts of two agents
-  that never hand off to each other shares their standing approvals, and no diagnostic sees it.
+  that never hand off to each other shares their standing approvals and the conversation's mode, and no diagnostic
+  sees it.
+- **One container per conversation.** A run claims its conversation in its container only (D50): an app's service
+  provider, or a runtime from `TypeshiftRuntime.Create`, so two runtimes in one process are two containers too.
+  Across containers, the store keeps two runs apart only when it refuses an entry under a number its conversation
+  holds, and then it stops the run that appends second, after that run may have called the model or a tool; with a
+  store that does not refuse, the two runs' entries interleave. A resume calls the model before it appends, so with
+  several instances an entry without an ending one still looks the same for an interrupted run and for one another
+  instance is on. Steering (`TrySteer`) and live updates (`WatchAsync`, `Runs`) reach the runs of their own container
+  only. A claim in the store, such as a lease with a heartbeat, and a publisher behind the tracker would carry both
+  across containers, and wait for a user who needs them.
+- **Hosted MCP servers a client cannot send.** A `HostedMcpServerTool` (D35) reaches the provider only through a
+  client of an API with hosted MCP. Other clients, such as OpenAI's Chat Completions client and Anthropic's default
+  adapter, drop it without an error, and Typeshift neither logs nor throws. The guide warns about it; a check
+  against the client that serves the run would need a decision next to D35.
 
 ## Related
 

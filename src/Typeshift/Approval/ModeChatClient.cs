@@ -1,0 +1,112 @@
+using Microsoft.Extensions.AI;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Typeshift;
+
+// D52, D32: above the tool loop, around each pass of a run. It offers the tools of the run's mode, hands the loop the
+// tools that require approval without the mark the loop would pause on (D81), and gives the pass a tool loop of the
+// run's options with what is left of its limit of model calls
+internal sealed class ModeChatClient(IChatClient inner, Func<RunOptions, int, IChatClient> loop)
+    : DelegatingChatClient(inner)
+{
+    public override Task<ChatResponse> GetResponseAsync(
+        IEnumerable<ChatMessage> messages,
+        ChatOptions? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        var resolved = (ResolvedChatOptions)options!;
+
+        return loop(resolved.RunOptions, Budget(resolved))
+            .GetResponseAsync(messages, ForMode(resolved), cancellationToken);
+    }
+
+    public override IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
+        IEnumerable<ChatMessage> messages,
+        ChatOptions? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        var resolved = (ResolvedChatOptions)options!;
+
+        return loop(resolved.RunOptions, Budget(resolved))
+            .GetStreamingResponseAsync(messages, ForMode(resolved), cancellationToken);
+    }
+
+    // D32: each pass of a run, as steering input or a background answer starts one, gets what is left of the run's
+    // limit. Carrying out an answered batch takes one turn of the loop that calls no model (D81)
+    private static int Budget(ResolvedChatOptions options)
+    {
+        var left = options.RunOptions.MaxToolIterations - options.AgentRun!.ModelCalls;
+
+        return Math.Max(1, left) + (options.ConversationRun!.HasReplay ? 1 : 0);
+    }
+
+    // D52: plan mode offers the tools that only read, a toolset's, an MCP server's or one of the agent's chat options,
+    // the sub-agents, which plan too, and the tool that presents the plan; a sub-agent presents none, it answers its
+    // caller
+    private static ChatOptions ForMode(ResolvedChatOptions options)
+    {
+        var offered = (ResolvedChatOptions)options.Clone();
+        var tools = options.Tools ?? [];
+
+        // Here the run's tools are complete: the context providers added theirs above
+        OfferedTools.Check(options.AgentRun!, tools);
+
+        // D82: an agent that declares questions asks them in every mode, where a decision can wait: in a host's
+        // run with a conversation, never as a sub-agent
+        var asks = options is { Caller: null, AgentRun.Agent.AsksUser: true, ConversationRun.Conversation: not null };
+        AITool[] questions = asks ? [AskUserFunction.Instance] : [];
+
+        if (options.AgentRun!.Mode != AgentMode.Plan)
+        {
+            EnsureDecidable(options, tools);
+
+            offered.Tools = [.. tools.Select(GatedFunction.Wrap), .. questions];
+            return offered;
+        }
+
+        var agent = options.AgentRun!.Agent;
+        var planning = tools.Where(tool => IsPlanningTool(tool) || agent.ReadOnlyTools.Contains(tool)).ToList();
+
+        if (options.Caller is not null)
+        {
+            offered.Tools = [.. planning.Select(GatedFunction.Wrap)];
+            return offered;
+        }
+
+        EnsureDecidable(options, [.. planning, ExitPlanModeFunction.Instance]);
+
+        offered.Tools = [.. planning.Select(GatedFunction.Wrap), .. questions, ExitPlanModeFunction.Instance];
+
+        offered.Instructions = options.Instructions is { } instructions
+            ? $"{instructions}\n\n{ExitPlanModeFunction.Instructions}"
+            : ExitPlanModeFunction.Instructions;
+
+        return offered;
+    }
+
+    private static bool IsPlanningTool(AITool tool) => ReadOnlyFunction.IsReadOnly(tool) || tool is SubAgentFunction;
+
+    // D81: a host's run without a conversation has nowhere to keep a decision, so one that offers a call only your app
+    // could decide fails before its first model call, not at that call, after the model was paid and earlier calls
+    // ran. An approval rule or auto mode decides a tool that requires approval; nothing but your app decides a plan.
+    // Questions are not offered there (D82), as handoffs are not, so they ask nothing
+    private static void EnsureDecidable(ResolvedChatOptions options, IEnumerable<AITool> offered)
+    {
+        if (options is not { Caller: null, ConversationRun.Conversation: null }) return;
+
+        var run = options.AgentRun!;
+        var decided = run.Mode == AgentMode.Auto || run.Services.GetServices<IToolApprovalRule>().Any();
+
+        List<AITool> approvals =
+            decided ? [] : [.. offered.Where(tool => tool.GetService<ApprovalRequiredAIFunction>() is not null)];
+
+        string[] undecided =
+        [
+            .. approvals.Select(tool => tool.Name),
+            .. offered.OfType<ExitPlanModeFunction>().Select(tool => tool.Name)
+        ];
+
+        if (undecided.Length > 0)
+            throw DecisionUnavailableException.Before(run.Agent.Name, undecided, approvals: approvals.Count > 0);
+    }
+}

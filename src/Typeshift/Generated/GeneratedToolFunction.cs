@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Microsoft.Extensions.AI;
 
@@ -15,7 +16,7 @@ public abstract class GeneratedToolFunction(ToolJson json) : AIFunction
     public override JsonSerializerOptions JsonSerializerOptions => json.SerializerOptions;
 
     /// <inheritdoc />
-    public override JsonElement JsonSchema => json.GetSchema(GetType(), Parameters);
+    public override JsonElement JsonSchema => json.GetSchema(GetType(), Name, Parameters);
 
     /// <summary>
     /// Whether the tool only reads, so plan mode offers it.
@@ -39,7 +40,9 @@ public abstract class GeneratedToolFunction(ToolJson json) : AIFunction
     /// <param name="arguments">The model's arguments.</param>
     /// <param name="services">The run's services.</param>
     /// <param name="ct">Cancels the call.</param>
-    /// <returns>The tool's result as JSON, or null for a tool that returns nothing.</returns>
+    /// <returns>
+    /// The tool's result as JSON, the content it returns as it is, or null for a tool that returns nothing.
+    /// </returns>
     protected abstract ValueTask<object?> InvokeToolAsync(
         AIFunctionArguments arguments,
         IServiceProvider services,
@@ -52,11 +55,21 @@ public abstract class GeneratedToolFunction(ToolJson json) : AIFunction
     /// <param name="arguments">The model's arguments.</param>
     /// <param name="name">The parameter's name.</param>
     /// <returns>The value, bound through the type's JSON contract.</returns>
-    /// <exception cref="ArgumentException">The model did not pass the argument.</exception>
-    protected T GetArgument<T>(AIFunctionArguments arguments, string name) =>
-        arguments.TryGetValue(name, out var value)
-            ? Bind<T>(value)
-            : throw new ArgumentException($"The tool '{Name}' requires the argument '{name}'.", name);
+    /// <exception cref="ToolException">
+    /// The model did not pass the argument, passed null for a parameter that takes none, or passed JSON that does not
+    /// fit the parameter's type.
+    /// </exception>
+    protected T GetArgument<T>(AIFunctionArguments arguments, string name)
+    {
+        if (!arguments.TryGetValue(name, out var value))
+            throw new ToolException($"The tool '{Name}' requires the argument '{name}'.");
+
+        // A parameter that takes any JSON, such as a JsonElement, takes a JSON null as the value it is
+        if (IsNull(value) && value is not T && !AcceptsNull<T>(name))
+            throw new ToolException($"The tool '{Name}' requires the argument '{name}', and it was null.");
+
+        return Bind<T>(value, name);
+    }
 
     /// <summary>
     /// Reads an optional argument.
@@ -66,8 +79,9 @@ public abstract class GeneratedToolFunction(ToolJson json) : AIFunction
     /// <param name="name">The parameter's name.</param>
     /// <param name="defaultValue">The parameter's default.</param>
     /// <returns>The value, or <paramref name="defaultValue"/> when the argument is absent or null.</returns>
+    /// <exception cref="ToolException">The model passed JSON that does not fit the parameter's type.</exception>
     protected T GetArgument<T>(AIFunctionArguments arguments, string name, T defaultValue) =>
-        arguments.TryGetValue(name, out var value) && !IsNull(value) ? Bind<T>(value) : defaultValue;
+        arguments.TryGetValue(name, out var value) && !IsNull(value) ? Bind<T>(value, name) : defaultValue;
 
     /// <summary>
     /// Turns a tool's result into the JSON the model receives.
@@ -77,23 +91,101 @@ public abstract class GeneratedToolFunction(ToolJson json) : AIFunction
     /// <returns>The result as a <see cref="JsonElement"/>, serialized through its type's contract.</returns>
     protected object GetResult<T>(T result) => JsonSerializer.SerializeToElement(result, json.GetTypeInfo<T>());
 
-    private T Bind<T>(object? value) =>
-        value switch
+    // D45: a sequence a tool returns may be an iterator, which every later reader would run again
+    /// <summary>
+    /// Hands a tool's content, such as an image, to the model as it is, never as its JSON.
+    /// </summary>
+    /// <typeparam name="T">The tool method's result type: an <see cref="AIContent"/> or a sequence of them.</typeparam>
+    /// <param name="content">The content.</param>
+    /// <returns>The content, a sequence of them as a list, read once.</returns>
+    protected static object? GetContentResult<T>(T content) =>
+        content is IEnumerable<AIContent> contents and not AIContent ? (List<AIContent>)[.. contents] : content;
+
+    /// <summary>
+    /// Reads a tool's stream to its end and turns its items into the JSON the model receives, as one array.
+    /// </summary>
+    /// <typeparam name="T">The type of the stream's items.</typeparam>
+    /// <param name="stream">The stream the tool method returned.</param>
+    /// <param name="ct">Cancels the reading, also of a stream that takes no token itself.</param>
+    /// <returns>The items as a <see cref="JsonElement"/>, serialized through the contract of their list.</returns>
+    /// <exception cref="OperationCanceledException">The call was cancelled before the stream ended.</exception>
+    protected async ValueTask<object?> GetResultAsync<T>(IAsyncEnumerable<T> stream, CancellationToken ct)
+    {
+        var items = new List<T>();
+
+        await foreach (var item in stream.WithCancellation(ct).ConfigureAwait(false))
         {
-            T typed => typed,
-            _ when IsNull(value) => default!,
-            JsonElement element => element.Deserialize(json.GetTypeInfo<T>())!,
-            string text when IsJsonText(text) => JsonSerializer.Deserialize(text, json.GetTypeInfo<T>())!,
-            _ => JsonSerializer
-                .SerializeToElement(value, json.SerializerOptions.GetTypeInfo(value!.GetType()))
-                .Deserialize(json.GetTypeInfo<T>())!
-        };
+            // An iterator without [EnumeratorCancellation] never sees the token
+            ct.ThrowIfCancellationRequested();
+            items.Add(item);
+        }
+
+        return GetResult(items);
+    }
+
+    // D62: null is the value of a nullable parameter and of a union, whose empty case it binds
+    private bool AcceptsNull<T>(string name) =>
+        Nullable.GetUnderlyingType(typeof(T)) is not null
+        || default(T) is IUnion
+        || Parameters.Any(parameter => parameter.Name == name && parameter.IsNullable);
+
+    private T Bind<T>(object? value, string name)
+    {
+        if (value is T typed) return typed;
+        if (IsNull(value)) return default!;
+
+        var element = value as JsonElement?
+            ?? JsonSerializer.SerializeToElement(value, json.SerializerOptions.GetTypeInfo(value!.GetType()));
+
+        try
+        {
+            return Read<T>(element);
+        }
+        catch (JsonException exception)
+        {
+            // D53: the model corrects its call only when it reads which argument of which tool was wrong
+            throw new ToolException(
+                $"The argument '{name}' of the tool '{Name}' does not fit its schema: {exception.Message}",
+                exception);
+        }
+    }
+
+    // Some clients pass an object or an array as JSON text. The value is read as it is first, so that a text which
+    // only starts like JSON still binds a string, also as a case of a union
+    private T Read<T>(JsonElement element)
+    {
+        var info = json.GetArgumentInfo<T>();
+
+        try
+        {
+            return element.Deserialize(info)!;
+        }
+        catch (JsonException) when (TryParseText(element, out var parsed))
+        {
+            return parsed.Deserialize(info)!;
+        }
+    }
 
     private InvalidOperationException NoServices() =>
         new($"The tool '{Name}' got no services: run it through an AgentHost, or pass them in its arguments.");
 
     private static bool IsNull(object? value) => value is null or JsonElement { ValueKind: JsonValueKind.Null };
 
-    // Some clients pass objects and arrays as JSON text; any other string is a value of its own
-    private static bool IsJsonText(string text) => text.TrimStart() is ['{' or '[', ..];
+    private static bool TryParseText(JsonElement element, out JsonElement parsed)
+    {
+        parsed = default;
+
+        if (element.ValueKind is not JsonValueKind.String) return false;
+        if (element.GetString()!.TrimStart() is not ['{' or '[', ..] text) return false;
+
+        try
+        {
+            parsed = JsonElement.Parse(text);
+            return true;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
 }

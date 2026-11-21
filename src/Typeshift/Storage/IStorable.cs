@@ -1,7 +1,8 @@
 namespace Typeshift;
 
 /// <summary>
-/// A document Typeshift stores: the agents' <c>Settings</c>, a closed set the generator writes.
+/// A document Typeshift stores, one of a closed set: the agents' <c>Settings</c>, which the generator writes, and
+/// conversation entries.
 /// </summary>
 /// <typeparam name="TSelf">The document's type.</typeparam>
 public interface IStorable<TSelf> where TSelf : class, IStorable<TSelf>

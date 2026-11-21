@@ -1,3 +1,5 @@
+using System.ClientModel;
+using Anthropic.Exceptions;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using Typeshift.Demos.Providers;
@@ -5,34 +7,59 @@ using Typeshift.Demos.Providers;
 namespace Typeshift.Demos.Hosting;
 
 /// <summary>
-/// What every demo's host registers: the user-defined providers from <c>providers.json</c>, the store under
-/// <c>.typeshift/</c>, and the canned models the demo brings.
+/// What every demo's host registers: the user-defined providers from <c>providers.json</c> and the canned models the
+/// demo brings, beside the store each demo's chain registers under <c>.typeshift/</c>.
 /// </summary>
 public static class Demo
 {
     public static string DataDirectory => Path.Combine(Directory.GetCurrentDirectory(), ".typeshift");
 
-    public static ProviderCatalog Catalog() => new(Path.Combine(AppContext.BaseDirectory, "providers.json"));
+    // The providers live beside the store, so a provider added at runtime outlasts a rebuild and every demo reads the
+    // same ones; the first run copies the bundled file there
+    public static ProviderCatalog Catalog()
+    {
+        var path = Path.Combine(DataDirectory, "providers.json");
+
+        if (!File.Exists(path))
+        {
+            Directory.CreateDirectory(DataDirectory);
+            File.Copy(Path.Combine(AppContext.BaseDirectory, "providers.json"), path);
+        }
+
+        return new ProviderCatalog(path);
+    }
+
+    // Runs a demo, and says in one line what its setup lacks: a key, a server, an argument. Anything else is a bug and
+    // keeps its stack trace
+    public static async Task<int> RunAsync(Func<Task<int>> demo)
+    {
+        try
+        {
+            return await demo();
+        }
+        catch (Exception exception) when (Explain(exception) is { } reason)
+        {
+            Console.Error.WriteLine(reason);
+            return 1;
+        }
+    }
 
     // FRICTION: this library cannot call AddTypeshift() for its hosts, since only the generator of the calling project
-    // intercepts the call (D1), so each demo calls it next to this and names the provider itself. The store is
-    // registered here as each store interface directly, as WithStore<T>() would, since WithStore<T>() takes a type the
-    // container must be able to construct, and this store takes a directory.
-    public static IServiceCollection AddDemoServices(
-        this IServiceCollection services,
-        ProviderCatalog catalog,
-        CannedModels canned)
+    // intercepts the call (D1), so each demo calls it next to this and names the provider and the store itself
+    extension(IServiceCollection services)
     {
-        services.AddSingleton(catalog);
-        services.AddSingleton(canned);
-        services.AddSingleton<ClientCache>();
-        services.AddSingleton(new JsonFileStore(DataDirectory));
-        services.AddSingleton<ISettingsStore<Guid>>(provider => provider.GetRequiredService<JsonFileStore>());
-        services.AddSingleton<IConversationStore<Guid>>(provider => provider.GetRequiredService<JsonFileStore>());
-        services.AddSingleton<ITypeshiftStore<Guid>>(provider => provider.GetRequiredService<JsonFileStore>());
+        public IServiceCollection AddDemoServices(ProviderCatalog catalog, CannedModels canned)
+        {
+            services.AddSingleton(catalog);
+            services.AddSingleton(canned);
+            services.AddSingleton<ClientCache>();
 
-        return services;
+            return services;
+        }
     }
+
+    // The store on disk the demos share, for the chain's WithStore
+    public static JsonFileStore Store() => new(DataDirectory);
 
     public static bool Flag(string[] args, string flag) => args.Contains(flag, StringComparer.Ordinal);
 
@@ -104,8 +131,8 @@ public static class Demo
                         Console.Write($"   [result] {Shorten(result.Result?.ToString() ?? "")}\n");
                         break;
 
-                    case ToolApprovalRequestContent request when request.ToolCall is FunctionCallContent asked:
-                        Console.Write($"\n   [approval needed] {asked.Name}({Arguments(asked)})\n");
+                    case DecisionRequestContent { Decision: ApprovalDecision asked }:
+                        Console.Write($"\n   [approval needed] {asked.Tool}({Arguments(asked.Arguments)})\n");
                         break;
                 }
             }
@@ -119,9 +146,27 @@ public static class Demo
         string.Join(", ", (call.Arguments ?? new Dictionary<string, object?>()).Select(argument =>
             $"{argument.Key}: {Shorten(argument.Value?.ToString() ?? "null")}"));
 
-    private static string Shorten(string text)
+    // The arguments of a call that waits for approval, a JSON object
+    public static string Arguments(System.Text.Json.JsonElement arguments) =>
+        string.Join(", ", arguments.EnumerateObject().Select(argument =>
+            $"{argument.Name}: {Shorten(argument.Value.ToString())}"));
+
+    // The text on one line, cut at the length
+    public static string Shorten(string text, int length = 100)
     {
         var line = text.ReplaceLineEndings(" ");
-        return line.Length <= 100 ? line : line[..100] + "…";
+        return line.Length <= length ? line : line[..length] + "…";
     }
+
+    private static string? Explain(Exception exception) =>
+        exception switch
+        {
+            DemoException failed => failed.Message,
+            HttpRequestException unreachable => $"The provider could not be reached: {unreachable.Message}",
+            ClientResultException { Status: > 0 } refused =>
+                $"The provider refused the call: {Shorten(refused.Message)}",
+            AnthropicApiException refused => $"Anthropic refused the call: {Shorten(refused.Message)}",
+            { InnerException: { } inner } => Explain(inner),
+            _ => null
+        };
 }

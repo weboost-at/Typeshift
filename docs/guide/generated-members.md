@@ -1,6 +1,6 @@
 ---
 title: AgentHost and generated members
-description: Every member the generator writes for your toolsets and agents, what triggers it, and every member of AgentHost<TAgent> with its signature.
+description: Every member of AgentHost<TAgent> with its signature, and every member the generator writes for your agents and toolsets, with what triggers it.
 ---
 
 # AgentHost and generated members
@@ -8,99 +8,286 @@ description: Every member the generator writes for your toolsets and agents, wha
 The generator adds members to your toolsets and agents, and to `AgentHost<TAgent>`, the class that runs an agent. Each
 section names the declaration that adds a member.
 
-## Names and hidden members
+## The agent host
 
-- Member names come from the tool's name in PascalCase, so `search_tickets` gives `SearchTickets`.
-- Members marked *hidden* are `[EditorBrowsable(Never)]` plumbing that only generated code calls. Code completion
-  leaves them out, but their names are taken all the same, so the analyzer reports
-  [TSH018](./diagnostics.md#tsh018) for a member of yours with one of them.
+`AgentHost<TAgent>` runs one agent. Its own members are `Agent`, `Services`, `WithSettingsId`,
+`WithConversationId`, its runs without settings, `CreateChatClientAsync`, `LoadConversationAsync`, the members for
+[the decisions of a conversation](#decisions-of-the-conversation), `DisposeAsync` and `Dispose`. The generator adds
+the typed runs and settings of each agent.
 
-## Per toolset
+`IAgentHost` is the same host where your code does not name the agent's type, as the runtime's
+[catalog](./registration.md#the-catalog) creates it by the agent's kind. It has the host's own members, typed with
+`IAgentHost` where they return a copy, and none of the generated ones. Only the library implements it.
 
-### `{Tool}Overrides`
+### Typed members
 
-**Triggered by** a tool with at least one configurable settings member. The record is a `public sealed record`
-nested in the toolset, or in the agent for a tool of the agent's own.
+In these signatures, `Settings` is the agent's [generated `Settings` record](#settings). Every member takes a
+`CancellationToken ct = default` last. None takes an id: each uses the host's, from
+[`WithSettingsId` and `WithConversationId`](#withsettingsid-and-withconversationid).
 
-`TicketToolset.SearchTicketsOverrides`, with `int? Limit` and `bool? IncludeClosed`, comes from this declaration:
-
-<!-- snippet: settings-picks -->
-<a id='snippet-settings-picks'></a>
-```cs
-AddTool(SearchTickets)
-    .ReadOnly()
-    .WithSettings<SearchTicketsSettings>()
-    .Configurable(s => s.IncludeClosed)
-    .Configurable(s => s.Limit);
-```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Tickets/TicketToolset.cs#L12-L18' title='Snippet source file'>snippet source</a> | <a href='#snippet-settings-picks' title='Start of snippet'>anchor</a></sup>
-<!-- endSnippet -->
-
-`KnowledgeToolset.SearchArticlesOverrides`, with `string? Language`, `IReadOnlyList<string>? Sources` and
-`ArticleRanking? Ranking`, comes from this one, where `Limit` stays in code:
-
-<!-- snippet: settings-all-configurable -->
-<a id='snippet-settings-all-configurable'></a>
-```cs
-AddTool(SearchArticlesAsync)
-    .WithConfigurableSettings<SearchArticlesSettings>()
-    .NotConfigurable(s => s.Limit);
-```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Knowledge/KnowledgeToolset.cs#L11-L15' title='Snippet source file'>snippet source</a> | <a href='#snippet-settings-all-configurable' title='Start of snippet'>anchor</a></sup>
-<!-- endSnippet -->
-
-| Member | Is |
+| Member | Returns |
 |---|---|
-| One `init` property per configurable member | The member's type, nullable. Null keeps the layer below. |
-| `ApplyTo(TSettings)` (hidden) | Returns the settings of the layer below, with every value this layer sets applied over them. |
-| `WriteJson`, `TryReadJson` (hidden) | Write and read the record's JSON, in camelCase with nulls left out. A `JsonConverter` on the record makes `System.Text.Json` read and write the same shape. |
+| `RunAsync(string input, Settings? settings = null)` | `Task<ChatResponse>` |
+| `RunAsync(ChatMessage input, Settings? settings = null)` | `Task<ChatResponse>` |
+| `RunAsync<TResult>(string input, Settings? settings = null)` | `Task<ChatResponse<TResult>>` |
+| `RunAsync<TResult>(ChatMessage input, Settings? settings = null)` | `Task<ChatResponse<TResult>>` |
+| `RunStreamingAsync(string input, Settings? settings = null)` | `StreamingRun` |
+| `RunStreamingAsync(ChatMessage input, Settings? settings = null)` | `StreamingRun` |
+| `RunStreamingAsync<TResult>(string input, Settings? settings = null)` | `StreamingRun<TResult>` |
+| `RunStreamingAsync<TResult>(ChatMessage input, Settings? settings = null)` | `StreamingRun<TResult>` |
+| `ResumeAsync(Settings? settings = null)` | `Task<ChatResponse>` |
+| `ResumeStreamingAsync(Settings? settings = null)` | `StreamingRun` |
+| `ResumeAsync<TResult>(Settings? settings = null)` | `Task<ChatResponse<TResult>>` |
+| `ResumeStreamingAsync<TResult>(Settings? settings = null)` | `StreamingRun<TResult>` |
+| `RetryAsync(Settings? settings = null)` | `Task<ChatResponse>` |
+| `RetryStreamingAsync(Settings? settings = null)` | `StreamingRun` |
+| `RetryAsync<TResult>(Settings? settings = null)` | `Task<ChatResponse<TResult>>` |
+| `RetryStreamingAsync<TResult>(Settings? settings = null)` | `StreamingRun<TResult>` |
+| `AnswerAsync(IReadOnlyList<DecisionAnswer> answers, Settings? settings = null)` | `Task<ChatResponse>` |
+| `AnswerAsync<TResult>(IReadOnlyList<DecisionAnswer> answers, Settings? settings = null)` | `Task<ChatResponse<TResult>>` |
+| `AnswerStreamingAsync(IReadOnlyList<DecisionAnswer> answers, Settings? settings = null)` | `StreamingRun` |
+| `AnswerStreamingAsync<TResult>(IReadOnlyList<DecisionAnswer> answers, Settings? settings = null)` | `StreamingRun<TResult>` |
+| `ResolveOptionsAsync(Settings? settings = null)` | `Task<ChatOptions>` |
+| `CreateChatClientAsync(Settings? settings = null)` | `Task<IChatClient>` |
+| `LoadSettingsAsync()` | `Task<Stored<Settings>>` |
+| `SaveSettingsAsync(Settings settings, long loadedVersion)` | `Task<long>` |
+| `UpdateSettingsAsync(Func<Settings, Settings> update)` | `Task<Stored<Settings>>` |
 
-An agent's `Settings` holds the overrides of every tool it offers. So a toolset with configurable settings must be as
-accessible as a public agent that offers it ([TSH006](./diagnostics.md#tsh006)).
+Each run, answer and resume of the table, `ResolveOptionsAsync` and `CreateChatClientAsync` are also members of
+`AgentHost<TAgent>` itself without `settings`, such as `RunAsync(string input, CancellationToken ct = default)`. Code
+generic over the agent calls those, so one method runs any agent ([Run any agent](./running-agents.md#run-any-agent)),
+and a token goes in second, as in `RunAsync(input, ct)`. A call that passes settings reaches the generated member, and both run alike.
 
-### `Create{Tool}` and `{Tool}Function`
+### `RunAsync`
 
-**Triggered by** every `AddTool(...)`. This one gives `CreateCloseTicket` and `CloseTicketFunction`:
+`RunAsync` runs the agent on one message, a `string` or a `ChatMessage`, which can carry images.
+It layers the agent's code, the stored settings, the conversation's mode, then `settings`
+([Settings layering](./settings-and-stores.md#settings-layering)).
 
-<!-- snippet: approval-tool -->
-<a id='snippet-approval-tool'></a>
-```cs
-AddTool(CloseTicketAsync)
-    .RequiresApproval();
-```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Tickets/TicketToolset.cs#L24-L27' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-tool' title='Start of snippet'>anchor</a></sup>
-<!-- endSnippet -->
+On a host with a conversation id, it stores the run as it goes ([What a run stores](#what-a-run-stores)). Without
+one, it stores nothing, offers no handoffs and no `ask_user`, and cannot ask your app, unless your app keeps every
+conversation ([Keeping every conversation](./conversations.md#keeping-every-conversation)). Such a run throws a
+`DecisionUnavailableException`, an `InvalidOperationException`, before it calls the model when its agent offers what
+only your app could decide: a tool that requires approval while no approval rule is registered and the run is not
+in `Auto` mode, or a plan in `Plan` mode. With rules registered, it throws at a call no rule decided
+([When a call needs approval](./tool-approval.md#when-a-call-needs-approval)).
 
-| Member | Is |
+A run throws a `ConversationBusyException` while its conversation has a run going on in this container
+([One run at a time](./conversations.md#one-run-at-a-time)), a streaming one when its updates are read, and stores
+nothing of itself then. It throws one too when the store refused one of its steps because a run in another
+container appended first, and keeps what it stored before. It throws a `ConversationStoreException`, which holds its answer, as it ends when the store
+failed to append one of its steps ([When the store fails](./conversations.md#when-the-store-fails)). It throws an
+`InvalidOperationException` when no chat client or no store serves it, and when its chat client runs a tool loop of
+its own ([Wrapping a client](./models.md#wrapping-a-client)). It throws a
+`JsonException` for stored settings of a newer schema version than the code's
+([Migrate older settings](./implementing-a-store.md#migrate-older-settings)).
+
+When a run ends asking your app, the response's `Decisions` lists what it asks. A message that carries
+Microsoft.Extensions.AI's approval contents throws an `ArgumentException`: answers go through `AnswerAsync`.
+
+`RunAsync` returns the model's messages with the tool calls and results between them, and each message carries the
+answering agent's name as `AuthorName`.
+
+`RunAsync<TResult>` asks the model for JSON of `TResult`'s schema and returns it typed in `Result`. Under
+[Native AOT](./native-aot.md), `TResult` needs JSON metadata.
+
+### `RunStreamingAsync`
+
+`RunStreamingAsync` layers settings and stores the run like `RunAsync`, but streams the updates, with the tool calls
+running between them. The updates of a run with a conversation are also published to
+`ConversationTracker<TId>.WatchAsync`. It returns a `StreamingRun`, which runs the agent as you read it and can
+be read once; read to its end, its `Response` holds what `RunAsync` would have returned. `RunStreamingAsync<TResult>`
+is its typed form, a `StreamingRun<TResult>` ([Structured output](./running-agents.md#structured-output)). Every
+stream of the host, an answer's and a resume's too, is such a run.
+
+### `ResumeAsync` and `ResumeStreamingAsync`
+
+Both continue the host's conversation, the one `WithConversationId(id)` gave it, without new input: the interrupted
+run from its last stored step, or the decisions your app answered or withdrew. They layer like `RunAsync` and store the
+continuation in the same conversation. A tool call that was still running when the run stopped is left out, so the
+model decides again and may call the tool a second time ([Resuming](./conversations.md#resuming)). While decisions
+are still open, they call no model and return them. They throw a `NothingToResumeException` when the conversation
+has nothing to continue, an `InvalidOperationException` when the host has no conversation id, and what `RunAsync`
+throws. `ResumeAsync<TResult>` and `ResumeStreamingAsync<TResult>` ask for `TResult` again, so a typed run that a
+crash cut off resumes typed.
+
+### `RetryAsync` and `RetryStreamingAsync`
+
+Both continue what a resume continues, and also a conversation whose last run failed, was cancelled or stopped, from
+that run's stored steps, so the model receives the user's message once
+([Retrying a failed run](./conversations.md#retrying-a-failed-run)). They throw a `NothingToResumeException` when the
+last run answered or waits for your app, and what a resume throws.
+
+### `AnswerAsync` and `AnswerStreamingAsync`
+
+Both record your app's answers to decisions of the host's conversation and, once no decision is left open, carry
+them out and continue the run, as `ResumeAsync` does
+([Approving or rejecting](./tool-approval.md#approving-or-rejecting)). With decisions left open they call no model,
+and what they return lists the rest. `AnswerStreamingAsync` records when its updates are read. The typed forms ask
+the continued run for `TResult`.
+
+They throw a `DecisionClosedException` when an answer names a decision that is not open, an `ArgumentException` when
+an answer does not fit its decision, one decision is answered twice or the list is empty, and an
+`InvalidOperationException` when the host has no conversation id. Nothing is recorded then. Their answers are
+recorded before they throw what `RunAsync` throws, such as a `ConversationBusyException`: continue with
+`ResumeAsync` once the run going on has ended.
+
+### `ResolveOptionsAsync`
+
+`ResolveOptionsAsync` layers the agent's code, the stored settings, then `settings`
+([Settings layering](./settings-and-stores.md#settings-layering)), and returns the run's `ChatOptions` without
+storing anything. The options hold the model, the instructions, the configurable
+options and the tools. The tools come in this order: the toolsets' tools with their layered settings, the agent's own
+tools, the sub-agents, the tools of `WithTools`, then the MCP servers' tools. A run with a conversation adds the
+handoff tools last.
+
+### `LoadSettingsAsync`
+
+`LoadSettingsAsync` loads the agent's own settings, through the `IAgentSettingsStore`, or on a host from
+`WithSettingsId(id)` the settings stored under that id. It returns them with their version, or empty settings at
+version 0 when none are stored. It layers nothing, so the record holds only what was stored. `SaveSettingsAsync` and
+`UpdateSettingsAsync` save the same settings.
+
+### `SaveSettingsAsync`
+
+`SaveSettingsAsync` saves the settings `LoadSettingsAsync` loads, if the stored version is still `loadedVersion`:
+the version `LoadSettingsAsync` or `UpdateSettingsAsync` returned, or 0 when it loaded none. It returns the new
+version, which your app passes to its next save. It throws a `StoreConflictException` when another save came first, and an `ArgumentException` for
+settings no run can go with ([What a save refuses](./settings-and-stores.md#what-a-save-refuses)).
+
+### `UpdateSettingsAsync`
+
+`UpdateSettingsAsync` loads the settings, applies `update`, and saves them with the loaded version. On a conflict it
+loads and applies again until its save wins, then returns the settings it saved with their new version, which your
+app can pass to a later `SaveSettingsAsync` without loading again. After ten conflicts in a row it throws the last
+`StoreConflictException`. It refuses the settings a save refuses, with the same `ArgumentException`, and throws an
+`InvalidOperationException` when `update` returns null. Nothing is saved then.
+
+### What a run stores
+
+A run with a conversation id stores its input, each model response, each tool result and an entry that ends the run.
+[Conversations](./conversations.md#what-is-stored) lists what is stored when a run fails, is cancelled or is cut off,
+and [compaction](./conversations.md#compaction) what a compacted run stores.
+
+### `Agent`
+
+`TAgent Agent { get; }` is the agent as its code declares it, a singleton. `Agent.Name` reads what `WithName`
+declared, and `Agent.Description` what `WithDescription` or the agent's `<summary>` did.
+
+### `Services`
+
+`IServiceProvider Services { get; }` is the scope the host's runs resolve their services from: the one the host was
+resolved from, or the one the runtime created for it, as the host's scope below explains. A job sets your app's
+scoped state there before it runs, such as the current tenant
+([Fill the job's scope](./using-an-agent.md#fill-the-job-s-scope)). Copies from `WithSettingsId` and
+`WithConversationId` share it.
+
+### `WithSettingsId` and `WithConversationId`
+
+`AgentHost<TAgent> WithSettingsId<TId>(TId id)` and `AgentHost<TAgent> WithConversationId<TId>(TId id)`, where `TId`
+is any type but a nullable one, and `WithSettingsId<TId>(TId? id)` and `WithConversationId<TId>(TId? id)` for a
+nullable value type, such as `Guid?`, which take its value.
+
+Both return a copy of the host with the id, in the host's scope, and leave the host they are called on as it was.
+Disposing the copy disposes what disposing the host would ([`DisposeAsync`](#disposeasync-and-dispose)). Each
+throws an `ArgumentNullException` for a null id.
+[Ids of your own types](./settings-and-stores.md#ids-of-your-own-types) explains the copy and the store its id picks:
+an `ISettingsStore<TId>` for a settings id, an `IConversationStore<TId>` for a conversation id.
+
+### `CreateChatClientAsync`
+
+`Task<IChatClient> CreateChatClientAsync(Settings? settings = null, CancellationToken ct = default)`
+
+`Task<IChatClient> CreateChatClientAsync(ChatOptions options, CancellationToken ct = default)`
+
+`CreateChatClientAsync` creates the client of the [raw path](./running-agents.md#the-raw-path). The first form
+resolves the options as `ResolveOptionsAsync` does and creates the client from them in one call; the second creates it
+for options that `ResolveOptionsAsync` returned. It takes the client for the options' provider and model, as a run does
+([Registering clients](./models.md#registering-clients)), and wraps it in the run's pipeline, with the agent's run
+options and the tool loop.
+
+Calling the client runs and stores like `RunAsync`, in the conversation of the host that resolved the options. The
+client keeps them: a call without options runs with them, and a call with options of its own changes only the
+conversation id, the response format and the tools it adds. On options of a host without a conversation id,
+`ChatOptions.ConversationId` can name one, a `string` id in the `IConversationStore<string>`. Disposing the client
+does not dispose the one your provider returned.
+
+It throws an `ArgumentException` for options `ResolveOptionsAsync` did not return, and an
+`InvalidOperationException` when no client is registered for the options' provider and model, and none for every
+agent. The client throws an `InvalidOperationException` for a call with options resolved for another provider or
+model.
+
+### `LoadConversationAsync`
+
+`Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(CancellationToken ct = default)`
+
+`LoadConversationAsync` loads every entry of the host's conversation, the one `WithConversationId(id)` gave it, in
+order ([What is stored](./conversations.md#what-is-stored)). It reads through the store of the id's type, or the
+memory Typeshift keeps when your app registered no store, and starts no run. It throws an
+`InvalidOperationException` on a host without a conversation id, or when your app registered stores and none keeps
+conversations under the id's type.
+
+### Decisions of the conversation
+
+These members work on the decisions of the host's conversation, the one `WithConversationId(id)` gave it. None
+starts a run, each takes a `CancellationToken ct = default` last, and each throws an `InvalidOperationException` on
+a host without a conversation id.
+
+| Member | Returns |
 |---|---|
-| `Create{Tool}(settings, json)` (hidden) | A static factory that returns the tool's `AIFunction`. `json`, a `ToolJson`, sets how the tool binds its arguments and serializes its result. It takes `settings`, the tool's settings after layering, only when the tool has settings. |
-| `{Tool}Function` | A private nested class deriving from `GeneratedToolFunction`. It holds the name, the description, the schema of the parameters the model fills, and the binding that calls the method. |
+| `GetDecisionsAsync()` | `Task<ConversationDecisions>` |
+| `RecordAnswersAsync(IReadOnlyList<DecisionAnswer> answers)` | `Task<ConversationDecisions>` |
+| `SetModeAsync(AgentMode mode)` | `Task` |
+| `CancelDecisionsAsync()` | `Task<ConversationDecisions>` |
+| `RevokeStandingApprovalAsync(string tool, string? server = null)` | `Task` |
 
-### `{Toolset}ToolList`
+`GetDecisionsAsync` reads what the conversation waits for in one load, without its history. `Open` lists the
+decisions your app has not answered, `CanResume` says whether the answered ones wait to be carried out, `Standing`
+lists the tools approved for the conversation, and `Mode` is the conversation's mode, null while nothing named one
+([When a call needs approval](./tool-approval.md#when-a-call-needs-approval)).
 
-**Triggered by** every toolset. A static class, as accessible as the toolset, holds an extension block on
-`ToolList<TToolset>`. The block has one property per tool, named after the tool and of type `ToolName`, and `Include`
-and `Exclude` pick from these properties:
+`RecordAnswersAsync` records answers and continues no run. It throws what
+[`AnswerAsync`](#answerasync-and-answerstreamingasync) throws
+([Approving or rejecting](./tool-approval.md#approving-or-rejecting)).
 
-<!-- snippet: exclude-tools -->
-<a id='snippet-exclude-tools'></a>
-```cs
-UseToolset<TicketToolset>()
-    .Exclude(t => t.CloseTicket);
-```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/TriageAgent.cs#L13-L16' title='Snippet source file'>snippet source</a> | <a href='#snippet-exclude-tools' title='Start of snippet'>anchor</a></sup>
-<!-- endSnippet -->
+`SetModeAsync` switches the conversation's mode from its next run on
+([Setting the mode](./tool-approval.md#setting-the-mode)).
 
-`TicketToolsetToolList` gives `ToolList<TicketToolset>` the properties `SearchTickets`, `GetTicket` and
-`CloseTicket`. A tool named like a member of `object` gets a `Tool` suffix, so `to_string` becomes `ToStringTool`.
+`CancelDecisionsAsync` withdraws every open decision and every answer no run has begun to carry out, and returns
+the decisions as they stand then ([When a decision closes](./tool-approval.md#when-a-decision-closes)).
 
-### Stamps
+`RevokeStandingApprovalAsync` withdraws a standing approval, with its `server` for an MCP server's tool, and
+changes nothing when the conversation holds none for the tool
+([Approving for the conversation](./tool-approval.md#approving-for-the-conversation)).
 
-**Triggered by** every tool. A hidden `[GeneratedTool]` attribute on the toolset names the tool, its list property,
-its factory, its settings and overrides types, and whether it requires approval. Agents in other assemblies read it
-to offer the tool.
+The four that save throw a `StoreConflictException` when ten saves in a row lost to another writer.
+`RecordAnswersAsync` and `SetModeAsync` throw an `InvalidOperationException` when your app registered stores and
+none of them [keeps decisions](./implementing-a-store.md#which-store-serves-a-call).
+
+### `DisposeAsync` and `Dispose`
+
+`ValueTask DisposeAsync()` and `void Dispose()` dispose the scope of a host that `TypeshiftRuntime.CreateHost<TAgent>()`
+created, and with it the scoped services its runs resolved. A copy from `WithSettingsId` or `WithConversationId`
+disposes the same scope, and disposing it a second time does nothing. A host your container resolved, such as one
+injected into a request, owns nothing, so disposing it or a copy of it does nothing. Dispose a host once its runs and
+streams are done, since they use its scope: once the host or a copy is disposed, a run of any of them throws an
+`ObjectDisposedException`. `Dispose` throws an `InvalidOperationException` when a scoped service implements only
+`IAsyncDisposable`, so prefer `await using`.
+
+### The host's scope
+
+`AddTypeshift()` registers a host per agent as transient, so a host runs with the services of the scope it was
+resolved from. A host from `TypeshiftRuntime.CreateHost<TAgent>()` runs in a scope the runtime created for it
+([The runtime](./registration.md#the-runtime)). Tools, the chat client provider, middleware, context providers,
+approval rules and the MCP tool provider all resolve from the host's scope.
+
+Every member that loads or saves settings under a settings id needs an `ISettingsStore<TId>` of the id's type, and
+every member that loads or appends to a conversation needs an `IConversationStore<TId>` of the conversation id's type.
+[Which store serves a call](./implementing-a-store.md#which-store-serves-a-call) says what happens without one.
 
 ## Per agent
+
+Every agent also gets a few hidden members, which [Names and hidden members](#names-and-hidden-members) lists.
 
 ### `Settings`
 
@@ -138,15 +325,18 @@ internal partial class SupportAgent : Agent
             .ReadOnly();
 
         UseContext<CustomerProfileContext>();
+
+        UseQuestions();
     }
 
-    protected override string GetInstructions() =>
-        """
-        Answer from the customer's tickets and cite help center articles.
-        """;
+    protected override string GetInstructions(IServiceProvider services)
+    {
+        var customer = services.GetRequiredService<ICurrentCustomer>();
+        return $"Answer {customer.Name} from their tickets and cite help center articles.";
+    }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/SupportAgent.cs#L7-L48' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/SupportAgent.cs#L8-L54' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 | Declaration | Member |
@@ -156,6 +346,7 @@ internal partial class SupportAgent : Agent
 | `WithChatOptions().Configurable(o => o.X)` | `X`, nullable: `float? Temperature`, `string? Instructions`. |
 | `WithRunOptions().Configurable(r => r.X)` | `X`, nullable: `AgentMode? Mode`, `int? MaxToolIterations`. |
 | `UseToolset<T>()` offering a tool with `{Tool}Overrides` | `{Tool}`, its overrides, never null. A name taken by an option or by one of the record's own members, such as `Kind`, gets a `Tool` suffix. |
+| `UseToolset<T>().Configurable(t => t.X)` | `bool? XEnabled`: false leaves the tool out of the run ([Switching a tool off](./defining-agents.md#switching-a-tool-off)). A name another member takes gets a `Tool` suffix before `Enabled`. |
 
 The option members and the members of each tool's overrides are nullable, and null keeps the layer below
 ([Settings layering](./settings-and-stores.md#settings-layering)).
@@ -168,8 +359,8 @@ The record is also the document a store keeps under a settings id:
 | `static string Kind` | The name a store keys it by, which the store's methods receive as `kind`: `WithStorageKind("...")`, or else the class name, so moving the agent to another namespace keeps its data. For two agents of the same kind, the analyzer reports [TSH022](./diagnostics.md#tsh022). |
 | `static int SchemaVersion` | 1, or what `WithSchemaVersion(n)` sets, which `Serialize()` writes into the JSON ([The stored JSON](./settings-and-stores.md#the-stored-json)). |
 | `Serialize()` | Writes the record as JSON. |
-| `static Deserialize(json)` | Reads the JSON. Throws a `JsonException` for a `"$schemaVersion"` newer than the code's. |
-| `WriteJson`, `TryReadJson` (hidden) | What `Serialize`, `Deserialize` and the record's `JsonConverter` use. |
+| `static Deserialize(json)` | Reads the JSON as a store's load does, a member that does not read as missing. Throws a `JsonException` for a `"$schemaVersion"` newer than the code's. |
+| `WriteJson`, `TryReadJson`, `CheckJson` (hidden) | What `Serialize`, `Deserialize` and the record's `JsonConverter` use. The converter checks a request's JSON with `CheckJson` too, so `System.Text.Json` refuses a member the record does not have or a value that does not read. |
 
 [The stored JSON](./settings-and-stores.md#the-stored-json) covers the JSON's shape, how it reads back, and what to
 do when a configurable member is renamed.
@@ -177,10 +368,12 @@ do when a configurable member is renamed.
 ### `Configure{Tool}()`
 
 **Triggered by** an offered tool with settings, from `WithSettings<T>()` or `WithConfigurableSettings<T>()`, whether
-it has configurable members or not.
+it has configurable members or not. A settings record without a settable member leaves nothing to set, so its tool
+gets none.
 
 `ConfigureSearchTickets()` in the `SupportAgent` above is a private method. It returns a builder with one
-`With{Member}(value)` per settable member of the settings record, configurable or not. `SearchTicketsSettings` has
+`With{Member}(value)` per settable member of the settings record, configurable or not. Each one shows the member's
+`<summary>` in code completion. `SearchTicketsSettings` has
 `Limit`, `IncludeClosed` and a `Timeout` that is not configurable, so the builder has `WithLimit(int)`,
 `WithIncludeClosed(bool)` and `WithTimeout(TimeSpan)`. The values apply over the record's code defaults, for every
 run of the agent.
@@ -191,8 +384,8 @@ the agent declares itself replaces the generated one.
 ### Tools of the agent's own
 
 **Triggered by** an `AddTool(...)` in the agent's constructor. The agent gets the tool's `Create{Tool}` and
-`{Tool}Function`, and its `{Tool}Overrides` when it has configurable members, as a toolset does. It gets no tool list
-and no toolset stamp.
+`{Tool}Function`, its `{Tool}Overrides` when it has configurable members, and a [`ToolNames`](#toolnames) class, as a
+toolset does. It gets no tool list and no toolset stamp.
 
 ### Host members
 
@@ -202,176 +395,171 @@ has a public or internal parameterless constructor. For any other agent, the ana
 `AgentHost<TAgent>` with the agent's [typed members](#typed-members).
 
 The class lives in the global namespace, so the typed members are in scope in every file, whatever it imports. Its
-name spells out the agent's full name, each part after its length, such as `TypeshiftHost_4Demo12SupportAgent` for
-`Demo.SupportAgent`, so no two agents share one. Editors leave the class out of type completion, since you call the
-members on the host and never need its name.
+name is `Tshost_` and the agent's full name, each part after its length, such as `Tshost_4Demo12SupportAgent` for
+`Demo.SupportAgent`, so no two agents share one. The class is [hidden](#names-and-hidden-members), since you call the
+members on the host and never need its name: type completion leaves it out where your assembly is a compiled
+reference. In the projects of your own solution it lists it, though not for `Type` or `Host`, where you look for
+`TypeshiftRuntime` or `AgentHost`.
 
-### Hidden members
+## Per toolset
 
-Every agent also gets:
+Every tool also gets a hidden factory, `Create{Tool}`, and a private class, `{Tool}Function`, which
+[Names and hidden members](#names-and-hidden-members) describes.
 
-- an override of `Declaration`, which holds what the generator read from its constructor;
-- a private nested class `TypeshiftGenerated`;
-- a private field `_typeshift`, when it has a `Configure{Tool}()`.
+### `{Tool}Overrides`
+
+**Triggered by** a tool with at least one configurable settings member. The record is a `public sealed record`
+nested in the toolset, or in the agent for a tool of the agent's own.
+
+`TicketToolset.SearchTicketsOverrides`, with `int? Limit` and `bool? IncludeClosed`, comes from this declaration:
+
+<!-- snippet: settings-picks -->
+<a id='snippet-settings-picks'></a>
+```cs
+AddTool(SearchTickets)
+    .ReadOnly()
+    .WithSettings<SearchTicketsSettings>()
+    .Configurable(s => s.IncludeClosed)
+    .Configurable(s => s.Limit);
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Tickets/TicketToolset.cs#L12-L18' title='Snippet source file'>snippet source</a> | <a href='#snippet-settings-picks' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+`KnowledgeToolset.SearchArticlesOverrides`, with `string? Language`, `IReadOnlyList<string>? Sources` and
+`ArticleRanking? Ranking`, comes from this one, where `Limit` stays in code:
+
+<!-- snippet: settings-all-configurable -->
+<a id='snippet-settings-all-configurable'></a>
+```cs
+AddTool(SearchArticlesAsync)
+    .WithConfigurableSettings<SearchArticlesSettings>()
+    .NotConfigurable(s => s.Limit);
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Knowledge/KnowledgeToolset.cs#L11-L15' title='Snippet source file'>snippet source</a> | <a href='#snippet-settings-all-configurable' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+| Member | Is |
+|---|---|
+| One `init` property per configurable member | The member's type, nullable. Null keeps the layer below. A member named like the record or one of its own members, such as `ApplyTo`, gets a `Value` suffix, so its property is `ApplyToValue`; the JSON keeps the member's own name. |
+| `ApplyTo(TSettings)` (hidden) | Returns the settings of the layer below, with every value this layer sets applied over them. |
+| `WriteJson`, `TryReadJson`, `CheckJson` (hidden) | Write, read and check the record's JSON, in camelCase with nulls left out. A `JsonConverter` on the record makes `System.Text.Json` read and write the same shape, and refuse a member the record does not have or a value that does not read. |
+
+An agent's `Settings` holds the overrides of every tool it offers. So a toolset with configurable settings must be as
+accessible as a public agent that offers it ([TSH006](./diagnostics.md#tsh006)).
+
+### `ToolNames`
+
+**Triggered by** a toolset with a tool, and an agent with a tool of its own. A `public static class ToolNames`
+nested in it holds one `public const string` per tool, the tool's name, under the name of its property on the
+[tool list](#the-tool-list). `TicketToolset.ToolNames` holds `SearchTickets`, `GetTicket` and `CloseTicket`, and
+`TicketToolset.ToolNames.CloseTicket` is `"close_ticket"`. Constants work in patterns and `switch` arms, as in
+`call is { Name: TicketToolset.ToolNames.CloseTicket }`
+([Names and descriptions](./toolsets.md#names-and-descriptions)). A member of yours named `ToolNames` is
+[TSH018](./diagnostics.md#tsh018).
+
+### The tool list
+
+**Triggered by** every toolset the generated code can reach ([TSH016](./diagnostics.md#tsh016)). A static class, as
+accessible as the toolset, holds an extension block on `ToolList<TToolset>`. The block has one property per tool,
+named after the tool and of type `ToolName`, and `Include` and `Exclude` pick from these properties:
+
+<!-- snippet: exclude-tools -->
+<a id='snippet-exclude-tools'></a>
+```cs
+UseToolset<TicketToolset>()
+    .Exclude(t => t.CloseTicket);
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/TriageAgent.cs#L15-L18' title='Snippet source file'>snippet source</a> | <a href='#snippet-exclude-tools' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+The block gives `ToolList<TicketToolset>` the properties `SearchTickets`, `GetTicket` and `CloseTicket`. A tool
+named like a member of `object`, or `tool_names`, gets a `Tool` suffix, so `to_string` becomes `ToStringTool`.
+
+The class lives in the global namespace, so the properties are in scope in every file, whatever it imports: a pick
+compiles also where the file names the toolset in full, as in `UseToolset<Demo.TicketToolset>()`, or through an
+alias. Its name is `Tstools_` and the toolset's full name, each part after its length, such as
+`Tstools_4Demo13TicketToolset` for `Demo.TicketToolset`, so no two toolsets share one and no type of yours meets it.
+The class is [hidden](#names-and-hidden-members), since you pick from the properties and never need its name.
 
 ## Per project
 
 | Member | Triggered by | Is |
 |---|---|---|
-| `{Assembly}Module` (hidden) | A toolset or an agent in the assembly | Registers the assembly's toolsets, agents, hosts, JSON contexts and XML docs; see [Registration](./registration.md#what-addtypeshift-registers). |
-| `[GeneratedModule]` (hidden) | The same | Stamps the module and its version for the projects that reference the assembly. |
-| `TypeshiftSchemaAnnotations_{Assembly}` (hidden) | `GenerateDocumentationFile`, on unless the project turns it off, and `TypeshiftSchemaAnnotations`, unless `false` | Added by the package's build, not the generator. It carries the `[SchemaAnnotations]` attribute that makes Weboost.SchemaAnnotations collect the XML docs of your types; see [Registration](./registration.md#xml-docs-of-parameter-types). |
-| The `AddTypeshift()` interceptor | A call of `services.AddTypeshift()` | See [Registration](./registration.md). |
+| `{Assembly}Module` (hidden) | A toolset, an agent, a JSON context or XML docs in the project | The assembly's [registrations](./registration.md#what-addtypeshift-registers) |
+| `[GeneratedModule]` (hidden) | The same | The module's stamp |
+| `Tsannotations_{Assembly}` (hidden) | XML docs, which are on unless the project turns them off | What collects the [XML docs of your types](./registration.md#xml-docs-of-parameter-types) |
+| The interceptor | A call of `services.AddTypeshift()` or `TypeshiftRuntime.Create(...)` | See [Registration](./registration.md) |
 
-## The agent host
+## Names and hidden members
 
-`AgentHost<TAgent>` runs one agent. Its own members are `Agent`, `WithSettingsId`, `WithConversationId`,
-`CreateChatClientAsync`, `DisposeAsync` and `Dispose`, and the generator adds the typed runs and settings of each
-agent.
+- Member names come from the tool's name in PascalCase, so `search_tickets` gives `SearchTickets`.
+- Members marked *hidden* are `[EditorBrowsable(Never)]` plumbing that only generated code calls. Code completion
+  leaves them out in a project that references your compiled assembly, such as a consumer of your package. The
+  project that declares them and the other projects of its solution still see them, because Roslyn, the code
+  completion behind Visual Studio and VS Code, hides such members only when they come from a compiled reference. So
+  the generated classes of the global namespace start with `Ts`, which none of the words you type most completes to.
+- The names of hidden members are taken all the same, so the analyzer reports [TSH018](./diagnostics.md#tsh018) for a
+  member of yours with one of them.
+- Every generated class, and every member the generator adds to a class of yours, carries `[GeneratedCode]` and
+  `[ExcludeFromCodeCoverage]`, so coverage tools that honor them leave the generated code out of your numbers. Your
+  own toolset and agent classes are not marked, so analyzers and coverage still see the code you wrote in them.
+- The members of the host and the tools' factories carry `[DebuggerStepThrough]`, so a step into
+  `host.RunAsync(...)` does not stop in a generated forwarder.
 
-### The host's scope
+::: details What only generated code calls
 
-`AddTypeshift()` registers a host per agent as transient, so a host runs with the services of the scope it was
-resolved from. A host from `TypeshiftRuntime.Agent<TAgent>()` runs in a scope the runtime created for it
-([The runtime](./registration.md#the-runtime)). Tools, the chat client provider, middleware, context providers,
-approval rules and the MCP tool provider all resolve from the host's scope.
+<a id="create-tool-and-tool-function"></a>
 
-Every member that loads or saves settings under a settings id needs an `ISettingsStore<TId>` of the id's type, and
-every member that loads or appends to a conversation needs an `IConversationStore<TId>` of the conversation id's type.
-[Which store serves a call](./implementing-a-store.md#which-store-serves-a-call) says what happens without one.
+**`Create{Tool}` and `{Tool}Function`** are triggered by every `AddTool(...)`. This one gives `CreateCloseTicket`
+and `CloseTicketFunction`:
 
-### `Agent`
+<!-- snippet: approval-tool -->
+<a id='snippet-approval-tool'></a>
+```cs
+AddTool(CloseTicketAsync)
+    .RequiresApproval();
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Tickets/TicketToolset.cs#L24-L27' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-tool' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
 
-`TAgent Agent { get; }` is the agent as its code declares it, a singleton. `Agent.Name` reads what `WithName`
-declared, and `Agent.Description` what `WithDescription` or the agent's `<summary>` did.
-
-### `WithSettingsId` and `WithConversationId`
-
-`AgentHost<TAgent> WithSettingsId<TId>(TId id)` and `AgentHost<TAgent> WithConversationId<TId>(TId id)`, where `TId`
-is any type but a nullable one.
-
-Both return a copy of the host with the id, in the host's scope, and throw an `ArgumentNullException` for a null id.
-[Ids of your own types](./settings-and-stores.md#ids-of-your-own-types) explains the copy and the store its id picks:
-an `ISettingsStore<TId>` for a settings id, an `IConversationStore<TId>` for a conversation id.
-
-### `CreateChatClientAsync`
-
-`Task<IChatClient> CreateChatClientAsync(ChatOptions options, CancellationToken ct = default)`
-
-`CreateChatClientAsync` creates the client of the [raw path](./running-agents.md#the-raw-path) for options that
-`ResolveOptionsAsync` returned. It takes the client for the options' provider and model, as a run does
-([Registering clients](./models.md#registering-clients)), and wraps it in the run's pipeline, with the agent's run
-options and the tool loop.
-
-Calling the client with those options runs and stores like `RunAsync`, in the conversation of the host that resolved
-them. On options of a host without a conversation id, `ChatOptions.ConversationId` can name one, a `string` id in the
-`IConversationStore<string>`. Disposing the client does not dispose the one your provider returned.
-
-It throws an `InvalidOperationException` when no client is registered for the options' provider and model, and none
-for every agent.
-
-### `DisposeAsync` and `Dispose`
-
-`ValueTask DisposeAsync()` and `void Dispose()` dispose the scope of a host that `TypeshiftRuntime.Agent<TAgent>()`
-created, and with it the scoped services its runs resolved. A host your container resolved, such as one injected into
-a request, owns nothing, so disposing it does nothing. Dispose a host once its runs and streams are done, since they
-use its scope. `Dispose` throws an `InvalidOperationException` when a scoped service implements only
-`IAsyncDisposable`, so prefer `await using`.
-
-### Typed members
-
-In these signatures, `Settings` is the agent's [generated `Settings` record](#settings). Every member takes a
-`CancellationToken ct = default` last. None takes an id: each uses the host's, from
-[`WithSettingsId` and `WithConversationId`](#withsettingsid-and-withconversationid).
-
-| Member | Returns |
+| Member | Is |
 |---|---|
-| `RunAsync(string input, Settings? settings = null)` | `Task<ChatResponse>` |
-| `RunAsync(ChatMessage input, Settings? settings = null)` | `Task<ChatResponse>` |
-| `RunAsync<TResult>(string input, Settings? settings = null)` | `Task<ChatResponse<TResult>>` |
-| `RunAsync<TResult>(ChatMessage input, Settings? settings = null)` | `Task<ChatResponse<TResult>>` |
-| `RunStreamingAsync(string input, Settings? settings = null)` | `IAsyncEnumerable<ChatResponseUpdate>` |
-| `RunStreamingAsync(ChatMessage input, Settings? settings = null)` | `IAsyncEnumerable<ChatResponseUpdate>` |
-| `RunStreamingAsync<TResult>(string input, Settings? settings = null)` | `StreamingRun<TResult>` |
-| `RunStreamingAsync<TResult>(ChatMessage input, Settings? settings = null)` | `StreamingRun<TResult>` |
-| `ResumeAsync(Settings? settings = null)` | `Task<ChatResponse>` |
-| `ResumeStreamingAsync(Settings? settings = null)` | `IAsyncEnumerable<ChatResponseUpdate>` |
-| `ResolveOptionsAsync(Settings? settings = null)` | `Task<ChatOptions>` |
-| `LoadSettingsAsync()` | `Task<Stored<Settings>>` |
-| `SaveSettingsAsync(Settings settings, long loadedVersion)` | `Task<long>` |
-| `ConfigureAsync(Func<Settings, Settings> configure)` | `Task<Settings>` |
+| `Create{Tool}(settings, json)` (hidden) | A static factory that returns the tool's `AIFunction`. `json`, a `ToolJson`, sets how the tool binds its arguments and serializes its result. It takes `settings`, the tool's settings after layering, only when the tool has settings. |
+| `{Tool}Function` | A private nested class deriving from `GeneratedToolFunction`. It holds the name, the description, the schema of the parameters the model fills, and the binding that calls the method. |
 
-### `RunAsync`
+<a id="stamps"></a>
 
-`RunAsync` runs the agent on one message, a `string` or a `ChatMessage`, which can carry images or approval answers.
-It layers the agent's code, the stored settings, the mode the conversation's last run ended in, then `settings`
-([Settings layering](./settings-and-stores.md#settings-layering)).
+**Stamps** are triggered by every tool. A hidden `[GeneratedTool]` attribute on the toolset names the tool, its
+list property, its factory, its settings and overrides types, and whether it requires approval. Agents in other
+assemblies read it to offer the tool.
 
-On a host with a conversation id, it stores the run as it goes ([What a run stores](#what-a-run-stores)). Without
-one, it stores nothing and offers no handoffs. If the model then calls a tool that requires approval and no rule or
-mode approves the call, it throws an `InvalidOperationException`. To avoid that, run with a conversation id, approve
-the call with a rule, or run in `Auto` mode.
+<a id="hidden-members"></a>
 
-`RunAsync` returns the model's messages with the tool calls and results between them, and each message carries the
-answering agent's name as `AuthorName`.
+**Every agent** also gets:
 
-`RunAsync<TResult>` asks the model for JSON of `TResult`'s schema and returns it typed in `Result`. Under
-[Native AOT](./native-aot.md), `TResult` needs JSON metadata.
+- an override of `Declaration`, which holds what the generator read from its constructor;
+- a private nested class `TypeshiftGenerated`;
+- a private field `_typeshift`, when it has a `Configure{Tool}()`.
 
-### `RunStreamingAsync`
+**A project** gets its module, the module's stamp and the schema annotations class of the table above:
 
-`RunStreamingAsync` layers settings and stores the run like `RunAsync`, but streams the updates, with the tool calls
-running between them. The updates of a run with a conversation are also published to
-`ConversationTracker<TId>.WatchAsync`. `RunStreamingAsync<TResult>` is its typed form
-([Structured output](./running-agents.md#structured-output)).
+- The module registers the assembly's toolsets, agents, hosts, JSON contexts and XML docs. A project without a
+  toolset or an agent still gets one for its `Tsannotations_{Assembly}` class, which every project with
+  XML docs on has, and for a [JSON context](./native-aot.md#tool-parameter-and-result-types) it holds.
+- `[GeneratedModule]` stamps the module and its version for the projects that reference the assembly.
+- The package's build adds `Tsannotations_{Assembly}`, in the global namespace, not the generator. It does so while
+  `GenerateDocumentationFile` is on, which it is unless the project turns it off, and `TypeshiftSchemaAnnotations`
+  is not `false`. The class carries the `[SchemaAnnotations]` attribute that makes Weboost.SchemaAnnotations collect
+  the XML docs of your types.
 
-### `ResumeAsync` and `ResumeStreamingAsync`
-
-Both continue the interrupted run of the host's conversation, the one `WithConversationId(id)` gave it, from its last
-stored step, without new input. They layer like `RunAsync` and store the continuation in the same conversation. A tool
-call that was still running when the run stopped is left out, so the model decides again and may call the tool a second
-time ([Resuming](./conversations.md#resuming)). They throw an `InvalidOperationException` when the host has no
-conversation id or the conversation has no interrupted run.
-
-### `ResolveOptionsAsync`
-
-`ResolveOptionsAsync` layers the agent's code, the stored settings, then `settings`
-([Settings layering](./settings-and-stores.md#settings-layering)), and returns the run's `ChatOptions` without
-storing anything. The options hold the model, the instructions, the configurable
-options and the tools. The tools come in this order: the toolsets' tools with their layered settings, the
-sub-agents, the tools of `WithTools`, then the MCP servers' tools.
-
-### `LoadSettingsAsync`
-
-`LoadSettingsAsync` loads the agent's own settings, through the `IAgentSettingsStore`, or on a host from
-`WithSettingsId(id)` the settings stored under that id. It returns them with their version, or empty settings at
-version 0 when none are stored. It layers nothing, so the record holds only what was stored. `SaveSettingsAsync` and
-`ConfigureAsync` save the same settings.
-
-### `SaveSettingsAsync`
-
-`SaveSettingsAsync` saves the settings `LoadSettingsAsync` loads, if the stored version is still `loadedVersion`:
-the version `LoadSettingsAsync` returned, or 0 when it loaded none. It returns the new version, which your app passes
-to its next save. It throws a `StoreConflictException` when another save came first.
-
-### `ConfigureAsync`
-
-`ConfigureAsync` loads the settings, applies `configure`, and saves them with the loaded version. On a conflict it
-loads and applies again until its save wins, then returns what it saved. After ten conflicts in a row it throws the
-last `StoreConflictException`.
-
-### What a run stores
-
-A run with a conversation id stores its input, each model response, each tool result and an entry that ends the run.
-[Conversations](./conversations.md#what-is-stored) lists what is stored when a run fails, is cancelled or is cut off,
-and [compaction](./conversations.md#compaction) what a compacted run stores.
+:::
 
 ## Related
 
 - [Toolsets](./toolsets.md): the declarations behind the per-toolset members.
 - [Agents](./defining-agents.md): the declarations behind the per-agent members.
 - [Using an agent](./using-an-agent.md): getting a host from a request's or a job's scope.
-- [Running agents](./running-agents.md): running an agent with settings, typed output or streaming.
+- [Running an agent](./running-agents.md): runs with settings, typed runs and streaming.
 - [Conversations](./conversations.md): storing, resuming and steering a conversation.
 - [Settings and stores](./settings-and-stores.md#agent-settings): loading, saving and configuring an agent's
   settings.

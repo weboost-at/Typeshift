@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
-using Typeshift.Generators.Emitting;
 using Typeshift.Generators.Models;
+using Typeshift.Generators.Naming;
 
 namespace Typeshift.Generators.Parsing;
 
@@ -32,7 +32,8 @@ internal static class Catalog
             OwnTools: output.Tools
                 .Where(offered => offered.Owner == output.Agent.Type.FullName)
                 .Select(offered => offered.Tool.Name)
-                .ToEquatableArray());
+                .ToEquatableArray(),
+            AsksUser: output.Agent.AsksUser);
     }
 
     // A use of a toolset the catalog lacks is skipped (TSH019), and so is a tool already offered (TSH025, or a name
@@ -52,16 +53,24 @@ internal static class Catalog
 
             foreach (var tool in tools)
             {
-                if (offered.Any(other => Clashes(other.Tool, tool))) continue;
+                if (offered.Any(other => Names.Clashes(other.Tool.Name, tool.Name))) continue;
 
-                offered.Add(new OfferedTool(toolset.Type, hidden ? tool with { Overrides = null } : tool));
+                // D84: a tool the use makes ask counts as one that requires approval, for the stamp and TSH024 too
+                var asks = use.Approvals.Contains(tool.Property);
+                var summary = hidden ? tool with { Overrides = null } : tool;
+
+                offered.Add(new OfferedTool(
+                    toolset.Type,
+                    asks ? summary with { RequiresApproval = true } : summary,
+                    AsksFirst: asks && !tool.RequiresApproval,
+                    Switchable: use.Switches.Contains(tool.Property)));
             }
         }
 
         // D57: the agent's own tools come after its toolsets'
         foreach (var tool in agent.Tools.Select(own => Summarize(agent.Type, own)))
         {
-            if (offered.Any(other => Clashes(other.Tool, tool))) continue;
+            if (offered.Any(other => Names.Clashes(other.Tool.Name, tool.Name))) continue;
 
             offered.Add(new OfferedTool(agent.Type.FullName, tool));
         }
@@ -87,10 +96,8 @@ internal static class Catalog
                 ? $"{owner.FullName}.{Names.OverridesName(tool.Name)}"
                 : null,
             Members: tool.Settings?.Properties
-                .Select(property => new SettingMember(property.Name, property.Type))
+                .Select(property => new SettingMember(property.Name, property.Type, property.Summary))
                 .ToEquatableArray() ?? default,
-            RequiresApproval: tool.RequiresApproval);
-
-    private static bool Clashes(ToolSummary offered, ToolSummary tool) =>
-        offered.Name == tool.Name || Names.ToPascalCase(offered.Name) == Names.ToPascalCase(tool.Name);
+            RequiresApproval: tool.RequiresApproval,
+            ExperimentalIds: tool.Settings?.ExperimentalIds ?? default);
 }

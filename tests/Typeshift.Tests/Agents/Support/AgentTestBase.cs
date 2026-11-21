@@ -36,5 +36,6 @@ public abstract class AgentTestBase : HostTestBase
         services.AddSingleton(ChatClient);
         services.AddSingleton(Models);
         services.AddScoped<CallScope>();
+        services.AddSingleton<ToolMeeting>();
     }
 }

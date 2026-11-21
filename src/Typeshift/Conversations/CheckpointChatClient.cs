@@ -13,15 +13,11 @@ internal sealed class CheckpointChatClient(IChatClient inner) : DelegatingChatCl
         ChatOptions? options = null,
         CancellationToken cancellationToken = default)
     {
-        Count(options);
+        var run = Begin(options);
+        var call = await run.PrepareCallAsync(messages, cancellationToken).ConfigureAwait(false);
+        var response = await base.GetResponseAsync(call, options, cancellationToken).ConfigureAwait(false);
 
-        if (options is not ResolvedChatOptions { ConversationRun: { } run })
-            return await base.GetResponseAsync(messages, options, cancellationToken);
-
-        var call = await run.PrepareCallAsync(messages);
-        var response = await base.GetResponseAsync(call, options, cancellationToken);
-
-        await run.AppendResponseAsync(response, options, streamed: false);
+        await run.AppendResponseAsync(response, options, streamed: false).ConfigureAwait(false);
         return response;
     }
 
@@ -30,26 +26,17 @@ internal sealed class CheckpointChatClient(IChatClient inner) : DelegatingChatCl
         ChatOptions? options = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        Count(options);
-
-        if (options is not ResolvedChatOptions { ConversationRun: { } run })
-        {
-            await foreach (var update in base.GetStreamingResponseAsync(messages, options, cancellationToken))
-            {
-                yield return update;
-            }
-
-            yield break;
-        }
-
-        var call = await run.PrepareCallAsync(messages);
+        var run = Begin(options);
+        var call = await run.PrepareCallAsync(messages, cancellationToken).ConfigureAwait(false);
         var updates = new List<ChatResponseUpdate>();
 
         // A stream that fails, is cancelled or is left early is stored with the updates that arrived. The tool loop
         // swaps the calls that need approval out of an update's contents, so the contents are copied as they arrive
         try
         {
-            await foreach (var update in base.GetStreamingResponseAsync(call, options, cancellationToken))
+            var answer = base.GetStreamingResponseAsync(call, options, cancellationToken);
+
+            await foreach (var update in answer.ConfigureAwait(false))
             {
                 var arrived = update.Clone();
                 arrived.Contents = [.. update.Contents];
@@ -60,12 +47,16 @@ internal sealed class CheckpointChatClient(IChatClient inner) : DelegatingChatCl
         }
         finally
         {
-            if (updates.Count > 0) await run.AppendResponseAsync(updates.ToChatResponse(), options, streamed: true);
+            if (updates.Count > 0)
+                await run.AppendResponseAsync(updates.ToChatResponse(), options, streamed: true).ConfigureAwait(false);
         }
     }
 
-    private static void Count(ChatOptions? options)
+    private static ConversationRun Begin(ChatOptions? options)
     {
-        if (options is ResolvedChatOptions { AgentRun: { } run }) run.ModelCalls++;
+        var resolved = ResolvedChatOptions.OfRun(options);
+
+        resolved.AgentRun!.ModelCalls++;
+        return resolved.ConversationRun!;
     }
 }

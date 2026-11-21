@@ -2,7 +2,11 @@ using System.Linq;
 
 namespace Typeshift.Generators.Models;
 
-internal sealed record SettingsModel(string Type, EquatableArray<SettingsPropertyModel> Properties)
+// ExperimentalIds are those of the type, its settable members and their types
+internal sealed record SettingsModel(
+    string Type,
+    EquatableArray<SettingsPropertyModel> Properties,
+    EquatableArray<string> ExperimentalIds)
 {
     public bool HasConfigurable => Properties.Any(property => property.IsConfigurable);
 }

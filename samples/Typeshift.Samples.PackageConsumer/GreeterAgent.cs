@@ -11,8 +11,14 @@ public partial class GreeterAgent : Agent
     public GreeterAgent()
     {
         WithChatOptions()
-            .WithModel("any-provider", "any-model");
+            .WithModel("any-provider", "any-model")
+            .Configurable(o => o.Temperature);
 
         UseToolset<GreetingToolset>();
+
+        // The compiler reports the deprecated toolset here, once, where this code names it
+#pragma warning disable CS0618
+        UseToolset<FarewellToolset>();
+#pragma warning restore CS0618
     }
 }

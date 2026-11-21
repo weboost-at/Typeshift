@@ -1,9 +1,14 @@
+using System.Text.Json;
 using Typeshift.Tests.Agents.Support;
 using Typeshift.Tests.Conversations.Support;
+using Typeshift.Tests.Hosting.Support;
 using Typeshift.Tests.Persistence.Support;
+using Typeshift.Tests.Testing.Fakes;
 using Typeshift.Tests.Tools.Support;
+using Typeshift.Tests.Toolsets;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Typeshift.Tests.Persistence;
 
@@ -24,6 +29,33 @@ public class StoredSettingsTests : AgentTestBase
 
         // Assert
         Models.Should().Equal(new ProvidedModel(Data.Agent.Provider, Data.Agent.Model));
+    }
+
+    [Fact]
+    public async Task Given_A_Stored_Provider_That_No_Longer_Reads_A_Run_With_Its_Settings_Id_Throws_Naming_It()
+    {
+        // Arrange
+        var host = await StoreAsync("""{"provider":"Anthropic","model":"claude"}""");
+
+        // Act
+        var run = () => host.RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        await run.Should().ThrowAsync<JsonException>().WithMessage("*provider \"Anthropic\"*");
+        Models.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Given_A_Stored_Provider_That_No_Longer_Reads_Loading_The_Settings_Throws_Naming_It()
+    {
+        // Arrange
+        var host = await StoreAsync("""{"provider":"Anthropic","model":"claude"}""");
+
+        // Act
+        var load = () => host.LoadSettingsAsync(Ct);
+
+        // Assert
+        await load.Should().ThrowAsync<JsonException>().WithMessage("*provider \"Anthropic\"*");
     }
 
     [Fact]
@@ -145,7 +177,7 @@ public class StoredSettingsTests : AgentTestBase
     }
 
     [Fact]
-    public async Task Given_A_Save_Between_Load_And_Save_Configuring_Applies_The_Change_Again_And_Wins()
+    public async Task Given_A_Save_Between_Load_And_Save_Updating_Applies_The_Change_Again_And_Wins()
     {
         // Arrange
         var host = Host<ProbeAgent>().WithSettingsId(Data.Persistence.SettingsId);
@@ -160,7 +192,7 @@ public class StoredSettingsTests : AgentTestBase
         }
 
         // Act
-        await host.ConfigureAsync(
+        await host.UpdateSettingsAsync(
             settings => Interrupt(settings).GetAwaiter().GetResult(),
             Ct);
 
@@ -176,7 +208,39 @@ public class StoredSettingsTests : AgentTestBase
     }
 
     [Fact]
-    public async Task Given_A_Save_Between_Every_Load_And_Save_Configuring_Gives_Up_After_Ten_Attempts()
+    public async Task Given_An_Update_It_Returns_The_Settings_Saved_And_Their_Version()
+    {
+        // Arrange
+        var host = Host<ProbeAgent>().WithSettingsId(Data.Persistence.SettingsId);
+        await host.SaveSettingsAsync(new() { Model = Data.Agent.Model }, 0, Ct);
+
+        // Act
+        var saved = await host.UpdateSettingsAsync(
+            settings => settings with { Temperature = Data.Agent.Temperature },
+            Ct);
+
+        // Assert
+        saved.Should().Be(new Stored<ProbeAgent.Settings>(
+            new() { Model = Data.Agent.Model, Temperature = Data.Agent.Temperature },
+            2));
+    }
+
+    [Fact]
+    public async Task Given_The_Version_An_Update_Returned_A_Save_With_It_Wins_Without_A_Load_Between()
+    {
+        // Arrange
+        var host = Host<ProbeAgent>().WithSettingsId(Data.Persistence.SettingsId);
+        var saved = await host.UpdateSettingsAsync(settings => settings with { Model = Data.Agent.Model }, Ct);
+
+        // Act
+        var version = await host.SaveSettingsAsync(saved.Data with { Temperature = 0.1f }, saved.Version, Ct);
+
+        // Assert
+        version.Should().Be(saved.Version + 1);
+    }
+
+    [Fact]
+    public async Task Given_A_Save_Between_Every_Load_And_Save_Updating_Gives_Up_After_Ten_Attempts()
     {
         // Arrange
         var host = Host<ProbeAgent>().WithSettingsId(Data.Persistence.SettingsId);
@@ -192,12 +256,12 @@ public class StoredSettingsTests : AgentTestBase
         }
 
         // Act
-        var configure = () => host.ConfigureAsync(
+        var update = () => host.UpdateSettingsAsync(
             settings => Interrupt(settings).GetAwaiter().GetResult(),
             Ct);
 
         // Assert
-        await configure.Should().ThrowAsync<StoreConflictException>();
+        await update.Should().ThrowAsync<StoreConflictException>();
         calls.Should().Be(10);
     }
 
@@ -222,6 +286,28 @@ public class StoredSettingsTests : AgentTestBase
 
         // Assert
         Models.Should().Equal(new ProvidedModel(ProbeAgent.ModelProvider, Data.Agent.Model));
+    }
+
+    [Fact]
+    public async Task Given_No_Store_The_First_Save_Under_A_Settings_Id_Warns_That_It_Keeps_Them_In_Memory()
+    {
+        // Arrange
+        var logs = new WarningLog();
+        var services = new ServiceCollection();
+        services.AddTypeshift().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddSingleton<ILoggerFactory>(logs);
+
+        await using var provider = services.BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var host = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
+            .WithSettingsId(Data.Persistence.SettingsId);
+
+        // Act
+        await host.UpdateSettingsAsync(settings => settings with { Model = Data.Agent.Model }, Ct);
+        await host.UpdateSettingsAsync(settings => settings with { Temperature = Data.Agent.Temperature }, Ct);
+
+        // Assert
+        logs.Warnings.Should().ContainSingle();
     }
 
     [Fact]
@@ -258,7 +344,9 @@ public class StoredSettingsTests : AgentTestBase
     {
         // Arrange
         var services = new ServiceCollection();
+#pragma warning disable TSH036 // a store of conversations alone is the point, and the run never asks
         services.AddTypeshift().WithStore<CountingLoadStore>().WithChatClientProvider<ScriptedChatClientProvider>();
+#pragma warning restore TSH036
 
         await using var provider = services.BuildServiceProvider();
         await using var scope = provider.CreateAsyncScope();
@@ -270,5 +358,64 @@ public class StoredSettingsTests : AgentTestBase
 
         // Assert
         await load.Should().ThrowAsync<InvalidOperationException>().WithMessage("*ISettingsStore*");
+    }
+
+    // The vendor agent's host over settings stored as the JSON reads, as an earlier version of the app wrote them
+    private async Task<AgentHost<VendorAgent>> StoreAsync(string json)
+    {
+        var store = Services.GetRequiredService<ITypeshiftStore<Guid>>();
+        await store.SaveAsync(Data.Persistence.SettingsId, VendorAgent.Settings.Kind, json, 0, Ct);
+
+        return Host<VendorAgent>().WithSettingsId(Data.Persistence.SettingsId);
+    }
+
+    [Fact]
+    public async Task Given_A_Tool_Switched_Off_Under_A_Settings_Id_The_Model_Is_Not_Offered_It()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        var customer = Host<SwitchingAgent>().WithSettingsId(Data.Persistence.SettingsId);
+        await customer.UpdateSettingsAsync(settings => settings with { ProbeEnabled = false }, Ct);
+
+        // Act
+        await customer.RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        ChatClient.Options[0]!.Tools!.Select(tool => tool.Name).Should().Equal(CompanyToolset.ToolNames.CountCompanies);
+    }
+
+    [Fact]
+    public async Task Given_A_Tool_Switched_Off_Under_Another_Settings_Id_The_Model_Is_Offered_It()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        var other = Host<SwitchingAgent>().WithSettingsId(Data.Persistence.SettingsId);
+        await other.UpdateSettingsAsync(settings => settings with { ProbeEnabled = false }, Ct);
+
+        // Act
+        await Host<SwitchingAgent>().WithSettingsId(Data.Persistence.OtherId).RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        ChatClient.Options[0]!.Tools!.Select(tool => tool.Name)
+            .Should()
+            .Equal(ProbeToolset.ToolNames.Probe, CompanyToolset.ToolNames.CountCompanies);
+    }
+
+    [Fact]
+    public async Task Given_A_Run_That_Switches_On_A_Tool_Its_Stored_Settings_Switch_Off_The_Model_Is_Offered_It()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        var customer = Host<SwitchingAgent>().WithSettingsId(Data.Persistence.SettingsId);
+        await customer.UpdateSettingsAsync(settings => settings with { ProbeEnabled = false }, Ct);
+
+        // Act
+        await customer.RunAsync(Data.Tool.Question, settings: new() { ProbeEnabled = true }, ct: Ct);
+
+        // Assert
+        ChatClient.Options[0]!.Tools!.Select(tool => tool.Name).Should().Contain(ProbeToolset.ToolNames.Probe);
     }
 }

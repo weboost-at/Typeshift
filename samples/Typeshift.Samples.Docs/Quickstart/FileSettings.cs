@@ -1,4 +1,3 @@
-using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using Typeshift.Samples.Hosting;
 
@@ -14,7 +13,7 @@ internal static class FileSettings
             await using var scope = first.CreateAsyncScope();
             var research = scope.ServiceProvider.GetRequiredService<AgentHost<ResearchAgent>>();
 
-            await research.ConfigureAsync(settings => settings with { Temperature = 0.3f });
+            await research.UpdateSettingsAsync(settings => settings with { Temperature = 0.3f });
         }
 
         await using var restarted = Build(folder);
@@ -31,11 +30,10 @@ internal static class FileSettings
         var services = new ServiceCollection();
 
         services.AddTypeshift()
-            .WithFileStore(store => store.Folder = folder)
-            .WithChatClientProvider<KeyedChatClientProvider>();
+            .WithFileStore(store => store.Folder = folder);
         // end-snippet
 
-        services.AddKeyedSingleton<IChatClient>("openai", new CannedChatClient());
+        services.AddChatClient(new CannedChatClient());
 
         return services.BuildServiceProvider(validateScopes: true);
     }

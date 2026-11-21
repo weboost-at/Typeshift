@@ -15,6 +15,9 @@ public abstract class GeneratorTestBase
         .WithDocumentationMode(DocumentationMode.Diagnose)
         .WithFeatures([new("InterceptorsNamespaces", "Typeshift.Generated")]);
 
+    private static readonly CSharpParseOptions WithoutDocumentation =
+        ParseOptions.WithDocumentationMode(DocumentationMode.None);
+
     private static readonly ImmutableArray<MetadataReference> FrameworkReferences = CreateFrameworkReferences();
 
     private static readonly ImmutableArray<DiagnosticAnalyzer> Analyzers =
@@ -24,6 +27,8 @@ public abstract class GeneratorTestBase
 
     protected static CSharpCompilation Compile(params string[] sources) => Compile(SubjectAssembly, [], sources);
 
+    // Every warning wave is on, as the SDK builds a consumer's project; a later wave that warns about generated code
+    // is fixed there, never by lowering the level
     protected static CSharpCompilation Compile(
         string assemblyName,
         IEnumerable<MetadataReference> references,
@@ -34,16 +39,34 @@ public abstract class GeneratorTestBase
             references: FrameworkReferences.AddRange(references),
             options: new CSharpCompilationOptions(
                 OutputKind.DynamicallyLinkedLibrary,
-                nullableContextOptions: NullableContextOptions.Enable));
+                nullableContextOptions: NullableContextOptions.Enable,
+                warningLevel: 9999));
+
+    // As a project whose files have these names
+    protected static CSharpCompilation CompileFiles(params (string Path, string Source)[] files) =>
+        Compile().AddSyntaxTrees(files.Select(file => Parse(file.Source, file.Path)));
+
+    // As a project with AllowUnsafeBlocks
+    protected static CSharpCompilation CompileUnsafe(params string[] sources)
+    {
+        var compilation = Compile(sources);
+        return compilation.WithOptions(compilation.Options.WithAllowUnsafe(true));
+    }
 
     protected static SyntaxTree Parse(string source, string path) =>
         CSharpSyntaxTree.ParseText(source, ParseOptions, path);
 
+    // Typeshift's generator first, then the project's other generators, whose output it never sees
     protected static GeneratorDriver CreateDriver(
         CSharpParseOptions? parseOptions = null,
-        BuildProperties? properties = null) =>
+        BuildProperties? properties = null,
+        params IIncrementalGenerator[] others) =>
         CSharpGeneratorDriver.Create(
-            generators: [new TypeshiftGenerator().AsSourceGenerator()],
+            generators:
+            [
+                new TypeshiftGenerator().AsSourceGenerator(),
+                .. others.Select(other => other.AsSourceGenerator())
+            ],
             parseOptions: parseOptions ?? ParseOptions,
             optionsProvider: properties ?? BuildProperties.None,
             driverOptions: new GeneratorDriverOptions(
@@ -54,12 +77,13 @@ public abstract class GeneratorTestBase
     protected GeneratorRun Run(
         Compilation compilation,
         CSharpParseOptions? parseOptions = null,
-        BuildProperties? properties = null)
+        BuildProperties? properties = null,
+        params IIncrementalGenerator[] others)
     {
-        var driver = CreateDriver(parseOptions, properties)
+        var driver = CreateDriver(parseOptions, properties, others)
             .RunGeneratorsAndUpdateCompilation(compilation, out var output, out _, Ct);
 
-        return new GeneratorRun(driver, output, Analyze(output, properties ?? BuildProperties.None));
+        return Checked(new GeneratorRun(driver, output, Analyze(output, properties ?? BuildProperties.None)));
     }
 
     protected GeneratorRun Run(params string[] sources) => Run(Compile(sources));
@@ -68,7 +92,7 @@ public abstract class GeneratorTestBase
     protected GeneratorRun RunAgain(GeneratorRun previous, Compilation edited)
     {
         var driver = previous.Driver.RunGeneratorsAndUpdateCompilation(edited, out var output, out _, Ct);
-        return new GeneratorRun(driver, output, Analyze(output, BuildProperties.None));
+        return Checked(new GeneratorRun(driver, output, Analyze(output, BuildProperties.None)));
     }
 
     protected static Compilation Edit(Compilation compilation, int tree, string source) =>
@@ -76,17 +100,32 @@ public abstract class GeneratorTestBase
             compilation.SyntaxTrees.ElementAt(tree),
             Parse(source, compilation.SyntaxTrees.ElementAt(tree).FilePath));
 
-    // As a project without GenerateDocumentationFile: the compiler keeps /// comments as plain comments
-    protected GeneratorRun RunWithoutDocumentation(params string[] sources)
+    // As a project that pins <LangVersion>
+    protected GeneratorRun RunAs(LanguageVersion version, params string[] sources)
     {
-        var parseOptions = ParseOptions.WithDocumentationMode(DocumentationMode.None);
+        var parseOptions = ParseOptions.WithLanguageVersion(version);
         var compilation = Compile(sources);
 
-        var undocumented = compilation.SyntaxTrees.Aggregate(
-            compilation,
-            (current, tree) => current.ReplaceSyntaxTree(tree, tree.WithRootAndOptions(tree.GetRoot(), parseOptions)));
+        // All at once: a compilation takes no trees of two language versions
+        var pinned = compilation.SyntaxTrees.Select(tree => tree.WithRootAndOptions(tree.GetRoot(), parseOptions));
 
-        return Run(undocumented, parseOptions);
+        return Run(compilation.RemoveAllSyntaxTrees().AddSyntaxTrees(pinned), parseOptions);
+    }
+
+    // As a project without GenerateDocumentationFile: the compiler keeps /// comments as plain comments, one a line,
+    // so each tree is parsed again under the options it is read with
+    protected GeneratorRun RunWithoutDocumentation(params string[] sources) =>
+        Run(CompileWithoutDocumentation(sources), WithoutDocumentation);
+
+    protected static CSharpCompilation CompileWithoutDocumentation(params string[] sources)
+    {
+        var compilation = Compile(sources);
+
+        return compilation.SyntaxTrees.Aggregate(
+            compilation,
+            (current, tree) => current.ReplaceSyntaxTree(
+                tree,
+                CSharpSyntaxTree.ParseText(tree.GetText(), WithoutDocumentation, tree.FilePath)));
     }
 
     // An assembly compiled with the generator, referenced from the subject as metadata
@@ -103,7 +142,8 @@ public abstract class GeneratorTestBase
     protected MetadataReference CompileReferenceWithoutGenerator(string assemblyName, params string[] sources) =>
         Emit(Compile(assemblyName, [], sources));
 
-    // Compiler diagnostics included, so the suppressor can act on them; suppressed ones are reported as such
+    // Compiler diagnostics included, so the suppressor can act on them; suppressed ones are reported as such. The
+    // analyzer enables concurrent execution, so it runs concurrently here as in a build
     private IReadOnlyList<Diagnostic> Analyze(Compilation output, BuildProperties properties) =>
         output
             .WithAnalyzers(
@@ -111,12 +151,18 @@ public abstract class GeneratorTestBase
                 new CompilationWithAnalyzersOptions(
                     new AnalyzerOptions([], properties),
                     onAnalyzerException: null,
-                    concurrentAnalysis: false,
+                    concurrentAnalysis: true,
                     logAnalyzerExecutionTime: false,
                     reportSuppressedDiagnostics: true))
             .GetAllDiagnosticsAsync(Ct)
             .GetAwaiter()
             .GetResult();
+
+    // What every run asserts, whatever its test goes on to. It reached its end: a failed generator leaves no file to
+    // hold an error and an analyzer that threw reports nothing, so every other assertion on such a run would pass.
+    // And its files start with the header, so no snapshot has to pin it
+    private static GeneratorRun Checked(GeneratorRun run) =>
+        run.Assert.RunsToTheEnd().Assert.StartsEveryFileWithTheHeader();
 
     private MetadataReference Emit(Compilation compilation)
     {

@@ -28,8 +28,11 @@ internal record SearchTicketsSettings
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Tickets/SearchTicketsSettings.cs#L3-L12' title='Snippet source file'>snippet source</a> | <a href='#snippet-settings-record' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-It must be a record ([TSH005](./diagnostics.md#tsh005)). Settings resolve in [layers](#the-layers), from these code
-defaults up to a single run, and each layer applies its values to a `with` copy of the defaults.
+It must be a record with a public parameterless constructor ([TSH005](./diagnostics.md#tsh005)). Settings resolve in
+[layers](#the-layers), from these code defaults up to a single run, and each layer applies its values to a `with`
+copy of the defaults. Write the members as properties, as above. A positional record such as
+`record SearchTicketsSettings(int Limit = 10)` has no parameterless constructor, so nothing could create its
+defaults.
 
 ## Configurable members
 
@@ -70,27 +73,38 @@ code change.
   [How Typeshift reads your code](./how-typeshift-reads-your-code.md) explains why.
 - Under `WithConfigurableSettings<T>()`, members marked `[Obsolete]` stay in code without a `NotConfigurable(...)`.
 - A configurable member needs a public `set` or `init` accessor ([TSH013](./diagnostics.md#tsh013)).
-
-::: warning A renamed member loses its stored values
-Stored settings keep each member under its name. Rename or remove a configurable member, and its stored value reads
-as missing, so the layer below applies. When that matters, raise the schema version the agent passes to
-`WithSchemaVersion` and migrate the stored documents, as
-[Migrate older settings](./implementing-a-store.md#migrate-older-settings) explains.
-:::
+- Stored settings keep each member under its name, so a configurable member you rename or remove no longer finds
+  its stored value. [The stored JSON](./settings-and-stores.md#the-stored-json) says what to do about it.
 
 ### Storable types
 
 A configurable member needs a type settings can store ([TSH012](./diagnostics.md#tsh012)):
 
-- strings, Booleans, enums (stored by name), `Guid`, `DateTime`, `DateTimeOffset`, `TimeSpan`, `DateOnly`,
-  `TimeOnly`, `Uri` and `ReasoningOptions`;
-- the numbers `byte`, `short`, `int`, `long`, `float`, `double` and `decimal`;
-- non-generic classes and records with a public parameterless constructor, no `required` members and storable
-  settable members, replaced as a whole and never merged, and record structs that meet the same rules;
-- arrays, lists and sets of storable values, and dictionaries keyed by `string` or an enum.
+| Kind | Types | Stored as |
+|---|---|---|
+| Text and Booleans | `string`, `bool` | A JSON string or Boolean |
+| Numbers | `byte`, `short`, `int`, `long`, `float`, `double`, `decimal` | A JSON number |
+| Enums | Every enum | Its name, or its number for a value without a name, such as `[Flags]` with none set |
+| Ids, addresses, dates and times | `Guid`, `Uri`, `DateTime`, `DateTimeOffset`, `DateOnly`, `TimeOnly`, `TimeSpan` | A string |
+| Reasoning | `ReasoningOptions` | An object |
+| Objects | Non-generic classes and records with a public parameterless constructor, no `required` members and at least one settable member, each of a storable type, and record structs that meet the same rules | An object, replaced as a whole and never merged |
+| Collections | `T[]`, `List<T>`, `IList<T>`, `IReadOnlyList<T>`, `ICollection<T>`, `IReadOnlyCollection<T>`, `IEnumerable<T>`, `HashSet<T>`, `ISet<T>` and `IReadOnlySet<T>` of storable values | An array |
+| Dictionaries | `Dictionary<TKey, TValue>`, `IDictionary<TKey, TValue>` and `IReadOnlyDictionary<TKey, TValue>` of storable values, keyed by `string` or an enum | An object |
 
-Items and dictionary values cannot be nullable value types, and a type that contains itself is not storable. Other
-structs, unions among them, are not storable, because most keep their state in fields that no public setter writes.
+The analyzer reports every other type, including these:
+
+- Other collections are not storable, immutable ones such as `ImmutableList<T>` among them.
+- The numbers `sbyte`, `ushort`, `uint` and `ulong` are not storable, and neither is `char`.
+- An abstract class and an interface are not storable, because Typeshift creates a stored object with its
+  parameterless constructor.
+- Items and dictionary values cannot be nullable, neither a value type such as `int?` nor a reference type such as
+  `string?`. A list or a dictionary that holds a null all the same fails the save with an
+  `InvalidOperationException` that names the member.
+- A type that contains itself is not storable.
+- Other structs, unions among them, are not storable, because most keep their state in fields that no public setter
+  writes.
+- `object` and a class without a settable member are not storable, also as an item or a dictionary value such as
+  `Dictionary<string, object>`: settings would store `{}` and read back an empty object.
 
 ## Receiving settings in the tool
 
@@ -129,7 +143,8 @@ A tool's settings resolve through four [settings layers](./settings-and-stores.m
 code defaults, the agent's [`Configure{Tool}()`](./defining-agents.md#tool-settings), the
 [stored settings](./settings-and-stores.md#agent-settings) and the [run's settings](./running-agents.md#run-settings).
 The last two set values through the overrides, so they can change only the configurable members. The agent's
-`Configure{Tool}()` can set every settable member.
+`Configure{Tool}()` can set every settable member. Whether the agent offers a tool at all can change through the
+same layers when the agent [lets settings switch it off](./defining-agents.md#switching-a-tool-off).
 
 ## Related
 

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using Typeshift.Samples.Hosting;
+using Typeshift.Samples.Knowledge;
 using Typeshift.Samples.Stores.EfCore;
 using Typeshift.Samples.Tickets;
 
@@ -21,16 +22,22 @@ internal static class Registration
             .WithRunMiddleware<BlockedTopics>()
             .WithToolMiddleware<AuditToolCalls>();
 
-        services.AddKeyedSingleton("openai", fast);
-        services.AddKeyedSingleton("anthropic", reasoning);
+        services.AddKeyedChatClient("openai", fast);
+        services.AddKeyedChatClient("anthropic", reasoning);
         // end-snippet
+
+        // The default client, for the quick start's agent, which names no provider and is a sub-agent here
+        services.AddChatClient(fast);
 
         services.AddTypeshift()
             .WithMcpToolProvider<CannedMcpToolProvider>();
+        ShowApprovalRule(services);
         services.AddDbContextFactory<TypeshiftDb>(options => options.UseSqlite($"Data Source={database}"));
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<ITicketClient, InMemoryTicketClient>();
+        services.AddSingleton<IArticleIndex, InMemoryArticleIndex>();
         services.AddScoped<ICurrentCustomer, SampleCustomer>();
+        services.AddScoped<CurrentTenant>();
         services.AddScoped<RefundDesk>();
         services.AddLogging();
 
@@ -47,14 +54,22 @@ internal static class Registration
         // end-snippet
     }
 
-    public static void ShowRealtimeOptions(IServiceCollection services)
+    public static void ShowTestHost(IServiceCollection services)
     {
-        // begin-snippet: realtime-options
+        // begin-snippet: store-replace
         services.AddTypeshift()
-            .WithRealtimeTracking(new RealtimeTrackingOptions
+            .WithStore<InMemoryTypeshiftStore<int>>(replace: true);
+        // end-snippet
+    }
+
+    public static void ShowLiveUpdateOptions(IServiceCollection services)
+    {
+        // begin-snippet: live-update-options
+        services.AddTypeshift()
+            .WithOptions(options =>
             {
-                PublishInterval = TimeSpan.FromMilliseconds(250),
-                MaxPendingUpdates = 1024
+                options.LiveUpdates.PublishInterval = TimeSpan.FromMilliseconds(250);
+                options.LiveUpdates.MaxPendingUpdates = 1024;
             });
         // end-snippet
     }

@@ -1,4 +1,5 @@
 using Microsoft.Extensions.AI;
+using Typeshift.Demos.Hosting;
 using Typeshift.Demos.Support.Domain;
 
 namespace Typeshift.Demos.Support.Hosting;
@@ -43,7 +44,7 @@ public sealed class StatusMcpProvider : IMcpToolProvider
         ValueTask.FromResult<IReadOnlyList<AITool>>(server == "status" ? [Status] : []);
 }
 
-// Every call that needs approval is printed and, unless --yes, decided at the console
+// Every tool call is printed with the start of its result, as a host would log it
 public sealed class AuditedCalls : IToolMiddleware
 {
     public async ValueTask<object?> InvokeAsync(
@@ -52,7 +53,7 @@ public sealed class AuditedCalls : IToolMiddleware
         CancellationToken ct)
     {
         var result = await next();
-        Console.Error.WriteLine($"  [tool] {call.Function.Name} -> {result?.ToString()?.ReplaceLineEndings(" ")[..Math.Min(80, result.ToString()!.Length)]}");
+        Console.Error.WriteLine($"  [tool] {call.Function.Name} -> {Demo.Shorten(result?.ToString() ?? "", 80)}");
         return result;
     }
 }

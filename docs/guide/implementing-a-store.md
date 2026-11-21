@@ -1,15 +1,16 @@
 ---
 title: Implementing a store
-description: Write the store that keeps your agents' settings and conversations in your own database, from its lifetime and versions to conversation summaries.
+description: Write the store that keeps your agents' settings, conversations and decisions in your own database, from its lifetime and versions to conversation summaries.
 ---
 
 # Implementing a store
 
-Typeshift keeps your agents' settings through an `ISettingsStore<TId>` and your conversations through an
-`IConversationStore<TId>`, which you implement over your own database for the type `TId` of your ids. This page walks
-through a store in the order you build it: you register it, implement its interfaces, load and save settings, append
-conversations, migrate older settings and check it. Until you register a store, Typeshift keeps everything in memory
-and loses it when the app stops, so a production app writes its own.
+Typeshift keeps your agents' settings through an `ISettingsStore<TId>`, your conversations through an
+`IConversationStore<TId>` and their decisions through an `IDecisionStore<TId>`, which you implement over your own
+database for the type `TId` of your ids. This page walks through a store in the order you build it: you register it,
+implement its interfaces, load and save settings, append conversations, keep decisions, migrate older settings and
+check it. Until you register a store, Typeshift keeps everything in memory and loses it when the app stops, so a
+production app writes its own.
 
 ## Register your store
 
@@ -24,29 +25,63 @@ services.AddTypeshift()
 
 services.AddDbContextFactory<TypeshiftDb>(options => options.UseSqlite("Data Source=typeshift.db"));
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L42-L47' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-registration' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L49-L54' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 `WithStore<T>()` registers your class as each store interface it implements, of any id type. An
-`ITypeshiftStore<TId>` takes one call, and a store of settings and one of conversations take a call each.
+`ITypeshiftStore<TId>` takes one call, and a store of settings and one of conversations and their decisions take a
+call each. A store whose constructor takes what the container cannot give it, such as a folder, registers with a
+factory, `WithStore(provider => new MyStore(folder))`, or as an instance your app created, `WithStore(store)`.
 
 ### Which store serves a call
 
-Without any store, Typeshift keeps settings and conversations in memory, under ids of every type, so everything works
-from the first run on. The first save, or the first run that stores a conversation, logs a warning that names
-`WithStore<T>()`, and `WithFileStore()` for agents' own settings. The memory is gone when the app stops, so register a
-store before your app keeps anything it must not lose.
+Without any store, Typeshift keeps settings, conversations and decisions in memory, under ids of every type, so
+everything works from the first run on. The first save, or the first run that stores a conversation,
+[logs a warning](./observability.md#logs) that names `WithStore<T>()`, and `WithFileStore()` for agents' own
+settings. The memory is gone when the app stops, so register a store before your app keeps anything it must not
+lose.
 
 Once you register a store, with the chain or in the container yourself, Typeshift uses only the stores you
 registered:
 
-- For each store interface, the store registered last wins. Each `InMemoryTypeshiftStore<TId>` keeps agents' own
-  settings too, so of several, the last one registered keeps them.
+- A store interface has one store. A chain call whose store implements an interface that another call's store is
+  registered as throws an `InvalidOperationException` right there, when your app registers it. The message names
+  both stores and the interface, so the order of two calls never decides where your data goes.
 - A run applies agents' own settings only when a registered store implements `IAgentSettingsStore`, as
   `InMemoryTypeshiftStore<TId>` and the file store of `WithFileStore()` do.
+- `InMemoryTypeshiftStore<TId>` keeps agents' own settings only while no other store does, whichever of the two you
+  register first. So `WithFileStore()` and `WithStore<InMemoryTypeshiftStore<Guid>>()` together keep agents' own
+  settings in files and everything under a `Guid` id in memory. Of several memory stores, the first one registered
+  keeps them.
 - A call that needs an interface none of your stores implements throws an `InvalidOperationException` that names
-  `WithStore<T>()` and the interface. A run with a conversation id and a store of settings alone throws, and so does
-  an id of a type none of your stores keeps, such as a settings id of `long` beside an `ISettingsStore<int>`.
+  `WithStore<T>()` and the interface, and lists the store interfaces your app did register. A run with a
+  conversation id and a store of settings alone throws, and so does an id of a type none of your stores keeps, such
+  as a settings id of `long` beside an `ISettingsStore<int>`.
+- Decisions are the one exception to that rule, so that a conversation that never has one costs nothing. Without an
+  `IDecisionStore<TId>` of the conversation id's type, loading a conversation's decisions finds none and calls no
+  store. The first thing Typeshift has to keep there, a decision, an approval for the conversation or the
+  conversation's mode, throws the exception above, naming `IDecisionStore<TId>`. Typeshift
+  never keeps decisions in memory beside a store you registered, because they would vanish with the process while
+  the conversation they belong to stays ([Keep decisions](#keep-decisions)). The analyzer warns about a chain that
+  registers a store of conversations and none of their decisions, when an agent of your project can ask
+  ([TSH036](./diagnostics.md#tsh036)).
+- A store you register in the container yourself is a singleton too ([Plan for one instance](#plan-for-one-instance)).
+  One registered with `AddScoped` or `AddTransient` fails the first run with an `InvalidOperationException` that
+  names it, because Typeshift takes its stores from the root container, not from a request's scope. The container's
+  own rule holds for these registrations: of two for one interface the last one serves, and nothing throws.
+
+A store that is meant to take over says so with `replace: true`. It then serves each interface it implements in
+place of the store registered before, which keeps the interfaces the new one does not implement. A test host that
+swaps your app's database store for one in memory registers it this way:
+
+<!-- snippet: store-replace -->
+<a id='snippet-store-replace'></a>
+```cs
+services.AddTypeshift()
+    .WithStore<InMemoryTypeshiftStore<int>>(replace: true);
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L59-L62' title='Snippet source file'>snippet source</a> | <a href='#snippet-store-replace' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
 
 ### Plan for one instance
 
@@ -68,27 +103,137 @@ requests, which `DbContext` does not allow. Register `IDbContextFactory<T>` with
 registration above does, and create a context in each method.
 :::
 
+## A minimal store
+
+A store first has to keep the rules Typeshift relies on, and those fit in a few lines a method. This store keeps
+everything in dictionaries in memory, so each method shows only what its interface asks of it:
+
+<!-- snippet: minimal-store -->
+<a id='snippet-minimal-store'></a>
+```cs
+internal sealed class MinimalStore : ITypeshiftStore<int>, IAgentSettingsStore
+{
+    // One lock around every call, so a save checks the version and writes in one step
+    private readonly Lock _gate = new();
+
+    private readonly Dictionary<(int Id, string Kind), StoredDocument> _settings = [];
+    private readonly Dictionary<string, StoredDocument> _agentSettings = [];
+    private readonly Dictionary<int, StoredDocument> _decisions = [];
+    private readonly Dictionary<int, List<string>> _conversations = [];
+
+    public Task<StoredDocument?> LoadAsync(int id, string kind, CancellationToken ct) =>
+        Load(_settings, (id, kind));
+
+    public Task<long> SaveAsync(int id, string kind, string json, long loadedVersion, CancellationToken ct) =>
+        Save(_settings, (id, kind), json, loadedVersion);
+
+    public Task<StoredDocument?> LoadAsync(string kind, CancellationToken ct) =>
+        Load(_agentSettings, kind);
+
+    public Task<long> SaveAsync(string kind, string json, long loadedVersion, CancellationToken ct) =>
+        Save(_agentSettings, kind, json, loadedVersion);
+
+    public Task<StoredDocument?> LoadDecisionsAsync(int conversation, CancellationToken ct) =>
+        Load(_decisions, conversation);
+
+    public Task<long> SaveDecisionsAsync(int conversation, string json, long loadedVersion, CancellationToken ct) =>
+        Save(_decisions, conversation, json, loadedVersion);
+
+    public Task AppendConversationAsync(int conversation, ConversationEntry entry, CancellationToken ct)
+    {
+        lock (_gate)
+        {
+            _conversations.TryAdd(conversation, []);
+            _conversations[conversation].Add(entry.Serialize());
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(int conversation, CancellationToken ct)
+    {
+        lock (_gate)
+        {
+            IReadOnlyList<ConversationEntry> entries =
+                [.. _conversations.GetValueOrDefault(conversation, []).Select(ConversationEntry.Deserialize)];
+
+            return Task.FromResult(entries);
+        }
+    }
+
+    // The whole conversation, cut at its last summary
+    public async Task<IReadOnlyList<ConversationEntry>> LoadConversationSinceCompactionAsync(
+        int conversation,
+        CancellationToken ct) =>
+        (await LoadConversationAsync(conversation, ct)).SinceLastSummary();
+
+    private Task<StoredDocument?> Load<TKey>(Dictionary<TKey, StoredDocument> documents, TKey key)
+        where TKey : notnull
+    {
+        lock (_gate)
+        {
+            return Task.FromResult(documents.GetValueOrDefault(key));
+        }
+    }
+
+    private Task<long> Save<TKey>(Dictionary<TKey, StoredDocument> documents, TKey key, string json, long loadedVersion)
+        where TKey : notnull
+    {
+        lock (_gate)
+        {
+            // 0 when nothing is stored, so a first save inserts and any later one updates the version it loaded
+            if ((documents.GetValueOrDefault(key)?.Version ?? 0) != loadedVersion)
+                throw new StoreConflictException($"{key} was saved after version {loadedVersion}.");
+
+            documents[key] = new StoredDocument(json, loadedVersion + 1);
+
+            return Task.FromResult(loadedVersion + 1);
+        }
+    }
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/MinimalStore.cs#L3-L84' title='Snippet source file'>snippet source</a> | <a href='#snippet-minimal-store' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+- A save compares the version it is given with the stored one, 0 when nothing is stored, and writes under the same
+  lock. Of two saves that loaded one version, the first wins and the second throws a `StoreConflictException`
+  ([Save with a version](#save-with-a-version)).
+- An entry is kept as the JSON of `entry.Serialize()`, in the order runs append it, and read back with
+  `ConversationEntry.Deserialize`.
+- `LoadConversationSinceCompactionAsync` loads the whole conversation and returns what `SinceLastSummary()`, an
+  extension of `ConversationEntries`, keeps of it: the last summary and the entries after it, or every entry of a
+  conversation that has no summary.
+- `IAgentSettingsStore` keeps [each agent's own settings](./settings-and-stores.md#agent-settings), in a dictionary of
+  their own. Leave it out when your app keeps settings only under ids.
+- It passes [`VerifyAsync`](#check-your-store), as the docs sample checks. It does not refuse a second run's entries,
+  which a store may leave out ([Refuse a second run](#refuse-a-second-run)).
+
+Memory is gone when the app stops, so your store puts a table of your database where each dictionary is. The rest of
+this page builds that store on EF Core, and makes it fast and safe under load: each save checks and writes in one
+statement, runs load a conversation from its last summary on, and a unique key refuses a second run.
+
 ## Implement the interfaces
 
-A store has five methods in two interfaces. `ISettingsStore<TId>` keeps settings under a settings id with the first
-two, and `IConversationStore<TId>` keeps conversations with the other three. The store on this page implements
-`ITypeshiftStore<int>`, which is both, for `int` ids. When settings and conversations live in different databases,
-implement each interface in a class of its own and [register each](#register-your-store).
+A store has nine methods in four interfaces, and implements the interfaces your app needs. `ISettingsStore<TId>`
+keeps settings under a settings id with two, `IConversationStore<TId>` keeps conversations with three,
+`IDecisionStore<TId>` keeps each conversation's decisions with two, and `IAgentSettingsStore` keeps
+[each agent's own settings](./settings-and-stores.md#agent-settings) with the last two. `ITypeshiftStore<TId>` is the
+first three in one. The store on this page implements it for `int` ids, and `IAgentSettingsStore`. When settings and
+conversations live in different databases, implement the interfaces in classes of their own and
+[register each](#register-your-store). Keep a conversation's decisions where its entries live.
 
-An app that keeps [each agent's own settings](./settings-and-stores.md#agent-settings) implements `IAgentSettingsStore`
-too, or alone when it has no settings ids. Its `LoadAsync(kind)` and `SaveAsync(kind, json, loadedVersion)` work as
-the settings methods below, keyed by the kind alone. Every run of every agent calls `LoadAsync(kind)`, so keep it
-cheap, for example with a cache.
+An app without settings ids implements `IAgentSettingsStore` alone for its settings. Its `LoadAsync(kind)` and
+`SaveAsync(kind, json, loadedVersion)` work as the settings methods below, keyed by the kind alone. Every run of every
+agent calls `LoadAsync(kind)`, so keep it cheap, for example with a cache.
 
 ::: warning Keep an agent's own documents apart from an id's
 In a table that holds both, an agent's own document has no id. A load that forgets to ask for that returns a
 customer's document as every customer's defaults. `VerifyAsync` checks for this.
 :::
 
-You implement all five. Every id has your store's id type, the type argument of its interfaces, and the samples on
-this page use `int`: a host's ids of that type reach your store, as
-[Ids of your own types](./settings-and-stores.md#ids-of-your-own-types) shows. Each method takes a `CancellationToken`
-last.
+Every id has your store's id type, the type argument of its interfaces, and the samples on this page use `int`: a
+host's ids of that type reach your store, as [Ids of your own types](./settings-and-stores.md#ids-of-your-own-types)
+shows. Each method takes a `CancellationToken` last:
 
 | Method | Does |
 |---|---|
@@ -96,11 +241,19 @@ last.
 | `SaveAsync(id, kind, json, loadedVersion)` | Saves a document's JSON if its stored version still equals `loadedVersion` (0 when nothing is stored yet), and returns the new version. Throws a `StoreConflictException` when another save came first. |
 | `LoadConversationAsync(conversation)` | Returns every entry of a conversation, summaries included, oldest first. |
 | `LoadConversationSinceCompactionAsync(conversation)` | Returns what a run reads: the last summary and the entries after it ([Start from the last summary](#start-from-the-last-summary)). |
-| `AppendConversationAsync(conversation, entry)` | Appends one entry to a conversation. The first entry creates the conversation. |
+| `AppendConversationAsync(conversation, entry)` | Appends one entry to a conversation. The first entry creates the conversation. Throws a `StoreConflictException`, in a store that checks, when the conversation holds an entry of the entry's number already ([Refuse a second run](#refuse-a-second-run)). |
+| `LoadDecisionsAsync(conversation)` | Returns the conversation's decisions document as a `StoredDocument`, or null when none is stored ([Keep decisions](#keep-decisions)). |
+| `SaveDecisionsAsync(conversation, json, loadedVersion)` | Saves the conversation's decisions document if its stored version still equals `loadedVersion`, as `SaveAsync` does, and returns the new version. |
+| `LoadAsync(kind)` | Returns an agent's own document of a kind, as `LoadAsync(id, kind)` does under an id. |
+| `SaveAsync(kind, json, loadedVersion)` | Saves an agent's own document of a kind, as `SaveAsync(id, kind, json, loadedVersion)` does under an id. |
+
+`IConversationStore<TId>` also has a property, `RefusesTakenSequences`, which is false unless your store refuses a
+second run's entries and says so ([Refuse a second run](#refuse-a-second-run)).
 
 The database on this page has a table for settings, keyed by id and kind together
-([Key settings by id and kind](#key-settings-by-id-and-kind)), and one for conversations, keyed by a number the
-database assigns:
+([Key settings by id and kind](#key-settings-by-id-and-kind)), one for conversations, keyed by a number the database
+assigns and with a unique key on each entry's own number, one for decisions, keyed by the conversation, and one for
+agents' own settings, keyed by the kind alone:
 
 <!-- snippet: ef-core-db -->
 <a id='snippet-ef-core-db'></a>
@@ -111,16 +264,34 @@ internal sealed class TypeshiftDb(DbContextOptions<TypeshiftDb> options) : DbCon
 
     public DbSet<EntryRow> Entries => Set<EntryRow>();
 
+    public DbSet<DecisionsRow> Decisions => Set<DecisionsRow>();
+
+    public DbSet<AgentDocumentRow> AgentDocuments => Set<AgentDocumentRow>();
+
     protected override void OnModelCreating(ModelBuilder model)
     {
         model.Entity<DocumentRow>()
             .HasKey(document => new { document.Id, document.Kind });
 
         model.Entity<EntryRow>()
-            .HasKey(entry => entry.Sequence);
+            .HasKey(entry => entry.Id);
 
+        // A run's entry under a number its conversation holds is refused: another run appended first
         model.Entity<EntryRow>()
-            .HasIndex(entry => entry.Conversation);
+            .HasIndex(entry => new { entry.Conversation, entry.Sequence })
+            .IsUnique();
+
+        model.Entity<DecisionsRow>()
+            .HasKey(decisions => decisions.Conversation);
+
+        // The application sets the key, the conversation's id, so the database must not generate it
+        model.Entity<DecisionsRow>()
+            .Property(decisions => decisions.Conversation)
+            .ValueGeneratedNever();
+
+        // An agent's own settings have no id, so a table of their own keeps them apart from those under an id
+        model.Entity<AgentDocumentRow>()
+            .HasKey(document => document.Kind);
     }
 }
 
@@ -137,16 +308,36 @@ internal sealed class DocumentRow
 
 internal sealed class EntryRow
 {
-    public long Sequence { get; init; }
+    public long Id { get; init; }
 
     public required int Conversation { get; init; }
+
+    public long? Sequence { get; init; }
 
     public required bool IsSummary { get; init; }
 
     public required string Json { get; init; }
 }
+
+internal sealed class DecisionsRow
+{
+    public required int Conversation { get; init; }
+
+    public required long Version { get; init; }
+
+    public required string Json { get; init; }
+}
+
+internal sealed class AgentDocumentRow
+{
+    public required string Kind { get; init; }
+
+    public required long Version { get; init; }
+
+    public required string Json { get; init; }
+}
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/TypeshiftDb.cs#L5-L46' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-db' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/TypeshiftDb.cs#L5-L84' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-db' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Typeshift creates no tables. The docs sample creates them with `EnsureCreatedAsync` at startup, and your app creates
@@ -154,9 +345,9 @@ them as it does its other tables, such as with EF Core migrations.
 
 ## Key settings by id and kind
 
-A document is an agent's `Settings` record, the one `ConfigureAsync` and `SaveSettingsAsync` save. Typeshift writes
-the record as JSON before it calls `SaveAsync` and reads it back after `LoadAsync`, so your store handles strings and
-numbers only. Keep each document in a row keyed by the id and the kind, with the JSON and the
+A document is an agent's `Settings` record, the one `UpdateSettingsAsync` and `SaveSettingsAsync` save. Typeshift
+writes the record as JSON before it calls `SaveAsync` and reads it back after `LoadAsync`, so your store handles
+strings and numbers only. Keep each document in a row keyed by the id and the kind, with the JSON and the
 [version](#save-with-a-version):
 
 - **The id** is the settings id your app gave the host, such as a customer's.
@@ -172,7 +363,8 @@ Loading reads the row by its id and kind and returns its JSON and version as a `
 <!-- snippet: ef-core-load -->
 <a id='snippet-ef-core-load'></a>
 ```cs
-internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) : ITypeshiftStore<int>
+internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts)
+    : ITypeshiftStore<int>, IAgentSettingsStore
 {
     public async Task<StoredDocument?> LoadAsync(int id, string kind, CancellationToken ct)
     {
@@ -183,7 +375,7 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
             : null;
     }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/EfTypeshiftStore.cs#L5-L16' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-load' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/EfTypeshiftStore.cs#L5-L17' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-load' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ## Save with a version
@@ -219,8 +411,8 @@ The diagram shows two forms editing the same customer's settings. Both load vers
 wins and moves the document to version 4. The second still names version 3, so its save fails instead of erasing
 the first form's change, and that form loads the settings again.
 
-Runs only load settings; they never save them. Saves come from your app, through `ConfigureAsync`, which loads again
-and reapplies its change after a lost save, and `SaveSettingsAsync`, which leaves the conflict to your code
+Runs only load settings; they never save them. Saves come from your app, through `UpdateSettingsAsync`, which loads
+again and reapplies its change after a lost save, and `SaveSettingsAsync`, which leaves the conflict to your code
 ([Agent settings](./settings-and-stores.md#agent-settings)).
 
 ### Write the save in one statement
@@ -299,7 +491,51 @@ private static Task<int> UpdateAsync(
                 .SetProperty(row => row.Version, loadedVersion + 1),
             ct);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/EfTypeshiftStore.cs#L18-L56' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-save' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/EfTypeshiftStore.cs#L19-L57' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-save' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+Agents' own settings take the same two statements without the id, in a table of their own keyed by the kind alone.
+No load of an agent's own document can then return one saved under an id, which the warning in
+[Implement the interfaces](#implement-the-interfaces) is about:
+
+<!-- snippet: ef-agent-settings -->
+<a id='snippet-ef-agent-settings'></a>
+```cs
+public async Task<StoredDocument?> LoadAsync(string kind, CancellationToken ct)
+{
+    await using var db = await contexts.CreateDbContextAsync(ct);
+
+    return await db.AgentDocuments.FindAsync([kind], ct) is { } row
+        ? new StoredDocument(row.Json, row.Version)
+        : null;
+}
+
+public async Task<long> SaveAsync(string kind, string json, long loadedVersion, CancellationToken ct)
+{
+    await using var db = await contexts.CreateDbContextAsync(ct);
+
+    var rows = loadedVersion == 0
+        ? await db.Database.ExecuteSqlAsync(
+            $"""
+            INSERT INTO "AgentDocuments" ("Kind", "Version", "Json")
+            VALUES ({kind}, 1, {json})
+            ON CONFLICT ("Kind") DO NOTHING
+            """,
+            ct)
+        : await db.AgentDocuments
+            .Where(row => row.Kind == kind && row.Version == loadedVersion)
+            .ExecuteUpdateAsync(
+                set => set
+                    .SetProperty(row => row.Json, json)
+                    .SetProperty(row => row.Version, loadedVersion + 1),
+                ct);
+
+    return rows == 1
+        ? loadedVersion + 1
+        : throw new StoreConflictException($"The agent's {kind} was saved after version {loadedVersion}.");
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/EfTypeshiftStore.cs#L59-L93' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-agent-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ## Append to a conversation
@@ -311,17 +547,27 @@ of each round of calls, steering input and the entry that ends a run
 - **Keep the append order.** `LoadConversationAsync` returns the entries in the order they were appended, oldest
   first. Let the database number the rows, as an identity column does; a timestamp can tie.
 - **Store each entry as its JSON**, `entry.Serialize()`, and read it back with `ConversationEntry.Deserialize(json)`.
-  A database client that serializes with `System.Text.Json` or Newtonsoft.Json may take the entry as it is
-  ([What is stored](./conversations.md#what-is-stored)).
+  A database client that serializes with `System.Text.Json` or Newtonsoft.Json may take the entry as it is. Keep that
+  JSON whole: later runs read members from it that your store never looks at, such as `EstimatedInputTokens`, which
+  [compaction](./conversations.md#compaction) keeps on a model response. An entry may gain a member with a new
+  version, as a model response gained its `Provider`: entries stored without it still load, and a store that
+  keeps the JSON as it is needs no change. A store that maps an entry's members to columns of its own adds one.
 - **Keep the append cheap.** Runs append while they work, so `AppendConversationAsync` is the hot path, and a row per
   entry suits it.
+
+The messages in that JSON follow the content contract of Microsoft.Extensions.AI, which knows the content types of
+that library. A run stores a step without a content of any other type, such as one a provider's client adds, and logs
+a warning that names the type. When your app's version of Microsoft.Extensions.AI cannot read a stored content, for
+example after a package downgrade, `ConversationEntry.Deserialize` leaves that content out and reads the rest of the
+entry, and the next run of the conversation logs how many contents it went without.
 
 ### Start from the last summary
 
 When clearing old tool results does not shrink the history enough, [compaction](./conversations.md#compaction)
 summarizes a run's oldest turns. It appends one entry of its own that holds the summary and the messages it kept after
 the summary, with `IsSummary` set to true. Every later run starts from the latest such entry, because it carries what
-the runs need from before it, including the conversation's mode and its standing approvals.
+the runs need from before it. The conversation's mode and its standing approvals are not among the entries: they
+are [kept with its decisions](#keep-decisions).
 
 `LoadConversationSinceCompactionAsync` returns that entry and everything after it, oldest first, or every entry when
 the conversation has no summary. Every run calls it first, and an agent that compacts makes conversations long, so start
@@ -337,7 +583,7 @@ public async Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(int co
 
     var rows = await db.Entries
         .Where(entry => entry.Conversation == conversation)
-        .OrderBy(entry => entry.Sequence)
+        .OrderBy(entry => entry.Id)
         .ToListAsync(ct);
 
     return [.. rows.Select(row => ConversationEntry.Deserialize(row.Json))];
@@ -353,38 +599,164 @@ public async Task<IReadOnlyList<ConversationEntry>> LoadConversationSinceCompact
 
     var start = await entries
         .Where(entry => entry.IsSummary)
-        .MaxAsync(entry => (long?)entry.Sequence, ct) ?? 0;
+        .MaxAsync(entry => (long?)entry.Id, ct) ?? 0;
 
     var rows = await entries
-        .Where(entry => entry.Sequence >= start)
-        .OrderBy(entry => entry.Sequence)
+        .Where(entry => entry.Id >= start)
+        .OrderBy(entry => entry.Id)
         .ToListAsync(ct);
 
     return [.. rows.Select(row => ConversationEntry.Deserialize(row.Json))];
 }
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/EfTypeshiftStore.cs#L95-L127' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-conversations' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+`LoadConversationAsync` still returns every entry, summaries included, for your app's own use, such as showing the whole
+history. Runs never call it: they load from the last summary on.
+
+Columns for `entry.EndsRun` and `entry.At` pay off in the same way. An app that looks for interrupted runs after a
+restart ([Resuming](./conversations.md#resuming)) then finds them with one query over each conversation's last row,
+instead of loading every conversation whole.
+
+### Refuse a second run
+
+Within one container, a conversation has one run at a time ([One run at a time](./conversations.md#one-run-at-a-time)).
+Two instances of your app each have their own container, though, and both can run one conversation at once: a message
+posted twice lands on each, or one resumes a chat the other still answers. Their entries then interleave, and the
+history reads as neither run. Your store is the one place both instances meet, so it is the one that can refuse the
+second run.
+
+Each entry carries a number for this, its `Sequence`. A run numbers its first entry one past the highest number it
+loaded, and counts up from there. Two runs that loaded the conversation at the same point give their next entries
+the same number, so a unique key on the conversation and the number refuses whichever appends second:
+
+```sql
+CREATE UNIQUE INDEX entries_sequence ON entries (conversation, sequence);
+
+INSERT INTO entries (conversation, sequence, is_summary, json) VALUES (@conversation, @sequence, @summary, @json)
+ON CONFLICT (conversation, sequence) DO NOTHING;
+```
+
+The insert changes no row when the number is taken, and then your store throws a `StoreConflictException`. The run
+it refused stops with a `ConversationBusyException`, before its next model call or tool call, and what it stored
+before stays. On SQL Server, run a plain `INSERT` and treat the duplicate-key error of a unique index, number 2601,
+as the conflict. The EF Core store inserts with `ON CONFLICT DO NOTHING`, as its save does, and says that it refuses
+taken numbers:
+
+<!-- snippet: ef-core-append -->
+<a id='snippet-ef-core-append'></a>
+```cs
+public bool RefusesTakenSequences => true;
 
 public async Task AppendConversationAsync(int conversation, ConversationEntry entry, CancellationToken ct)
 {
     await using var db = await contexts.CreateDbContextAsync(ct);
 
-    db.Entries.Add(new EntryRow
-    {
-        Conversation = conversation,
-        IsSummary = entry.IsSummary,
-        Json = entry.Serialize()
-    });
+    // An entry without a number, as an earlier version wrote it, keeps NULL, which the unique key allows twice
+    long? sequence = entry.Sequence > 0 ? entry.Sequence : null;
 
-    await db.SaveChangesAsync(ct);
+    var rows = await db.Database.ExecuteSqlAsync(
+        $"""
+        INSERT INTO "Entries" ("Conversation", "Sequence", "IsSummary", "Json")
+        VALUES ({conversation}, {sequence}, {entry.IsSummary}, {entry.Serialize()})
+        ON CONFLICT ("Conversation", "Sequence") DO NOTHING
+        """,
+        ct);
+
+    // The unique key refused the number: a run of another instance of the app appended under it first
+    if (rows == 0)
+        throw new StoreConflictException($"Conversation {conversation} holds entry {entry.Sequence} already.");
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/EfTypeshiftStore.cs#L129-L151' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-append' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+- **Say so with `RefusesTakenSequences`.** It is false unless your store returns true, and
+  [`VerifyAsync`](#check-your-store) then checks that the store refuses a taken number.
+- **Keep ordering by your own row number.** A number can be skipped after an append that failed, and the numbers of
+  entries stored before entries had one are 0. Order and the last summary stay with the row number, as above.
+- **Leave older rows without a number.** Add the column so that it allows NULL, which a unique key allows any number
+  of times, and leave it NULL for the rows that were there before. A run reads the numbers from the entries' JSON,
+  where those rows have none, counts them and numbers its first entry after them, so a number a migration wrote
+  into the column can collide with the run's own. Store an entry that arrives without a number, 0, as NULL too.
+- **Tell your own retry from a second run.** A database client that retries an insert that had succeeded, as EF Core's
+  retry on failure can, finds the number taken by its own row. Compare that row's JSON with the entry, and return
+  without an exception when they are the same.
+
+A store that does not refuse taken numbers keeps working, and two runs of one conversation in two instances then
+interleave as before. The [decisions document](#keep-decisions) still keeps an approved call from starting twice.
+
+## Keep decisions
+
+A decision is something a run asks your app before it goes on, such as whether a tool call may run. Typeshift keeps
+what a conversation waits for, the tools your app approved for it and its mode in one JSON document per
+conversation. Your
+store keeps that document as it keeps a settings document: as text, with a
+[version](#save-with-a-version), under the conversation's id alone.
+
+Unlike a conversation's entries, the document is small and changes in place. It holds the calls of one model response
+at most, the standing approvals, the mode and a handful of ids, whatever the conversation's length. Typeshift reads
+it when a run starts and when your app asks what waits. It saves it when a run asks, when your app answers, when the
+run carries the answers out, and when a run's settings or your app name the conversation's mode.
+
+`SaveDecisionsAsync` follows the rules of a settings save, and they matter more here.
+Two requests may answer the same question at once, and two instances of your app may continue the same conversation
+at once. Each of them saves with the version it loaded, exactly one save wins, and the loser learns that it lost. That
+is how an approved call starts only once, so check the version and write in
+[one statement](#write-the-save-in-one-statement):
+
+<!-- snippet: ef-core-decisions -->
+<a id='snippet-ef-core-decisions'></a>
+```cs
+public async Task<StoredDocument?> LoadDecisionsAsync(int conversation, CancellationToken ct)
+{
+    await using var db = await contexts.CreateDbContextAsync(ct);
+
+    return await db.Decisions.FindAsync([conversation], ct) is { } row
+        ? new StoredDocument(row.Json, row.Version)
+        : null;
+}
+
+public async Task<long> SaveDecisionsAsync(int conversation, string json, long loadedVersion, CancellationToken ct)
+{
+    await using var db = await contexts.CreateDbContextAsync(ct);
+
+    var rows = loadedVersion == 0
+        ? await db.Database.ExecuteSqlAsync(
+            $"""
+            INSERT INTO "Decisions" ("Conversation", "Version", "Json")
+            VALUES ({conversation}, 1, {json})
+            ON CONFLICT ("Conversation") DO NOTHING
+            """,
+            ct)
+        : await db.Decisions
+            .Where(row => row.Conversation == conversation && row.Version == loadedVersion)
+            .ExecuteUpdateAsync(
+                set => set
+                    .SetProperty(row => row.Json, json)
+                    .SetProperty(row => row.Version, loadedVersion + 1),
+                ct);
+
+    // One statement checks the version and writes, which is what lets an approved call start only once
+    return rows == 1
+        ? loadedVersion + 1
+        : throw new StoreConflictException(
+            $"The decisions of conversation {conversation} were saved after version {loadedVersion}.");
 }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/EfTypeshiftStore.cs#L58-L105' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-conversations' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/EfTypeshiftStore.cs#L153-L190' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-decisions' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-`LoadConversationAsync` still returns every entry, summaries included, for your app's own use, such as showing the whole
-history. Runs call it too in one case: when the last summary has no `StandingApprovals`, as one stored by a Typeshift
-version before 0.1.0-alpha.3, they read the whole conversation. Compaction always fills them in, even as an empty list,
-so set them on any summary you build for a test of your own, as [`VerifyAsync`](#check-your-store) does.
+Keep decisions in a table of their own, as the sample does, or under a key no settings id can take. Settings ids and
+conversation ids are separate, so a table keyed by a settings id and a kind would put conversation 7's decisions among
+customer 7's settings, where a delete or a filter meant for settings reaches them.
+
+The version keeps an approved call from starting twice, and the entries' numbers keep the history in order around
+it. When one instance carries out an approved call and another finds the call started and stores that its effect is
+unknown, a store that [refuses a second run](#refuse-a-second-run) refuses whichever of the two appends its result
+second, so the history holds one result for the call.
 
 ## Migrate older settings
 
@@ -398,28 +770,38 @@ older schema versions is then up to you. You can do it in `LoadAsync`, where the
 a row holds: read `"$schemaVersion"`, rewrite the JSON of an older schema version and return it with the version the
 row holds, or migrate the rows with a script over your database. Each save writes the current schema version, so a
 migrated document reaches it in your database with its next save. Typeshift reads a schema version you leave as it
-is, so a renamed or removed member reads as missing ([The stored JSON](./settings-and-stores.md#the-stored-json)).
+is, so a renamed or removed member reads as missing.
+
+One stored value needs the migration: a `provider` or `summaryProvider` whose value the agent's provider id type no
+longer has, after you renamed a member of an enum of providers. It fails the load where a member reads as missing,
+so rewrite it the same way, in `LoadAsync` or with a script.
 
 ## Check your store
 
-`VerifyAsync` runs this page's rules for keys, versions and conversation entries against your store. Call it on your
-store from a test of your own in any test framework, with the store over a test database:
+`VerifyAsync` runs this page's rules for keys, versions, conversation entries and decisions against your store. Call
+it on your store from a test of your own in any test framework, with the store over a test database:
 
 <!-- snippet: store-check -->
 <a id='snippet-store-check'></a>
 ```cs
 var store = new EfTypeshiftStore(contexts);
 
-await store.VerifyAsync(9001);
+await store.VerifyAsync(9001, 9002);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/StoreVerification.cs#L13-L17' title='Snippet source file'>snippet source</a> | <a href='#snippet-store-check' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/StoreVerification.cs#L14-L18' title='Snippet source file'>snippet source</a> | <a href='#snippet-store-check' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-- It runs the rules of every interface your store implements: the settings rules for an `ISettingsStore`, the
-  conversation rules for an `IConversationStore`, and both for a store that is both, even when you call it through
-  one of the interfaces. A store that is also an `IAgentSettingsStore` gets the settings rules for agents' own
-  settings, under kinds named after the id. For a store of agents' own settings alone, call
-  `VerifyAgentSettingsAsync(kind)` with a kind nothing is stored under.
+- It runs the rules of every interface your store implements for the id type you pass: the settings rules for an
+  `ISettingsStore`, the conversation rules for an `IConversationStore` and the decision rules for an
+  `IDecisionStore`. A store of several of them gets the rules of each, whether it implements them one by one or as
+  an `ITypeshiftStore`, and whichever of the interfaces you call it through. A store whose settings ids and
+  conversation ids have different types takes two ids of each type in one call, as
+  `store.VerifyAsync("tenant-a", "tenant-b", chat, otherChat)`, or one call per id type. Decisions are checked under
+  the conversation ids.
+- A store that is also an `IAgentSettingsStore` gets the settings rules for agents' own settings, under kinds named
+  after the first id, which start with `typeshift_check_`. These documents stay in the database, so run the check
+  against a database for tests. For a store of agents' own settings alone, call `VerifyAgentSettingsAsync(kind)`
+  with a kind nothing is stored under.
 - A broken rule throws an `InvalidOperationException` whose message names the rule and what to change, such as
   keying documents by id and kind together. An exception your store throws itself passes through as it is, except
   where a `StoreConflictException` belongs: there the message names the type your store threw instead.
@@ -427,10 +809,23 @@ await store.VerifyAsync(9001);
   the first document at version 0, and with its old version after a save with the current one. Those two saves must
   throw a `StoreConflictException` and leave the document as it was. Every save that succeeds must return a new
   version other than 0.
-- For conversations, it appends a run's input and its end, then two summaries with `IsSummary` and
-  `StandingApprovals` set, each followed by a run's end. After the first run and again at the end, it loads the
+- For conversations, it appends a run's input and its end, then two summaries with `IsSummary` set, each followed
+  by a run's end. After the first run and again at the end, it loads the
   conversation whole and from the last summary on, which is every entry while there is no summary. Each entry must
   come back unchanged, in the order it was appended.
+- The entries carry numbers as a run's do, and the other id's conversation holds the first entry's number too, which
+  no store may refuse. Last, it appends an entry under a number the conversation holds. A store may store it, or
+  refuse it with a `StoreConflictException` and store nothing; any other exception fails, and so does storing it in
+  a store whose `RefusesTakenSequences` is true ([Refuse a second run](#refuse-a-second-run)).
+- For decisions, it saves a conversation's document and loads it back, then runs the saves that must conflict: at
+  version 0, with an old version, and at another version than 0 before anything is stored.
+- It takes two ids. Before anything else, it saves a document and appends an entry under the second one, and at the
+  end both must be as they were. A conversation's decisions under the second id are checked the same way. A store that forgets the id in a query, and so hands one customer's settings or
+  conversation to another, fails there.
+- A save of a document that is not stored, at a version other than 0, must throw a `StoreConflictException` and
+  write nothing, as a save does whose document was deleted after it was loaded.
+- The entries it appends carry times that tie and run backwards, as the times of real entries can, so a store that
+  orders a conversation by time fails.
 - It writes under the id you pass, as a settings id and as a conversation id, so calling it twice with one id fails
   with a message that asks for a new id. Give each call an id nothing else uses, such as a new `Guid`, or start from
   an empty database, as the docs sample does.
@@ -443,6 +838,7 @@ await store.VerifyAsync(9001);
 - [Settings and stores](./settings-and-stores.md): how stored settings layer over the agent's code, and the JSON a
   store keeps.
 - [Conversations](./conversations.md): what a run stores, resuming, and compaction.
+- [Approval and modes](./tool-approval.md): the tool calls a run asks your app about.
 - [Registration](./registration.md#the-chain): `WithStore<T>()` among the other chain calls.
 - [Generated members](./generated-members.md#settings): the `Settings` record a store keeps, with its `Kind` and
   `SchemaVersion`.

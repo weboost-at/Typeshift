@@ -36,12 +36,24 @@ internal sealed class SubAgentFunction(AgentUse use, Agent agent) : AIFunction
         var json = caller.Services.GetRequiredService<ToolJson>();
         var format = use.Result?.GetFormat(json);
 
-        Task<ChatResponse> RunAsync(CancellationToken token) =>
-            host.RunAsync([input], options.SettingsId, null, caller, null, format, token);
+        // D33: the caller's settings id and the caller itself, and no conversation of its own
+        var handover = new RunHandover(options.SettingsId, Conversation: null, Claim: null, format, Caller: caller);
 
-        if (!use.Background) return Answer(await RunAsync(ct), json);
+        // D33: what the sub-agent spent, its own sub-agents' included, counts as the caller's, whatever its answer
+        async Task<ChatResponse> RunAsync(CancellationToken token)
+        {
+            var response = await host.RunAsync([input], handover, token).ConfigureAwait(false);
+            caller.AddUsage(response.Usage);
 
-        run.StartBackground(Name, context.CallContent.CallId, async stop => Text(Answer(await RunAsync(stop), json)));
+            return response;
+        }
+
+        if (!use.Background) return Answer(await RunAsync(ct).ConfigureAwait(false), json);
+
+        run.StartBackground(
+            Name,
+            context.CallContent.CallId,
+            async stop => Text(Answer(await RunAsync(stop).ConfigureAwait(false), json)));
 
         return $"{Name} works in the background; its answer arrives as a message once it is done.";
     }

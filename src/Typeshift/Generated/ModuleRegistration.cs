@@ -26,10 +26,13 @@ public static class ModuleRegistration
 
         // D69: the registrations too, so a store the app registers without WithStore turns the memory off
         services.TryAddSingleton(provider => new StoreAccess(provider, services));
+        // D63: the registrations, whose keys the message of a run no client serves lists
+        services.TryAddSingleton(new RegisteredChatClients(services));
         services.TryAddSingleton<LiveRuns>();
         services.TryAddSingleton<InstrumentedClients>();
-        // D74: live updates are on from the start; WithRealtimeTracking tunes them
-        services.TryAddSingleton(new RealtimeTrackingOptions());
+        // D74: live updates are on from the start; WithOptions tunes them, whenever the chain calls it
+        services.TryAddSingleton(provider =>
+            provider.GetService<TypeshiftOptions>()?.LiveUpdates ?? new LiveUpdateOptions());
         // D72: the tracker of every id type an app asks for; WithConversationTracker<TId>() closes one for Native AOT
         services.TryAddSingleton(typeof(ConversationTracker<>));
 
@@ -44,9 +47,10 @@ public static class ModuleRegistration
     /// </summary>
     /// <param name="services">The services, with the core services and the modules registered.</param>
     /// <param name="builder">The registration chain the core services returned.</param>
-    /// <param name="client">The chat client of every run.</param>
+    /// <param name="client">The default chat client, of every run that names no provider.</param>
     /// <param name="configure">What else the app registers; null for nothing.</param>
     /// <returns>The runtime.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="client"/> is null.</exception>
     public static TypeshiftRuntime CreateRuntime(
         IServiceCollection services,
         TypeshiftBuilder builder,
@@ -55,7 +59,7 @@ public static class ModuleRegistration
     {
         ArgumentNullException.ThrowIfNull(client);
 
-        // D75: the client serves every agent, as one registered for every agent does (D63). An instance rather than
+        // D75: the client is the default, as one registered for every agent is (D63). An instance rather than
         // AddChatClient's factory, so the container never disposes it
         services.AddSingleton(client);
         configure?.Invoke(builder);
@@ -80,28 +84,48 @@ public static class ModuleRegistration
     }
 
     /// <summary>
-    /// Registers a toolset as a singleton.
+    /// Registers a toolset as a singleton, and in the runtime's catalog with its tools.
     /// </summary>
     /// <typeparam name="TToolset">The toolset.</typeparam>
     /// <param name="services">The services.</param>
     /// <param name="create">Creates the toolset.</param>
-    public static void AddToolset<TToolset>(IServiceCollection services, Func<TToolset> create)
-        where TToolset : Toolset =>
+    /// <param name="tools">Its tools, as the generator read them.</param>
+    public static void AddToolset<TToolset>(IServiceCollection services, Func<TToolset> create, params ToolInfo[] tools)
+        where TToolset : Toolset
+    {
         services.AddSingleton(_ => create());
 
+        // D83: what a tool picker lists of the toolset
+        services.AddSingleton(new ToolsetRegistration(
+            typeof(TToolset),
+            static provider => provider.GetRequiredService<TToolset>(),
+            tools));
+    }
+
     /// <summary>
-    /// Registers an agent as a singleton and its host as transient.
+    /// Registers an agent as a singleton, its host as transient, its host as a transient keyed by the agent's kind,
+    /// and the agent in the runtime's catalog.
     /// </summary>
     /// <typeparam name="TAgent">The agent.</typeparam>
     /// <param name="services">The services.</param>
     /// <param name="create">Creates the agent.</param>
-    public static void AddAgent<TAgent>(IServiceCollection services, Func<TAgent> create)
+    /// <param name="kind">The kind the agent's stored settings go by.</param>
+    public static void AddAgent<TAgent>(IServiceCollection services, Func<TAgent> create, string kind)
         where TAgent : Agent
     {
         services.AddSingleton(_ => create());
 
-        // D25: transient, so the host keeps the provider of the scope it is resolved from
-        services.AddTransient(AgentHost<TAgent>.In);
+        // D25: transient, so the host keeps the provider of the scope it is resolved from, and never the root's
+        services.AddTransient(AgentHost<TAgent>.Resolved);
+
+        // D83: the host by the agent's kind, and the agent in the catalog, each closed over its type here, so the
+        // runtime creates the host of a kind it reads at run time without making a type
+        services.AddKeyedTransient<IAgentHost>(kind, static (provider, _) => AgentHost<TAgent>.Resolved(provider));
+        services.AddSingleton(new AgentRegistration(
+            typeof(TAgent),
+            kind,
+            static provider => AgentHost<TAgent>.Registered(provider),
+            static scope => new AgentHost<TAgent>(AgentHost<TAgent>.Registered(scope.ServiceProvider), scope)));
     }
 
     /// <summary>

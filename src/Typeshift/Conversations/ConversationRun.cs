@@ -1,21 +1,41 @@
 using System.Collections.Concurrent;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Typeshift;
 
 // One run, of a conversation or none: the contents it stored, by reference, since the tool loop hands the same ones on,
 // even in the copies of messages it makes; the steering input and background answers waiting for the next model
-// call, and where in the tool loop's messages that input went. Without a conversation it stores nothing
+// call, and where in the tool loop's messages that input went; the verdicts of its calls and the batch it asked or
+// carries out (D80, D81). Without a conversation it stores nothing. It numbers its entries on from the highest number
+// it loaded (D50)
 internal sealed class ConversationRun(
     StoreId? conversation,
     AgentRun run,
     string model,
     StoreAccess store,
+    DecisionLedger ledger,
     TimeProvider time,
-    ILogger logger)
+    ILogger logger,
+    long sequence = 0)
 {
+    // D50: the number of the last entry the run appended, or tried to; one that failed is not tried again
+    private long _sequence = sequence;
+
+    // D50: why the store refused the run's entry: a run of another container appended under its number, and the
+    // conversation is that run's from there on
+    private StoreConflictException? _refused;
+
+    // D50: the run stores its end, after which a refusal ends nothing more
+    private bool _ending;
+
+    // The steering input and background answers as they arrived, which the run's middleware has not seen yet
     private readonly Queue<ChatMessage> _steering = new();
+
+    // D30, D51: what the run takes of them, in order, with its next model call or its end
+    private readonly List<ChatMessage> _taken = [];
+    private IRunMiddleware[]? _middleware;
 
     // Each steering input with the content it followed, so it goes back after it whatever moves ahead of it
     private readonly List<(AIContent? After, ChatMessage Message)> _injected = [];
@@ -27,24 +47,49 @@ internal sealed class ConversationRun(
     // What context providers and run middleware added, which the conversation never stores
     private readonly HashSet<AIContent> _transient = new(ReferenceEqualityComparer.Instance);
 
-    // D60: the approval requests this run left open, by what it stored, as the next run reads them
-    private OpenRequests _requests = new();
+    // D32: of those, the messages that stand for none of the conversation's, which compaction leaves in every call
+    private readonly HashSet<AIContent> _added = new(ReferenceEqualityComparer.Instance);
 
-    // D33: the background sub-agents still working by call id, the work of each, and a signal for each answer or
-    // steering input
+    // D78: the content types the run stored its steps without, each logged once
+    private readonly HashSet<Type> _unwritable = [];
+
+    // D81: the verdict the gate gave each call that needs one, by call id; tools may run side by side
+    private readonly ConcurrentDictionary<string, CallVerdict> _verdicts = [];
+
+    // D80: the calls of the batch this run carries out whose results the conversation does not hold yet
+    private readonly HashSet<string> _unsettled = [];
+    private DecisionBatch? _carried;
+
+    // D81: the calls of an answered batch, handed to the tool loop once in place of a model response
+    private ChatResponse? _replay;
+
+    // D33: the background sub-agents still working by call id, the work of each, which ends with its call when the
+    // run never took its answer, and a signal for each answer or steering input
     private readonly ConcurrentDictionary<string, string> _background = [];
-    private readonly ConcurrentBag<Task> _work = [];
+    private readonly ConcurrentBag<Task<(string CallId, string Agent)?>> _work = [];
     private readonly SemaphoreSlim _arrived = new(0);
     private readonly CancellationTokenSource _stopping = new();
 
     // D51: once the run decided to end, it takes no more steering input, which then starts a run of its own
     private bool _closed;
 
+    // The run stored its end, or handed the conversation on (D34): it stores no end after that
+    private bool _ended;
+
+    // D47: a streaming run publishes its updates as they stream, and so nothing as it stores them
+    private bool _streams;
+
     // A streamed response is stored as the updates make it; the tool loop builds its own messages from the same
     // updates, so the first ones it hands on next are those, already stored
     private int _streamedUnmatched;
 
     public const string BackgroundCall = "typeshift.background_call";
+
+    // D51: the user's steering input a run holds before its next model call takes it, by count and by the characters
+    // of its text. A client that floods TrySteer would otherwise grow that call, and the conversation, without end
+    public const int MaxSteeringInputs = 32;
+
+    public const int MaxSteeringCharacters = 256 * 1024;
 
     public StoreId? Conversation { get; } = conversation;
 
@@ -54,26 +99,53 @@ internal sealed class ConversationRun(
 
     public DateTimeOffset StartedAt { get; } = time.GetUtcNow();
 
-    // D47: a run that does not stream publishes each response and tool result as it stores them
-    public LivePublisher? Publisher { get; set; }
+    public TimeProvider Time => time;
 
-    public bool IsSteered
+    // D36: the run's span, which carries what the run asks your app and what becomes of a batch it settles
+    public System.Diagnostics.Activity? Activity => run.Activity;
+
+    // D80: the batch this run opened, which waits for your app. The run ends with it, unless steering input passes
+    // it by first
+    public DecisionBatch? Asked { get; private set; }
+
+    // Why the store did not take the last model response, if it did not
+    public Exception? ResponseFailure { get; private set; }
+
+    // D46: the exception of the first step the store did not take, which makes the run fail or mark its response
+    public Exception? NotStored => Volatile.Read(ref _notStored);
+
+    private Exception? _notStored;
+
+    public bool HasReplay => _replay is not null;
+
+    // D54: how the run ended, for its watchers' last update: the error its end stores, and the finish reason of its
+    // last model response
+    public string? EndError { get; private set; }
+
+    public ChatFinishReason? FinishReason { get; private set; }
+
+    // D51: a run that is ending takes no steering input, and a run started with that input waits for its end
+    public bool IsEnding => Volatile.Read(ref _closed);
+
+    // D47: where the run's updates go to the conversation's watchers. A run that does not stream publishes each
+    // response and tool result as it stores them
+    public LivePublisher? Publisher { get; private set; }
+
+    public void PublishTo(LivePublisher? publisher, bool streams)
     {
-        get
-        {
-            lock (_steering)
-            {
-                return _steering.Count > 0;
-            }
-        }
+        Publisher = publisher;
+        _streams = streams;
     }
 
-    // False once the run is ending: the input then reaches no model and the host starts a run with it instead
+    // False once the run is ending: the input then reaches no model and the host starts a run with it instead. The
+    // user's input is refused once the run holds as much as a model call takes; a background answer never is
     public bool Steer(ChatMessage input)
     {
         lock (_steering)
         {
             if (_closed) return false;
+            if (!input.IsBackgroundAnswer && HoldsMost(input)) throw ConversationBusyException.Full(Conversation!);
+
             _steering.Enqueue(input);
         }
 
@@ -81,8 +153,8 @@ internal sealed class ConversationRun(
         return true;
     }
 
-    // D51, D33: whether the run goes on: steering input waits, or a background sub-agent still works, whose answer
-    // the run waits for. A run that does not go on takes no more input
+    // D51, D33: whether the run goes on: steering input waits that run middleware let through, or a background
+    // sub-agent still works, whose answer the run waits for. A run that does not go on takes no more input
     public async Task<bool> GoesOnAsync(CancellationToken ct)
     {
         while (true)
@@ -90,35 +162,129 @@ internal sealed class ConversationRun(
             // Read before the queue: a sub-agent queues its answer before it counts itself done
             var working = !_background.IsEmpty;
 
+            await ScreenAsync(ct).ConfigureAwait(false);
+
             lock (_steering)
             {
-                if (_steering.Count > 0) return true;
+                // D33, D80: while a batch waits, a background answer starts no model call, since the model would
+                // not see the calls that wait and would make them again. The answer is stored ahead of the run's
+                // end, and the model reads it once the batch is settled
+                if (_taken.Any(input => Asked is null || !input.IsBackgroundAnswer)) return true;
 
-                if (!working)
+                // Input that arrived while the middleware saw the rest is seen before the run decides
+                if (_steering.Count == 0 && !working)
                 {
                     _closed = true;
                     return false;
                 }
             }
 
-            await _arrived.WaitAsync(ct);
+            await _arrived.WaitAsync(ct).ConfigureAwait(false);
         }
     }
 
     // The input the run took and no model received, stored for the agent that answers next, after a handoff the one
-    // handed to; the run takes no more
-    public async Task CloseAsync(string? answering = null)
+    // handed to, behind what that agent has to hear of this run; the run takes no more
+    public async Task CloseAsync(string? answering = null, IReadOnlyList<ChatMessage>? notes = null)
     {
-        List<ChatMessage> waiting;
-
         lock (_steering)
         {
             _closed = true;
-            waiting = [.. _steering];
-            _steering.Clear();
         }
 
-        if (waiting.Count > 0) await AppendAsync(waiting, answering: answering);
+        await ScreenLastAsync().ConfigureAwait(false);
+
+        List<ChatMessage> waiting = [.. notes ?? [], .. Take()];
+
+        if (waiting.Count > 0) await AppendAsync(waiting, answering: answering).ConfigureAwait(false);
+    }
+
+    // D30, D51: steering input meets the app's run middleware before the run takes it, in the order it arrived,
+    // the first registered first: each may drop it, or put another message in its place. A background agent's
+    // answer is none of the user's and passes as it is. Input whose middleware throws stays where it is, and the
+    // exception is the run's
+    private async Task ScreenAsync(CancellationToken ct)
+    {
+        while (true)
+        {
+            ChatMessage? input;
+
+            lock (_steering)
+            {
+                if (!_steering.TryPeek(out input)) return;
+            }
+
+            var taken = input.IsBackgroundAnswer ? input : await OnSteeringAsync(input, ct).ConfigureAwait(false);
+
+            // Only the run takes input off the queue, so its first is still the one the middleware saw
+            lock (_steering)
+            {
+                _steering.Dequeue();
+                if (taken is not null) _taken.Add(taken);
+            }
+        }
+    }
+
+    // The input the run took, which leaves it for a model call or the store
+    private List<ChatMessage> Take()
+    {
+        lock (_steering)
+        {
+            List<ChatMessage> taken = [.. _taken];
+            _taken.Clear();
+
+            return taken;
+        }
+    }
+
+    // Whether the user's input waiting, that for run middleware and that it let through, leaves no room for this one
+    private bool HoldsMost(ChatMessage input)
+    {
+        var waiting = _steering.Concat(_taken).Where(message => !message.IsBackgroundAnswer).ToList();
+
+        return waiting.Count >= MaxSteeringInputs
+            || waiting.Sum(Characters) + Characters(input) > MaxSteeringCharacters;
+    }
+
+    private static long Characters(ChatMessage message) =>
+        message.Contents.OfType<TextContent>().Sum(text => (long)text.Text.Length);
+
+    // The run is ending, whatever became of its token, and its end must be stored: input its middleware fails on
+    // is left out, since what no middleware judged must not reach the next run's model
+    private async Task ScreenLastAsync()
+    {
+        while (true)
+        {
+            try
+            {
+                await ScreenAsync(CancellationToken.None).ConfigureAwait(false);
+                return;
+            }
+            catch (Exception exception)
+            {
+                LogEvents.SteeringNotStored(logger, exception, Conversation);
+                run.Activity?.AddException(exception);
+
+                lock (_steering)
+                {
+                    _steering.Dequeue();
+                }
+            }
+        }
+    }
+
+    private async ValueTask<ChatMessage?> OnSteeringAsync(ChatMessage input, CancellationToken ct)
+    {
+        _middleware ??= [.. run.Services.GetServices<IRunMiddleware>()];
+
+        foreach (var middleware in _middleware)
+        {
+            if (await middleware.OnSteeringAsync(run, input, ct).ConfigureAwait(false) is not { } passed) return null;
+
+            input = passed;
+        }
+
+        return input;
     }
 
     // D33: a sub-agent working while the run goes on; its answer joins the run as a message before a later model
@@ -127,22 +293,22 @@ internal sealed class ConversationRun(
     {
         _background[callId] = agent;
 
-        _work.Add(Task.Run(async () =>
+        _work.Add(Task.Run<(string CallId, string Agent)?>(async () =>
         {
             try
             {
-                var answer = await AnswerAsync(agent, work);
+                var answer = await AnswerAsync(agent, work).ConfigureAwait(false);
 
-                if (answer is not null && !_stopping.IsCancellationRequested)
+                // A run already ending stops its sub-agents, and whoever answers next hears they were lost
+                if (answer is null || _stopping.IsCancellationRequested) return (callId, agent);
+
+                var message = new ChatMessage(ChatRole.User, answer)
                 {
-                    var message = new ChatMessage(ChatRole.User, answer)
-                    {
-                        AdditionalProperties = new() { [BackgroundCall] = callId }
-                    };
+                    AuthorName = agent,
+                    AdditionalProperties = new() { [BackgroundCall] = callId }
+                };
 
-                    // A run already ending stops its sub-agents, the next run hears they were lost
-                    _ = Steer(message);
-                }
+                return Steer(message) ? null : (callId, agent);
             }
             finally
             {
@@ -152,14 +318,26 @@ internal sealed class ConversationRun(
         }));
     }
 
+    // D33: the sub-agents still working stop, and the run waits until they have: none works on after its run or
+    // after a handoff, in a scope disposed meanwhile. The calls whose answer the run never took, each with its agent
+    public async Task<IReadOnlyList<(string CallId, string Agent)>> StopBackgroundAsync()
+    {
+        _stopping.Cancel();
+
+        return [.. (await Task.WhenAll(_work).ConfigureAwait(false)).OfType<(string CallId, string Agent)>()];
+    }
+
     // The history and the input a run starts from are stored already
     public void MarkStored(IEnumerable<ChatMessage> messages)
     {
         var list = messages.ToList();
 
-        foreach (var content in list.SelectMany(message => message.Contents))
+        foreach (var message in list)
         {
-            _stored.Add(content);
+            for (var i = 0; i < message.Contents.Count; i++)
+            {
+                _stored.Add(message.Contents[i]);
+            }
         }
 
         HoldCallIds(UniqueCallIdsChatClient.Ids(list));
@@ -181,31 +359,85 @@ internal sealed class ConversationRun(
         }
     }
 
-    public void MarkTransient(IEnumerable<ChatMessage> messages)
+    public void MarkTransient(IEnumerable<ChatMessage> messages, bool added = false)
     {
-        var added = messages.SelectMany(message => message.Contents).Where(content => !_stored.Contains(content));
+        var contents = messages.Contents().Where(content => !_stored.Contains(content));
 
-        foreach (var content in added)
+        foreach (var content in contents)
         {
             _transient.Add(content);
+            if (added) _added.Add(content);
         }
     }
 
     public bool IsTransient(ChatMessage message) => message.Contents.Any(_transient.Contains);
 
-    public bool IsOpen(string request) => _requests.Contains(request);
+    public bool IsAdded(ChatMessage message) => message.Contents.Any(_added.Contains);
+
+    public void Decide(string callId, CallVerdict verdict) => _verdicts[callId] = verdict;
+
+    public CallVerdict? VerdictOf(string callId) => _verdicts.TryGetValue(callId, out var verdict) ? verdict : null;
+
+    // T1: the batch exists once this returns, or the run fails and no decision does. Like every step, it is stored
+    // whatever became of the run's token
+    public async Task OpenAsync(DecisionBatch batch)
+    {
+        await ledger.OpenAsync(Conversation!, batch, CancellationToken.None).ConfigureAwait(false);
+        Asked = batch;
+        Telemetry.Asked(run.Activity, batch);
+    }
+
+    // T5: steering input passed the batch the run asked by, which waits for nobody any more. The batch as it stands:
+    // expired, or what answers that came first made of it
+    public async Task<DecisionBatch?> ExpireAsync()
+    {
+        var batch = await ledger.ExpireAsync(Conversation!, CancellationToken.None).ConfigureAwait(false);
+        Asked = null;
+
+        return batch;
+    }
+
+    // T3 happened: each call of the batch has its verdict from the record, and the calls go to the tool loop once, as
+    // the response they came in. The conversation holds them already, so they are stored a single time
+    public void Carry(DecisionBatch started)
+    {
+        _carried = started;
+        _unsettled.UnionWith(started.Calls.Select(call => call.CallId));
+
+        foreach (var call in started.Calls)
+        {
+            _verdicts[call.CallId] = DecisionResults.VerdictOf(call);
+        }
+
+        var calls = new ChatMessage(ChatRole.Assistant, [.. started.Calls.Select(ToContent)]);
+
+        MarkStored([calls]);
+        _replay = new ChatResponse(calls);
+        Telemetry.Settled(run.Activity, started, started.Calls, repaired: false);
+    }
+
+    public ChatResponse? TakeReplay() => Interlocked.Exchange(ref _replay, null);
+
+    // T4, T7 and the end of an expiry: the batch closes once the conversation holds a result for each of its calls.
+    // A close that fails leaves the batch to the conversation's next run, which finds the results and only closes
+    public async Task CloseAsync(DecisionBatch batch)
+    {
+        try
+        {
+            await ledger.CloseAsync(Conversation!, batch, CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (Exception exception)
+        {
+            LogEvents.DecisionsNotClosed(logger, exception, Conversation);
+            run.Activity?.AddException(exception);
+        }
+    }
 
     // The tool loop's list with the steering input put back where it went in; the steps not stored yet (tool results)
-    // are stored, then the steering input waiting is taken in and stored (D51)
-    public async Task<List<ChatMessage>> PrepareCallAsync(IEnumerable<ChatMessage> messages)
+    // are stored, then the steering input waiting is taken in, past run middleware (D30), and stored (D51)
+    public async Task<List<ChatMessage>> PrepareCallAsync(IEnumerable<ChatMessage> messages, CancellationToken ct)
     {
-        var call = messages.ToList();
-
-        foreach (var (after, message) in _injected)
-        {
-            var at = call.FindIndex(step => step.Contents.Any(content => ReferenceEquals(content, after)));
-            call.Insert(at < 0 ? call.Count : at + 1, message);
-        }
+        var call = WithSteering(messages);
 
         // The tool loop's own copies of the streamed response come first, never a tool result
         var steps = call.Select(Unstored).OfType<ChatMessage>().ToList();
@@ -214,77 +446,156 @@ internal sealed class ConversationRun(
         MarkStored(steps.Take(streamed));
         _streamedUnmatched = 0;
 
-        if (steps.Count > streamed) await AppendAsync([.. steps.Skip(streamed)]);
+        if (steps.Count > streamed) await AppendAsync([.. steps.Skip(streamed)]).ConfigureAwait(false);
 
-        var steering = new List<ChatMessage>();
+        await ScreenAsync(ct).ConfigureAwait(false);
 
-        lock (_steering)
+        var steering = Take();
+
+        foreach (var input in steering)
         {
-            while (_steering.TryDequeue(out var input))
-            {
-                _injected.Add((call.LastOrDefault()?.Contents.LastOrDefault(), input));
-                call.Add(input);
-                steering.Add(input);
-            }
+            _injected.Add((call.LastOrDefault()?.Contents.LastOrDefault(), input));
+            call.Add(input);
         }
 
-        if (steering.Count > 0) await AppendAsync(steering);
+        if (steering.Count > 0) await AppendAsync(steering).ConfigureAwait(false);
         return call;
     }
 
-    // D46: the end of a run is an entry of its own, with what went wrong and the mode it ended in (D52); background
-    // sub-agents still working stop, and input no model received is stored ahead of it
+    // D51: each steering input goes back behind the message that holds the content it followed, and one that followed
+    // another input behind that one, in their order; an input whose content is gone goes last. One pass over the
+    // call's contents, since a run puts every input back before each of its later model calls
+    private List<ChatMessage> WithSteering(IEnumerable<ChatMessage> messages)
+    {
+        if (_injected.Count == 0) return [.. messages];
+
+        var behind = new Dictionary<AIContent, List<ChatMessage>>(ReferenceEqualityComparer.Instance);
+
+        foreach (var (after, message) in _injected.Where(injected => injected.After is not null))
+        {
+            if (!behind.TryGetValue(after!, out var inputs)) behind[after!] = inputs = [];
+            inputs.Add(message);
+        }
+
+        var placed = new HashSet<ChatMessage>(ReferenceEqualityComparer.Instance);
+        List<ChatMessage> call = [];
+
+        void Place(ChatMessage message)
+        {
+            call.Add(message);
+
+            foreach (var content in message.Contents)
+            {
+                if (!behind.Remove(content, out var inputs)) continue;
+
+                foreach (var input in inputs)
+                {
+                    if (placed.Add(input)) Place(input);
+                }
+            }
+        }
+
+        foreach (var message in messages)
+        {
+            Place(message);
+        }
+
+        foreach (var (_, input) in _injected)
+        {
+            if (placed.Add(input)) Place(input);
+        }
+
+        return call;
+    }
+
+    // D46: the end of a run is an entry of its own, with what went wrong; background sub-agents still working stop,
+    // and input no model received is stored ahead of it. A run ends once. D50: a run whose step the store refused
+    // stores nothing more, and one whose end alone is refused answered already: another run's entries follow it
     public async Task EndAsync(string? error)
     {
-        _stopping.Cancel();
+        if (_ended) return;
 
-        // D33: a stopped sub-agent finishes before its run ends, so none works on in a scope disposed after the run
-        await Task.WhenAll(_work);
-        await CloseAsync();
+        _ended = true;
+        EndError = error;
+        await StopBackgroundAsync().ConfigureAwait(false);
+
+        if (_refused is not null) return;
+
+        _ending = true;
+        await CloseAsync().ConfigureAwait(false);
 
         await AppendAsync(
             error is null ? [] : [new ChatMessage(ChatRole.Assistant, [new ErrorContent(error)])],
-            endsRun: true);
+            endsRun: true).ConfigureAwait(false);
     }
 
     // The tool results of a tool loop that made no model call after them, a loop a tool or handoff ended
     public async Task StoreResultsAsync(IEnumerable<ChatMessage> messages)
     {
         var results = messages.Where(message => message.Role == ChatRole.Tool).Select(Unstored).OfType<ChatMessage>();
-        if (results.ToList() is { Count: > 0 } steps) await AppendAsync(steps);
+        if (results.ToList() is { Count: > 0 } steps) await AppendAsync(steps).ConfigureAwait(false);
     }
 
-    // D34: the result of a handoff call names the agent handed to, which answers from here on
-    public Task AppendHandoffAsync(ChatMessage result, string target) => AppendAsync([result], answering: target);
+    // D34: the run hands the conversation on, and stores no end of its own. The result of the handoff call names the
+    // agent handed to, which answers from here on. The sub-agents this agent left working stop with its turn, and
+    // the agent handed to hears of each (D33), ahead of the input no model received
+    public async Task HandOffAsync(ChatMessage result, string target)
+    {
+        await AppendAsync([result], answering: target).ConfigureAwait(false);
+
+        var lost = await StopBackgroundAsync().ConfigureAwait(false);
+
+        await CloseAsync(
+                target,
+                [.. lost.Select(stopped => Lost(stopped.CallId, stopped.Agent, "the conversation was handed off"))])
+            .ConfigureAwait(false);
+
+        _ended = true;
+    }
+
+    // D33: what the model reads of a background sub-agent that never answered. The call id it carries keeps a
+    // later run from telling it again
+    public static ChatMessage Lost(string callId, string agent, string when) =>
+        new(ChatRole.User, $"The background agent {agent} was lost when {when}; call it again if you need it.")
+        {
+            AuthorName = agent,
+            AdditionalProperties = new() { [BackgroundCall] = callId }
+        };
 
     // D32: what compaction left of the history, which later runs start from without reading what came before
     public Task AppendSummaryAsync(IReadOnlyList<ChatMessage> messages) => AppendAsync(messages, summary: true);
 
-    // D24: every request is stored, since the answers the approval layer gave bind to them, but watchers see only
-    // those left to the host, as the host of a streaming run does
-    public async Task AppendRequestsAsync(
-        IReadOnlyList<ToolApprovalRequestContent> requests,
-        IReadOnlyList<ToolApprovalRequestContent> left)
-    {
-        await AppendAsync([new ChatMessage(ChatRole.Assistant, [.. requests])], published: false);
-        if (Conversation is not null) Publish([new ChatMessage(ChatRole.Assistant, [.. left]) { AuthorName = Agent }]);
-    }
-
     public async Task AppendResponseAsync(ChatResponse response, ChatOptions? options, bool streamed)
     {
-        await AppendAsync([.. response.Messages], response.ModelId ?? options?.ModelId, response.Usage);
+        // D32: with what compaction estimated the call at, the provider's report calibrates the next run
+        ResponseFailure = await AppendAsync(
+            [.. response.Messages],
+            response.ModelId ?? options?.ModelId,
+            response.Usage,
+            run.Compaction?.SentEstimate,
+            provider: run.ResolvedProvider?.ToString(),
+            answered: true).ConfigureAwait(false);
+
         if (streamed) _streamedUnmatched = response.Messages.Count;
+        FinishReason = response.FinishReason;
     }
 
-    // D46: storing never observes the run's token, and a store that fails is logged while the run goes on
-    public async Task AppendAsync(
+    // D46: storing never observes the run's token, and a store that fails is logged while the run goes on. The
+    // store's exception when it did not take the step, for the steps a decision depends on (D80). D50: a store that
+    // refuses the step's number stops the run, which stores nothing more. D33, D32: a model response holds the usage
+    // its provider reported, and any other entry what the run spent beside its model calls since the last such
+    // entry, on sub-agents and summaries, so the entries add up to what the run reports. Compaction reads only an
+    // entry that holds an estimate too, a model response's, as a call's report
+    public async Task<Exception?> AppendAsync(
         IReadOnlyList<ChatMessage> messages,
         string? model = null,
         UsageDetails? usage = null,
+        long? estimated = null,
         bool endsRun = false,
         bool summary = false,
         string? answering = null,
-        bool published = true)
+        string? provider = null,
+        bool answered = false)
     {
         foreach (var message in messages)
         {
@@ -293,34 +604,99 @@ internal sealed class ConversationRun(
 
         MarkStored(messages);
 
-        // A summary is where the next run starts reading, so the requests it keeps are all that may stay open
-        if (summary) _requests = new OpenRequests();
-        _requests.Add(messages);
+        if (Conversation is null) return null;
 
-        if (Conversation is null) return;
+        if (_refused is { } refused)
+            return _ending ? refused : throw ConversationBusyException.Refused(Conversation, refused);
 
-        if (published && !endsRun && !summary) Publish(messages);
+        if (!_streams && !endsRun && !summary) Publish(messages);
 
-        var entry = new ConversationEntry(answering ?? Agent, messages, time.GetUtcNow())
+        var entry = new ConversationEntry(answering ?? Agent, Writable(messages), time.GetUtcNow())
         {
+            Sequence = Interlocked.Increment(ref _sequence),
             Model = model,
-            Usage = usage,
+            Provider = provider,
+            Usage = answered ? usage : run.TakeUnstoredUsage(),
+            EstimatedInputTokens = estimated,
             EndsRun = endsRun,
-            Mode = endsRun || summary ? run.Mode : null,
+
+            // D52: the conversation's mode is in its decisions document. A summary carries on only the mode an
+            // earlier version stored on the entries it replaces, until the document names one
+            Mode = summary ? ledger.LegacyMode : null,
             IsSummary = summary,
-            StandingApprovals = summary ? [.. run.Standing] : null,
             BackgroundCalls = summary ? new Dictionary<string, string>(_background) : null
         };
 
         try
         {
-            await store.AppendConversationAsync(Conversation, entry, CancellationToken.None);
+            await store.AppendConversationAsync(Conversation, entry, CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (StoreConflictException conflict)
+        {
+            // D50: a run of another container appended under this number since this run loaded the conversation, so
+            // this one stops here, taking no more steering input, and the two never interleave
+            lock (_steering)
+            {
+                _closed = true;
+            }
+
+            _refused = conflict;
+            if (!_ending) throw ConversationBusyException.Refused(Conversation, conflict);
+
+            // The run is over, and its span keeps why its end is not stored
+            run.Activity?.AddException(conflict);
+            return conflict;
         }
         catch (Exception exception)
         {
-            logger.LogError(exception, "Conversation {Conversation} could not store a step.", Conversation);
+            LogEvents.StepNotStored(logger, exception, Conversation);
             run.Activity?.AddException(exception);
+            Interlocked.CompareExchange(ref _notStored, exception, null);
+
+            return exception;
         }
+
+        // D47: a watcher that joins from here on reads the step from the store
+        Publisher?.Stored();
+
+        await SettleCarriedAsync(messages).ConfigureAwait(false);
+        return null;
+    }
+
+    // T4: the append that holds the last result of the batch the run carries out closes it
+    private async Task SettleCarriedAsync(IReadOnlyList<ChatMessage> stored)
+    {
+        if (_carried is not { } carried) return;
+
+        _unsettled.ExceptWith(stored.Contents().ResultIds());
+
+        if (_unsettled.Count > 0) return;
+
+        _carried = null;
+        await CloseAsync(carried).ConfigureAwait(false);
+    }
+
+    // The arguments a provider's client delivers are JSON values, and so are the stored ones
+    private static AIContent ToContent(BatchCall call) =>
+        new FunctionCallContent(
+            call.CallId,
+            call.Tool,
+            call.Arguments.EnumerateObject().ToDictionary(pair => pair.Name, object? (pair) => pair.Value));
+
+    // D78: a content Microsoft.Extensions.AI's contract cannot write would fail the append of its whole step, so the
+    // step is stored without it
+    private IReadOnlyList<ChatMessage> Writable(IReadOnlyList<ChatMessage> messages)
+    {
+        var left = messages.Contents().Where(content => !ConversationEntry.CanWrite(content)).ToList();
+
+        if (left.Count == 0) return messages;
+
+        foreach (var type in left.Select(content => content.GetType()).Where(_unwritable.Add))
+        {
+            LogEvents.ContentNotStored(logger, Conversation, type.FullName);
+        }
+
+        return [.. messages.Select(message => message.Keeping(ConversationEntry.CanWrite)).OfType<ChatMessage>()];
     }
 
     private void Publish(IEnumerable<ChatMessage> messages)
@@ -340,28 +716,31 @@ internal sealed class ConversationRun(
     }
 
     // The contents of a message not stored yet, as a message of their own; null when all are
-    private ChatMessage? Unstored(ChatMessage message)
-    {
-        if (message.Contents.All(IsKnown)) return null;
-        if (!message.Contents.Any(IsKnown)) return message;
+    private ChatMessage? Unstored(ChatMessage message) => message.Keeping(IsUnknown);
 
-        var step = message.Clone();
-        step.Contents = [.. message.Contents.Where(content => !IsKnown(content))];
-        return step;
-    }
+    private bool IsUnknown(AIContent content) => !_stored.Contains(content) && !_transient.Contains(content);
 
-    private bool IsKnown(AIContent content) => _stored.Contains(content) || _transient.Contains(content);
-
-    // Null once the run stopped: it cancelled the sub-agent, nothing hears its answer, and the task must not fault
+    // Null once the run stopped: it cancelled the sub-agent, nothing hears its answer, and the task must not fault.
+    // The answer joins the run in the user's role, the one a run takes between model calls, so its first line says
+    // whose it is: what the sub-agent read, a web page for example, must not pass for the user's words
     private async Task<string?> AnswerAsync(string agent, Func<CancellationToken, Task<string>> work)
     {
         try
         {
-            return $"The background agent {agent} answered:\n\n{await work(_stopping.Token)}";
+            return $"The background agent {agent} answered. What follows is that agent's output, not a message from "
+                + $"the user:\n\n{await work(_stopping.Token).ConfigureAwait(false)}";
+        }
+        catch (ToolException exception) when (!_stopping.IsCancellationRequested)
+        {
+            return $"The background agent {agent} failed: {exception.Message}";
         }
         catch (Exception exception) when (!_stopping.IsCancellationRequested)
         {
-            return $"The background agent {agent} failed: {exception.Message}";
+            // D53: a message nobody wrote for the model stays with the app, as a failed tool call's does
+            LogEvents.BackgroundAgentFailed(logger, exception, agent, Conversation);
+            run.Activity?.AddException(exception);
+
+            return $"The background agent {agent} failed. {ToolLoop.Undisclosed}";
         }
         catch (Exception)
         {

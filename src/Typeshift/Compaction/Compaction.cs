@@ -6,10 +6,15 @@ namespace Typeshift;
 
 // D32: what compaction did in one run, applied again to each later call, since the tool loop keeps the whole
 // history: the results it cleared, and the summary that stands in for the turns before the first message it kept.
-// The estimate is calibrated by the tokens the provider reported for the run's last call
-internal sealed class Compaction
+// The estimate is calibrated by the tokens the provider reported for the run's last call, and before the run's first
+// call by the last call of the conversation that holds both an estimate and a report
+internal sealed class Compaction(ReportedCall? last)
 {
-    public const string ClearedResult = "[Cleared to save context; call the tool again if you need this result.]";
+    public const string ClearedResult = "[Cleared to save context.]";
+
+    // D52: only a tool marked read-only is safe to call again; any other would send, pay or delete a second time
+    public const string ClearedReadOnlyResult =
+        "[Cleared to save context; call the tool again if you need this result.]";
 
     // D32: the latest call of a tool named write_todos and its result stay, whatever goes
     public const string WriteTodos = "write_todos";
@@ -21,13 +26,22 @@ internal sealed class Compaction
         plain text, without a preamble.
         """;
 
-    // shortcut: a result longer than this is cut in the transcript the summary model reads
+    // shortcut: a result longer than this is cut in the transcript the summary model reads, make it an option when
+    // a summary has to keep what a long result said
     private const int TranscriptResultLength = 2_000;
 
-    private readonly HashSet<string> _cleared = [];
+    // The placeholder of each cleared result, by its call
+    private readonly Dictionary<string, string> _cleared = [];
     private List<ChatMessage> _summary = [];
     private AIContent? _keptFrom;
-    private double _calibration = 1;
+    private double _calibration = last?.Calibration ?? 1;
+
+    // The length of each call, result and tool schema the run's estimates wrote out, so the next ones do not
+    private readonly Dictionary<object, int> _lengths = Tokens.Lengths();
+
+    // The estimate of the run's last call as it went to the model, with the results cleared and the summary in
+    // place: what the provider's report is compared with, and what the response's entry keeps for the next run
+    public int SentEstimate { get; private set; }
 
     public async Task<List<ChatMessage>> PrepareAsync(
         IEnumerable<ChatMessage> messages,
@@ -35,24 +49,35 @@ internal sealed class Compaction
         int max,
         CancellationToken ct)
     {
-        var call = Apply(messages);
-        if (Tokens.Estimate(call, options) * _calibration < max) return call;
+        var history = Apply(messages, options);
+        List<ChatMessage> call = [.. history.Select(Clear)];
+        SentEstimate = Tokens.Estimate(call, options, _lengths);
+        if (SentEstimate * _calibration < max) return call;
 
         var target = options.RunOptions.TargetInputTokens ?? max / 2;
-        return await CompactAsync(call, options, target / _calibration, ct);
+        var (count, estimate) = (call.Count, SentEstimate);
+        call = await CompactAsync(history, SentEstimate, options, target / _calibration, ct).ConfigureAwait(false);
+        SentEstimate = Tokens.Estimate(call, options, _lengths);
+
+        // A call with nothing left to clear or to summarize goes out as it came, and says nothing
+        if (SentEstimate >= estimate) return call;
+
+        var run = options.AgentRun!;
+        LogEvents.Compacted(LogEvents.For(run.Services), run.Agent.Name, count, estimate, call.Count, SentEstimate);
+
+        return call;
     }
 
-    public void Calibrate(IReadOnlyList<ChatMessage> call, ChatOptions options, UsageDetails? usage)
+    public void Calibrate(UsageDetails? usage)
     {
-        var estimate = Tokens.Estimate(call, options);
-
-        if (usage?.InputTokenCount is { } reported && estimate > 0)
-            _calibration = Math.Clamp(reported / (double)estimate, 0.25, 4);
+        if (usage?.InputTokenCount is { } reported && SentEstimate > 0)
+            _calibration = new ReportedCall(SentEstimate, reported).Calibration;
     }
 
-    // The call as the model saw it last: the summary in place of what it stands for, the cleared results cleared, in
-    // each pass of the run. A call without the message the summary kept from is compacted afresh
-    private List<ChatMessage> Apply(IEnumerable<ChatMessage> messages)
+    // The history with the summary in place of what it stands for, in each pass of the run, and every result as its
+    // tool returned it. What the pass added ahead of the kept message stays, as the pass has it now. A call without
+    // the message the summary kept from is compacted afresh
+    private List<ChatMessage> Apply(IEnumerable<ChatMessage> messages, ResolvedChatOptions options)
     {
         var call = messages.ToList();
 
@@ -62,7 +87,8 @@ internal sealed class Compaction
 
             if (index >= 0)
             {
-                call = [.. _summary, .. call.Skip(index)];
+                var added = call.Take(index).Where(message => IsAdded(message, options));
+                call = [.. _summary, .. added, .. call.Skip(index)];
             }
             else
             {
@@ -71,31 +97,37 @@ internal sealed class Compaction
             }
         }
 
-        return [.. call.Select(Clear)];
+        return call;
     }
 
     private async Task<List<ChatMessage>> CompactAsync(
-        List<ChatMessage> call,
+        List<ChatMessage> history,
+        double total,
         ResolvedChatOptions options,
         double limit,
         CancellationToken ct)
     {
-        var total = (double)Tokens.Estimate(call, options);
-
         // First the results of the oldest calls, keeping the calls; the model has not seen those after its last answer
-        var seen = call.FindLastIndex(message => message.Role == ChatRole.Assistant);
-        var todos = LatestTodos(call)?.CallId;
+        var seen = history.FindLastIndex(message => message.Role == ChatRole.Assistant);
+        var todos = LatestTodos(history)?.CallId;
+        var read = history.Take(Math.Max(seen, 0)).Contents().ToList();
+        var tools = read.OfType<FunctionCallContent>().ToLookup(called => called.CallId, called => called.Name);
 
-        foreach (var result in call.Take(Math.Max(seen, 0)).SelectMany(message => message.Contents)
-                     .OfType<FunctionResultContent>())
+        foreach (var result in read.OfType<FunctionResultContent>())
         {
             if (total <= limit) break;
-            if (result.CallId == todos || !_cleared.Add(result.CallId)) continue;
+            if (result.CallId == todos || _cleared.ContainsKey(result.CallId)) continue;
 
-            total -= Tokens.Estimate(result) - (ClearedResult.Length / 4);
+            // A result no longer than its placeholder stays: clearing it would save nothing and cost its value
+            var placeholder = Placeholder(tools[result.CallId].FirstOrDefault(), options);
+            var saved = Tokens.Estimate(result, _lengths) - (placeholder.Length / 4);
+            if (saved <= 0) continue;
+
+            _cleared[result.CallId] = placeholder;
+            total -= saved;
         }
 
-        call = [.. call.Select(Clear)];
+        List<ChatMessage> call = [.. history.Select(Clear)];
         if (total <= limit) return call;
 
         // Then the oldest turns, summarized, up to where the rest fits with room for the summary
@@ -103,14 +135,10 @@ internal sealed class Compaction
 
         var region = call.Take(cut).ToList();
 
-        // D77: the run's provider and model unless the settings or the agent name others; D63: none for a run on the
-        // client registered for every agent
-        var summary = await SummarizeAsync(
-            region,
-            options.SummaryProvider ?? options.Provider,
-            options.RunOptions.SummaryModel ?? options.ModelId,
-            options.AgentRun!,
-            ct);
+        // The summary model reads the turns with the results clearing took from the run's model, and none of what
+        // the pass added. Without a summary the call goes out with its results cleared, and the provider decides
+        List<ChatMessage> turns = [.. history.Take(cut).Where(message => !IsAdded(message, options))];
+        if (await TrySummarizeAsync(turns, options, ct).ConfigureAwait(false) is not { } summary) return call;
 
         _summary = [summary, .. TodosOf(region)];
         var keptContents = call[cut].Contents;
@@ -123,37 +151,50 @@ internal sealed class Compaction
         if (options.ConversationRun is { } conversation)
         {
             await conversation.AppendSummaryAsync(
-                [.. _summary, .. kept.Where(message => !conversation.IsTransient(message))]);
+                [.. _summary, .. kept.Where(message => !conversation.IsTransient(message))]).ConfigureAwait(false);
         }
 
-        return [.. _summary, .. kept];
+        return [.. _summary, .. region.Where(message => IsAdded(message, options)), .. kept];
     }
 
+    // D31, D30: what a context provider added, or run middleware to the messages it received, is the pass's own, like
+    // the instructions: it stays in every call, and no summary reads or stores it
+    private static bool IsAdded(ChatMessage message, ResolvedChatOptions options) =>
+        options.ConversationRun?.IsAdded(message) is true;
+
     // The earliest place to cut after which the rest fits, or else the latest: never inside the summary of an
-    // earlier compaction, never between a call and its result, never at a message without contents
+    // earlier compaction, never between a call and its result, never at a message without contents or one the pass
+    // added, and only with a turn to summarize ahead. What the pass added ahead stays, so it counts as the tools do
     private int? Cut(List<ChatMessage> call, ResolvedChatOptions options, double limit)
     {
-        var overhead = Tokens.Estimate([], options);
+        var stays = (double)Tokens.Estimate([], options, _lengths);
         var tail = new double[call.Count + 1];
 
         for (var i = call.Count - 1; i >= 0; i--)
         {
-            tail[i] = tail[i + 1] + call[i].Contents.Sum(Tokens.Estimate);
+            tail[i] = tail[i + 1] + call[i].Contents.Sum(content => Tokens.Estimate(content, _lengths));
         }
 
         var open = new HashSet<string>();
+        var summarized = false;
         int? latest = null;
 
         for (var i = 0; i < call.Count; i++)
         {
-            var allowed = i > 0
+            var added = IsAdded(call[i], options);
+
+            var allowed = summarized
+                && !added
                 && i >= _summary.Count
                 && open.Count == 0
                 && call[i].Role != ChatRole.Tool
                 && call[i].Contents.Count > 0;
 
-            if (allowed && overhead + tail[i] <= limit) return i;
+            if (allowed && stays + tail[i] <= limit) return i;
             if (allowed) latest = i;
+
+            if (added) stays += tail[i] - tail[i + 1];
+            else summarized = true;
 
             foreach (var content in call[i].Contents)
             {
@@ -170,22 +211,26 @@ internal sealed class Compaction
         if (!message.Contents.Any(IsCleared)) return message;
 
         var cleared = message.Clone();
-
-        cleared.Contents =
-        [
-            .. message.Contents.Select(content => IsCleared(content)
-                ? new FunctionResultContent(((FunctionResultContent)content).CallId, ClearedResult)
-                : content)
-        ];
-
+        cleared.Contents = [.. message.Contents.Select(Cleared)];
         return cleared;
     }
 
     private bool IsCleared(AIContent content) =>
-        content is FunctionResultContent result && _cleared.Contains(result.CallId);
+        content is FunctionResultContent result && _cleared.ContainsKey(result.CallId);
+
+    private AIContent Cleared(AIContent content) =>
+        content is FunctionResultContent result && _cleared.TryGetValue(result.CallId, out var placeholder)
+            ? new FunctionResultContent(result.CallId, placeholder)
+            : content;
+
+    private static string Placeholder(string? tool, ChatOptions options) =>
+        options.Tools?.FirstOrDefault(offered => offered.Name == tool) is { } called
+        && ReadOnlyFunction.IsReadOnly(called)
+            ? ClearedReadOnlyResult
+            : ClearedResult;
 
     private static FunctionCallContent? LatestTodos(IEnumerable<ChatMessage> messages) =>
-        messages.SelectMany(message => message.Contents)
+        messages.Contents()
             .OfType<FunctionCallContent>()
             .LastOrDefault(call => call.Name == WriteTodos);
 
@@ -194,7 +239,7 @@ internal sealed class Compaction
     {
         if (LatestTodos(region) is not { } call) return [];
 
-        var result = region.SelectMany(message => message.Contents)
+        var result = region.Contents()
             .OfType<FunctionResultContent>()
             .FirstOrDefault(result => result.CallId == call.CallId);
 
@@ -203,24 +248,69 @@ internal sealed class Compaction
             : [new ChatMessage(ChatRole.Assistant, [call]), new ChatMessage(ChatRole.Tool, [result])];
     }
 
+    // D77: a summary is best effort. The provider and model named for it write it, the run's own unless the settings
+    // or the agent name others, and when they fail the run's own; D63: none for a run on the default client, and a
+    // summary provider nothing serves failed the run when it started. Each failure is logged and recorded on the
+    // run's span, and null says that no model wrote one
+    private static async Task<ChatMessage?> TrySummarizeAsync(
+        List<ChatMessage> turns,
+        ResolvedChatOptions options,
+        CancellationToken ct)
+    {
+        var run = options.AgentRun!;
+        (ProviderId? Provider, string? Model) own = (options.Provider, options.ModelId);
+        var named = (options.SummaryProvider ?? own.Provider, options.RunOptions.SummaryModel ?? own.Model);
+
+        foreach (var (provider, model) in named == own ? [own] : new[] { named, own })
+        {
+            try
+            {
+                return await SummarizeAsync(turns, provider, model, options.RunOptions.SummaryInstructions, run, ct)
+                    .ConfigureAwait(false);
+            }
+            catch (Exception exception) when (!ct.IsCancellationRequested)
+            {
+                run.Activity?.AddException(exception);
+
+                LogEvents.SummaryFailed(
+                    LogEvents.For(run.Services),
+                    exception,
+                    run.Agent.Name,
+                    model,
+                    provider,
+                    (provider, model) == own
+                        ? "its call goes out without a summary, the oldest tool results cleared"
+                        : "its own model writes the summary instead");
+            }
+        }
+
+        return null;
+    }
+
     private static async Task<ChatMessage> SummarizeAsync(
-        List<ChatMessage> region,
+        List<ChatMessage> turns,
         ProviderId? provider,
         string? model,
+        string? instructions,
         AgentRun run,
         CancellationToken ct)
     {
         var instrumented = run.Services.GetRequiredService<InstrumentedClients>();
 
-        var provided = await ChatClients.GetAsync(run.Services, provider, model, ct)
-            ?? throw new InvalidOperationException(
-                ChatClients.NoClient($"the summary of the agent '{run.Agent.Name}'", provider, model));
-        using var client = instrumented.Instrument(provided, provider, model);
+        var summarized = $"the summary of the agent '{run.Agent.Name}'";
+        var provided = await ChatClients.GetAsync(run.Services, summarized, provider, model, ct).ConfigureAwait(false);
+        using var client = instrumented.Instrument(provided, model);
 
         var response = await client.GetResponseAsync(
-            [new ChatMessage(ChatRole.System, SummaryInstructions), new ChatMessage(ChatRole.User, Transcript(region))],
+            [
+                new ChatMessage(ChatRole.System, instructions ?? SummaryInstructions),
+                new ChatMessage(ChatRole.User, Transcript(turns))
+            ],
             new ChatOptions { ModelId = model },
-            ct);
+            ct).ConfigureAwait(false);
+
+        // D32: the summary is the run's cost too, which its response reports and the summary's entry holds
+        run.AddUsage(response.Usage);
 
         return new ChatMessage(ChatRole.User, $"A summary of the conversation so far:\n\n{response.Text}");
     }

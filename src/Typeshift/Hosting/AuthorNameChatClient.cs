@@ -11,7 +11,7 @@ internal sealed class AuthorNameChatClient(IChatClient inner, string name) : Del
         ChatOptions? options = null,
         CancellationToken cancellationToken = default)
     {
-        var response = await base.GetResponseAsync(messages, options, cancellationToken);
+        var response = await base.GetResponseAsync(messages, options, cancellationToken).ConfigureAwait(false);
 
         foreach (var message in response.Messages)
         {
@@ -26,7 +26,9 @@ internal sealed class AuthorNameChatClient(IChatClient inner, string name) : Del
         ChatOptions? options = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        await foreach (var update in base.GetStreamingResponseAsync(messages, options, cancellationToken))
+        var answer = base.GetStreamingResponseAsync(messages, options, cancellationToken);
+
+        await foreach (var update in answer.ConfigureAwait(false))
         {
             update.AuthorName ??= name;
             yield return update;

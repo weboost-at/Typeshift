@@ -16,13 +16,20 @@ internal static class ScriptedDesk
 
     public static ScriptedChatClient Billing() => new(call =>
     {
-        if (call.LastUserText.Contains("ticket", StringComparison.OrdinalIgnoreCase) && call.Offers("handoff_to_support_agent"))
+        if (call.LastUserText.Contains("ticket", StringComparison.OrdinalIgnoreCase)
+            && call.Offers("handoff_to_support_agent"))
             return ScriptedCall.Call("handoff_to_support_agent");
 
         if (call.CallsOf("list_invoices") == 0) return ScriptedCall.Call("list_invoices");
 
         if (call.CallsOf("issue_refund") == 0)
-            return ScriptedCall.Call("issue_refund", ("invoice", "INV-8"), ("amountCents", 4900), ("reason", "INV-7 was charged twice as INV-8."));
+        {
+            return ScriptedCall.Call(
+                "issue_refund",
+                ("invoice", "INV-8"),
+                ("amountCents", 4900),
+                ("reason", "INV-7 was charged twice as INV-8."));
+        }
 
         var refund = call.LastResultOf("issue_refund") ?? "";
 
@@ -56,7 +63,8 @@ internal static class ScriptedDesk
     public static ScriptedChatClient Knowledge() => new(call =>
         call.CallsOf("search_articles") == 0
             ? ScriptedCall.Call("search_articles", ("query", "log in update"))
-            : ScriptedCall.Text("Clear the browser's site data and log in again; the session format changed with the update."));
+            : ScriptedCall.Text(
+                "Clear the browser's site data and log in again; the session format changed with the update."));
 
     public static ScriptedChatClient Report() => new(call =>
         ScriptedCall.Text(

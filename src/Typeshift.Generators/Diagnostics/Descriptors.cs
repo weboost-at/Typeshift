@@ -9,6 +9,10 @@ internal static class Descriptors
 
     private const string HelpUrl = "https://weboost-at.github.io/Typeshift/guide/diagnostics#";
 
+    // For a diagnostic that only the end of the compilation reports, since it compares classes or projects: an
+    // editor runs that action on a build, not while you type, and reads from the tag which diagnostics those are
+    private const string AtEnd = WellKnownDiagnosticTags.CompilationEnd;
+
     public static readonly DiagnosticDescriptor NotPartial = Error(
         "TSH001",
         "Toolset or agent is not partial",
@@ -22,17 +26,17 @@ internal static class Descriptors
     public static readonly DiagnosticDescriptor NotStaticMethodGroup = Error(
         "TSH003",
         "Tool is not a static method group",
-        "'{0}' is not a static method group: pass a static method, AddTool(Method)");
+        "'{0}' cannot be a tool: {1}");
 
-    public static readonly DiagnosticDescriptor UnboundParameter = Error(
+    public static readonly DiagnosticDescriptor NotBindable = Error(
         "TSH004",
-        "Tool parameter cannot be bound",
-        "The parameter '{0}' of the tool '{1}' cannot be bound from the model's arguments");
+        "Tool parameter or result cannot be bound",
+        "The {0} of the tool '{1}' cannot be {2}: {3}");
 
     public static readonly DiagnosticDescriptor SettingsNotRecord = Error(
         "TSH005",
         "Settings type is not a record with a parameterless constructor",
-        "The settings type '{0}' must be a record: each layer applies to a copy of the code defaults");
+        "The settings type '{0}' {1}: {2}");
 
     public static readonly DiagnosticDescriptor SettingsLessAccessible = Error(
         "TSH006",
@@ -42,7 +46,7 @@ internal static class Descriptors
     public static readonly DiagnosticDescriptor DuplicateToolName = Error(
         "TSH007",
         "Tool name is not unique",
-        "Another tool is already named '{0}', or maps to the same member '{1}'");
+        "The tool '{0}' of {1} {2}: {3}");
 
     public static readonly DiagnosticDescriptor NotLowerSnakeCase = Error(
         "TSH008",
@@ -67,7 +71,7 @@ internal static class Descriptors
     public static readonly DiagnosticDescriptor NotStorable = Error(
         "TSH012",
         "Configurable member has a type settings cannot store",
-        "'{0}' cannot be configurable: settings cannot store it");
+        "'{0}' cannot be configurable: {1}; {2}");
 
     public static readonly DiagnosticDescriptor NotSettable = Error(
         "TSH013",
@@ -91,61 +95,67 @@ internal static class Descriptors
 
     public static readonly DiagnosticDescriptor NotDirectlyDerived = Error(
         "TSH017",
-        "Toolset or agent is generic or derives from another",
-        "'{0}' {1}: derive it from {2} directly, without type parameters");
+        "Toolset or agent does not derive from its base directly",
+        "'{0}' {1}: {2}");
 
     public static readonly DiagnosticDescriptor GeneratedNameClash = Error(
         "TSH018",
         "Member clashes with a generated member",
-        "The member '{0}' clashes with a member the generator writes for '{1}'");
+        "{0} clashes with a member the generator writes for '{1}'");
 
     public static readonly DiagnosticDescriptor NotGenerated = Error(
         "TSH019",
-        "Toolset was not compiled with the generator",
-        "'{0}' was not compiled with the Typeshift generator: reference the Typeshift package in its project");
+        "Toolset of a referenced assembly cannot be used",
+        "'{0}' {1}: {2}");
 
     public static readonly DiagnosticDescriptor UnstampedReference = Warning(
         "TSH020",
-        "Referenced assembly was not compiled with the generator",
-        "'{0}' declares toolsets or agents but carries no module of this Typeshift version, so AddTypeshift() "
-        + "cannot register them: reference the Typeshift package in its project, at this version");
+        "Toolsets and agents of a referenced assembly cannot be registered",
+        "'{0}' declares toolsets or agents but {1}, so AddTypeshift() cannot register them: {2}",
+        AtEnd);
 
     public static readonly DiagnosticDescriptor SharedKind = Error(
         "TSH022",
         "Two agents share a settings kind",
-        "'{0}' stores its settings as '{1}', like '{2}': give one of them a WithStorageKind of its own");
+        "'{0}' stores its settings as '{1}', like '{2}': give one of them a WithStorageKind of its own",
+        AtEnd);
 
     public static readonly DiagnosticDescriptor NotUsableAgent = Error(
         "TSH023",
         "Agent cannot be a tool or a handoff target",
-        "'{0}' cannot be {1}: {2}");
+        "'{0}' cannot be {1}: {2}",
+        AtEnd);
 
     public static readonly DiagnosticDescriptor SubAgentNeedsApproval = Warning(
         "TSH024",
         "Sub-agent offers tools that need approval",
-        "'{0}' offers tools that need approval ({1}), and a sub-agent cannot ask the host: in the default mode those "
-        + "calls are rejected unless a rule or a standing approval allows them; add a rule, or hand off to the agent");
+        "'{0}' offers tools that need approval ({1}), and a sub-agent cannot ask your app: in the default mode those "
+        + "calls are rejected unless a rule or a standing approval allows them; add a rule, or hand off to the agent",
+        AtEnd);
 
     public static readonly DiagnosticDescriptor AgentCircle = Error(
         "TSH026",
         "Agents call each other in a circle",
-        "'{0}' calls '{1}' through UseAgent, and '{1}' calls '{0}' back: sub-agents may not form a circle");
+        "'{0}' calls '{1}' through UseAgent, and '{1}' calls '{0}' back: sub-agents may not form a circle",
+        AtEnd);
 
     public static readonly DiagnosticDescriptor OfferedTwice = Error(
         "TSH025",
         "Tool is offered twice",
-        "{0} is offered twice: use each toolset once, pick each tool once, and leave out one of two tools of a name");
+        "{0} is offered {1}: {2}");
 
     public static readonly DiagnosticDescriptor NoJsonMetadata = Error(
         "TSH027",
-        "Tool type has no JSON metadata under Native AOT",
-        "'{0}' of '{1}' has no JSON metadata, which Native AOT needs: list it in a JsonSerializerContext of this "
-        + "assembly, [JsonSerializable(typeof({0}))]");
+        "Tool type has no JSON metadata for Native AOT or a trimmed app",
+        "'{0}' of '{1}' has no JSON metadata, which an app published with Native AOT or trimmed needs: list it in a "
+        + "JsonSerializerContext of this assembly, [JsonSerializable(typeof({0}))]",
+        AtEnd);
 
     public static readonly DiagnosticDescriptor NoStore = Error(
         "TSH028",
         "Type is no store",
-        "'{0}' is no store: implement ISettingsStore<TId>, IConversationStore<TId> or IAgentSettingsStore");
+        "'{0}' is no store: implement ISettingsStore<TId>, IConversationStore<TId>, IDecisionStore<TId> or "
+        + "IAgentSettingsStore");
 
     public static readonly DiagnosticDescriptor UnusableProviderIdType = Error(
         "TSH029",
@@ -158,13 +168,101 @@ internal static class Descriptors
         "Type is no chat client provider",
         "'{0}' is no chat client provider: implement IChatClientProvider<TProviderId>");
 
-    private static DiagnosticDescriptor Error(string id, string title, string message) =>
-        Create(id, title, message, DiagnosticSeverity.Error);
+    public static readonly DiagnosticDescriptor LanguageVersionTooLow = Error(
+        "TSH031",
+        "C# language version is below 14",
+        "Typeshift's generated code needs C# 14 or later, and this project compiles as C# {0}: remove <LangVersion> "
+        + "from the project, or raise it",
+        AtEnd);
 
-    private static DiagnosticDescriptor Warning(string id, string title, string message) =>
-        Create(id, title, message, DiagnosticSeverity.Warning);
+    public static readonly DiagnosticDescriptor ReadDifferently = Warning(
+        "TSH032",
+        "Generator read the declaration differently",
+        "The generator read '{0}' differently from what the code says ({1}): it cannot see code that source "
+        + "generators write, its own included; declare it with constants, methods and types of your own code");
 
-    private static DiagnosticDescriptor Create(string id, string title, string message, DiagnosticSeverity severity) =>
+    public static readonly DiagnosticDescriptor NumericEnum = Warning(
+        "TSH033",
+        "Enum of a tool is a number for Native AOT or a trimmed app",
+        "'{0}' reads and writes the enum '{1}' of the tool '{2}' as a number in an app published with Native AOT or "
+        + "trimmed: add [JsonSourceGenerationOptions(UseStringEnumConverter = true)] to the context, so the model "
+        + "reads and sends the enum's names",
+        AtEnd);
+
+    public static readonly DiagnosticDescriptor SubAgentAsksUser = Warning(
+        "TSH034",
+        "Sub-agent cannot ask the user",
+        "'{0}' declares UseQuestions(), and a sub-agent cannot ask the user: as a sub-agent it is not offered "
+        + "ask_user; declare UseQuestions() on the agent that calls it, or hand off to the agent",
+        AtEnd);
+
+    public static readonly DiagnosticDescriptor ReservedToolName = Error(
+        "TSH035",
+        "Tool name is reserved",
+        "The tool name '{0}' is reserved for {1}: name the tool with WithName(\"...\")");
+
+    public static readonly DiagnosticDescriptor ConversationsWithoutDecisions = Warning(
+        "TSH036",
+        "Conversation store keeps no decisions",
+        "'{0}' keeps conversations under {1} ids, and no store of this chain keeps their decisions, so a run of "
+        + "'{2}' that asks your app fails: implement IDecisionStore<{1}> in the store, or add a store that does with "
+        + "WithStore<T>()",
+        AtEnd);
+
+    public static readonly DiagnosticDescriptor ConfigurableModeBesideApproval = Warning(
+        "TSH037",
+        "Configurable mode can turn approval off",
+        "'{0}' makes its mode configurable and offers tools that require approval ({1}), so settings that are stored "
+        + "or posted can put a run in auto mode, where those calls run unasked: keep Mode out of the agent's "
+        + "settings and switch a conversation's mode with SetModeAsync on its host, or reject what must never run in "
+        + "an approval rule",
+        AtEnd);
+
+    public static readonly DiagnosticDescriptor ModelFilledParameter = Warning(
+        "TSH038",
+        "Model fills a settings or service parameter",
+        "The parameter '{0}' of the tool '{1}' is an argument the model fills, {2}");
+
+    public static readonly DiagnosticDescriptor UnusableValue = Error(
+        "TSH039",
+        "Declared value cannot be used",
+        "The {0} must {1}: {2}");
+
+    public static readonly DiagnosticDescriptor NotIntercepted = Error(
+        "TSH040",
+        "Call the generator cannot intercept",
+        "'{0}' is not a call the generator can intercept, so {1} throws when it runs: write it as {2}");
+
+    public static readonly DiagnosticDescriptor DroppedHostCopy = Error(
+        "TSH041",
+        "Copy of a host is dropped",
+        "'{0}' returns a copy of the host with the id and leaves the host it is called on as it was, so the id is "
+        + "lost here: run the copy, as in host.{0}(id).RunAsync(input), or keep it in a variable");
+
+    public static readonly DiagnosticDescriptor DisposedHostThatLivesOn = Warning(
+        "TSH042",
+        "Copy of a host that lives on is disposed",
+        "This using disposes '{0}' with its copy, and a host from runtime.CreateHost<T>() runs no more once it is: "
+        + "take the copy without using, and dispose '{0}' where its work ends");
+
+    public static readonly DiagnosticDescriptor MarkOnToolNotOffered = Error(
+        "TSH043",
+        "Use marks a tool it does not offer",
+        "{0}(t => t.{1}) names a tool this use of '{2}' does not offer, since the use {3}: offer the tool, or "
+        + "remove the {0}");
+
+    private static DiagnosticDescriptor Error(string id, string title, string message, params string[] tags) =>
+        Create(id, title, message, DiagnosticSeverity.Error, tags);
+
+    private static DiagnosticDescriptor Warning(string id, string title, string message, params string[] tags) =>
+        Create(id, title, message, DiagnosticSeverity.Warning, tags);
+
+    private static DiagnosticDescriptor Create(
+        string id,
+        string title,
+        string message,
+        DiagnosticSeverity severity,
+        string[] tags) =>
         new(
             id,
             title,
@@ -172,5 +270,6 @@ internal static class Descriptors
             Category,
             severity,
             isEnabledByDefault: true,
-            helpLinkUri: HelpUrl + id.ToLowerInvariant());
+            helpLinkUri: HelpUrl + id.ToLowerInvariant(),
+            customTags: tags);
 }

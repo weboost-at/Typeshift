@@ -14,10 +14,17 @@ public sealed class TypeshiftRuntime : IAsyncDisposable, IDisposable
 {
     private ServiceProvider? _container;
 
-    internal TypeshiftRuntime(IServiceProvider services) => Services = services;
+    // D83: read on first use, so a runtime that lists nothing creates no agent and no toolset for it
+    private readonly Lazy<RuntimeCatalog> _catalog;
+
+    internal TypeshiftRuntime(IServiceProvider services)
+    {
+        Services = services;
+        _catalog = new(() => new RuntimeCatalog(services));
+    }
 
     /// <summary>
-    /// The root services, for singletons <see cref="Agent{TAgent}"/> does not reach, such as a
+    /// The root services, for singletons <see cref="CreateHost{TAgent}"/> does not reach, such as a
     /// <see cref="ConversationTracker{TId}"/>. Scoped services resolve only from a scope.
     /// </summary>
     public IServiceProvider Services { get; }
@@ -25,10 +32,16 @@ public sealed class TypeshiftRuntime : IAsyncDisposable, IDisposable
     // D1, D75: the generator intercepts every call; this body runs only for one it did not see
     /// <summary>
     /// Creates the runtime of an app without a container, with every toolset and agent of this project and of the
-    /// projects it references, and with <paramref name="client"/> serving every agent's runs. The runtime owns the
-    /// container it builds. The generator intercepts the call; one it did not intercept throws, saying what to check.
+    /// projects it references, and with <paramref name="client"/> as the default client, which serves every run
+    /// that names no provider. The runtime owns the container it builds. The generator intercepts the call; one it
+    /// did not intercept throws, saying what to check.
+    /// More in the guide:
+    /// <see href="https://weboost-at.github.io/Typeshift/guide/registration#the-runtime">The runtime</see>.
     /// </summary>
-    /// <param name="client">The chat client of every run; the runtime never disposes it.</param>
+    /// <param name="client">
+    /// The default chat client. An agent that names a provider needs a client registered for that provider, through
+    /// <paramref name="configure"/>. The runtime never disposes the client.
+    /// </param>
     /// <param name="configure">
     /// Registers what else the app needs, as the chain of <c>AddTypeshift()</c> does, such as
     /// <c>typeshift => typeshift.WithStore&lt;MyStore&gt;()</c>; null for nothing.
@@ -42,16 +55,88 @@ public sealed class TypeshiftRuntime : IAsyncDisposable, IDisposable
             + "method group or a dynamic argument, and keep the Typeshift.Generated namespace in "
             + "InterceptorsNamespaces.");
 
-    // D76: a unit of work, whose scope the host owns
+    // D76: a unit of work, whose scope the host owns, so the factory is named for the disposable it creates
     /// <summary>
     /// Creates the host of an agent, ready to run, in a scope of its own: its tools, its chat client provider, its
-    /// middleware and every other scoped service resolve there, apart from other hosts'. Dispose the host once its
-    /// runs and streams are done, which disposes the scope.
+    /// middleware and every other scoped service resolve there, apart from other hosts'. Dispose the host, or a copy
+    /// of it from <c>WithSettingsId</c> or <c>WithConversationId</c>, once its runs and streams are done, which
+    /// disposes the scope.
+    /// More in the guide:
+    /// <see href="https://weboost-at.github.io/Typeshift/guide/using-an-agent#run-from-a-background-job">Run from a
+    /// background job</see>.
     /// </summary>
     /// <typeparam name="TAgent">The agent.</typeparam>
     /// <returns>The host, with the agent's typed members.</returns>
-    public AgentHost<TAgent> Agent<TAgent>() where TAgent : Agent =>
-        new(Services.GetRequiredService<TAgent>(), Services.CreateAsyncScope());
+    /// <exception cref="InvalidOperationException">
+    /// No module registered the agent: the app's <c>AddTypeshift()</c> lies only in a library it references, or the
+    /// agent is abstract or of a project the generator did not write code for.
+    /// </exception>
+    public AgentHost<TAgent> CreateHost<TAgent>() where TAgent : Agent =>
+        new(AgentHost<TAgent>.Registered(Services), Services.CreateAsyncScope());
+
+    /// <summary>
+    /// The agents of this project and of the projects it references, each with its type, name, kind and
+    /// description, for a page that lists them, or an endpoint that takes the kind of the agent it runs.
+    /// More in the guide:
+    /// <see href="https://weboost-at.github.io/Typeshift/guide/registration#the-catalog">The catalog</see>.
+    /// </summary>
+    public IReadOnlyList<AgentInfo> Agents => _catalog.Value.Agents;
+
+    /// <summary>
+    /// The toolsets of this project and of the projects it references, each with its display name and its tools,
+    /// for a tool picker.
+    /// More in the guide:
+    /// <see href="https://weboost-at.github.io/Typeshift/guide/registration#the-catalog">The catalog</see>.
+    /// </summary>
+    public IReadOnlyList<ToolsetInfo> Toolsets => _catalog.Value.Toolsets;
+
+    // D83: the kind is unique and stable, where a name may repeat (D22, D39)
+    /// <summary>
+    /// Creates the host of the agent of a kind, as <see cref="CreateHost{TAgent}"/> creates one, for code that reads
+    /// the agent from a request or from configuration. Dispose it once its runs and streams are done.
+    /// More in the guide:
+    /// <see href="https://weboost-at.github.io/Typeshift/guide/registration#the-catalog">The catalog</see>.
+    /// </summary>
+    /// <param name="kind">
+    /// The kind of one of <see cref="Agents"/>: its <c>WithStorageKind</c>, or its class name.
+    /// </param>
+    /// <returns>The host, without the members that take the agent's own <c>Settings</c>.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="kind"/> is null.</exception>
+    /// <exception cref="ArgumentException">No agent of the kind is registered.</exception>
+    public IAgentHost CreateHost(string kind)
+    {
+        ArgumentNullException.ThrowIfNull(kind);
+
+        var agent = _catalog.Value.Find(kind)
+            ?? throw new ArgumentException(
+                $"No agent of the kind '{kind}' is registered. The kinds are those of TypeshiftRuntime.Agents: "
+                + $"{string.Join(", ", Agents.Select(each => $"'{each.Kind}'"))}.",
+                nameof(kind));
+
+        return agent.Host(Services.CreateAsyncScope());
+    }
+
+    /// <summary>
+    /// Creates the host of the agent of a type, as <see cref="CreateHost{TAgent}"/> creates one, for code that holds
+    /// the agent's <see cref="Type"/> rather than naming it. Dispose it once its runs and streams are done.
+    /// More in the guide:
+    /// <see href="https://weboost-at.github.io/Typeshift/guide/registration#the-catalog">The catalog</see>.
+    /// </summary>
+    /// <param name="agent">The type of one of <see cref="Agents"/>.</param>
+    /// <returns>The host, without the members that take the agent's own <c>Settings</c>.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="agent"/> is null.</exception>
+    /// <exception cref="ArgumentException">No module registered an agent of the type.</exception>
+    public IAgentHost CreateHost(Type agent)
+    {
+        ArgumentNullException.ThrowIfNull(agent);
+
+        var registered = _catalog.Value.Find(agent)
+            ?? throw new ArgumentException(
+                $"The agent '{agent.Name}' is not registered. The agents are those of TypeshiftRuntime.Agents.",
+                nameof(agent));
+
+        return registered.Host(Services.CreateAsyncScope());
+    }
 
     // D76: disposing the container disposes this runtime again, which then finds nothing to dispose
     /// <summary>

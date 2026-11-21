@@ -14,6 +14,14 @@ public enum Days
     Tuesday = 2
 }
 
+// Flags without a member for none of them, so its zero has no name
+[Flags]
+public enum Channels
+{
+    Email = 1,
+    Sms = 2
+}
+
 public record Address
 {
     public string Street { get; init; } = "";
@@ -57,6 +65,8 @@ public record EveryKindSettings
     public Shade Shade { get; init; }
 
     public Days Days { get; init; }
+
+    public Channels Channels { get; init; } = Channels.Email;
 
     public Address Address { get; init; } = new();
 

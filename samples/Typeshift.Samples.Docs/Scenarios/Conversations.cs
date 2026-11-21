@@ -1,6 +1,7 @@
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using Typeshift.Samples.Agents;
+using Typeshift.Samples.Hosting;
 
 namespace Typeshift.Samples.Scenarios;
 
@@ -21,8 +22,7 @@ internal static class Conversations
         // end-snippet
 
         // begin-snippet: load-conversation
-        var store = provider.GetRequiredService<IConversationStore<int>>();
-        var entries = await store.LoadConversationAsync(conversationId, ct);
+        var entries = await support.WithConversationId(conversationId).LoadConversationAsync(ct);
 
         Console.WriteLine($"{entries.Count} entries, {entries.Sum(entry => entry.Usage?.TotalTokenCount)} tokens");
         // end-snippet
@@ -40,48 +40,75 @@ internal static class Conversations
         var watcher = WatchAsync(tracker, conversationId, watching.Token);
         var runWatcher = WatchRunsAsync(tracker, watching.Token);
 
-        await foreach (var update in chat.WithSettingsId(settingsId).RunStreamingAsync("Thanks!", ct: ct))
+        await foreach (var update in chat.WithSettingsId(settingsId).RunStreamingAsync("Thanks!", ct))
             Console.Write(update.Text);
 
         Console.WriteLine();
-        await watching.CancelAsync();
         await watcher;
+        await watching.CancelAsync();
         await runWatcher;
 
         // begin-snippet: steering
         var input = "Send me the invoice too.";
 
-        if (!tracker.TrySteer(conversationId, input))
-            await chat.WithSettingsId(settingsId).RunAsync(input);
+        while (!tracker.TrySteer(conversationId, input))
+        {
+            try
+            {
+                await chat.WithSettingsId(settingsId).RunAsync(input);
+                break;
+            }
+            catch (ConversationBusyException)
+            {
+                // A run of the conversation began in between and takes the input now
+                continue;
+            }
+        }
         // end-snippet
 
         // A run cut off by a crash: its input is stored, nothing else
         var interrupted = 12;
         var question = new ChatMessage(ChatRole.User, "Where is my refund?");
         var entry = new ConversationEntry("support_agent", [question], TimeProvider.System.GetUtcNow());
-        await store.AppendConversationAsync(interrupted, entry, ct);
+        await provider.GetRequiredService<IConversationStore<int>>().AppendConversationAsync(interrupted, entry, ct);
 
         // begin-snippet: resume
         var resumed = await support.WithSettingsId(settingsId).WithConversationId(interrupted).ResumeAsync();
         // end-snippet
 
         if (resumed.Text.Length == 0) throw new InvalidOperationException("Expected the resumed run to answer.");
-    }
 
-    // Watches until the scenario stops it, as a UI would until its user leaves
-    private static async Task WatchAsync(ConversationTracker<int> tracker, int conversationId, CancellationToken ct)
-    {
+        var refunds = support.WithSettingsId(settingsId).WithConversationId(17);
+        var message = CannedChatClient.Unavailable;
+
+        // begin-snippet: retry
         try
         {
-            // begin-snippet: watch-conversation
-            await foreach (var update in tracker.WatchAsync(conversationId, ct))
-                Console.Write(update.Text);
-            // end-snippet
+            await refunds.RunAsync(message);
         }
-        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        catch (HttpRequestException)
         {
-            Console.WriteLine();
+            // The conversation holds the message already, and the retry sends it once more
+            await refunds.RetryAsync();
         }
+        // end-snippet
+
+        var stored = (await refunds.LoadConversationAsync()).SelectMany(entry => entry.Messages);
+        if (stored.Count(sent => sent.Role == ChatRole.User) != 1)
+            throw new InvalidOperationException("Expected the retried message in the conversation once.");
+    }
+
+    // Watches until the run ends, as a page that waits for one answer would
+    private static async Task WatchAsync(ConversationTracker<int> tracker, int conversationId, CancellationToken ct)
+    {
+        // begin-snippet: watch-conversation
+        await foreach (var update in tracker.WatchAsync(conversationId, ct))
+        {
+            Console.Write(update.Text);
+
+            if (update.EndsRun) break;
+        }
+        // end-snippet
     }
 
     private static async Task WatchRunsAsync(ConversationTracker<int> tracker, CancellationToken ct)

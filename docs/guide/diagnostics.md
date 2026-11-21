@@ -1,90 +1,273 @@
 ---
 title: Diagnostics
-description: Every TSHnnn error and warning the Typeshift analyzer reports, what causes it and how to fix it.
+description: Every TSHnnn error and warning the Typeshift analyzer reports, and each exception your app can meet at run time, with what causes it and how to fix it.
 ---
 
 # Diagnostics
 
-The analyzer reports these errors and warnings while you type. Each one points at a mistake in your code or your build,
-so you fix it there instead of debugging a compiler error inside generated code.
+The analyzer reports these errors and warnings. Most show while you type, and those that compare several classes or
+projects show when you build, as the table says for each. Each one points at a mistake in your code or your build,
+so you fix it there instead of debugging a compiler error inside generated code. A mistake that shows only when your
+app runs throws an exception instead, and [Errors at run time](#errors-at-run-time) lists those by their messages.
 
-| ID | Severity | Title |
-|---|---|---|
-| [TSH001](#tsh001) | Error | Toolset or agent is not partial |
-| [TSH002](#tsh002) | Error | Declared value is not a constant |
-| [TSH003](#tsh003) | Error | Tool is not a static method group |
-| [TSH004](#tsh004) | Error | Tool parameter cannot be bound |
-| [TSH005](#tsh005) | Error | Settings type is not a record with a parameterless constructor |
-| [TSH006](#tsh006) | Error | Settings are less accessible than what exposes them |
-| [TSH007](#tsh007) | Error | Tool name is not unique |
-| [TSH008](#tsh008) | Error | Tool name is not lower_snake_case |
-| [TSH009](#tsh009) | Warning | Tool has no description |
-| [TSH010](#tsh010) | Warning | Tool does not take its settings |
-| [TSH011](#tsh011) | Warning | XML docs are not generated |
-| [TSH012](#tsh012) | Error | Configurable member has a type settings cannot store |
-| [TSH013](#tsh013) | Error | Configurable member cannot be set |
-| [TSH014](#tsh014) | Error | Declaration outside the constructor |
-| [TSH015](#tsh015) | Error | Chain the generator cannot read |
-| [TSH016](#tsh016) | Error | Toolset or agent is out of the generated code's reach |
-| [TSH017](#tsh017) | Error | Toolset or agent is generic or derives from another |
-| [TSH018](#tsh018) | Error | Member clashes with a generated member |
-| [TSH019](#tsh019) | Error | Toolset was not compiled with the generator |
-| [TSH020](#tsh020) | Warning | Referenced assembly was not compiled with the generator |
-| [TSH022](#tsh022) | Error | Two agents share a settings kind |
-| [TSH023](#tsh023) | Error | Agent cannot be a tool or a handoff target |
-| [TSH024](#tsh024) | Warning | Sub-agent offers tools that need approval |
-| [TSH025](#tsh025) | Error | Tool is offered twice |
-| [TSH026](#tsh026) | Error | Agents call each other in a circle |
-| [TSH027](#tsh027) | Error | Tool type has no JSON metadata under Native AOT |
-| [TSH028](#tsh028) | Error | Type is no store |
-| [TSH029](#tsh029) | Error | Provider id type cannot be used |
-| [TSH030](#tsh030) | Error | Type is no chat client provider |
+| ID | Severity | Title | Reported |
+|---|---|---|---|
+| [TSH001](#tsh001) | Error | Toolset or agent is not partial | While you type |
+| [TSH002](#tsh002) | Error | Declared value is not a constant | While you type |
+| [TSH003](#tsh003) | Error | Tool is not a static method group | While you type |
+| [TSH004](#tsh004) | Error | Tool parameter or result cannot be bound | While you type |
+| [TSH005](#tsh005) | Error | Settings type is not a record with a parameterless constructor | While you type |
+| [TSH006](#tsh006) | Error | Settings are less accessible than what exposes them | While you type |
+| [TSH007](#tsh007) | Error | Tool name is not unique | Both |
+| [TSH008](#tsh008) | Error | Tool name is not lower_snake_case | While you type |
+| [TSH009](#tsh009) | Warning | Tool has no description | While you type |
+| [TSH010](#tsh010) | Warning | Tool does not take its settings | While you type |
+| [TSH011](#tsh011) | Warning | XML docs are not generated | While you type |
+| [TSH012](#tsh012) | Error | Configurable member has a type settings cannot store | While you type |
+| [TSH013](#tsh013) | Error | Configurable member cannot be set | While you type |
+| [TSH014](#tsh014) | Error | Declaration outside the constructor | While you type |
+| [TSH015](#tsh015) | Error | Chain the generator cannot read | While you type |
+| [TSH016](#tsh016) | Error | Toolset or agent is out of the generated code's reach | While you type |
+| [TSH017](#tsh017) | Error | Toolset or agent does not derive from its base directly | While you type |
+| [TSH018](#tsh018) | Error | Member clashes with a generated member | While you type |
+| [TSH019](#tsh019) | Error | Toolset of a referenced assembly cannot be used | While you type |
+| [TSH020](#tsh020) | Warning | Toolsets and agents of a referenced assembly cannot be registered | On build |
+| [TSH022](#tsh022) | Error | Two agents share a settings kind | On build |
+| [TSH023](#tsh023) | Error | Agent cannot be a tool or a handoff target | On build |
+| [TSH024](#tsh024) | Warning | Sub-agent offers tools that need approval | On build |
+| [TSH025](#tsh025) | Error | Tool is offered twice | Both |
+| [TSH026](#tsh026) | Error | Agents call each other in a circle | On build |
+| [TSH027](#tsh027) | Error | Tool type has no JSON metadata for Native AOT or a trimmed app | On build |
+| [TSH028](#tsh028) | Error | Type is no store | While you type |
+| [TSH029](#tsh029) | Error | Provider id type cannot be used | While you type |
+| [TSH030](#tsh030) | Error | Type is no chat client provider | While you type |
+| [TSH031](#tsh031) | Error | C# language version is below 14 | On build |
+| [TSH032](#tsh032) | Warning | Generator read the declaration differently | Both |
+| [TSH033](#tsh033) | Warning | Enum of a tool is a number for Native AOT or a trimmed app | On build |
+| [TSH034](#tsh034) | Warning | Sub-agent cannot ask the user | On build |
+| [TSH035](#tsh035) | Error | Tool name is reserved | While you type |
+| [TSH036](#tsh036) | Warning | Conversation store keeps no decisions | On build |
+| [TSH037](#tsh037) | Warning | Configurable mode can turn approval off | On build |
+| [TSH038](#tsh038) | Warning | Model fills a settings or service parameter | While you type |
+| [TSH039](#tsh039) | Error | Declared value cannot be used | While you type |
+| [TSH040](#tsh040) | Error | Call the generator cannot intercept | While you type |
+| [TSH041](#tsh041) | Error | Copy of a host is dropped | While you type |
+| [TSH042](#tsh042) | Warning | Copy of a host that lives on is disposed | While you type |
+| [TSH043](#tsh043) | Error | Use marks a tool it does not offer | While you type |
+
+The last column says when an editor shows a diagnostic. "On build" marks a check that compares classes or
+projects: an editor runs it for a build or for an analysis of the whole solution, so its squiggle appears after you
+build. "Both" marks a diagnostic with one check inside a class, which shows while you type, and one across classes,
+which shows on build.
+
+TSH021 is retired: the diagnostic it named is gone, and ids are never reused.
 
 ## Severities and suppression
 
 An error fails the build. A warning lets it pass, but points at code that does not do what it seems to, such as
 settings that reach no parameter ([TSH010](#tsh010)). Each diagnostic's help link leads to its section on this page.
 
+The analyzer also checks the files the compiler treats as generated code, such as one that starts with
+`// <auto-generated/>` or is named `*.g.cs`, because the generator reads a toolset in such a file like any other.
+
 Most diagnostics are reported on the declaration they are about, so the usual
 [suppression](https://learn.microsoft.com/dotnet/fundamentals/code-analysis/suppress-warnings) reaches them:
 `#pragma warning disable TSH009` around one declaration, or a `dotnet_diagnostic.TSH009.severity` entry in
-`.editorconfig`. [TSH020](#tsh020) concerns the whole build and has no source location, so no `#pragma` reaches it:
-to silence it, add it to `<NoWarn>` in the project file. [TSH007](#tsh007) and [TSH022](#tsh022) have no location
+`.editorconfig`. [TSH020](#tsh020) and [TSH031](#tsh031) concern the whole build and have no source location, so no
+`#pragma` reaches them: to silence one, add it to `<NoWarn>` in the project file. [TSH007](#tsh007) and [TSH022](#tsh022) have no location
 either when the clash lies between two referenced projects.
+
+## Retired IDs
+
+A number that a release once used is never given to another diagnostic, so an old `#pragma` or `<NoWarn>` entry
+cannot silence a new mistake. A retired ID reports nothing any more, and you can remove what suppresses it.
+
+| ID | Was | Retired |
+|---|---|---|
+| TSH021 | Referenced assembly has another id type | In 0.1.0-alpha.6. Ids and providers take their types in code, so projects built with different id types work together. |
+
+[TSH028](#tsh028), [TSH029](#tsh029) and [TSH030](#tsh030) reported other mistakes up to 0.1.0-alpha.5, about the one
+id type a build had then. An entry that suppresses one of them since those versions silences today's diagnostic, so
+check whether you still mean it.
 
 ## TSH001
 
 **Toolset or agent is not partial.** The generator adds members to every toolset and agent, so the class and every
 class it is nested in must be `partial`.
 
+<!-- snippet: tsh001 -->
+<a id='snippet-tsh001'></a>
+```cs
+internal class EchoToolset : Toolset
+{
+    public EchoToolset() => AddTool(Echo).WithDescription("Echoes.");
+
+    public static string Echo(string text) => text;
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L10-L17' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh001' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+Add the modifier, here as `internal partial class EchoToolset : Toolset`, and to every class around a nested one.
+
 ## TSH002
 
 **Declared value is not a constant.** The generator reads `WithName`, `WithDescription`, `WithStorageKind` and
-`WithSchemaVersion` at compile time. Pass a literal or a `const`.
+`WithSchemaVersion` at compile time, so each of them takes a value the compiler knows.
+
+<!-- snippet: tsh002 -->
+<a id='snippet-tsh002'></a>
+```cs
+internal partial class EchoToolset : Toolset
+{
+    private static readonly string Prefix = "say_";
+
+    public EchoToolset() => AddTool(Echo).WithName(Prefix + "echo").WithDescription("Echoes.");
+
+    public static string Echo(string text) => text;
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L24-L33' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh002' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+`Prefix` is a field, whose value exists only while the app runs. Pass a literal, such as `WithName("say_echo")`, or
+a `const`.
 
 ## TSH003
 
 **Tool is not a static method group.** The generated function calls your tool method directly, so `AddTool` needs a
 static method that is not generic. A lambda, an instance method, a local function, a generic method or a delegate
-variable cannot be called that way. Pass a static method, of any accessibility: `AddTool(Find)`.
+variable cannot be called that way, and the message says which of them `AddTool` got.
+
+<!-- snippet: tsh003 -->
+<a id='snippet-tsh003'></a>
+```cs
+internal partial class EchoToolset : Toolset
+{
+    public EchoToolset() => AddTool((Func<string, string>)(text => text)).WithDescription("Echoes.");
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L41-L46' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh003' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+Move the lambda's body into a static method, of any accessibility, and pass the method: `AddTool(Echo)`.
+
+A name that two methods share is no single method either. For `AddTool(Find)` beside `Find(string)` and `Find(int)`
+the compiler reports CS1503, "cannot convert from 'method group' to 'System.Delegate'", and TSH003 says what to do:
+rename one of the methods, or name the one you mean with a cast, as in `AddTool((Func<string, string>)Find)`. When
+both overloads are tools, each needs a name of its own from `WithName("...")`.
+
+A static member of a C# 14 extension block works, as in `AddTool(string.Shout)`, unless the block has type
+parameters, as `extension<T>(List<T>)` does.
+
+A method of a `file` class cannot be called either. The generated code is written to files of its own, where a
+file-local class has no name, so move the method to a class that is not file-local.
 
 ## TSH004
 
-**Tool parameter cannot be bound.** The model's JSON arguments cannot fill a `ref` or `out` parameter, a pointer, or
-a ref struct such as `Span<T>`.
+**Tool parameter or result cannot be bound.** The model's JSON arguments cannot fill a `ref` or `out` parameter, a
+pointer, an array of pointers or a ref struct such as `Span<T>`. They cannot fill a `dynamic` parameter either,
+which names no type to read the JSON as.
+
+<!-- snippet: tsh004 -->
+<a id='snippet-tsh004'></a>
+```cs
+internal partial class CounterToolset : Toolset
+{
+    public CounterToolset() => AddTool(Bump).WithDescription("Bumps.");
+
+    public static void Bump(ref int value) => value++;
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L53-L60' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh004' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+Take the value's own type, here `int value`, and return the result. For JSON of any shape, take a `JsonElement`.
+
+A result has the same limits. A tool cannot return a pointer, a ref struct or `dynamic`, by itself or as the value
+of a `Task<T>` or a `ValueTask<T>`: return the value's own type, or `object`. A task or a stream that may itself be
+null, such as `Task<string>?`, is reported too, because the generated code awaits it. Return the task always and
+make its value nullable, as in `Task<string?>`.
+
+The diagnostic is on the parameter, or on the method's return type. For a method of another project it is on the
+method in `AddTool(...)`.
 
 ## TSH005
 
-**Settings type is not a record with a parameterless constructor.** That constructor sets the code defaults. Each
-layer of settings then changes a copy of them, made with `with`.
+**Settings type is not a record with a parameterless constructor.** A public parameterless constructor sets the code
+defaults, and each layer of settings then changes a copy of them, made with `with`. So the type is a record that the
+generated code can create with `new()`: no class, no abstract record, and no record without that constructor.
+
+<!-- snippet: tsh005 -->
+<a id='snippet-tsh005'></a>
+```cs
+internal class EchoSettings
+{
+    public int Repeat { get; init; }
+}
+
+internal partial class EchoToolset : Toolset
+{
+    public EchoToolset() => AddTool(Echo).WithDescription("Echoes.").WithSettings<EchoSettings>();
+
+    public static string Echo(string text, EchoSettings settings) => text;
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L151-L163' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh005' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+Declare `EchoSettings` as a record whose properties carry the code defaults, as this record of the samples does:
+
+<!-- snippet: settings-record -->
+<a id='snippet-settings-record'></a>
+```cs
+internal record SearchTicketsSettings
+{
+    public int Limit { get; init; } = 10;
+
+    public bool IncludeClosed { get; init; }
+
+    public TimeSpan Timeout { get; init; } = TimeSpan.FromSeconds(5);
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Tickets/SearchTicketsSettings.cs#L3-L12' title='Snippet source file'>snippet source</a> | <a href='#snippet-settings-record' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+A positional record, such as `record FindSettings(int Limit = 5)`, has only the constructor of its parameters, also
+when each of them has a default. Declare its members as properties with defaults instead, as
+[Tool settings](./tool-settings.md#the-settings-record) shows, or add a parameterless constructor.
 
 ## TSH006
 
 **Settings are less accessible than what exposes them.** Make the record, the toolset or the provider id type as
-accessible as what exposes it. There are three cases:
+accessible as what exposes it.
+
+<!-- snippet: tsh006 -->
+<a id='snippet-tsh006'></a>
+```cs
+internal record EchoSettings
+{
+    public int Repeat { get; init; }
+}
+
+/// <summary>Echoes.</summary>
+public partial class EchoToolset : Toolset
+{
+    /// <summary>Declares the tool.</summary>
+    public EchoToolset() => AddTool(Echo).WithDescription("Echoes.").WithSettings<EchoSettings>();
+
+    internal static string Echo(string text, EchoSettings settings) => text;
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L210-L224' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh006' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+`EchoSettings` is `internal` and its toolset is `public`, so declare the record `public` or the toolset `internal`.
+There are three cases:
 
 - A settings record is less accessible than its toolset. The toolset's generated members name the record wherever
-  the toolset can be named.
+  the toolset can be named, in files of their own. So the record cannot be a `file` type either, nor be closed over
+  one, as `Paged<Scratch>` is over a file-local `Scratch`.
 - A toolset with configurable settings is less accessible than a public agent that offers it. The agent's `Settings`
   record names the toolset's overrides.
 - An agent makes its model or its summary model configurable, and its
@@ -97,7 +280,41 @@ accessible as what exposes it. There are three cases:
 
 **Tool name is not unique.** A tool name must be unique across the toolsets of your project and of the projects it
 references. Names that differ only in their underscores, such as `get_v2` and `get_v_2`, count as the same, because
-they map to the same generated property. Give one of the tools another name with `WithName("...")`.
+they map to the same generated property.
+
+<!-- snippet: tsh007 -->
+<a id='snippet-tsh007'></a>
+```cs
+internal partial class FirstToolset : Toolset
+{
+    public FirstToolset() => AddTool(Find).WithDescription("Finds.");
+
+    public static string Find(string query) => query;
+}
+
+internal partial class SecondToolset : Toolset
+{
+    public SecondToolset() => AddTool(Find).WithDescription("Finds.");
+
+    public static string Find(string query) => query;
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L249-L263' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh007' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+Both toolsets declare a tool `find`. Give one of the tools another name with `WithName("...")`.
+
+The message names the tool, the toolset that declares it and the toolset that declared the name first. Of two
+toolsets of your project, the later declaration is reported, with the first as its second location. A toolset of a
+referenced project is named in full and with its assembly, since it has no source in your project. When both
+toolsets are referenced, the diagnostic has no location at all: rename the tool in one of the two projects, or
+reference only one of them. Two tools of one toolset show while you type, and a clash between toolsets when you
+build.
+
+Within one toolset or agent, two tools also clash when the generator would write one member for both, and the
+message names that member. `create_report` and `report_function` do: the function class of the first and the
+factory of the second are both `CreateReportFunction`. So do `equals` and `equals_tool`, which are both
+`EqualsTool` in the tool list, where the first gets a suffix.
 
 An agent's own tool needs a unique name only among the tools of the agents its standing approvals reach, and of those
 whose approvals reach it: the agents it hands off to, directly or through other agents, the agents that hand off to it,
@@ -107,150 +324,1071 @@ of the same name. Two agents that never share approvals may each have a tool of 
 ## TSH008
 
 **Tool name is not lower_snake_case.** The providers' function names follow that convention, so tool names must too.
-With `WithName`, the diagnostic is on the string you passed, so change it. Otherwise the tool is
+
+<!-- snippet: tsh008 -->
+<a id='snippet-tsh008'></a>
+```cs
+internal partial class EchoToolset : Toolset
+{
+    public EchoToolset() => AddTool(Echo).WithName("Echo").WithDescription("Echoes.");
+
+    public static string Echo(string text) => text;
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L305-L312' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh008' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+With `WithName`, the diagnostic is on the string you passed, so change it, here to `"echo"`. Otherwise the tool is
 [named after its method](./toolsets.md#names-and-descriptions), and the diagnostic is on the method in
 `AddTool(...)`: rename the method, or set a name with `WithName("...")`.
 
 ## TSH009
 
-**Tool has no description.** The model chooses tools by their descriptions. Add a `<summary>` to the method, or call
-`WithDescription`.
+**Tool has no description.** The model chooses tools by their descriptions.
+
+<!-- snippet: tsh009 -->
+<a id='snippet-tsh009'></a>
+```cs
+internal partial class EchoToolset : Toolset
+{
+    public EchoToolset() => AddTool(Echo);
+
+    public static string Echo(string text) => text;
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L319-L326' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh009' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+Add a `<summary>` to the method, or call `WithDescription`. An empty `<summary></summary>`, which an editor writes
+when you type `///`, describes nothing, and neither does `WithDescription("")` or a text of spaces. Such a call is
+reported on its argument.
 
 ## TSH010
 
 **Tool does not take its settings.** The tool has `WithSettings<T>()` but no parameter of type `T`, so its settings
-reach nothing. Add the parameter to the method.
+reach nothing.
+
+<!-- snippet: tsh010 -->
+<a id='snippet-tsh010'></a>
+```cs
+internal record EchoSettings
+{
+    public int Repeat { get; init; }
+}
+
+internal partial class EchoToolset : Toolset
+{
+    public EchoToolset() => AddTool(Echo).WithDescription("Echoes.").WithSettings<EchoSettings>();
+
+    public static string Echo(string text) => text;
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L333-L345' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh010' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+Add the parameter to the method, here as `Echo(string text, EchoSettings settings)`.
 
 ## TSH011
 
-**XML docs are not generated.** A tool or an agent takes its description from its `<summary>`, but the compiler reads
-XML docs only with `GenerateDocumentationFile`, which the package turns on, so your project turned it off. Remove that
-setting. `WithDescription` is a way around it only when a tool's parameters have no `<param>` docs, since it replaces
-only the `<summary>`.
+**XML docs are not generated.** A tool takes a type whose XML docs describe it or its properties, but those docs
+reach the tool's schema only with `GenerateDocumentationFile`, which the package turns on, so your project turned it
+off:
+
+```xml
+<PropertyGroup>
+  <GenerateDocumentationFile>false</GenerateDocumentationFile>
+</PropertyGroup>
+```
+
+Remove that setting. Without it, Typeshift reads a tool's own `<summary>` and `<param>` docs and an agent's summary
+all the same, but the docs of the types your tools take are collected only from the XML the compiler writes
+([XML docs of parameter types](./registration.md#xml-docs-of-parameter-types)). The warning names the tool's
+parameter that takes such a type.
 
 ## TSH012
 
-**Configurable member has a type settings cannot store.** The same error covers a `Configurable(o => ...)` pick of a
-chat option that belongs to a single run. Remove the pick, or change the member's type. A member that
-`WithConfigurableSettings<T>()` makes configurable is reported on that call, and you can leave it out with
-`NotConfigurable(...)`.
+**Configurable member has a type settings cannot store.** The message names the member and its type.
 
-- [Tool settings](./tool-settings.md#configurable-members) lists the types a configurable settings member may have.
+<!-- snippet: tsh012 -->
+<a id='snippet-tsh012'></a>
+```cs
+internal record EchoSettings
+{
+    public Func<int> Pick { get; init; } = () => 1;
+}
+
+internal partial class EchoToolset : Toolset
+{
+    public EchoToolset() =>
+        AddTool(Echo).WithDescription("Echoes.").WithSettings<EchoSettings>().Configurable(s => s.Pick);
+
+    public static string Echo(string text, EchoSettings settings) => text;
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L1248-L1261' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh012' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+A `Func<int>` has no stored form. Remove the pick, or change the member's type. A member that
+`WithConfigurableSettings<T>()` makes configurable is reported on that call, and you can leave it out with
+`NotConfigurable(...)`, as the message spells out. The same error covers a `Configurable(o => ...)` pick of a chat
+option that settings do not store, and then lists the options they do.
+
+- [Tool settings](./tool-settings.md#storable-types) lists the types a configurable settings member may have.
+- `object`, a class without a settable member, and a list or a dictionary of those, such as
+  `Dictionary<string, object>`, would be stored as `{}`. Give the member a record with settable members or a
+  `Dictionary<string, string>`.
+- A list of nullable items or a dictionary of nullable values, such as `List<string?>`, has no stored form, since a
+  stored item is a value. Make the items non-nullable.
 - Of the chat options, the model, the instructions, the sampling options, the stop sequences, multiple tool calls and
   reasoning may be configurable. `Tools`, `ConversationId`, `ResponseFormat`, `ToolMode` and the additional
   properties may not, as [Builders](./builders.md#chatoptionsbuilder) shows.
 
 ## TSH013
 
-**Configurable member cannot be set.** Give it a public `set` or `init` accessor.
+**Configurable member cannot be set.** Settings assign a configurable member its stored value, so the member
+needs a public `set` or `init` accessor.
+
+<!-- snippet: tsh013 -->
+<a id='snippet-tsh013'></a>
+```cs
+internal record EchoSettings
+{
+    public int Repeat { get; init; } = 1;
+
+    public int Twice => Repeat * 2;
+}
+
+internal partial class EchoToolset : Toolset
+{
+    public EchoToolset()
+    {
+        AddTool(Echo)
+            .WithDescription("Echoes.")
+            .WithSettings<EchoSettings>()
+            .Configurable(s => s.Twice);
+    }
+
+    public static string Echo(string text, EchoSettings settings) => text;
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L367-L387' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh013' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+`Twice` is computed from `Repeat` and has no setter. Pick `Repeat` instead, or give the member an accessor.
 
 ## TSH014
 
 **Declaration outside the constructor.** The generator reads `AddTool`, `UseToolset` and the other declarations only
 directly in the constructor, not in a helper method, a lambda or a local function. It also skips them under an `if`,
 in a loop or in another nested block, because there they would run only sometimes, while the generated code always
-includes them. Move each declaration to the top level of the constructor body.
+includes them.
+
+<!-- snippet: tsh014 -->
+<a id='snippet-tsh014'></a>
+```cs
+internal partial class EchoToolset : Toolset
+{
+    public EchoToolset() => Declare();
+
+    public static string Echo(string text) => text;
+
+    private void Declare() => AddTool(Echo).WithDescription("Echoes.");
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L394-L403' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh014' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+Move each declaration to the top level of the constructor body, here the `AddTool(Echo)` chain out of `Declare()`.
 
 ## TSH015
 
 **Chain the generator cannot read.** Keep each declaration one expression. The generator cannot follow a chain split
-over variables, such as `var u = UseToolset<T>(); u.Include(...)`. It also reads a pick only when it names one
-member of the lambda's parameter, as `t => t.SearchTickets` in `Include` or `s => s.Limit` in `Configurable` do.
+over variables, such as `var u = UseToolset<T>(); u.Include(...)`.
+
+<!-- snippet: tsh015 -->
+<a id='snippet-tsh015'></a>
+```cs
+internal partial class EchoToolset : Toolset
+{
+    public EchoToolset()
+    {
+        var tool = AddTool(Echo);
+        tool.WithDescription("Echoes.");
+    }
+
+    /// <summary>Echoes.</summary>
+    public static string Echo(string text) => text;
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L497-L509' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh015' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+Write the declaration as one chain, here `AddTool(Echo).WithDescription("Echoes.")`. The generator also reads a pick
+only when it names one member of the lambda's parameter, as `t => t.SearchTickets` in `Include` or `s => s.Limit` in
+`Configurable` do. This chain of the samples is one expression, and each of its picks names one member:
+
+<!-- snippet: settings-picks -->
+<a id='snippet-settings-picks'></a>
+```cs
+AddTool(SearchTickets)
+    .ReadOnly()
+    .WithSettings<SearchTicketsSettings>()
+    .Configurable(s => s.IncludeClosed)
+    .Configurable(s => s.Limit);
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Tickets/TicketToolset.cs#L12-L18' title='Snippet source file'>snippet source</a> | <a href='#snippet-settings-picks' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
 
 ## TSH016
 
 **Toolset or agent is out of the generated code's reach.** Generated code names the class and the module creates it,
-so it cannot be nested as `private` or `protected`, and needs a public or internal parameterless constructor.
+so it cannot be nested as `private` or `protected`, and needs a public or internal parameterless constructor. It
+cannot be a `file` class or be nested in one either: the generated code is written to files of its own, and only its
+own file can name a file-local class.
+
+<!-- snippet: tsh016 -->
+<a id='snippet-tsh016'></a>
+```cs
+internal partial class EchoAgent : Agent
+{
+    public EchoAgent(string model) => WithChatOptions().WithModel("openai", model);
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L925-L930' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh016' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+A constructor with parameters is the usual cause, whether it takes a value, as `EchoAgent(string model)` does, or
+services, such as `public ResearchAgent(TimeProvider time)`. Typeshift creates the class with `new`, so its
+constructor takes no parameters. A model that differs from run to run is a
+[configurable chat option](./builders.md#chatoptionsbuilder). A tool reaches services through its
+[`IServiceProvider` parameter](./toolsets.md#parameters), and an agent through a
+[context provider](./middleware.md#context-providers), which the run's services create.
+
+On `UseToolset<T>()` it reports an abstract toolset. The generator writes no tools for an abstract class, and no
+class may derive from a toolset ([TSH017](#tsh017)), so the use would offer nothing. Name a toolset that is not
+abstract.
 
 ## TSH017
 
-**Toolset or agent is generic or derives from another.** Derive each toolset from `Toolset` and each agent from
-`Agent` directly, without type parameters. Share code through static methods.
+**Toolset or agent does not derive from its base directly.** Derive each toolset from `Toolset` and each agent from
+`Agent` directly, without type parameters.
+
+<!-- snippet: tsh017 -->
+<a id='snippet-tsh017'></a>
+```cs
+internal partial class EchoToolset : Toolset
+{
+    public EchoToolset() => AddTool(Echo).WithDescription("Echoes.");
+
+    public static string Echo(string text) => text;
+}
+
+internal partial class LoudToolset : EchoToolset
+{
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L632-L643' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh017' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+Derive `LoudToolset` from `Toolset`, and share code between the two classes through static methods.
+
+The base list also has to name `Toolset` or `Agent` itself, as `Agent`, `Typeshift.Agent` or
+`global::Typeshift.Agent`. The generator finds your classes by that name, so it writes nothing for a class that names
+its base through a using alias, such as `using AgentBase = Typeshift.Agent;`. When your app has an `Agent` class of its
+own, name Typeshift's with its namespace.
 
 ## TSH018
 
 **Member clashes with a generated member.** A member of yours has a name the generator writes, such as `Settings` in an
-agent, or `CreateSearchTickets`, a tool's factory, in the toolset or the agent that declares the tool. Rename your
-member. [Generated members](./generated-members.md) lists the names.
+agent, or `CreateSearchTickets`, a tool's factory, or `ToolNames`, the class of the tools' names, in the toolset or the
+agent that declares the tool.
+
+<!-- snippet: tsh018 -->
+<a id='snippet-tsh018'></a>
+```cs
+internal partial class EchoToolset : Toolset
+{
+    public EchoToolset() => AddTool(Echo).WithDescription("Echoes.");
+
+    public static string Echo(string text) => text;
+
+    public static void CreateEcho()
+    {
+    }
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L662-L673' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh018' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+The generator writes a factory `CreateEcho` for the tool `echo`. Rename your member.
+[Generated members](./generated-members.md#names-and-hidden-members) lists the names, the hidden ones included.
+
+The class itself is reported when it has such a name, since a class cannot hold a member of its own name: an agent
+named `Settings`, or a toolset named `EchoFunction` with a tool `echo`. Rename the class, or give the tool another
+name with `WithName("...")`.
 
 ## TSH019
 
-**Toolset was not compiled with the generator.** It is reported on `UseToolset<T>()`. Reference the package in the
-toolset's project.
+**Toolset of a referenced assembly cannot be used.** It is reported on `UseToolset<T>()`, and the message names
+which of three causes applies:
+
+- The toolset's project was built without the generator. That happens when it reaches Typeshift through a compiled
+  DLL, or through a reference that leaves out the package's analyzers, such as one with `PrivateAssets="all"`.
+- It was built with another Typeshift version, whose generated code does not fit this one.
+- Its assembly is referenced under an `extern alias` only. Generated code names every type from `global::`, which
+  such a reference is no part of.
+
+For the first two, reference the package in the toolset's project, at the version the rest of the build uses, and
+build it again. For the third, reference the assembly without an alias, or give it the `global` alias beside its
+own.
 
 ## TSH020
 
-**Referenced assembly was not compiled with the generator.** It declares toolsets or agents but carries no module of
-this Typeshift version, so `AddTypeshift()` cannot register them. Reference the package in its project, at the
-version the rest of the build uses.
+**Toolsets and agents of a referenced assembly cannot be registered.** The assembly declares toolsets or agents
+that `AddTypeshift()` cannot register, for one of the causes of [TSH019](#tsh019), which the message names. Either
+the code generated for them does not fit this Typeshift version or its build ran no generator at all: reference the
+package in its project, at the version the rest of the build uses, and build it again. Or the assembly is
+referenced under an `extern alias` only, so the generated registration cannot name its module, although its build
+ran the generator: reference it without an alias, or give it the `global` alias beside its own.
 
 ## TSH022
 
 **Two agents share a settings kind.** Their settings would overwrite each other in the store. It happens when two
 agent classes have the same name in different namespaces, or when two agents set the same `WithStorageKind`, in one
-project or across a project and the projects it references. Give one of them a `WithStorageKind` of its own.
+project or across a project and the projects it references.
+
+<!-- snippet: tsh022 -->
+<a id='snippet-tsh022'></a>
+```cs
+namespace Support
+{
+    internal partial class HelpAgent : Agent
+    {
+        public HelpAgent() => WithChatOptions().WithModel("openai", "fast-model");
+    }
+}
+
+namespace Billing
+{
+    internal partial class HelpAgent : Agent
+    {
+        public HelpAgent() => WithChatOptions().WithModel("openai", "fast-model");
+    }
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L1291-L1307' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh022' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+Give one of them a `WithStorageKind` of its own, such as `WithStorageKind("BillingHelp")`.
 
 ## TSH023
 
 **Agent cannot be a tool or a handoff target.** The diagnostic sits on `UseAgent<T>()` or `UseHandoff<T>()` and is
 about the agent `T`. The model needs that agent's description to decide when to call it, and a lower_snake_case name
-to call it by: its class name in snake_case, unless `WithName(...)` sets another. Give that agent a `<summary>` or a
-`WithDescription(...)` in its constructor, or fix its name. An agent of a referenced project is checked too.
+to call it by: its class name in snake_case, unless `WithName(...)` sets another.
+
+<!-- snippet: tsh023 -->
+<a id='snippet-tsh023'></a>
+```cs
+internal partial class HelpAgent : Agent
+{
+    public HelpAgent() => WithChatOptions().WithModel("openai", "fast-model");
+}
+
+internal partial class LeadAgent : Agent
+{
+    public LeadAgent() => UseAgent<HelpAgent>();
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L1336-L1346' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh023' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+`HelpAgent` has no description. Give that agent a `<summary>` or a `WithDescription(...)` in its constructor, or fix
+its name. An empty summary or description counts as none. An agent of a referenced project is checked too.
+
+A sub-agent is offered as a tool of its own name, so that name may be none of those a run offers itself
+([TSH035](#tsh035)): an agent named `ask_user` cannot be a sub-agent.
+
+An abstract agent is reported too. The generator writes nothing for an abstract class and no class may derive from
+an agent ([TSH017](#tsh017)), so the use would name an agent that does not exist.
 
 ## TSH024
 
 **Sub-agent offers tools that need approval.** A sub-agent cannot stop and ask your app for approval, so in `Default`
-mode its calls of such tools are rejected unless a standing approval or a rule approves them. Add an
-[approval rule](./tool-approval.md#approval-rules), or offer the agent with `UseHandoff<T>()` instead of
-`UseAgent<T>()`.
+mode its calls of such tools are rejected unless a standing approval or a rule approves them.
+
+<!-- snippet: tsh024 -->
+<a id='snippet-tsh024'></a>
+```cs
+internal partial class HelpAgent : Agent
+{
+    public HelpAgent()
+    {
+        WithDescription("Helps.");
+
+        AddTool(Close).WithDescription("Closes a ticket.").RequiresApproval();
+    }
+
+    private static void Close(int number)
+    {
+    }
+}
+
+internal partial class LeadAgent : Agent
+{
+    public LeadAgent() => UseAgent<HelpAgent>();
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L1446-L1465' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh024' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+Add an [approval rule](./tool-approval.md#approval-rules) that decides the calls of `close`, or offer the agent with
+`UseHandoff<T>()` instead of `UseAgent<T>()`.
 
 ## TSH025
 
-**Tool is offered twice.** An agent offers the same tool twice when it:
+**Tool is offered twice.** The diagnostic sits on the declaration that brings a tool a second time, and its message
+ends with the fix of its case.
+
+<!-- snippet: tsh025 -->
+<a id='snippet-tsh025'></a>
+```cs
+internal partial class EchoAgent : Agent
+{
+    public EchoAgent()
+    {
+        UseToolset<EchoToolset>();
+
+        UseToolset<EchoToolset>();
+    }
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L1030-L1040' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh025' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+Remove the second `UseToolset<EchoToolset>()`. The first three cases below show while you type, the others when you
+build, since they compare the agent with its toolsets and the agents it uses. An agent offers the same tool twice
+when it:
 
 - uses the same toolset twice;
 - picks the same tool twice;
 - uses the same agent twice as a sub-agent, or twice as a handoff target;
-- uses two toolsets that each have a tool of the same name. Leave one of the two tools out, for example with
-  `Exclude(...)`;
-- has a tool of its own named like a tool of a toolset it uses. Rename its own tool with `WithName("...")`.
+- uses two toolsets that each have a tool of the same name. The message names both toolsets, and the diagnostic sits
+  on the second `UseToolset<T>()`. Give one of the two tools another name with `WithName("...")`. Leaving one out
+  with `Exclude(...)` does not help: a tool name is unique across your project and its references, whatever the
+  agents pick, so [TSH007](#tsh007) reports the pair as well;
+- has a tool of its own named like a tool of a toolset it uses. The message names the toolset, and the diagnostic
+  sits on the agent's `AddTool(...)`. Rename that tool with `WithName("...")`, or leave the toolset's out with
+  `Exclude(...)`.
+- uses a sub-agent named like one of its tools, or two sub-agents of one name. A sub-agent is offered as a tool of
+  the agent's name, so rename the tool or one of the agents with `WithName("...")`. The diagnostic sits on the
+  `UseAgent<T>()` that brings the name a second time.
+- hands off to two agents of one name, which would both be `handoff_to_{name}`.
 
 ## TSH026
 
 **Agents call each other in a circle.** The agents offer each other as sub-agents through `UseAgent<T>()`, so a call
-could never end. Break the circle by removing one of these `UseAgent<T>()` calls, or by replacing one with
-`UseHandoff<T>()`, because handoffs may form circles.
+could never end.
+
+<!-- snippet: tsh026 -->
+<a id='snippet-tsh026'></a>
+```cs
+internal partial class AskAgent : Agent
+{
+    public AskAgent()
+    {
+        WithDescription("Asks.");
+
+        UseAgent<TellAgent>();
+    }
+}
+
+internal partial class TellAgent : Agent
+{
+    public TellAgent()
+    {
+        WithDescription("Tells.");
+
+        UseAgent<AskAgent>();
+    }
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L2030-L2050' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh026' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+Break the circle by removing one of these `UseAgent<T>()` calls, or by replacing one with `UseHandoff<T>()`, because
+handoffs may form circles.
 
 ## TSH027
 
-**Tool type has no JSON metadata under Native AOT.** In a project that publishes with Native AOT or sets
-`IsAotCompatible`, the types of the parameters the model fills and the type the tool returns need source-generated
-metadata. List each type as `[JsonSerializable(typeof(T))]` on a `JsonSerializerContext` of the toolset's assembly
-([Native AOT](./native-aot.md)). A context nested as `private` or `protected` does not count. These types
-need none: `string`, `char`, `bool`, `short`, `ushort`, `int`, `uint`, `long`, `ulong`, `float`, `double`, `decimal`,
-`DateTime`, `DateTimeOffset`, `TimeSpan`, `IEnumerable<string>`, `JsonElement`, `JsonDocument` and the
-`System.Text.Json.Nodes` types.
+**Tool type has no JSON metadata for Native AOT or a trimmed app.** An app published with Native AOT or trimmed
+has System.Text.Json's reflection off, so the types of the parameters the model fills and the type the tool returns
+need source-generated metadata there. List each type as `[JsonSerializable(typeof(T))]` on a `JsonSerializerContext`
+of the toolset's assembly. A context nested as `private` or `protected` does not count.
+
+The analyzer reports it in a project that sets `PublishAot` or `PublishTrimmed`, and in a library that sets
+`IsAotCompatible` or `IsTrimmable`. It reads what the SDK makes of them, the property
+`JsonSerializerIsReflectionEnabledByDefault`, so a project that turns JSON reflection back on, as a Blazor
+WebAssembly app does, is not reported.
+[Native AOT](./native-aot.md#tool-parameter-and-result-types) shows a context and lists the types that need none.
 
 ## TSH028
 
 **Type is no store.** `WithStore<T>()` and `WithStore(store)` take a store: a type that implements
-`ISettingsStore<TId>`, `IConversationStore<TId>` or `IAgentSettingsStore`, of any id type. Implement one of them, or
-pass the store you meant. A store's id type picks the ids it serves, as
+`ISettingsStore<TId>`, `IConversationStore<TId>`, `IDecisionStore<TId>` or `IAgentSettingsStore`, of any id type.
+
+<!-- snippet: tsh028 -->
+<a id='snippet-tsh028'></a>
+```cs
+internal sealed class Clock;
+
+internal static class Startup
+{
+    public static void Register(IServiceCollection services) =>
+        services.AddTypeshift().WithStore<Clock>();
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L2662-L2670' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh028' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+Implement one of them, or pass the store you meant. A store's id type picks the ids it serves, as
 [Ids of your own types](./settings-and-stores.md#ids-of-your-own-types) shows.
 
 ## TSH029
 
 **Provider id type cannot be used.** The provider `WithModel` names is of a type the agent's `Settings` cannot
 store as one value, such as a record, and they store it because the agent's model or summary model is configurable.
+
+<!-- snippet: tsh029 -->
+<a id='snippet-tsh029'></a>
+```cs
+public sealed record ProviderKey(string Name);
+
+public partial class HelpAgent : Agent
+{
+    public HelpAgent() =>
+        WithChatOptions().WithModel(new ProviderKey("openai"), "fast-model").Configurable(o => o.ModelId);
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L2932-L2940' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh029' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
 Name providers by a string, a number, a `Guid` or an enum, or keep the model out of the settings: an agent whose
 `Settings` store no provider may name one of any type ([The provider id type](./models.md#the-provider-id-type)).
 
 ## TSH030
 
 **Type is no chat client provider.** `WithChatClientProvider<TProvider>()` registers the class as each
-`IChatClientProvider<T>` it implements, and this class implements none, so it would serve no run. Implement
-`IChatClientProvider<T>` for the [provider id type](./models.md#the-provider-id-type) of your agents, such as
-`IChatClientProvider<string>`, or pass the class you meant.
+`IChatClientProvider<T>` it implements, and this class implements none, so it would serve no run.
+
+<!-- snippet: tsh030 -->
+<a id='snippet-tsh030'></a>
+```cs
+public sealed class Clients;
+
+internal static class Startup
+{
+    public static void Register(IServiceCollection services) =>
+        services.AddTypeshift().WithChatClientProvider<Clients>();
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L2962-L2970' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh030' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+Implement `IChatClientProvider<T>` for the [provider id type](./models.md#the-provider-id-type) of your agents, such
+as `IChatClientProvider<string>`, or pass the class you meant.
+
+## TSH031
+
+**C# language version is below 14.** The code Typeshift generates for your toolsets and agents is C# 14, so the
+generator writes nothing for a project that compiles as an earlier version, and this error says so once for the
+project. A project on .NET 11 compiles as a later version unless something pins it, usually a `<LangVersion>` in
+the project file or in a `Directory.Build.props` above it:
+
+```xml
+<PropertyGroup>
+  <LangVersion>13</LangVersion>
+</PropertyGroup>
+```
+
+Remove that setting or raise it to 14 or later. The error is reported when you build, for a project that declares a
+toolset or an agent, or calls `AddTypeshift()` or `TypeshiftRuntime.Create(...)`.
+
+A project below C# 14 that does none of this gets no error. It still goes without its
+[registration module](./registration.md#what-addtypeshift-registers), so the XML docs of its types describe nothing
+in the schemas of the tools that take them.
+
+## TSH032
+
+**Generator read the declaration differently.** The generator and the analyzer read your declarations with the same
+code, but the generator reads them before any source generator has written its code, its own included. A declaration
+that names such code is clear to the analyzer and unreadable to the generator, which then leaves it out. The message
+names the first difference: a tool that is missing, or an agent's name, storage kind or description that fell back
+to its default.
+
+These declarations compile and are read differently:
+
+- `AddTool(Generated.Find)`, when another source generator writes `Generated.Find`. The tool is missing.
+- `WithName(Generated.AgentName)` or `WithStorageKind(Generated.Kind)` with a constant another generator writes.
+  The agent keeps the name or the kind of its class, so its settings are stored under another kind than the code
+  says.
+- A tool whose method takes a type Typeshift generates, such as another agent's `Settings`. The tool is missing.
+
+Declare tools, names and kinds with methods, constants and types of your own code. The diagnostic is a warning
+because it compares your code with generated code, and an editor may show generated code that is a moment behind
+what you typed. A build always compares the two as they are. A class the generator wrote nothing for is not compared:
+[TSH001](#tsh001) and [TSH017](#tsh017) say why it wrote nothing.
+
+## TSH033
+
+**Enum of a tool is a number for Native AOT or a trimmed app.** In an app that keeps JSON reflection, the model
+reads an enum of a tool by its names: the schema lists them, the model sends one, and the result holds one. An app
+published with Native AOT or trimmed leaves that to the `JsonSerializerContext` that lists the type, and a context
+writes an enum as a number unless you tell it otherwise. The model then reads `integer` in the schema and has to
+guess the numbers, and a name it sends fails the call.
+
+Add `[JsonSourceGenerationOptions(UseStringEnumConverter = true)]` to the context, or give the enum a converter of
+its own, `[JsonConverter(typeof(JsonStringEnumConverter<TEnum>))]`. A context that names the converter in the
+`Converters` of its options is not reported for that enum either.
+[Native AOT](./native-aot.md#tool-parameter-and-result-types) shows such a context.
+
+The analyzer reports a context once, with one of the enums and one of the tools, in the projects
+[TSH027](#tsh027) checks. It finds an enum that is a tool's parameter or result, a type argument or an array's
+element of one, or the type of a property, however deep. It reads the types of tools only, not the `T` of
+`RunAsync<T>`.
+
+## TSH034
+
+**Sub-agent cannot ask the user.** The agent declares `UseQuestions()`, and a sub-agent has no conversation in which
+a question could wait, so it is not offered `ask_user` while another agent calls it with `UseAgent<T>()`.
+
+<!-- snippet: tsh034 -->
+<a id='snippet-tsh034'></a>
+```cs
+internal partial class HelpAgent : Agent
+{
+    public HelpAgent()
+    {
+        WithDescription("Helps.");
+
+        UseQuestions();
+    }
+}
+
+internal partial class LeadAgent : Agent
+{
+    public LeadAgent() => UseAgent<HelpAgent>();
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L1472-L1487' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh034' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+Declare `UseQuestions()` on the calling agent, which can [ask the user](./tool-approval.md#asking-the-user) and pass
+the answer on, or offer the agent with `UseHandoff<T>()`, since an agent handed the conversation can ask. Run on its
+own host, the agent asks as declared.
+
+## TSH035
+
+**Tool name is reserved.** A run offers some tools itself, and a tool of a toolset or of an agent may not have their
+names, because the model would see two tools of one name or yours in the built-in tool's place.
+
+<!-- snippet: tsh035 -->
+<a id='snippet-tsh035'></a>
+```cs
+internal partial class DeskToolset : Toolset
+{
+    public DeskToolset() => AddTool(AskUser).WithDescription("Asks the user.");
+
+    public static string AskUser(string question) => question;
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L1523-L1530' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh035' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+The method `AskUser` names its tool `ask_user`, which is one of the reserved names:
+
+| Name | Is the tool that |
+|---|---|
+| `ask_user` | asks the user, which [`UseQuestions()`](./tool-approval.md#asking-the-user) offers |
+| `exit_plan_mode` | presents the plan in [plan mode](./tool-approval.md#plan-mode) |
+| `handoff_to_...` | hands the conversation to another agent, one for each [`UseHandoff<T>()`](./multi-agent.md#handoff) |
+
+Give your tool another name with `WithName("...")`, or rename its method. The tools a run gets from elsewhere, such
+as an [MCP server's](./mcp.md#how-the-agent-offers-the-tools) or a context provider's, are checked when the run
+starts, which fails with an `InvalidOperationException` that names the tool and where it comes from.
+
+## TSH036
+
+**Conversation store keeps no decisions.** The store you register with `WithStore<T>()` keeps conversations, and
+neither it nor another store of the same `AddTypeshift()` chain keeps the
+[decisions](./implementing-a-store.md#keep-decisions) of those conversations, while an agent the project sees can
+ask your app: it offers a tool or an MCP server that requires approval, can run in plan mode, or declares
+`UseQuestions()`. The first run that asks would throw an `InvalidOperationException`, since Typeshift never keeps
+decisions in memory beside a store you registered. Implement `IDecisionStore<TId>` of the same id type in the store,
+or `ITypeshiftStore<TId>`, which includes it, or add a store of decisions to the chain.
+
+The analyzer sees the `WithStore<T>()` calls of one chain only. When another part of your app registers the store
+of decisions, in the container or in another chain, disable the warning where it is reported.
+
+## TSH037
+
+**Configurable mode can turn approval off.** `Configurable(r => r.Mode)` puts the agent's
+[mode](./tool-approval.md#the-three-modes) into its `Settings`, and the agent offers tools that require approval, of
+a toolset, of its own or of an MCP server. Whoever can store or post those settings can then name `Auto`, and in
+auto mode those tools run without asking your app.
+
+<!-- snippet: tsh037 -->
+<a id='snippet-tsh037'></a>
+```cs
+internal partial class TicketToolset : Toolset
+{
+    public TicketToolset() => AddTool(Close).WithDescription("Closes a ticket.").RequiresApproval();
+
+    public static void Close(int number)
+    {
+    }
+}
+
+internal partial class DeskAgent : Agent
+{
+    public DeskAgent()
+    {
+        UseToolset<TicketToolset>();
+
+        WithRunOptions().Configurable(r => r.Mode);
+    }
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L1770-L1789' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh037' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+Remove the pick, so that only your code sets the mode: `WithMode(...)` for the agent's runs, an approved plan, and
+`SetModeAsync(mode)` on the agent's host for one conversation, which switches it back from auto mode too
+([Setting the mode](./tool-approval.md#setting-the-mode)). For calls that must never run unasked, write an
+[approval rule](./tool-approval.md#approval-rules), because a rule's rejection holds in every mode.
+
+Keep the pick, and disable the warning there, only when every source of the agent's settings is your own code, for
+example a run that passes `Mode = AgentMode.Plan` and no settings that a customer stores or a page posts.
+
+## TSH038
+
+**Model fills a settings or service parameter.** Typeshift fills four kinds of
+[parameters](./toolsets.md#parameters) itself when it calls a tool, and every other parameter is an argument the
+model sends. The analyzer warns about a parameter that looks as if the call filled it, and the tool is generated
+all the same.
+
+<!-- snippet: tsh038 -->
+<a id='snippet-tsh038'></a>
+```cs
+internal interface ITicketRepository
+{
+    string Find(string query);
+}
+
+internal partial class TicketToolset : Toolset
+{
+    public TicketToolset() => AddTool(Search).WithDescription("Searches tickets.");
+
+    public static string Search(string query, ITicketRepository repository) => repository.Find(query);
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L70-L82' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh038' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+Nothing injects `repository`, so the model would have to send it. Two kinds of parameter are reported:
+
+- A record that looks like the tool's settings: a parameter named `settings`, or one of a type that another tool of
+  the same class names in `WithSettings<T>()`. This tool's chain names no settings, so its schema lists every member
+  of the record and the model sets them. Chain `WithSettings<T>()` or `WithConfigurableSettings<T>()` onto its
+  `AddTool`.
+- An interface, an abstract class or a delegate, such as `ITicketRepository` or `ILogger<T>`. Typeshift injects no
+  services into parameters, and JSON cannot create such a type, so every call of the tool fails. Take an
+  `IServiceProvider` and resolve the service from it, as in `services.GetRequiredService<ITicketRepository>()`.
+
+A type that JSON reads is not reported: a collection interface such as `IReadOnlyList<T>`, a node of
+System.Text.Json such as `JsonNode`, and a type that carries `[JsonConverter]`, `[JsonPolymorphic]` or
+`[JsonDerivedType]`. When the model is meant to fill the parameter, for example through a converter that your JSON
+options register, disable the warning at the parameter.
+
+## TSH039
+
+**Declared value cannot be used.** The value is a constant, as [TSH002](#tsh002) asks, but no store could keep
+settings under it.
+
+<!-- snippet: tsh039 -->
+<a id='snippet-tsh039'></a>
+```cs
+internal partial class VersionedAgent : Agent
+{
+    public VersionedAgent()
+    {
+        WithDescription("Has a version.");
+        WithSchemaVersion(0);
+    }
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L753-L762' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh039' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+Two values are reported:
+
+- `WithSchemaVersion(n)` with `n` below 1. A stored document that names no schema version counts as version 1, so
+  settings saved under version 0 would read back as newer than your code, and every later run would fail to load
+  them. Start at 1, which an agent has without the call, and raise it from there.
+- `WithStorageKind("")`, or a kind of spaces. A store keeps the agent's settings under the kind, so it has to name
+  something. Pass a name, or remove the call to keep the class name.
+
+The agent keeps its default in the generated code, schema version 1 or the kind of its class, until you fix the
+value.
+
+## TSH040
+
+**Call the generator cannot intercept.** `AddTypeshift()` and `TypeshiftRuntime.Create(...)` do their work in code
+the generator writes in their place, and the library's own methods only throw. The generator rewrites a call it
+recognizes by its spelling: `services.AddTypeshift()`, also as `services?.AddTypeshift()`, and
+`TypeshiftRuntime.Create(...)` with the class named. Every other way to reach the two methods compiles and would
+throw an `InvalidOperationException` when your app starts, so the analyzer reports it.
+
+<!-- snippet: tsh040 -->
+<a id='snippet-tsh040'></a>
+```cs
+using static Typeshift.TypeshiftRuntime;
+
+namespace Demo;
+
+internal static class Startup
+{
+    public static object? Start(IServiceCollection services, IChatClient client) =>
+        Create(client);
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L3640-L3650' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh040' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+The analyzer reports these spellings:
+
+- `Create(client)` through `using static Typeshift.TypeshiftRuntime`, and `Runtime.Create(client)` through a using
+  alias. Name the class: `TypeshiftRuntime.Create(client)`.
+- A method group, such as `Func<IServiceCollection, TypeshiftBuilder> add = ...AddTypeshift`. A delegate holds the
+  library's method, which no call site rewrites. Call the method where you need it.
+- `TypeshiftRuntime.Create(client)` with a `dynamic` argument, which binds the call when it runs. Pass arguments of
+  static types.
+
+## TSH041
+
+**Copy of a host is dropped.** `WithSettingsId(id)` and `WithConversationId(id)` return a copy of the host with the
+id and leave the host they are called on as it was. A call whose copy goes nowhere changes nothing: the host's next
+run has no id, so it stores and resumes no conversation, and its settings members change the agent's own settings,
+which every run applies, in place of the settings under the id.
+
+<!-- snippet: tsh041 -->
+<a id='snippet-tsh041'></a>
+```cs
+internal sealed class RefundDesk(AgentHost<SupportAgent> support)
+{
+    public async Task<string> AnswerAsync(string question, int customer)
+    {
+        support.WithSettingsId(customer);
+
+        var answer = await support.RunAsync(question);
+        return answer.Text;
+    }
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L3731-L3742' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh041' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+Run the copy, as in `support.WithSettingsId(customer).RunAsync(question)`, or keep it in a variable and run that
+([Ids of your own types](./settings-and-stores.md#ids-of-your-own-types)).
+
+## TSH042
+
+**Copy of a host that lives on is disposed.** A copy runs in its host's scope, and disposing it disposes what disposing
+the host would: the scope of a host from `runtime.CreateHost<TAgent>()`, after which a run of the host or of any copy
+throws an `ObjectDisposedException` ([The runtime](./registration.md#the-runtime)). A `using` on a copy of a host that
+your code holds, in an outer block, a field, a property or a parameter, ends that host's scope while the code still has
+it, as in the next round of this loop:
+
+<!-- snippet: tsh042 -->
+<a id='snippet-tsh042'></a>
+```cs
+internal sealed class TicketFollowUp(TypeshiftRuntime runtime)
+{
+    public async Task FollowUpAsync(IEnumerable<string> tickets)
+    {
+        await using var support = runtime.CreateHost<SupportAgent>();
+
+        foreach (var ticket in tickets)
+        {
+            await using var chat = support.WithConversationId(ticket);
+            await chat.RunAsync("Is the ticket solved?");
+        }
+    }
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L3778-L3792' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh042' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+Take the copy without `using`, and dispose the host where its work ends. The analyzer reports nothing for
+`await using var chat = runtime.CreateHost<SupportAgent>().WithConversationId(ticket);`, whose host nothing else holds,
+nor for a copy disposed in the block that declares its host, where both end together.
+
+## TSH043
+
+**Use marks a tool it does not offer.** `RequiresApproval(t => t.X)` and `Configurable(t => t.X)` on a
+`UseToolset<T>()` act on a tool the use offers. A use that excludes the tool, or includes other tools only, never
+offers it, so the mark would do nothing:
+
+<!-- snippet: tsh043 -->
+<a id='snippet-tsh043'></a>
+```cs
+internal partial class DeskAgent : Agent
+{
+    public DeskAgent()
+    {
+        UseToolset<TicketToolset>()
+            .Exclude(t => t.Close)
+            .RequiresApproval(t => t.Close);
+    }
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L3926-L3936' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh043' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+Remove the `Exclude`, include the tool, or remove the mark. To make a tool ask your app, it has to be offered
+([Requiring approval](./tool-approval.md#requiring-approval)).
+
+## Errors at run time
+
+Some mistakes show only when your app runs, such as a provider no client is registered for, or a store that is
+missing. Typeshift then throws an exception whose message names the cause and the way out. The tables below list
+each one by the words its message always holds, so a search of these docs for the text in your log finds its row.
+Each row links the section that explains it. A word in braces stands for a value the message fills in, such as
+`{agent}` for the agent's name.
+
+### Registration and hosts
+
+| Exception | Message | Cause | What to do |
+|---|---|---|---|
+| `InvalidOperationException` | `AddTypeshift() was not intercepted by the Typeshift generator` | The calling project does not reference the package, or calls it in a form the generator cannot rewrite | Reference the package there and call `services.AddTypeshift()` ([What `AddTypeshift()` registers](./registration.md#what-addtypeshift-registers), [TSH040](#tsh040)) |
+| `InvalidOperationException` | `TypeshiftRuntime.Create() was not intercepted by the Typeshift generator` | The same, for the runtime of an app without a container | Call `TypeshiftRuntime.Create(client)` in a project that references the package ([The runtime](./registration.md#the-runtime)) |
+| `InvalidOperationException` | `The agent '{agent}' is not registered.` | Only a library your app references calls `AddTypeshift()`, or the generator left the agent out | Call `AddTypeshift()` in your app too ([What `AddTypeshift()` registers](./registration.md#what-addtypeshift-registers)) |
+| `InvalidOperationException` | `was not compiled with the Typeshift generator` | The agent got no generated code, because it is not `partial`, names its base through an alias, or its project lacks the package | Fix what the analyzer reports for it ([TSH001](#tsh001), [TSH017](#tsh017)) |
+| `ArgumentException` | `No agent of the kind '{kind}' is registered.` | `runtime.CreateHost(kind)` got a kind none of `runtime.Agents` has, such as one a request named | Take a kind of `runtime.Agents`, the agent's `WithStorageKind` or class name ([The catalog](./registration.md#the-catalog)) |
+| `ArgumentException` | `The agent '{agent}' is not registered. The agents are those of TypeshiftRuntime.Agents.` | `runtime.CreateHost(type)` got a type no module registered as an agent | Take a type of `runtime.Agents` ([The catalog](./registration.md#the-catalog)) |
+| `InvalidOperationException` | `AgentHost<{agent}> was resolved from the root provider` | Your app resolved the host from `app.Services`, or injected it into a singleton | Resolve it from a scope, or inject `TypeshiftRuntime` and call `CreateHost<TAgent>()` ([Run from a console app](./using-an-agent.md#run-from-a-console-app)) |
+
+### Chat clients
+
+| Exception | Message | Cause | What to do |
+|---|---|---|---|
+| `InvalidOperationException` | `which names no provider, and no default client is registered` | The run names no provider, and your app registered no default client | Register one with `services.AddChatClient(client)`, or name a provider ([Registering clients](./models.md#registering-clients)) |
+| `InvalidOperationException` | `No chat client serves {run} on`, `Name a provider that has a client` | The run names a provider that no client is registered under, such as a typo. The message lists the keys your app registered clients under | Name a registered provider, or register a client under it ([Registering clients](./models.md#registering-clients)) |
+| `InvalidOperationException` | `which names no model: the` | Your provider class serves the run's provider, and the run names no model | Name the model, in the agent's code or its settings ([Your own provider](./models.md#your-own-provider)) |
+| `InvalidOperationException` | `returned no client for` | Your `IChatClientProvider<T>` returned null | Return a client, or throw for a provider it does not serve ([A key per customer](./models.md#a-key-per-customer)) |
+| `InvalidOperationException` | `runs a tool loop of its own` | The client is wrapped in `UseFunctionInvocation()` | Register the client without it ([Wrapping a client](./models.md#wrapping-a-client)) |
+| `InvalidOperationException` | `is no chat client provider: implement` | `WithChatClientProvider<T>()` got a class that implements no `IChatClientProvider<T>` | Implement it ([TSH030](#tsh030)) |
+
+### Stores
+
+| Exception | Message | Cause | What to do |
+|---|---|---|---|
+| `InvalidOperationException` | `are both registered as`, `and a store interface has one store` | Two calls of the chain register a store for one interface | Remove one, or pass `replace: true` to the store that takes over, as a test host's does ([Which store serves a call](./implementing-a-store.md#which-store-serves-a-call)) |
+| `InvalidOperationException` | `but a store is one instance for every run` | A store is registered with `AddScoped` or `AddTransient` | Register it with `WithStore<T>()` or `AddSingleton`, with a factory for what it needs per call ([Plan for one instance](./implementing-a-store.md#plan-for-one-instance)) |
+| `InvalidOperationException` | `No ISettingsStore<{id}> is registered for a settings id of that type` | Your app registered stores, and none keeps settings under ids of that type | Register one, or pass an id of your store's type ([Which store serves a call](./implementing-a-store.md#which-store-serves-a-call)) |
+| `InvalidOperationException` | `No IConversationStore<{id}> is registered for a conversation id of that type` | The same for conversations, those `PersistAllConversations` starts under a `Guid` included | Register one, or give ids of your store's type, with `NewConversationIds` for the conversations Typeshift starts ([Which store serves a call](./implementing-a-store.md#which-store-serves-a-call)) |
+| `InvalidOperationException` | `No IDecisionStore<{id}> is registered for a conversation id of that type` | A conversation has a decision, an approval or a mode to keep, and none of your stores keeps decisions | Implement `IDecisionStore<TId>` beside your conversation store ([Which store serves a call](./implementing-a-store.md#which-store-serves-a-call), [TSH036](#tsh036)) |
+| `InvalidOperationException` | `No IAgentSettingsStore is registered, so nothing keeps an agent's own settings` | A host without a settings id loads or saves settings, and none of your stores keeps agents' own | Call `WithFileStore()`, or implement `IAgentSettingsStore` ([Which store serves a call](./implementing-a-store.md#which-store-serves-a-call)) |
+| `InvalidOperationException` | `is no store: implement` | `WithStore` got a type that implements no store interface | Implement one ([TSH028](#tsh028)) |
+| `StoreConflictException` | `was saved since version`, or your store's own | Another save of the document came first since your code loaded it, for `UpdateSettingsAsync` ten times in a row | Load the document again and repeat the change ([A settings form](./settings-and-stores.md#a-settings-form-load-save-and-conflicts)) |
+| `JsonException` | `is newer than this code's` | Stored settings were written by newer code of the agent, such as before a rollback | Deploy the newer code, or migrate the documents ([Migrate older settings](./implementing-a-store.md#migrate-older-settings)) |
+| `JsonException` | `the type the agent names its providers by` | A stored `provider` or `summaryProvider` is no value of the agent's provider id type, such as an enum member you renamed | Change the stored value ([The stored JSON](./settings-and-stores.md#the-stored-json)) |
+| `JsonException` | `Stored data must be a JSON object` | A stored settings document is not the JSON Typeshift wrote | Store the JSON as Typeshift wrote it ([The stored JSON](./settings-and-stores.md#the-stored-json)) |
+| `TimeoutException` | `has been held by another save or program for` | The file store waited 30 seconds for the lock file of a settings file | Find the program that holds the `.lock` file ([Keep them in a file](./settings-and-stores.md#keep-them-in-a-file)) |
+| `InvalidDataException` | `the file system ignores case` | Two agents' kinds differ only in case, and their settings share a file | Give one of them a `WithStorageKind` of its own ([Keep them in a file](./settings-and-stores.md#keep-them-in-a-file)) |
+| `InvalidDataException` | `is no settings file: it holds`, `is no JSON: it holds` | A file in the store's `settings` folder has another shape than the store writes | Fix the file, or move it away ([Keep them in a file](./settings-and-stores.md#keep-them-in-a-file)) |
+| `ArgumentException` | `makes a file name too long` | An agent's kind is too long for a file name | Give the agent a shorter `WithStorageKind` ([Keep them in a file](./settings-and-stores.md#keep-them-in-a-file)) |
+
+### Settings
+
+| Exception | Message | Cause | What to do |
+|---|---|---|---|
+| `ArgumentException` | `No run could go with them, so nothing was saved` | The saved settings set a value no run takes, such as a blank model or `MaxToolIterations = 0` | Set a value in range, or null for the layer below ([What a save refuses](./settings-and-stores.md#what-a-save-refuses)) |
+| `InvalidOperationException` | `resolved {option} {value} from the settings of` | Two layers together resolve a value no run takes, such as a stored `TargetInputTokens` above the code's `MaxInputTokens` | Change one of the layers the message names ([What a save refuses](./settings-and-stores.md#what-a-save-refuses)) |
+| `ArgumentOutOfRangeException` | `{option} must {rule}.`, such as `be 1 or more` | An agent's constructor sets a run option no run takes, such as `WithMaxToolIterations(0)` | Pass a value in the option's range ([RunOptionsBuilder](./builders.md#runoptionsbuilder)) |
+| `InvalidOperationException` | `returned no settings, so nothing was saved` | The function passed to `UpdateSettingsAsync` returned null | Return the settings it was given, changed or not ([Settings under an id](./settings-and-stores.md#settings-under-an-id-such-as-per-customer)) |
+| `InvalidOperationException` | `holds a null {item}, which settings cannot store` | A list or a dictionary of the saved settings holds a null | Leave the null out ([Storable types](./tool-settings.md#storable-types)) |
+| `JsonException` | `'{member}' is no settings member`, `holds {value}, which is no`, `is null, which an item of settings cannot be` | The JSON of a request has a member the settings lack, a value of another type or a null item, so ASP.NET answers 400 | Send camelCase names and values of each member's type ([The stored JSON](./settings-and-stores.md#the-stored-json)) |
+
+### Conversations
+
+| Exception | Message | Cause | What to do |
+|---|---|---|---|
+| `ConversationBusyException` | `A run of conversation {id} is going on in this container`, `a conversation has one run at a time` | A run of the conversation is going on in this container | Steer it with `ConversationTracker.TrySteer`, or start again once it has ended ([One run at a time](./conversations.md#one-run-at-a-time)) |
+| `ConversationBusyException` | `The store refused a step of this run of conversation` | A run in another container, such as another instance of your app, appended to the conversation first | Start the run again once the other one has ended ([One run at a time](./conversations.md#one-run-at-a-time)) |
+| `NothingToResumeException` | `has no interrupted run to resume and no answered decisions to carry out` | The conversation's last run ended, and no answered decision waits | Run it with input instead ([Resuming](./conversations.md#resuming)) |
+| `NothingToResumeException` | `has no failed run to retry: its last run answered or waits for your app` | `RetryAsync` on a conversation whose last run did not fail, such as a retry pressed twice | Run it with input, or answer its decisions ([Retrying a failed run](./conversations.md#retrying-a-failed-run)) |
+| `ConversationStoreException` | `is missing a step of this run, since the store failed to append it` | The store failed to append a step of the run, which answered all the same: the answer is in `Response` | Find why the store failed, or set `StoreFailure` to `ContinueRun` to get the answer back ([When the store fails](./conversations.md#when-the-store-fails)) |
+| `InvalidOperationException` | `A resume needs a conversation` | `ResumeAsync` on a host without a conversation id | Resume on a host from `WithConversationId(id)` ([Resuming](./conversations.md#resuming)) |
+| `InvalidOperationException` | `A conversation's history needs a conversation` | `LoadConversationAsync` on a host without a conversation id | Load it on a host from `WithConversationId(id)` ([What is stored](./conversations.md#what-is-stored)) |
+| `InvalidOperationException` | `The run stored no conversation` | `GetConversationId<TId>()` on the response of a run that had no conversation | Give the host a conversation id, or keep every conversation ([Keeping every conversation](./conversations.md#keeping-every-conversation)) |
+| `ArgumentException` | `Steering input is a user message without approval contents` | Steering input of another role, or with Microsoft.Extensions.AI's approval contents | Steer with a user message, and answer decisions by their ids ([Steering](./conversations.md#steering)) |
+| `ConversationBusyException` | `holds as much steering input as it takes before its next model call` | The run going on holds 32 steering inputs, or 262,144 characters of their text, that its model has not received yet | Answer that the chat is busy, and steer again once the model took them ([Steering](./conversations.md#steering)) |
+| `ArgumentException` | `Steering input carries the mark of a background sub-agent's answer` | The message your app steers carries the mark a run gives a background sub-agent's answer, which run middleware lets pass unseen | Steer the user's message without it ([Steering](./conversations.md#steering)) |
+
+### Decisions
+
+| Exception | Message | Cause | What to do |
+|---|---|---|---|
+| `DecisionUnavailableException` | `whose calls need a decision of your app, and a run without a conversation has nowhere to keep one` | The agent offers a tool that requires approval, or runs in plan mode, and the run has no conversation | Run with a conversation id, keep every conversation, or decide the calls with a rule or auto mode ([When a call needs approval](./tool-approval.md#when-a-call-needs-approval)) |
+| `DecisionUnavailableException` | `which need a decision of your app, and a run without a conversation cannot ask for one` | With approval rules registered, the model called a tool that no rule decided | The same ([When a call needs approval](./tool-approval.md#when-a-call-needs-approval)) |
+| `DecisionClosedException` | `has no open decision for the answers to` | An answer names a decision that was answered, withdrawn, passed by or never asked, so nothing is recorded | Load the open decisions again and show those ([When a decision closes](./tool-approval.md#when-a-decision-closes)) |
+| `InvalidOperationException` | `Decisions belong to a conversation` | A member for decisions on a host without a conversation id | Call it on a host from `WithConversationId(id)` ([Approving or rejecting](./tool-approval.md#approving-or-rejecting)) |
+| `InvalidOperationException` | `waits for decisions another run asked meanwhile` | Runs of the conversation in two containers asked at the same time | Run a conversation in one container at a time ([One run at a time](./conversations.md#one-run-at-a-time)) |
+| `ArgumentException` | `No answer to record`, `is answered twice in one call` | An empty list of answers, or two answers to one decision | Pass one answer for each decision ([Approving or rejecting](./tool-approval.md#approving-or-rejecting)) |
+| `ArgumentException` | `answers questions, and the decision asks none`, `approves, and the decision is a question`, `and the decision is a tool call`, `and the decision is a plan`, `approves a plan into plan mode` | An answer of another kind than its decision, such as a mode for a tool call | Answer as the decision asks ([When a decision closes](./tool-approval.md#when-a-decision-closes)) |
+| `ArgumentException` | `The input carries an approval request or answer of Microsoft.Extensions.AI` | A run's input carries Microsoft.Extensions.AI's approval contents | Answer the decisions by their ids with `AnswerAsync` ([When a decision closes](./tool-approval.md#when-a-decision-closes)) |
+| `ArgumentException` | `answers for {count} questions`, `which the question '{header}' does not offer`, `options of the question '{header}', which takes one`, `leaves the question '{header}' unanswered` | An answer that does not fit its questions | Answer each question once, in their order, with one of its options or a text ([Asking the user](./tool-approval.md#asking-the-user)) |
+| `ArgumentOutOfRangeException` | `An approved plan continues in the default or the auto mode.` | A plan approved into plan mode | Approve it into `AgentMode.Default` or `AgentMode.Auto` ([Plan mode](./tool-approval.md#plan-mode)) |
+| `JsonException` | `is no kind of decision` | The JSON of an answer names a kind no decision has | Send the kind of the decision you answer ([Answer a decision](./chat-endpoint.md#answer-a-decision)) |
+
+### Tools and middleware
+
+| Exception | Message | Cause | What to do |
+|---|---|---|---|
+| The tool's own | Its message | The tool calls of `MaxConsecutiveToolErrors` rounds in a row failed, so the last failure ends the run | Fix the tool, or throw a `ToolException` the model can act on ([When a tool fails](./toolsets.md#when-a-tool-fails)) |
+| `ToolException` | `requires the argument`, `does not fit its schema` | The model left out an argument or sent one of another shape. It reads the message and can correct its call | Nothing, unless the calls keep failing ([Arguments that do not fit](./toolsets.md#arguments-that-do-not-fit)) |
+| `ToolException` | `did not answer in the JSON schema it was given` | A sub-agent of `WithResult<T>()` answered without that JSON, and the calling model reads why | Describe the answer in the sub-agent's instructions ([Typed answers](./multi-agent.md#typed-answers)) |
+| `JsonException` | `fits no single case of` | The JSON of a union's argument fits several of its cases, and the model reads which | Give the union a classifier with `[JsonUnion]` ([Union types](./toolsets.md#union-types)) |
+| `NotSupportedException` | `of the tool '{tool}' has no schema`, `The model's schema cannot hold` | A tool parameter, or the `T` of a typed run, has a member System.Text.Json cannot read or write | Leave the member out, or mark it `[JsonIgnore]` ([Structured output](./running-agents.md#structured-output)) |
+| `JsonException` | `The answer is no JSON object holding a data property`, `The answer holds no data property` | The model of a typed run answered without the `data` property that a `T` other than an object is asked under | Run it again, or ask for a record ([Structured output](./running-agents.md#structured-output)) |
+| `InvalidOperationException` | `uses MCP servers, and no IMcpToolProvider is registered` | The agent uses an MCP server, and your app registered no provider | Call `WithMcpToolProvider<T>()` ([Registering the provider](./mcp.md#registering-the-provider)) |
+| `InvalidOperationException` | `which the agent '{agent}' already offers` | An MCP server offers a tool named like one of the agent's | Rename one of them, or leave the server out ([How the agent offers the tools](./mcp.md#how-the-agent-offers-the-tools)) |
+| `InvalidOperationException` | `and the name is reserved for` | A tool of a server, of a context provider or of `WithTools` has a name the run offers itself, such as `ask_user` | Rename the tool ([TSH035](#tsh035)) |
+| `InvalidOperationException` | `offers the tool '{tool}' twice, through` | Two sources offer a tool of one name, such as a context tool named like one of the agent's | Rename one of them ([Context tools](./middleware.md#context-tools)) |
+| `InvalidOperationException` | `A run middleware returned without calling next or setting the run's response` | A run middleware neither called `next` nor answered | Call `next`, or set `run.Response` in its place ([Answering in place of the model](./middleware.md#answering-in-place-of-the-model)) |
+| `InvalidOperationException` | `The run's response was set after next was called, or outside run middleware` | A run middleware set `run.Response` after the model answered | Wrap the provider's client to change what a model says ([Guarding the answer](./middleware.md#guarding-the-answer)) |
+| `InvalidOperationException` | `does not belong to a run of an agent` | A tool middleware read `call.Run` of a call no run made, such as one of a tool loop of your own | Read it only in the calls of a run ([Wrap every tool call](./middleware.md#wrap-every-tool-call)) |
+
+### Streams and the raw path
+
+| Exception | Message | Cause | What to do |
+|---|---|---|---|
+| `InvalidOperationException` | `A streaming run streams its updates once; start a new run instead.` | A second `await foreach` over one streaming run | Start a new run ([Streaming](./running-agents.md#streaming)) |
+| `InvalidOperationException` | `A streaming run has its response once its updates are read to the end.` | `Response` read before the loop over the updates ended, or after the run failed | Read the updates to the end first ([Structured output](./running-agents.md#structured-output)) |
+| `InvalidOperationException` | `A client taken out of the one CreateChatClientAsync created was called on its own` | Your code called an inner client of the created one | Call the client `CreateChatClientAsync` returned ([The raw path](./running-agents.md#the-raw-path)) |
+| `ArgumentException` | `The options were not resolved for the agent '{agent}'` | `CreateChatClientAsync` got `ChatOptions` your code made, such as `new ChatOptions()` | Create the client from the options `ResolveOptionsAsync` returns ([The raw path](./running-agents.md#the-raw-path)) |
+| `InvalidOperationException` | `This chat client serves {model}, and the call's options were resolved for` | A call on the raw path's client passed options resolved for another provider or model than the client's | Create a client from those options ([The raw path](./running-agents.md#the-raw-path)) |
+| `ArgumentException` | `This chat client continues the conversation '{id}' of the host it was created on` | A call's own options name another conversation than the one of the host the client was created on | Leave `ChatOptions.ConversationId` out, or create the client on a host without a conversation id ([The raw path](./running-agents.md#the-raw-path)) |
+
+### Checking a store
+
+| Exception | Message | Cause | What to do |
+|---|---|---|---|
+| `InvalidOperationException` | `The store broke a rule Typeshift relies on.` | `VerifyAsync` found a rule your store breaks: the rest of the message names it and what to change | Change the store as the message says ([Check your store](./implementing-a-store.md#check-your-store)) |
+| `InvalidOperationException` | `give VerifyAsync a new id`, `give the check a kind nothing is stored under` | Something is stored under an id or a kind the check writes under | Pass ids nothing uses, or start from an empty database ([Check your store](./implementing-a-store.md#check-your-store)) |
+| `ArgumentException` | `VerifyAsync needs two different ids` | The two ids of the check are equal | Pass two different ids ([Check your store](./implementing-a-store.md#check-your-store)) |
+| `InvalidOperationException` | `is no IConversationStore<{id}>: pass conversation ids of the type the store keeps` | The conversation ids of the check that takes four ids have a type the store keeps no conversations under | Pass ids of the type the store keeps ([Check your store](./implementing-a-store.md#check-your-store)) |
 
 ## Related
 
@@ -258,4 +1396,5 @@ Name providers by a string, a number, a `Guid` or an enum, or keep the model out
 - [Agents](./defining-agents.md): the rules of an agent's declarations.
 - [Builders](./builders.md): every call the analyzer checks.
 - [Registration](./registration.md): the package, ids and what each project needs.
-- [Native AOT](./native-aot.md): the JSON metadata [TSH027](#tsh027) asks for.
+- [Native AOT](./native-aot.md): the JSON metadata [TSH027](#tsh027) asks for, and the option
+  [TSH033](#tsh033) asks for.

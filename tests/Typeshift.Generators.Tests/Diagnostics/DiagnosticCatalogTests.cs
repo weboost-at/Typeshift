@@ -1,18 +1,41 @@
+using System.Collections.Immutable;
+using System.Reflection;
 using System.Text.RegularExpressions;
+using Typeshift.Generators.Analysis;
+using Typeshift.Generators.Diagnostics;
+using Typeshift.Generators.Tests.Diagnostics.Support;
 using Typeshift.Generators.Tests.Repository.Support;
 using FluentAssertions;
+using Microsoft.CodeAnalysis;
 
 namespace Typeshift.Generators.Tests.Diagnostics;
 
 public partial class DiagnosticCatalogTests
 {
-    // The release tracking files list every descriptor; the RS2000 analyzer fails the build on a missing row
-    private static readonly IReadOnlyList<string> Ids =
+    private const StringComparison Ordinal = StringComparison.Ordinal;
+
+    // What the analyzer may report; the RS2000 analyzer keeps the release tracking files in step with it
+    private static readonly ImmutableArray<DiagnosticDescriptor> Catalog = new TypeshiftAnalyzer().SupportedDiagnostics;
+
+    private static readonly IReadOnlyList<string> Ids = [.. Catalog.Select(descriptor => descriptor.Id)];
+
+    // Each descriptor by the name of its field, which is how the analyzer's source names it
+    private static readonly IReadOnlyDictionary<DiagnosticDescriptor, string> Fields = typeof(Descriptors)
+        .GetFields(BindingFlags.Public | BindingFlags.Static)
+        .ToDictionary(field => (DiagnosticDescriptor)field.GetValue(null)!, field => field.Name);
+
+    // D49: the IDs a tag once shipped and no diagnostic has any more, which the docs keep in a table of their own
+    private static readonly IReadOnlyList<string> Retired =
     [
-        .. new[] { "AnalyzerReleases.Shipped.md", "AnalyzerReleases.Unshipped.md" }
-            .SelectMany(file => Row().Matches(RepositoryFiles.Read($"src/Typeshift.Generators/{file}")))
+        .. RetiredRow()
+            .Matches(RepositoryFiles.Read("docs/guide/diagnostics.md"))
             .Select(match => match.Groups["id"].Value)
     ];
+
+    // No C# of one file shows these mistakes: they need a build property, a referenced assembly or another
+    // generator's output, or lie in a store and an agent that only together are the mistake
+    private static readonly IReadOnlyList<string> WithoutExample =
+        ["TSH011", "TSH019", "TSH020", "TSH027", "TSH031", "TSH032", "TSH033", "TSH036"];
 
     [Fact]
     public void Every_Diagnostic_Has_A_Row_And_A_Section_In_The_Docs()
@@ -30,6 +53,51 @@ public partial class DiagnosticCatalogTests
     }
 
     [Fact]
+    public void Every_Diagnostic_Links_Its_Docs_Section_And_Matches_Its_Row()
+    {
+        // Arrange
+        var docs = RepositoryFiles.Read("docs/guide/diagnostics.md");
+
+        // Act
+        var drifted = Catalog
+            .Where(descriptor =>
+                !descriptor.HelpLinkUri.EndsWith($"/guide/diagnostics#{Anchor(descriptor)}", StringComparison.Ordinal)
+                || !docs.Contains(RowOf(descriptor), StringComparison.Ordinal))
+            .Select(descriptor => descriptor.Id);
+
+        // Assert
+        drifted.Should().BeEmpty("the editor's help link opens the section, and the table states what is reported");
+    }
+
+    [Fact]
+    public void Every_Diagnostic_Section_Starts_With_Its_Title()
+    {
+        // Arrange
+        var docs = RepositoryFiles.Read("docs/guide/diagnostics.md");
+
+        // Act
+        var drifted = Catalog
+            .Where(descriptor => !SectionOf(docs, descriptor.Id).StartsWith($"**{descriptor.Title}.** ", Ordinal))
+            .Select(Id);
+
+        // Assert
+        drifted.Should().BeEmpty("a section opens with the title the editor shows, in bold");
+    }
+
+    [Fact]
+    public void Every_Diagnostic_Section_Shows_Its_Own_Failing_Example()
+    {
+        // Arrange
+        var docs = RepositoryFiles.Read("docs/guide/diagnostics.md");
+
+        // Act
+        var drifted = Ids.Where(id => !ExamplesIn(SectionOf(docs, id)).SequenceEqual(ExamplesOf(id)));
+
+        // Assert
+        drifted.Should().BeEmpty("a section shows the region of DiagnosticSources.cs that is named after its ID");
+    }
+
+    [Fact]
     public void Every_Diagnostic_Has_A_Test_Named_After_It()
     {
         // Arrange
@@ -43,6 +111,117 @@ public partial class DiagnosticCatalogTests
         untested.Should().BeEmpty();
     }
 
-    [GeneratedRegex(@"^(?<id>TSH\d{3}) \|", RegexOptions.Multiline)]
-    private static partial Regex Row();
+    [Fact]
+    public void Every_Number_Up_To_The_Highest_Is_A_Diagnostic_Or_A_Retired_Row_In_The_Docs()
+    {
+        // Arrange
+        var highest = Ids.Concat(Retired).Max(id => int.Parse(id[3..]));
+
+        // Act
+        var unaccounted = Enumerable.Range(1, highest)
+            .Select(number => $"TSH{number:000}")
+            .Where(id => !Ids.Contains(id) && !Retired.Contains(id));
+
+        // Assert
+        unaccounted.Should().BeEmpty("a retired ID is listed as such, so it is never handed out again");
+    }
+
+    [Fact]
+    public void A_Retired_Number_Is_Never_A_Diagnostic_Again()
+    {
+        // Act
+        var reused = Retired.Intersect(Ids);
+
+        // Assert
+        reused.Should().BeEmpty("a suppression written for the retired diagnostic would silence the new one");
+    }
+
+    [Fact]
+    public void Every_Diagnostic_Is_Reported_By_An_Action_Of_The_Analyzer()
+    {
+        // Act
+        var unreported = Catalog.Where(descriptor => !AtTheEnd(descriptor) && !WhileTyping(descriptor)).Select(Id);
+
+        // Assert
+        unreported.Should().BeEmpty("the tests below read from the analyzer's source which action reports what");
+    }
+
+    [Fact]
+    public void Every_Diagnostic_Only_The_End_Of_The_Compilation_Reports_Is_Tagged_As_Such()
+    {
+        // Act
+        var untagged = Catalog
+            .Where(descriptor => AtTheEnd(descriptor) && !WhileTyping(descriptor) && !Tagged(descriptor))
+            .Select(Id);
+
+        // Assert
+        untagged.Should().BeEmpty("an editor runs that action on a build, and the tag says so (RS1037)");
+    }
+
+    [Fact]
+    public void No_Diagnostic_Reported_While_Typing_Is_Tagged_As_Reported_At_The_End()
+    {
+        // Act
+        var tagged = Catalog.Where(descriptor => WhileTyping(descriptor) && Tagged(descriptor)).Select(Id);
+
+        // Assert
+        tagged.Should().BeEmpty("an editor would hold it back until the next build");
+    }
+
+    [Fact]
+    public void Every_Diagnostic_Row_Says_When_It_Is_Reported()
+    {
+        // Arrange
+        var docs = RepositoryFiles.Read("docs/guide/diagnostics.md");
+
+        // Act
+        var drifted = Catalog
+            .Where(descriptor => !docs.Contains($"{RowOf(descriptor)} {When(descriptor)} |", StringComparison.Ordinal))
+            .Select(Id);
+
+        // Assert
+        drifted.Should().BeEmpty("the fourth column reads 'While you type', 'On build' or 'Both'");
+    }
+
+    private static string Id(DiagnosticDescriptor descriptor) => descriptor.Id;
+
+    // What stands under the diagnostic's heading, up to the next one
+    private static string SectionOf(string docs, string id)
+    {
+        var start = docs.IndexOf($"\n## {id}\n\n", Ordinal) + $"\n## {id}\n\n".Length;
+        return docs[start..docs.IndexOf("\n## ", start, Ordinal)];
+    }
+
+    // The regions mdsnippets copied into a section, by their names
+    private static IEnumerable<string> ExamplesIn(string section) =>
+        Example().Matches(section).Select(match => match.Groups["name"].Value);
+
+    private static IEnumerable<string> ExamplesOf(string id) =>
+        WithoutExample.Contains(id) ? [] : [id.ToLowerInvariant()];
+
+    private static bool AtTheEnd(DiagnosticDescriptor descriptor) =>
+        AnalyzerActions.AtTheEnd.Contains(Fields[descriptor]);
+
+    private static bool WhileTyping(DiagnosticDescriptor descriptor) =>
+        AnalyzerActions.WhileTyping.Contains(Fields[descriptor]);
+
+    private static bool Tagged(DiagnosticDescriptor descriptor) =>
+        descriptor.CustomTags.Contains(WellKnownDiagnosticTags.CompilationEnd);
+
+    private static string When(DiagnosticDescriptor descriptor) =>
+        !AtTheEnd(descriptor) ? "While you type"
+        : WhileTyping(descriptor) ? "Both"
+        : "On build";
+
+    private static string Anchor(DiagnosticDescriptor descriptor) => descriptor.Id.ToLowerInvariant();
+
+    private static string RowOf(DiagnosticDescriptor descriptor) =>
+        $"| [{descriptor.Id}](#{Anchor(descriptor)}) | {descriptor.DefaultSeverity} | {descriptor.Title} |";
+
+    [GeneratedRegex(@"^<!-- snippet: (?<name>tsh\d{3}) -->$", RegexOptions.Multiline)]
+    private static partial Regex Example();
+
+    // A diagnostic's own row links its ID to its section; a retired one has no section to link to
+    [GeneratedRegex(@"^\| (?<id>TSH\d{3}) \|", RegexOptions.Multiline)]
+    private static partial Regex RetiredRow();
 }

@@ -1,13 +1,41 @@
+using Typeshift.Generators.Naming;
 using Typeshift.Generators.Tests.Agents.Support;
 using Typeshift.Generators.Tests.Diagnostics.Support;
 using Typeshift.Generators.Tests.Toolsets.Support;
+using System.Text.RegularExpressions;
 using FluentAssertions;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Typeshift.Generators.Tests.Agents;
 
-public class AgentGenerationTests : GeneratorTestBase
+public partial class AgentGenerationTests : GeneratorTestBase
 {
+    private const string Unavailable = "global::Typeshift.DecisionUnavailableException";
+    private const string Closed = "global::Typeshift.DecisionClosedException";
+    private const string Conflict = "global::Typeshift.StoreConflictException";
+    private const string Invalid = "global::System.InvalidOperationException";
+    private const string Argument = "global::System.ArgumentException";
+    private const string Newer = "global::System.Text.Json.JsonException";
+    private const string Busy = "global::Typeshift.ConversationBusyException";
+    private const string Nothing = "global::Typeshift.NothingToResumeException";
+    private const string NotStored = "global::Typeshift.ConversationStoreException";
+
+    [Fact]
+    public void Given_A_Toolset_And_An_Agent_Their_Global_Classes_Start_With_Ts_Then_Their_Full_Names()
+    {
+        // Act
+        var run = Run(AgentSources.Tickets, AgentSources.Support);
+
+        // Assert
+        run.Output.GlobalNamespace
+            .GetTypeMembers()
+            .Where(type => type.DeclaringSyntaxReferences.Any(reference => Names.IsGenerated(reference.SyntaxTree)))
+            .Select(type => type.Name)
+            .Should()
+            .BeEquivalentTo("Tstools_4Demo13TicketToolset", "Tshost_4Demo12SupportAgent");
+    }
+
     [Fact]
     public void Given_An_Agent_Its_Settings_Declaration_Host_Members_Module_And_Interceptor_Are_Generated()
     {
@@ -15,7 +43,14 @@ public class AgentGenerationTests : GeneratorTestBase
         var run = Run(AgentSources.Tickets, AgentSources.Support);
 
         // Assert
-        Snapshot.Verify(run.Result);
+        Snapshot.Verify(
+            run.Result,
+            [
+                "Demo.SupportAgent.g.cs",
+                "Demo.SupportAgent+Host.g.cs",
+                "Typeshift.Generated.SubjectModule.g.cs",
+                "Typeshift.Generated.AddTypeshiftInterceptor.g.cs"
+            ]);
     }
 
     [Fact]
@@ -26,6 +61,41 @@ public class AgentGenerationTests : GeneratorTestBase
 
         // Assert
         run.Assert.CompilesCleanly();
+    }
+
+    [Theory]
+    [InlineData("RunAsync", new[] { Unavailable, Busy, NotStored, Invalid, Newer })]
+    [InlineData("RunStreamingAsync", new[] { Unavailable, Busy, NotStored, Invalid, Newer })]
+    [InlineData("AnswerAsync", new[] { Closed, Argument, Conflict, Busy, NotStored, Invalid, Newer })]
+    [InlineData("AnswerStreamingAsync", new[] { Closed, Argument, Conflict, Busy, NotStored, Invalid, Newer })]
+    [InlineData("ResumeAsync", new[] { Nothing, Busy, NotStored, Invalid, Newer })]
+    [InlineData("ResumeStreamingAsync", new[] { Nothing, Busy, NotStored, Invalid, Newer })]
+    [InlineData("RetryAsync", new[] { Nothing, Busy, NotStored, Invalid, Newer })]
+    [InlineData("RetryStreamingAsync", new[] { Nothing, Busy, NotStored, Invalid, Newer })]
+    [InlineData("ResolveOptionsAsync", new[] { Invalid, Newer })]
+    [InlineData("CreateChatClientAsync", new[] { Invalid, Newer })]
+    [InlineData("LoadSettingsAsync", new[] { Invalid, Newer })]
+    [InlineData("SaveSettingsAsync", new[] { Conflict, Invalid })]
+    [InlineData("UpdateSettingsAsync", new[] { Conflict, Invalid, Newer })]
+    public void Given_A_Host_Member_That_Throws_Its_Docs_Name_The_Exception(string member, string[] thrown)
+    {
+        // Act
+        var run = Run(AgentSources.Tickets, AgentSources.Support);
+
+        // Assert
+        var overloads = DocumentedExceptions(run, "Demo.SupportAgent+Host.g.cs", member);
+        overloads.Should().NotBeEmpty();
+        overloads.Should().AllSatisfy(documented => documented.Should().Contain(thrown));
+    }
+
+    [Fact]
+    public void Given_An_AddTypeshift_Call_It_Is_Intercepted()
+    {
+        // Act
+        var run = Run(AgentSources.Tickets, AgentSources.Support);
+
+        // Assert
+        run.Assert.Intercepts("services.AddTypeshift()");
     }
 
     [Fact]
@@ -69,13 +139,23 @@ public class AgentGenerationTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_Uses_That_Require_Approval_And_Switch_Tools_The_Agents_Wrap_And_Switch_Them()
+    {
+        // Act
+        var run = Run(ShapeSources.UseMarks);
+
+        // Assert
+        Snapshot.Verify(run.Result, ["Demo.DeskAgent.g.cs", "Demo.TriageAgent.g.cs", "Demo.ReaderAgent.g.cs"]);
+    }
+
+    [Fact]
     public void Given_Tools_Of_The_Agents_Own_They_Are_Generated_In_It_And_Offered_After_The_Toolsets()
     {
         // Act
         var run = Run(AgentSources.Tickets, AgentSources.OwnTools);
 
         // Assert
-        Snapshot.Verify(run.Result);
+        Snapshot.Verify(run.Result, ["Demo.DeskAgent.g.cs", "Typeshift.Generated.SubjectModule.g.cs"]);
     }
 
     [Fact]
@@ -98,7 +178,13 @@ public class AgentGenerationTests : GeneratorTestBase
         var run = Run(Compile(SubjectAssembly, [reference], ReferenceSources.CompanyAgent));
 
         // Assert
-        Snapshot.Verify(run.Result);
+        Snapshot.Verify(
+            run.Result,
+            [
+                "Research.ResearchAgent.g.cs",
+                "Typeshift.Generated.SubjectModule.g.cs",
+                "Typeshift.Generated.AddTypeshiftInterceptor.g.cs"
+            ]);
     }
 
     [Fact]
@@ -147,6 +233,33 @@ public class AgentGenerationTests : GeneratorTestBase
         run.Assert.CompilesCleanly();
     }
 
+    [Theory]
+    [InlineData(nameof(ShapeSources.AddTypeshiftAfterANullCheck), ".AddTypeshift()")]
+    [InlineData(
+        nameof(ShapeSources.AddTypeshiftInItsStaticForm),
+        "TypeshiftServiceCollectionExtensions.AddTypeshift(services)")]
+    public void Given_An_AddTypeshift_Call_In_Another_Spelling_It_Is_Intercepted(string shape, string call)
+    {
+        // Arrange
+        var source = SourceCatalogs.Read(typeof(ShapeSources), shape);
+
+        // Act
+        var run = Run(source);
+
+        // Assert
+        run.Assert.Intercepts(call);
+    }
+
+    [Fact]
+    public void Given_A_Runtime_With_The_File_Store_Under_A_Using_Of_Typeshift_Alone_The_Code_Compiles_Cleanly()
+    {
+        // Act
+        var run = Run(AgentSources.RuntimeWithFileStore);
+
+        // Assert
+        run.Assert.CompilesCleanly();
+    }
+
     [Fact]
     public void Given_A_Create_Method_Of_The_Projects_Own_The_Generator_Does_Not_Intercept_It()
     {
@@ -180,6 +293,80 @@ public class AgentGenerationTests : GeneratorTestBase
         run.Source("Typeshift.Generated.AddTypeshiftInterceptor.g.cs")
             .Should()
             .Contain("global::Typeshift.Generated.ContractsModule.Register(services);");
+    }
+
+    [Fact]
+    public void Given_A_Project_With_Only_A_Json_Context_Its_Module_Registers_It()
+    {
+        // Act
+        var run = Run(AgentSources.JsonContextOnly);
+
+        // Assert
+        run.Source("Typeshift.Generated.SubjectModule.g.cs")
+            .Should()
+            .Contain("AddJsonContext(services, global::App.AppJsonContext.Default);");
+    }
+
+    [Fact]
+    public void Given_A_Project_With_Only_A_Json_Context_The_Interceptor_Registers_Its_Module()
+    {
+        // Act
+        var run = Run(AgentSources.JsonContextOnly);
+
+        // Assert
+        run.Source("Typeshift.Generated.AddTypeshiftInterceptor.g.cs")
+            .Should()
+            .Contain("global::Typeshift.Generated.SubjectModule.Register(services);");
+    }
+
+    [Fact]
+    public void Given_A_Project_With_Only_A_Json_Context_The_Generated_Code_Compiles_Without_Warnings()
+    {
+        // Act
+        var run = Run(AgentSources.JsonContextOnly);
+
+        // Assert
+        run.Assert.CompilesCleanly();
+    }
+
+    [Fact]
+    public void Given_A_Json_Context_Without_A_Default_The_Module_Leaves_It_Out()
+    {
+        // Act
+        var run = Run(ShapeSources.JsonContextWithoutDefault);
+
+        // Assert
+        run.Source("Typeshift.Generated.SubjectModule.g.cs").Should().NotContain("AddJsonContext");
+    }
+
+    [Fact]
+    public void Given_A_Json_Context_With_A_Default_Field_Of_Its_Own_The_Module_Registers_It()
+    {
+        // Act
+        var run = Run(ShapeSources.JsonContextWithADefaultField);
+
+        // Assert
+        run.Source("Typeshift.Generated.SubjectModule.g.cs")
+            .Should()
+            .Contain("AddJsonContext(services, global::Demo.HandWritten.Default);");
+    }
+
+    [Theory]
+    [InlineData("CreateOpenFirst", true)]
+    [InlineData("CreateCloseFirst", false)]
+    [InlineData("CreateOpenSecond", true)]
+    [InlineData("CreateCloseSecond", false)]
+    [InlineData("CreateOpenThird", false)]
+    [InlineData("CreateCloseThird", true)]
+    public void Given_Picks_On_A_Receiver_In_Parentheses_Or_With_A_Suppression_The_Agent_Offers_What_They_Say(
+        string factory,
+        bool offered)
+    {
+        // Act
+        var run = Run(ShapeSources.PicksOnAWrappedReceiver);
+
+        // Assert
+        run.Source("Demo.PickAgent.g.cs").Contains(factory).Should().Be(offered);
     }
 
     [Fact]
@@ -281,4 +468,280 @@ public class AgentGenerationTests : GeneratorTestBase
             .Should()
             .Be(provider);
     }
+
+    [Theory]
+    [InlineData("Demo.ModelAgent+Settings", "string?")]
+    [InlineData("Demo.SwitchingAgent+Settings", "Demo.Vendor?")]
+    public void Given_A_Model_Named_Without_A_Provider_It_Leaves_The_Type_Of_The_Settings_Providers_Alone(
+        string settings,
+        string provider)
+    {
+        // Act
+        var run = Run(SourceCatalogs.Read(typeof(ShapeSources), nameof(ShapeSources.ModelWithoutAProvider)));
+
+        // Assert
+        run.Assert.CompilesCleanly();
+        run.Output.GetTypeByMetadataName(settings)!
+            .GetMembers("Provider")
+            .OfType<IPropertySymbol>()
+            .Single()
+            .Type.ToDisplayString()
+            .Should()
+            .Be(provider);
+    }
+
+    [Fact]
+    public void Given_An_Experimental_Toolset_Settings_And_Provider_Type_The_Agents_File_Disables_Their_Ids()
+    {
+        // Act
+        var run = Run(ShapeSources.ExperimentalToolsetSettingsAndProviderId);
+
+        // Assert
+        run.Source("Demo.TrialAgent.g.cs")
+            .Should()
+            .Contain("#pragma warning disable DEMO003, DEMO004, DEMO005, DEMO006, DEMO007\n");
+    }
+
+    [Fact]
+    public void Given_A_Referenced_Toolset_With_Experimental_Settings_The_Generated_Code_Compiles_Without_Warnings()
+    {
+        // Arrange
+        var reference = CompileReference("Trials", ReferenceSources.ExperimentalToolset);
+
+        // Act
+        var run = Run(Compile(SubjectAssembly, [reference], ReferenceSources.ExperimentalToolsetAgent));
+
+        // Assert
+        run.Assert.CompilesCleanly();
+    }
+
+    [Fact]
+    public void Given_Settings_Without_A_Settable_Member_The_Agent_Gets_No_Configure_For_The_Tool()
+    {
+        // Act
+        var run = Run(ShapeSources.SettingsWithoutSettableMembers);
+
+        // Assert
+        run.Source("Demo.NothingAgent.g.cs").Should().NotContain("ConfigureEcho");
+    }
+
+    [Fact]
+    public void Given_A_Reference_Under_An_Extern_Alias_The_Interceptor_Leaves_Its_Module_Out()
+    {
+        // Arrange
+        var reference = CompileReference("Lib", AgentSources.Tickets).WithAliases(["lib"]);
+
+        // Act
+        var run = Run(Compile(SubjectAssembly, [reference], ReferenceSources.AliasedToolsetAgent));
+
+        // Assert
+        run.Source("Typeshift.Generated.AddTypeshiftInterceptor.g.cs").Should().NotContain("LibModule");
+    }
+
+    [Fact]
+    public void Given_Tools_Named_Like_Members_Of_Object_The_Agents_Settings_Name_Them_With_A_Suffix()
+    {
+        // Act
+        var run = Run(ShapeSources.ToolsNamedLikeMembersOfObject);
+
+        // Assert
+        run.Output.GetTypeByMetadataName("Demo.TypeAgent+Settings")!
+            .GetMembers()
+            .OfType<IPropertySymbol>()
+            .Select(property => property.Name)
+            .Should()
+            .Contain(["GetTypeTool", "ReferenceEqualsTool", "GetHashCodeTool", "ToStringTool"]);
+    }
+
+    [Fact]
+    public void Given_Two_References_Whose_Names_Differ_In_Punctuation_Their_Modules_Do_Not_Clash()
+    {
+        // Arrange
+        var first = CompileReference("Acme.Tools", ReferenceSources.EchoToolset("First", "FirstTools", "EchoOne"));
+        var second = CompileReference("Acme-Tools", ReferenceSources.EchoToolset("Second", "SecondTools", "EchoTwo"));
+
+        // Act
+        var run = Run(Compile(SubjectAssembly, [first, second], ReferenceSources.TwoToolsetsHost));
+
+        // Assert
+        run.Assert.CompilesCleanly();
+    }
+
+    [Theory]
+    [InlineData("Acme.Tools", "Acme_ToolsModule")]
+    [InlineData("Subject", "SubjectModule")]
+    [InlineData("4Sales", "_4SalesModule")]
+    public void Given_An_Assembly_Name_Of_Letters_Digits_And_Dots_Its_Module_Is_Named_After_It(
+        string assembly,
+        string module)
+    {
+        // Act
+        var name = Names.ModuleName(assembly);
+
+        // Assert
+        name.Should().Be(module);
+    }
+
+    [Theory]
+    [InlineData("Acme-Tools", "Acme_Tools_")]
+    [InlineData("Acme_Tools", "Acme_Tools_")]
+    [InlineData("Acme Tools", "Acme_Tools_")]
+    public void Given_An_Assembly_Name_With_Other_Characters_Its_Module_Carries_A_Hash_Of_The_Name(
+        string assembly,
+        string start)
+    {
+        // Act
+        var name = Names.ModuleName(assembly);
+
+        // Assert
+        name.Should().MatchRegex($"^{start}[0-9a-f]{{8}}Module$");
+    }
+
+    [Theory]
+    [InlineData(nameof(ShapeSources.ToolsetNamedInFullOrByAnAlias))]
+    [InlineData(nameof(ShapeSources.NestedNamespacesAndClasses))]
+    [InlineData(nameof(ShapeSources.SameNamesInTwoNamespaces))]
+    public void Given_A_Toolset_Of_A_Namespace_The_Agents_File_Does_Not_Import_Its_Picks_Compile(string shape)
+    {
+        // Arrange
+        var source = SourceCatalogs.Read(typeof(ShapeSources), shape);
+
+        // Act
+        var run = Run(source);
+
+        // Assert
+        run.Assert.CompilesCleanly();
+    }
+
+    [Fact]
+    public void Given_A_Toolset_Of_A_Reference_Named_In_Full_Its_Picks_Compile()
+    {
+        // Arrange
+        var reference = CompileReference("Companies", ReferenceSources.CompanyToolset);
+
+        // Act
+        var run = Run(Compile(SubjectAssembly, [reference], ReferenceSources.CompanyAgentNamingTheToolsetInFull));
+
+        // Assert
+        run.Assert.CompilesCleanly();
+    }
+
+    [Fact]
+    public void Given_A_Settings_Member_With_A_Summary_Its_With_Method_Carries_It()
+    {
+        // Act
+        var run = Run(AgentSources.Tickets, AgentSources.Support);
+
+        // Assert
+        run.Source("Demo.SupportAgent.g.cs")
+            .Should()
+            .Contain("/// Sets <c>Limit</c>: The most tickets a search returns.");
+    }
+
+    [Fact]
+    public void Given_A_Schema_Version_The_Agents_Settings_Carry_It()
+    {
+        // Act
+        var run = Run(ShapeSources.EveryAgentDeclaration);
+
+        // Assert
+        run.Source("Demo.OfficeAgent.g.cs").Should().Contain("public static int SchemaVersion => 3;");
+    }
+
+    [Fact]
+    public void Given_Two_Models_In_One_Constructor_The_Settings_Store_Providers_Of_The_Last_Ones_Type()
+    {
+        // Act
+        var run = Run(ShapeSources.TwoModelsInOneConstructor);
+
+        // Assert
+        run.Output.GetTypeByMetadataName("Demo.SwitchingAgent+Settings")!
+            .GetMembers("Provider")
+            .OfType<IPropertySymbol>()
+            .Single()
+            .Type.ToDisplayString()
+            .Should()
+            .Be("string?");
+    }
+
+    [Fact]
+    public void Given_Tools_Included_In_Another_Order_Than_The_Toolsets_The_Agent_Offers_Them_As_Picked()
+    {
+        // Act
+        var run = Run(ShapeSources.ToolsIncludedInAnotherOrder);
+
+        // Assert
+        run.Source("Typeshift.Generated.SubjectModule.g.cs")
+            .Should()
+            .Contain("Tools = new string[] { \"send\", \"find\" }");
+    }
+
+    [Fact]
+    public void Given_An_Obsolete_Setting_That_Is_Not_Configurable_The_Agent_Gets_No_With_Method_For_It()
+    {
+        // Act
+        var run = Run(ReferenceSources.ObsoleteSettingToolset, ReferenceSources.ObsoleteSettingAgent);
+
+        // Assert
+        run.Source("Research.EchoAgent.g.cs").Should().NotContain("WithTimes");
+    }
+
+    [Fact]
+    public void Given_An_Obsolete_Setting_Of_A_Referenced_Toolset_The_Agent_Gets_No_With_Method_For_It()
+    {
+        // Arrange
+        var reference = CompileReference("Echoes", ReferenceSources.ObsoleteSettingToolset);
+
+        // Act
+        var run = Run(Compile(SubjectAssembly, [reference], ReferenceSources.ObsoleteSettingAgent));
+
+        // Assert
+        run.Source("Research.EchoAgent.g.cs").Should().NotContain("WithTimes");
+    }
+
+    [Fact]
+    public void Given_A_Toolset_With_An_Internal_Constructor_An_Agent_Of_Its_Assembly_Uses_It()
+    {
+        // Act
+        var run = Run(ShapeSources.ToolsetWithAnInternalConstructor);
+
+        // Assert
+        run.Assert.CompilesCleanly();
+        run.Source("Demo.ResearchAgent.g.cs").Should().Contain("global::Demo.CompanyToolset.CreateFind(json)");
+    }
+
+    [Theory]
+    [InlineData(nameof(ShapeSources.AgentWithABaseInitializer))]
+    [InlineData(nameof(ShapeSources.AgentWithAPrimaryConstructor))]
+    public void Given_An_Explicit_Base_Initializer_The_Agent_Is_Generated(string shape)
+    {
+        // Arrange
+        var source = SourceCatalogs.Read(typeof(ShapeSources), shape);
+
+        // Act
+        var run = Run(source);
+
+        // Assert
+        run.Assert.DoesNotReport("TSH014");
+        run.Assert.CompilesCleanly();
+        run.Source("Demo.ProbeAgent.g.cs").Should().Contain("partial class ProbeAgent");
+    }
+
+    // The exceptions the docs of a generated member name, for each of its overloads
+    private static List<List<string>> DocumentedExceptions(GeneratorRun run, string file, string member) =>
+    [
+        .. run.Result.GeneratedTrees
+            .Single(tree => Path.GetFileName(tree.FilePath) == file)
+            .GetRoot()
+            .DescendantNodes()
+            .OfType<MethodDeclarationSyntax>()
+            .Where(method => method.Identifier.Text == member)
+            .Select(method => ExceptionTag()
+                .Matches(method.GetLeadingTrivia().ToFullString())
+                .Select(tag => tag.Groups["type"].Value)
+                .ToList())
+    ];
+
+    [GeneratedRegex(@"<exception cref=""(?<type>[^""]+)""")]
+    private static partial Regex ExceptionTag();
 }

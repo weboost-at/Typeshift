@@ -1,3 +1,5 @@
+using System.Text.Json;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using Typeshift.Samples.Agents;
 
@@ -32,5 +34,24 @@ internal static class MultiAgent
 
         if (first.Messages[^1].AuthorName != "billing_agent" || second.Messages[^1].AuthorName != "billing_agent")
             throw new InvalidOperationException("Expected billing to answer after the handoff.");
+
+        await TypedAnswerAsync(scope.ServiceProvider);
+    }
+
+    // A sub-agent held to a type answers its caller with that type's JSON
+    private static async Task TypedAnswerAsync(IServiceProvider services)
+    {
+        var market = services.GetRequiredService<AgentHost<MarketAgent>>();
+        var compared = await market.RunAsync("Compare the markets of Vienna and Graz.");
+
+        var result = compared.Messages
+            .SelectMany(message => message.Contents)
+            .OfType<FunctionResultContent>()
+            .Single()
+            .Result;
+
+        var companies = JsonSerializer.Deserialize<CityCompanies>($"{result}", JsonSerializerOptions.Web);
+        if (companies is not { City: "Vienna", Companies.Count: > 0 })
+            throw new InvalidOperationException($"Expected the research agent's answer as CityCompanies: {result}");
     }
 }

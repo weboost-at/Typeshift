@@ -7,6 +7,19 @@ public class PersistenceTestData(Faker faker)
 {
     public Guid SettingsId { get; } = faker.Random.Guid();
 
+    // The second id a store check takes, which nothing else is stored under
+    public Guid OtherId { get; } = faker.Random.Guid();
+
+    // Two more ids nothing is stored under, for a second check of one store
+    public Guid LaterId { get; } = faker.Random.Guid();
+
+    public Guid LaterOtherId { get; } = faker.Random.Guid();
+
+    // Settings ids of another type than the conversations', as an app with settings per tenant has
+    public string TenantId { get; } = $"tenant-{faker.Random.AlphaNumeric(10)}";
+
+    public string OtherTenantId { get; } = $"tenant-{faker.Random.AlphaNumeric(10)}";
+
     // D72: ids of other types than the build's, which pick the stores of their types
     public int NumberId { get; } = faker.Random.Int(1, int.MaxValue);
 
@@ -14,6 +27,9 @@ public class PersistenceTestData(Faker faker)
 
     // A kind nothing is stored under, for the checks of agents' own settings
     public string Kind { get; } = $"{faker.Hacker.Noun()}_{faker.Random.AlphaNumeric(8)}";
+
+    // Latin letters outside ASCII and Chinese and Japanese ones, which a default JSON writer escapes one by one
+    public string TextOutsideAscii { get; } = $"Größe: 中文の結果 {faker.Lorem.Word()}";
 
     // Every member set, none to a default
     public EveryKindAgent.Settings EveryKind { get; } = new()
@@ -40,6 +56,7 @@ public class PersistenceTestData(Faker faker)
             Link = new Uri(faker.Internet.Url()),
             Shade = Shade.Dark,
             Days = Days.Monday | Days.Tuesday,
+            Channels = Channels.Sms,
             Address = new Address { Street = faker.Address.StreetAddress(), City = faker.Address.City() },
             Home = new GeoPoint(faker.Address.Latitude(), faker.Address.Longitude()),
             Tags = [faker.Lorem.Word(), faker.Lorem.Word()],
@@ -78,7 +95,9 @@ public class PersistenceTestData(Faker faker)
             ],
             faker.Date.PastOffset())
         {
+            Sequence = faker.Random.Long(1, 1000),
             Model = $"{faker.Hacker.Noun()}-model",
+            Provider = $"{faker.Hacker.Noun()}-provider",
             Usage = new UsageDetails
             {
                 InputTokenCount = faker.Random.Int(1, 1000),
@@ -87,8 +106,8 @@ public class PersistenceTestData(Faker faker)
             EndsRun = true,
             Mode = AgentMode.Plan,
             IsSummary = true,
-            StandingApprovals = [faker.Lorem.Word()],
-            BackgroundCalls = new Dictionary<string, string> { [faker.Random.AlphaNumeric(12)] = faker.Lorem.Word() }
+            BackgroundCalls = new Dictionary<string, string> { [faker.Random.AlphaNumeric(12)] = faker.Lorem.Word() },
+            EstimatedInputTokens = faker.Random.Int(1, 1000)
         };
     }
 }

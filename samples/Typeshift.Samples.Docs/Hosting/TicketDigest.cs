@@ -19,9 +19,9 @@ internal sealed class TicketDigest(TypeshiftRuntime runtime, TimeProvider time) 
     public async Task<string> DigestAsync(CancellationToken ct)
     {
         // A host for each job, so the run gets scoped services of its own, as a request would
-        await using var support = runtime.Agent<SupportAgent>();
+        await using var support = runtime.CreateHost<SupportAgent>();
 
-        var answer = await support.RunAsync("Summarize the tickets opened today.", ct: ct);
+        var answer = await support.RunAsync("Summarize the tickets opened today.", ct);
         return answer.Text;
     }
 }

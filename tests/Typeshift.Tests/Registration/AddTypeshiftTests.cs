@@ -66,6 +66,16 @@ public class AddTypeshiftTests : AgentTestBase
     }
 
     [Fact]
+    public void Given_WithStore_A_Store_Of_All_Three_Is_Registered_As_Its_Decision_Store_Too()
+    {
+        // Act
+        var decisions = Services.GetRequiredService<IDecisionStore<Guid>>();
+
+        // Assert
+        decisions.Should().BeSameAs(Services.GetRequiredService<InMemoryTypeshiftStore<Guid>>());
+    }
+
+    [Fact]
     public void Given_AddTypeshift_The_Tracker_Of_An_Id_Type_Is_One_Singleton()
     {
         // Act
@@ -93,7 +103,9 @@ public class AddTypeshiftTests : AgentTestBase
     public void Given_A_Call_The_Generator_Did_Not_Intercept_It_Fails_Saying_What_To_Check()
     {
         // Arrange
+#pragma warning disable TSH040 // the analyzer reports it at build time; this checks what the library's own body says
         Func<IServiceCollection, TypeshiftBuilder> add = TypeshiftServiceCollectionExtensions.AddTypeshift;
+#pragma warning restore TSH040
 
         // Act
         var register = () => add(new ServiceCollection());

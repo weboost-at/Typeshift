@@ -4,6 +4,8 @@ namespace Typeshift;
 
 /// <summary>
 /// Adds context to every run of the agents that use it: memory, retrieved documents, the customer's profile.
+/// More in the guide:
+/// <see href="https://weboost-at.github.io/Typeshift/guide/middleware#context-providers">Context providers</see>.
 /// </summary>
 public interface IContextProvider
 {

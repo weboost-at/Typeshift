@@ -9,6 +9,9 @@ internal partial class ExplorerAgent : Agent
     {
         WithDescription("Explores the workspace and answers one question about it, citing files and lines.");
 
+        WithInstructions(
+            "Answer the question from the files. Read only what you need and quote the lines you rely on.");
+
         WithChatOptions()
             .Configurable(o => o.ModelId);
 
@@ -20,7 +23,4 @@ internal partial class ExplorerAgent : Agent
         WithRunOptions()
             .WithMaxToolIterations(20);
     }
-
-    protected override string GetInstructions() =>
-        "Answer the question from the files. Read only what you need and quote the lines you rely on.";
 }

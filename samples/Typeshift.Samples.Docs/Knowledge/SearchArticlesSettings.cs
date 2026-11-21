@@ -1,6 +1,5 @@
 namespace Typeshift.Samples.Knowledge;
 
-// begin-snippet: settings-nested
 internal record SearchArticlesSettings
 {
     public string Language { get; init; } = "en";
@@ -18,4 +17,3 @@ internal record ArticleRanking
 
     public double Popularity { get; init; } = 0.2;
 }
-// end-snippet

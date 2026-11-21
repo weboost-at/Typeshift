@@ -1,3 +1,4 @@
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Typeshift.Tests.Approval.Support;
@@ -50,6 +51,21 @@ public partial class GuardedToolset : Toolset
     }
 }
 
+// Plans by its code, and no settings name another mode
+public partial class PlanningAgent : Agent
+{
+    public PlanningAgent()
+    {
+        WithChatOptions().WithModel("scripted", "guarded-model");
+
+        WithRunOptions().WithMode(AgentMode.Plan);
+
+        UseToolset<GuardedToolset>();
+    }
+}
+
+// A mode a run's settings name, the auto mode included, beside a tool behind approval is what the tests are about
+#pragma warning disable TSH037
 public partial class GuardedAgent : Agent
 {
     public GuardedAgent()
@@ -62,5 +78,35 @@ public partial class GuardedAgent : Agent
             .Configurable(r => r.MaxInputTokens);
 
         UseToolset<GuardedToolset>();
+    }
+}
+#pragma warning restore TSH037
+
+// Researches with a hosted tool it marks as reading only, beside one it leaves unmarked
+public partial class ResearchingAgent : Agent
+{
+    public ResearchingAgent()
+    {
+        WithChatOptions()
+            .WithModel("scripted", "guarded-model")
+            .WithTools(new HostedCodeInterpreterTool())
+            .WithReadOnlyTools(new HostedWebSearchTool());
+
+        WithRunOptions().Configurable(r => r.Mode);
+
+        UseToolset<GuardedToolset>()
+            .Exclude(t => t.CloseTicket);
+    }
+}
+
+// Makes the toolset's note ask your app, which the toolset leaves to run unasked
+public partial class MarkingAgent : Agent
+{
+    public MarkingAgent()
+    {
+        WithChatOptions().WithModel("scripted", "guarded-model");
+
+        UseToolset<GuardedToolset>()
+            .RequiresApproval(t => t.Note);
     }
 }

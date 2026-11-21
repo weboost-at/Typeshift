@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using Anthropic;
 using Microsoft.Extensions.AI;
 using OpenAI;
+using Typeshift.Demos.Hosting;
 
 namespace Typeshift.Demos.Providers;
 
@@ -44,22 +45,23 @@ public sealed class RoutingChatClientProvider(ProviderCatalog catalog, ClientCac
     private IChatClient Create(ModelRef model)
     {
         var provider = catalog[model.Provider];
-        var key = ProviderCatalog.Expand(provider.ApiKey);
+        var key = ProviderCatalog.Key(provider);
 
         // CLUNKY 5: a mistyped model fails here, in the middle of a run, long after the settings UI saved it; nothing
-        // validates a model name when ConfigureAsync stores it
+        // validates a model name when UpdateSettingsAsync stores it
         return provider.Kind switch
         {
             "openai" => OpenAi(provider, key).GetChatClient(model.Model).AsIChatClient(),
             "anthropic" => new AnthropicClient { ApiKey = key }.AsIChatClient(model.Model),
             "canned" => canned.GetValueOrDefault(model.Model)
-                ?? throw new InvalidOperationException($"No canned model '{model.Model}' exists in this demo."),
-            _ => throw new InvalidOperationException($"The provider kind '{provider.Kind}' is unknown.")
+                ?? throw new DemoException($"No canned model '{model.Model}' exists in this demo."),
+            _ => throw new DemoException(
+                $"The provider kind '{provider.Kind}' is unknown: use openai, anthropic or canned.")
         };
     }
 
     private static OpenAIClient OpenAi(ProviderDefinition provider, string key) =>
-        provider.Endpoint is { } endpoint
+        provider.Endpoint is { Length: > 0 } endpoint
             ? new OpenAIClient(new ApiKeyCredential(key.Length > 0 ? key : "none"), new OpenAIClientOptions
             {
                 Endpoint = new Uri(endpoint)

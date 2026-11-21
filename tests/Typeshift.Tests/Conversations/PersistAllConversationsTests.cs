@@ -44,6 +44,34 @@ public class PersistAllConversationsTests : MultiAgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Conversation_Typeshift_Started_Its_Typed_Id_Continues_It()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer)).Reply(Text(Data.Tool.Answer));
+
+        var first = await Host<ProbeAgent>().RunAsync(Data.Tool.Question, Ct);
+
+        // Act
+        await Host<ProbeAgent>()
+            .WithConversationId(first.GetConversationId<Guid>())
+            .RunAsync(Data.Agent.FollowUp, Ct);
+
+        // Assert
+        ChatClient.Requests[1].Select(message => message.Text)
+            .Should().Equal(Data.Tool.Question, Data.Tool.Answer, Data.Agent.FollowUp);
+    }
+
+    [Fact]
+    public void Given_A_Run_Without_A_Conversation_Reading_Its_Conversation_Id_Throws()
+    {
+        // Act
+        var read = () => new ChatResponse().GetConversationId<Guid>();
+
+        // Assert
+        read.Should().Throw<InvalidOperationException>().WithMessage("*PersistAllConversations*");
+    }
+
+    [Fact]
     public async Task Given_Every_Conversation_Kept_Two_Runs_Without_An_Id_Start_A_Conversation_Each()
     {
         // Arrange
@@ -189,25 +217,26 @@ public class PersistAllConversationsTests : MultiAgentTestBase
     }
 
     [Fact]
-    public async Task Given_Every_Conversation_Kept_A_Raw_Call_With_Options_Of_Its_Own_Starts_No_Conversation()
+    public async Task Given_Every_Conversation_Kept_A_Raw_Call_With_Options_Of_Its_Own_Starts_One()
     {
         // Arrange
         ChatClient.Reply(Text(Data.Tool.Answer));
 
-        var host = Host<ProbeAgent>();
+        await using var provider = KeepingStringConversations();
+        await using var scope = provider.CreateAsyncScope();
 
-        var options = new ChatOptions
-        {
-            ModelId = ProbeAgent.Model
-        };
-
+        var host = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>();
+        var options = await host.ResolveOptionsAsync(ct: Ct);
         using var client = await host.CreateChatClientAsync(options, Ct);
 
         // Act
-        await client.GetResponseAsync(Data.Tool.Question, options, Ct);
+        var response = await client.GetResponseAsync(Data.Tool.Question, new ChatOptions(), Ct);
 
         // Assert
-        Store.Conversations.Should().BeEmpty();
+        var entries = await provider.GetRequiredService<IConversationStore<string>>()
+            .LoadConversationAsync(response.ConversationId!, Ct);
+
+        entries.Should().NotBeEmpty();
     }
 
     [Fact]
@@ -388,10 +417,13 @@ public class PersistAllConversationsTests : MultiAgentTestBase
         return services.BuildServiceProvider(validateScopes: true);
     }
 
-    // The store registered last serves the Guid ids, so a test sees each conversation a run stored
+    // The recording store serves the Guid ids in place of the base's, so a test sees each conversation a run stored
     protected override void ConfigureServices(IServiceCollection services)
     {
         base.ConfigureServices(services);
-        services.AddTypeshift().WithStore(Store).WithOptions(options => options.PersistAllConversations = true);
+
+        services.AddTypeshift()
+            .WithStore(Store, replace: true)
+            .WithOptions(options => options.PersistAllConversations = true);
     }
 }

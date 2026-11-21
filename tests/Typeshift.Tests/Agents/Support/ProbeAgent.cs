@@ -29,6 +29,8 @@ public partial class ProbeAgent : Agent
     {
         WithDescription("Probes what a run resolves.");
 
+        WithInstructions(Prompt);
+
         WithChatOptions()
             .WithModel(ModelProvider, Model)
             .WithTemperature(Temperature)
@@ -51,6 +53,4 @@ public partial class ProbeAgent : Agent
             .WithLimit(ConfiguredLimit)
             .WithVerbose(true);
     }
-
-    protected override string GetInstructions() => Prompt;
 }

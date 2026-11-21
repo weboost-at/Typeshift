@@ -4,6 +4,9 @@ namespace Typeshift;
 /// Keeps each agent's own settings, which every run of the agent applies: a JSON document per kind, guarded by a
 /// version, with no id. Implement it for an app whose agents have one set of settings each; settings under a settings
 /// id go through <see cref="ISettingsStore{TId}"/>.
+/// More in the guide:
+/// <see href="https://weboost-at.github.io/Typeshift/guide/settings-and-stores#an-agent-s-own-settings">An agent's own
+/// settings</see>.
 /// </summary>
 public interface IAgentSettingsStore
 {
@@ -25,7 +28,10 @@ public interface IAgentSettingsStore
     /// stored one must still equal, never the version to write.
     /// </param>
     /// <param name="ct">Cancels the save.</param>
-    /// <returns>The new version the store wrote, which the caller passes to its next save.</returns>
+    /// <returns>
+    /// The new version the store wrote, which the caller passes to its next save: never 0 and never a version this
+    /// document had before.
+    /// </returns>
     /// <exception cref="StoreConflictException">Another save came first.</exception>
     Task<long> SaveAsync(string kind, string json, long loadedVersion, CancellationToken ct);
 }

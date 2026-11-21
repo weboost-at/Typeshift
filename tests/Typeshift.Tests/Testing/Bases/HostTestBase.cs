@@ -11,11 +11,13 @@ public abstract class HostTestBase : UnitTestBase, IAsyncDisposable
 {
     private readonly Lazy<ServiceProvider> _services;
     private readonly Lazy<AsyncServiceScope> _scope;
+    private readonly List<ScriptedChatClient> _scripted = [];
 
     protected HostTestBase()
     {
         _services = new(BuildServices);
         _scope = new(() => Services.CreateAsyncScope());
+        ChatClient = CreateScriptedClient();
     }
 
     protected ServiceProvider Services => _services.Value;
@@ -25,7 +27,7 @@ public abstract class HostTestBase : UnitTestBase, IAsyncDisposable
 
     protected ToolJson Json { get; } = new([], []);
 
-    protected ScriptedChatClient ChatClient { get; } = new();
+    protected ScriptedChatClient ChatClient { get; }
 
     public async ValueTask DisposeAsync()
     {
@@ -33,7 +35,15 @@ public abstract class HostTestBase : UnitTestBase, IAsyncDisposable
         if (_services.IsValueCreated) await _services.Value.DisposeAsync();
         await DisposeCoreAsync();
 
-        GC.SuppressFinalize(this);
+        Dispose();
+
+        // A test that failed already left its script where it stopped
+        if (TestContext.Current.TestState?.Result is TestResult.Failed) return;
+
+        foreach (var client in _scripted)
+        {
+            client.Assert.Drained();
+        }
     }
 
     // What a test class holds besides the container, such as files it wrote
@@ -41,6 +51,14 @@ public abstract class HostTestBase : UnitTestBase, IAsyncDisposable
 
     protected virtual void ConfigureServices(IServiceCollection services)
     {
+    }
+
+    // A scripted client whose replies the test must use up, as it must those of ChatClient
+    protected ScriptedChatClient CreateScriptedClient()
+    {
+        var client = new ScriptedChatClient(Ct);
+        _scripted.Add(client);
+        return client;
     }
 
     // The function loop a provider client sits under, driven by the scripted client, with the services of a run

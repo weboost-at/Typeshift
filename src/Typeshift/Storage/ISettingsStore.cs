@@ -4,6 +4,8 @@ namespace Typeshift;
 /// Keeps the agents' settings: a JSON document per settings id and kind, guarded by a version. It receives the
 /// settings ids of <typeparamref name="TId"/> that <c>WithSettingsId</c> gives a host. Implement it alone when
 /// conversations live elsewhere, or <see cref="ITypeshiftStore{TId}"/> for both.
+/// More in the guide:
+/// <see href="https://weboost-at.github.io/Typeshift/guide/implementing-a-store">Implementing a store</see>.
 /// </summary>
 /// <typeparam name="TId">The id type of settings; the library never creates ids, it passes on the host's.</typeparam>
 public interface ISettingsStore<TId> where TId : notnull
@@ -31,7 +33,10 @@ public interface ISettingsStore<TId> where TId : notnull
     /// stored one must still equal, never the version to write.
     /// </param>
     /// <param name="ct">Cancels the save.</param>
-    /// <returns>The new version the store wrote, which the caller passes to its next save.</returns>
+    /// <returns>
+    /// The new version the store wrote, which the caller passes to its next save: never 0 and never a version this
+    /// document had before.
+    /// </returns>
     /// <exception cref="StoreConflictException">Another save came first.</exception>
     Task<long> SaveAsync(TId id, string kind, string json, long loadedVersion, CancellationToken ct);
 }

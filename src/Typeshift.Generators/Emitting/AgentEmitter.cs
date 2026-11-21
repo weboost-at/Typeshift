@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using Typeshift.Generators.Models;
+using Typeshift.Generators.Naming;
 
 namespace Typeshift.Generators.Emitting;
 
@@ -22,16 +24,33 @@ internal static class AgentEmitter
     private const string Tools =
         "global::System.Collections.Generic.IEnumerable<global::Microsoft.Extensions.AI.AITool>";
 
-    private const string Updates =
-        "global::System.Collections.Generic.IAsyncEnumerable<global::Microsoft.Extensions.AI.ChatResponseUpdate>";
+    // D64: every stream is a run read once, which holds its response
+    private const string UntypedRun = "global::Typeshift.StreamingRun";
 
     private const string Json = StorageEmitter.Json;
+
+    private const string InvalidOperation = "global::System.InvalidOperationException";
+
+    // What a run needs of the app's registrations, each named by the exception's message when it is missing
+    private const string MissingRegistration =
+        "something the run needs is not registered: a chat client for the provider the run names or, when it names "
+        + "none, a default client; a store for the type of one of the host's ids; or an <c>IMcpToolProvider</c> for "
+        + "the agent's MCP servers";
+
+    private const string OwnLoop = "the agent's chat client runs a tool loop of its own";
+
+    private static readonly string AgentSettings = Docs.Guide("settings-and-stores#agent-settings", "Agent settings");
+
+    private const string NoSettingsStore =
+        "No store keeps these settings: stores are registered, and none of them is an <c>IAgentSettingsStore</c>, "
+        + "for the agent's own, or an <c>ISettingsStore</c> of the id's type, for those under the host's id.";
 
     // The members of the record that its properties must not be named like
     private static readonly string[] RecordMembers =
     [
-        "Clone", "Deconstruct", "Deserialize", "EqualityContract", "Equals", "GetHashCode", "Kind", "PrintMembers",
-        "SchemaVersion", "Serialize", "Settings", "ToString", "TryReadJson", "WriteJson"
+        .. Names.ObjectMembers,
+        "CheckJson", "Clone", "Deconstruct", "Deserialize", "EqualityContract", "Kind", "PrintMembers", "SchemaVersion",
+        "Serialize", "Settings", "TryReadJson", "WriteJson"
     ];
 
     public static string Emit(AgentOutput output)
@@ -39,8 +58,16 @@ internal static class AgentEmitter
         var agent = output.Agent;
         var configured = output.Tools.Where(tool => HasConfigure(agent, tool.Tool)).ToList();
 
+        IEnumerable<string> experimentalIds =
+        [
+            .. agent.ExperimentalIds,
+            .. ToolsetEmitter.GetExperimentalIds(agent.Tools),
+            .. output.Tools.SelectMany(offered => offered.Tool.ExperimentalIds)
+        ];
+
         return TypeEmitter.EmitPartial(
             agent.Type,
+            experimentalIds,
             [],
             writer =>
             {
@@ -48,6 +75,7 @@ internal static class AgentEmitter
                 writer.Line();
                 writer.Line("/// <inheritdoc />");
                 writer.Line(Names.Hidden);
+                writer.Lines(Names.Generated);
                 writer.Line(
                     "protected override global::Typeshift.Generated.AgentDeclaration Declaration => "
                     + "TypeshiftGenerated.Instance;");
@@ -55,6 +83,7 @@ internal static class AgentEmitter
                 if (configured.Count > 0)
                 {
                     writer.Line();
+                    writer.Line(Names.GeneratedField);
                     writer.Line("private readonly TypeshiftGenerated.Configured _typeshift = new();");
                 }
 
@@ -66,6 +95,7 @@ internal static class AgentEmitter
                         $"Sets the settings <c>{tool.Tool.Name}</c> runs with in this agent, over the code defaults "
                         + "of its settings record.");
                     Docs.WriteReturns(writer, "The settings, one <c>With...</c> per member.");
+                    writer.Lines(Names.Generated);
                     writer.Line(
                         $"private TypeshiftGenerated.{Builder(tool.Tool)} {Configure(tool.Tool)}() => "
                         + "new(_typeshift);");
@@ -88,26 +118,16 @@ internal static class AgentEmitter
         if (!agent.IsReachable) return null;
 
         var writer = new SourceWriter();
-        writer.Line(SourceWriter.Header);
+        writer.Line(SourceWriter.GetHeader(agent.ExperimentalIds));
 
         WriteHostMembers(writer, agent);
         return writer.ToString();
     }
 
-    // D12: each part of the agent's full name prefixed by its length, so no two agents share the global name
-    public static string HostClassName(TypeModel agent)
-    {
-        var parts = (agent.Namespace?.Split('.') ?? [])
-            .Concat(agent.ContainingTypes.Select(container => container.Substring(container.LastIndexOf(' ') + 1)))
-            .Append(agent.Name)
-            .Select(part => part.Replace("@", ""));
-
-        return "TypeshiftHost_" + string.Concat(parts.Select(part => $"{part.Length}{part}"));
-    }
-
-    // The user's own Configure{Tool}() wins; a tool without settings has nothing to configure
+    // The user's own Configure{Tool}() wins; a tool without settings, or with settings that have no settable member,
+    // has nothing to configure
     private static bool HasConfigure(AgentModel agent, ToolSummary tool) =>
-        tool.Settings is not null && !agent.Configures.Contains(Configure(tool));
+        tool.Settings is not null && tool.Members.Count > 0 && !agent.Configures.Contains(Configure(tool));
 
     private static string Configure(ToolSummary tool) => $"Configure{Names.ToPascalCase(tool.Name)}";
 
@@ -132,17 +152,58 @@ internal static class AgentEmitter
     private static string Local(string member) =>
         Names.Identifier(char.ToLowerInvariant(member[0]) + member.Substring(1));
 
-    // D6: a tool member named like an option or one of the record's own gets a suffix instead of clashing with it
-    private static string SettingsMember(AgentModel agent, ToolSummary tool)
+    // D6: a tool member named like an option or one of the record's own gets a suffix instead of clashing with it,
+    // and one more while the name is that of another tool's member, as kind's KindTool is beside kind_tool
+    private static string SettingsMember(AgentOutput output, ToolSummary tool)
     {
-        string[] reserved =
+        var agent = output.Agent;
+
+        HashSet<string> taken =
         [
             .. RecordMembers,
             .. Picked(agent.ChatOptions, OptionMembers.Chat).SelectMany(Members),
-            .. Picked(agent.RunOptions, OptionMembers.Run).SelectMany(Members)
+            .. Picked(agent.RunOptions, OptionMembers.Run).SelectMany(Members),
+            .. output.Tools
+                .Where(offered => offered.Tool.Overrides is not null && offered.Tool.Name != tool.Name)
+                .Select(offered => Names.ToPascalCase(offered.Tool.Name))
         ];
 
-        return Names.Identifier(Names.Unreserved(Names.ToPascalCase(tool.Name), "Tool", reserved));
+        var name = Names.ToPascalCase(tool.Name);
+
+        while (taken.Contains(name))
+        {
+            name += "Tool";
+        }
+
+        return Names.Identifier(name);
+    }
+
+    // D84: a tool's switch is named after it, and yields to every other member of the record, as a tool's member does
+    private static string SwitchMember(AgentOutput output, ToolSummary tool)
+    {
+        var agent = output.Agent;
+
+        HashSet<string> taken =
+        [
+            .. RecordMembers,
+            .. Picked(agent.ChatOptions, OptionMembers.Chat).SelectMany(Members),
+            .. Picked(agent.RunOptions, OptionMembers.Run).SelectMany(Members),
+            .. output.Tools
+                .Where(offered => offered.Tool.Overrides is not null)
+                .Select(offered => SettingsMember(output, offered.Tool)),
+            .. output.Tools
+                .Where(offered => offered.Switchable && offered.Tool.Name != tool.Name)
+                .Select(offered => Names.ToPascalCase(offered.Tool.Name) + "Enabled")
+        ];
+
+        var name = Names.ToPascalCase(tool.Name);
+
+        while (taken.Contains(name + "Enabled"))
+        {
+            name += "Tool";
+        }
+
+        return Names.Identifier(name + "Enabled");
     }
 
     private static void WriteSettings(SourceWriter writer, AgentOutput output)
@@ -152,6 +213,7 @@ internal static class AgentEmitter
         var chat = Picked(agent.ChatOptions, OptionMembers.Chat).ToList();
         var run = Picked(agent.RunOptions, OptionMembers.Run).ToList();
         var tools = output.Tools.Select(offered => offered.Tool).Where(tool => tool.Overrides is not null).ToList();
+        var switches = output.Tools.Where(offered => offered.Switchable).Select(offered => offered.Tool).ToList();
 
         // D6: a public agent's Settings cannot name a less accessible provider id type, the agent's own (TSH006, D77)
         var providerAccess = agent.Type.Accessibility == "public" && !providerId.IsPublic
@@ -162,6 +224,7 @@ internal static class AgentEmitter
             writer,
             "What may change at runtime: stored under a settings id, or passed for one run. Null keeps the layer "
             + "below.");
+        writer.Lines(Names.Generated);
         writer.Line(
             "[global::System.Text.Json.Serialization.JsonConverter("
             + "typeof(global::Typeshift.Generated.StorableJsonConverter<Settings>))]");
@@ -211,7 +274,15 @@ internal static class AgentEmitter
             {
                 members.Add((
                     $"The configurable settings of the <c>{tool.Name}</c> tool; its null values keep the layer below.",
-                    $"public {tool.Overrides} {SettingsMember(agent, tool)} {{ get; init; }} = new();"));
+                    $"public {tool.Overrides} {SettingsMember(output, tool)} {{ get; init; }} = new();"));
+            }
+
+            foreach (var tool in switches)
+            {
+                members.Add((
+                    $"Whether runs offer the <c>{tool.Name}</c> tool: false leaves it out. Null keeps the layer below, "
+                    + "and while every layer is null the tool is offered.",
+                    $"public bool? {SwitchMember(output, tool)} {{ get; init; }}"));
             }
 
             foreach (var (summary, declaration) in members)
@@ -221,14 +292,14 @@ internal static class AgentEmitter
                 writer.Line();
             }
 
-            // D39, D40, D44
+            // D39, D40, D44: the Settings record stores itself, under its kind and its schema version
             writer.Lines(
                 $$"""
                 /// <inheritdoc />
                 public static string Kind => {{Names.Literal(agent.Kind)}};
 
                 /// <inheritdoc />
-                public static int SchemaVersion => {{agent.SchemaVersion}};
+                public static int SchemaVersion => {{agent.SchemaVersion.ToString(CultureInfo.InvariantCulture)}};
 
                 /// <inheritdoc />
                 public string Serialize() => {{Json}}.Write(WriteJson);
@@ -240,21 +311,26 @@ internal static class AgentEmitter
             var stored = chat.Concat(run)
                 .SelectMany(option => Members(option).Select(member => (
                     member,
-                    Parsing.Storage.JsonName(member),
-                    member == option.Setting ? option.Storage : providerId.Storage)));
+                    Names.JsonName(member),
+                    member == option.Setting ? option.Storage : providerId.Storage)))
+                .Concat(switches
+                    .Select(tool => SwitchMember(output, tool))
+                    .Select(member => (member, Names.JsonName(member), OptionMembers.Flag)));
 
             StorageEmitter.WriteRecordJson(
                 writer,
                 "Settings",
                 versioned: true,
                 stored,
-                tools.Count == 0 ? null : more => WriteTools(more, agent, tools),
+                tools.Count == 0 ? null : more => WriteTools(more, output, tools),
                 [
                     .. tools.Select((tool, index) =>
-                        $"{SettingsMember(agent, tool)} = {tool.Overrides}.TryReadJson("
+                        $"{SettingsMember(output, tool)} = {tool.Overrides}.TryReadJson("
                         + $"{Json}.Member({Json}.Member(element, \"tools\"), {Names.Literal(tool.Name)}), "
                         + $"out var tool{index}) ? tool{index} : new()")
-                ]);
+                ],
+                chat.Concat(run).Select(option => option.Provider).OfType<string>(),
+                [.. tools.Select(tool => (tool.Name, tool.Overrides!))]);
         }
 
         string ProviderDeclaration(string provider) =>
@@ -262,14 +338,14 @@ internal static class AgentEmitter
     }
 
     // Tools are stored under "tools" by name, each left out while it overrides nothing
-    private static void WriteTools(SourceWriter writer, AgentModel agent, IReadOnlyList<ToolSummary> tools)
+    private static void WriteTools(SourceWriter writer, AgentOutput output, IReadOnlyList<ToolSummary> tools)
     {
         for (var index = 0; index < tools.Count; index++)
         {
             var tool = tools[index];
 
             writer.Line(
-                $"var tool{index} = {SettingsMember(agent, tool)} is {{ }} set{index} && set{index} != new "
+                $"var tool{index} = {SettingsMember(output, tool)} is {{ }} set{index} && set{index} != new "
                 + $"{tool.Overrides}() ? set{index} : null;");
         }
 
@@ -300,6 +376,7 @@ internal static class AgentEmitter
         var agent = output.Agent;
         var declaration = $"global::Typeshift.Generated.AgentDeclaration<{agent.Type.FullName}, Settings>";
 
+        writer.Lines(Names.Generated);
         writer.Line("private sealed class TypeshiftGenerated");
 
         using (writer.Indent())
@@ -317,6 +394,19 @@ internal static class AgentEmitter
             var description = agent.Description is { } text ? Names.Literal(text) : "null";
             writer.Line($"public override string? Description => {description};");
             writer.Line();
+
+            // D84: the catalog lists the tools settings may switch off
+            var switchable = output.Tools.Where(offered => offered.Switchable).ToList();
+
+            if (switchable.Count > 0)
+            {
+                var names = string.Join(", ", switchable.Select(offered => Names.Literal(offered.Tool.Name)));
+
+                writer.Line(
+                    "public override global::System.Collections.Generic.IReadOnlyList<string> SwitchableTools => "
+                    + $"[{names}];");
+                writer.Line();
+            }
             WriteApplySettings(writer, agent);
             writer.Line();
             WriteCreateTools(writer, output, configured);
@@ -354,7 +444,7 @@ internal static class AgentEmitter
                 if (option.Provider is { } provider) WriteSetProvider(writer, provider);
 
                 var value = Local(option.Setting);
-                var applied = string.Format(option.Apply, value);
+                var applied = string.Format(CultureInfo.InvariantCulture, option.Apply, value);
 
                 writer.Line($"if (settings.{option.Setting} is {{ }} {value}) options.{option.Option} = {applied};");
             }
@@ -419,7 +509,7 @@ internal static class AgentEmitter
 
                 if (tool.Overrides is not null)
                 {
-                    var member = SettingsMember(agent, tool);
+                    var member = SettingsMember(output, tool);
 
                     writer.Line();
 
@@ -427,6 +517,22 @@ internal static class AgentEmitter
                     {
                         writer.Line($"{local} = layer.{member}?.ApplyTo({local}) ?? {local};");
                     }
+                }
+
+                writer.Line();
+            }
+
+            // D84: a tool settings may switch off is offered unless the last layer that names it says false
+            foreach (var offered in output.Tools.Where(offered => offered.Switchable))
+            {
+                var local = Offered(offered.Tool);
+
+                writer.Line($"var {local} = true;");
+                writer.Line();
+
+                using (writer.Block("foreach (var layer in layers)"))
+                {
+                    writer.Line($"{local} = layer.{SwitchMember(output, offered.Tool)} ?? {local};");
                 }
 
                 writer.Line();
@@ -442,16 +548,28 @@ internal static class AgentEmitter
 
             using (writer.Block(open: "[", close: "];"))
             {
-                writer.List(
-                [
-                    .. output.Tools.Select(offered =>
-                        offered.Tool.Settings is null
-                            ? $"{offered.Owner}.{offered.Tool.Factory}(json)"
-                            : $"{offered.Owner}.{offered.Tool.Factory}({Local(offered.Tool)}, json)")
-                ]);
+                writer.List([.. output.Tools.Select(Created)]);
             }
         }
     }
+
+    // A tool as the agent offers it: wrapped when the agent's use requires approval for it, and left out when it is
+    // switched off (D84)
+    private static string Created(OfferedTool offered)
+    {
+        var tool = offered.Tool;
+        var created = tool.Settings is null
+            ? $"{offered.Owner}.{tool.Factory}(json)"
+            : $"{offered.Owner}.{tool.Factory}({Local(tool)}, json)";
+
+        if (offered.AsksFirst) created = $"new global::Microsoft.Extensions.AI.ApprovalRequiredAIFunction({created})";
+
+        return offered.Switchable
+            ? $".. ({Offered(tool)} ? new global::Microsoft.Extensions.AI.AITool[] {{ {created} }} : [])"
+            : created;
+    }
+
+    private static string Offered(ToolSummary tool) => $"{Field(tool).TrimStart('@')}Offered";
 
     // What Configure{Tool}() sets, kept per agent instance; the builders write it
     private static void WriteConfigured(SourceWriter writer, IReadOnlyList<OfferedTool> configured)
@@ -477,6 +595,12 @@ internal static class AgentEmitter
                 {
                     if (member != tool.Members[0]) writer.Line();
 
+                    var summary = member.Summary is { } text ? $": {Docs.Escape(text)}" : ".";
+
+                    Docs.WriteSummary(writer, $"Sets <c>{member.Name}</c>{summary}");
+                    Docs.WriteParam(writer, "value", "The value the tool runs with in this agent.");
+                    Docs.WriteReturns(writer, "The settings, to set another member.");
+
                     using (writer.Block($"public {builder} With{member.Name}({member.Type} value)"))
                     {
                         writer.Line(
@@ -500,22 +624,27 @@ internal static class AgentEmitter
         var types = $"{agent.Type.FullName}, {settings}";
         var run = new HostRun(settings);
 
-        writer.Line();
         Docs.WriteSummary(writer, $"The runs and stored settings of <see cref=\"{agent.Type.FullName}\"/>.");
 
-        // Hidden, so the class stays out of type completion in every file; the members stay in member completion
+        // Hidden, so the class stays out of type completion in every file; the members stay in member completion.
+        // Each member forwards to the library, where a step into a run should land
         writer.Line(Names.Hidden);
+        writer.Lines(Names.Generated);
+        writer.Line(Names.SteppedThrough);
 
-        using (writer.Block($"{agent.Type.Accessibility} static class {HostClassName(agent.Type)}"))
+        using (writer.Block(
+            $"{agent.Type.Accessibility} static class {Names.GlobalClassName(Names.HostClassPrefix, agent.Type)}"))
         using (writer.Block($"extension({host} host)"))
         {
             const string Answer = "The response; its messages carry the agent's name as their author.";
-            const string Streamed = "The updates; they carry the agent's name as their author.";
+            const string Streamed =
+                "The run, which streams its updates, each with the agent's name as its author, and then holds its "
+                + "response.";
             const string Run = "The run, which streams its updates and then holds the result.";
             const string Asking = "asking the model for JSON of <typeparamref name=\"TResult\"/>'s schema";
             const string Once = " Once its updates are read to the end, its <c>Response</c> holds the result.";
             const string Message = "Runs the agent on a message";
-            const string Images = Message + ", which may carry images or approvals";
+            const string Images = Message + ", which may carry images";
             var typed = $"{agent.Type.FullName}, TResult";
             var answer = $"{Task}<{response}>";
             var typedAnswer = $"{Task}<{response}<TResult>>";
@@ -532,10 +661,10 @@ internal static class AgentEmitter
             run.Write(writer, $"{Images}, {Asking}", typedAnswer, Answer, "RunAsync<TResult>", message,
                 $"{Runs}.RunAsync<{typed}>(host, input, {call}");
             writer.Line();
-            run.Write(writer, $"{Message}, streaming the updates", Updates, Streamed, "RunStreamingAsync", "string",
+            run.Write(writer, $"{Message}, streaming the updates", UntypedRun, Streamed, "RunStreamingAsync", "string",
                 $"{Runs}.RunStreamingAsync(host, {user}, {call}");
             writer.Line();
-            run.Write(writer, $"{Images}, streaming the updates", Updates, Streamed, "RunStreamingAsync", message,
+            run.Write(writer, $"{Images}, streaming the updates", UntypedRun, Streamed, "RunStreamingAsync", message,
                 $"{Runs}.RunStreamingAsync(host, input, {call}");
             writer.Line();
             run.Write(writer, $"{Message}, streaming the updates and {Asking}", StreamingRun, Run,
@@ -547,19 +676,97 @@ internal static class AgentEmitter
                 Once);
             writer.Line();
 
-            WriteResume(writer, "ResumeAsync", $"{Task}<{response}>", settings, "ResumeAsync");
+            const string Open = " With decisions left open it calls no model, and what it returns lists them.";
+            const string Read = " The answers are recorded when the updates are read.";
+            var answers = new HostAnswer(settings);
+
+            answers.Write(writer, "", answer, Answer, "AnswerAsync", $"{Runs}.AnswerAsync(host, answers, {call}", Open);
             writer.Line();
-            WriteResume(writer, "ResumeStreamingAsync", Updates, settings, "ResumeStreamingAsync");
+            answers.Write(writer, $", {Asking}", typedAnswer, Answer, "AnswerAsync<TResult>",
+                $"{Runs}.AnswerAsync<{typed}>(host, answers, {call}", Open);
+            writer.Line();
+            answers.Write(writer, ", streaming the updates", UntypedRun, Streamed, "AnswerStreamingAsync",
+                $"{Runs}.AnswerStreamingAsync(host, answers, {call}", Open + Read);
+            writer.Line();
+            answers.Write(writer, $", streaming the updates and {Asking}", StreamingRun, Run,
+                "AnswerStreamingAsync<TResult>", $"{Runs}.AnswerStreamingAsync<{typed}>(host, answers, {call}",
+                Once + Read);
+            writer.Line();
+
+            WriteResume(writer, "ResumeAsync", $"{Task}<{response}>", "The response.", "ResumeAsync", settings);
+            writer.Line();
+            WriteResume(
+                writer,
+                "ResumeStreamingAsync",
+                UntypedRun,
+                "The run, which streams its updates and then holds its response.",
+                "ResumeStreamingAsync",
+                settings);
+            writer.Line();
+            WriteResume(
+                writer,
+                "ResumeAsync<TResult>",
+                typedAnswer,
+                "The response, with the result; while decisions are open, one that lists them and has none.",
+                $"ResumeAsync<{typed}>",
+                settings,
+                $", {Asking}, as a typed run that was interrupted did");
+            writer.Line();
+            WriteResume(
+                writer,
+                "ResumeStreamingAsync<TResult>",
+                StreamingRun,
+                Run,
+                $"ResumeStreamingAsync<{typed}>",
+                settings,
+                $", streaming the updates and {Asking}");
+            writer.Line();
+
+            WriteRetry(writer, "RetryAsync", $"{Task}<{response}>", "The response.", "RetryAsync", settings);
+            writer.Line();
+            WriteRetry(
+                writer,
+                "RetryStreamingAsync",
+                UntypedRun,
+                "The run, which streams its updates and then holds its response.",
+                "RetryStreamingAsync",
+                settings,
+                ", streaming the updates");
+            writer.Line();
+            WriteRetry(
+                writer,
+                "RetryAsync<TResult>",
+                typedAnswer,
+                "The response, with the result; while decisions are open, one that lists them and has none.",
+                $"RetryAsync<{typed}>",
+                settings,
+                $", {Asking}, as the typed run that failed did");
+            writer.Line();
+            WriteRetry(
+                writer,
+                "RetryStreamingAsync<TResult>",
+                StreamingRun,
+                Run,
+                $"RetryStreamingAsync<{typed}>",
+                settings,
+                $", streaming the updates and {Asking}");
             writer.Line();
 
             Docs.WriteSummary(
                 writer,
                 "Resolves the options of a run, for the raw path: <c>CreateChatClientAsync</c>, then the client. The "
                 + "options carry the host's conversation; on a host without one, <c>ChatOptions.ConversationId</c> "
-                + "names a conversation under a <see cref=\"string\"/> id.");
+                + "names a conversation under a <see cref=\"string\"/> id."
+                + Docs.Guide("running-agents#the-raw-path", "The raw path"));
             Docs.WriteParam(writer, "settings", "What the run changes over the stored settings; null for nothing.");
             Docs.WriteParam(writer, "ct", "Cancels the resolution.");
             Docs.WriteReturns(writer, "The options, with the agent's tools.");
+            Docs.WriteException(
+                writer,
+                InvalidOperation,
+                "Something the options need is not registered: a store for the type of the host's settings id, or an "
+                + "<c>IMcpToolProvider</c> for the agent's MCP servers.");
+            WriteNewerSettings(writer);
             writer.Lines(
                 $"""
                 public {Task}<{ChatOptions}> ResolveOptionsAsync(
@@ -569,17 +776,51 @@ internal static class AgentEmitter
                 """);
             writer.Line();
 
+            // D26: the raw path in one call, for a library that calls the client without options or with its own
+            Docs.WriteSummary(
+                writer,
+                "Creates the client of the raw path from the options of a run, as <c>ResolveOptionsAsync</c> resolves "
+                + "them, for a library that takes an <c>IChatClient</c>. The client keeps the options: a call without "
+                + "options runs with them, and a call with options of its own changes only the conversation id, the "
+                + "response format and the tools it adds."
+                + Docs.Guide("running-agents#the-raw-path", "The raw path"));
+            Docs.WriteParam(writer, "settings", "What the run changes over the stored settings; null for nothing.");
+            Docs.WriteParam(writer, "ct", "Cancels the creation.");
+            Docs.WriteReturns(writer, "The client; disposing it leaves the provider's client alone.");
+            Docs.WriteException(
+                writer,
+                InvalidOperation,
+                "No chat client serves the options, " + OwnLoop + ", or something the options need is not "
+                + "registered: a store for the type of the host's settings id, or an <c>IMcpToolProvider</c> for the "
+                + "agent's MCP servers.");
+            WriteNewerSettings(writer);
+            writer.Lines(
+                $"""
+                public {Task}<global::Microsoft.Extensions.AI.IChatClient> CreateChatClientAsync(
+                    {settings}? settings = null,
+                    {CancellationToken} ct = default) =>
+                    {Runs}.CreateChatClientAsync(host, settings, ct);
+                """);
+            writer.Line();
+
+            const string Refused =
+                "The settings set a value no run can go with, such as a blank model or no round of tool calls; "
+                + "nothing is saved.";
+
             // D41, D66: versions guard every save; a host with a settings id has that id's settings in place of the
             // agent's own
             Docs.WriteSummary(
                 writer,
                 "Loads the agent's own settings, which every run applies, or, on a host from <c>WithSettingsId</c>, "
-                + "the settings stored under its id.");
+                + "the settings stored under its id."
+                + AgentSettings);
             Docs.WriteParam(writer, "ct", "Cancels the load.");
             Docs.WriteReturns(
                 writer,
                 "The settings and the version <c>SaveSettingsAsync</c> takes; empty settings at version 0 when none "
                 + "are stored.");
+            Docs.WriteException(writer, InvalidOperation, NoSettingsStore);
+            WriteNewerSettings(writer);
             writer.Lines(
                 $"""
                 public {Task}<global::Typeshift.Stored<{settings}>> LoadSettingsAsync(
@@ -591,15 +832,18 @@ internal static class AgentEmitter
             Docs.WriteSummary(
                 writer,
                 "Saves the agent's own settings, or, on a host from <c>WithSettingsId</c>, those under its id, unless "
-                + "another save came since they were loaded.");
+                + "another save came since they were loaded."
+                + AgentSettings);
             Docs.WriteParam(writer, "settings", "The settings.");
             Docs.WriteParam(
                 writer,
                 "loadedVersion",
-                "The version <c>LoadSettingsAsync</c> returned, 0 when it loaded none.");
+                "The version <c>LoadSettingsAsync</c> or <c>UpdateSettingsAsync</c> returned, 0 when it loaded none.");
             Docs.WriteParam(writer, "ct", "Cancels the save.");
             Docs.WriteReturns(writer, "The new version, to pass to the next save.");
             Docs.WriteException(writer, "global::Typeshift.StoreConflictException", "Another save came first.");
+            Docs.WriteException(writer, InvalidOperation, NoSettingsStore);
+            Docs.WriteException(writer, "global::System.ArgumentException", Refused);
             writer.Lines(
                 $"""
                 public {Task}<long> SaveSettingsAsync(
@@ -612,46 +856,200 @@ internal static class AgentEmitter
 
             Docs.WriteSummary(
                 writer,
-                "Changes the agent's own settings, or, on a host from <c>WithSettingsId</c>, those under its id, "
-                + "reloading and changing them again whenever another save came first, up to ten times.");
-            Docs.WriteParam(writer, "configure", "Returns the changed settings; called again after a lost save.");
-            Docs.WriteParam(writer, "ct", "Cancels the change.");
-            Docs.WriteReturns(writer, "The settings saved.");
+                "Updates the agent's own settings, or, on a host from <c>WithSettingsId</c>, those under its id: "
+                + "loads them, saves what <paramref name=\"update\"/> returns, and loads and updates them again "
+                + "whenever another save came first, up to ten times."
+                + AgentSettings);
+            Docs.WriteParam(writer, "update", "Returns the changed settings; called again after a lost save.");
+            Docs.WriteParam(writer, "ct", "Cancels the update.");
+            Docs.WriteReturns(writer, "The settings saved and their version, which the next save takes.");
             Docs.WriteException(
                 writer,
                 "global::Typeshift.StoreConflictException",
                 "Another save came first ten times in a row.");
+            Docs.WriteException(
+                writer,
+                InvalidOperation,
+                $"{NoSettingsStore} Or <paramref name=\"update\"/> returned null; nothing is saved then.");
+            WriteNewerSettings(writer);
+            Docs.WriteException(writer, "global::System.ArgumentException", Refused);
             writer.Lines(
                 $"""
-                public {Task}<{settings}> ConfigureAsync(
-                    global::System.Func<{settings}, {settings}> configure,
+                public {Task}<global::Typeshift.Stored<{settings}>> UpdateSettingsAsync(
+                    global::System.Func<{settings}, {settings}> update,
                     {CancellationToken} ct = default) =>
-                    {Runs}.ConfigureAsync<{types}>(host, configure, ct);
+                    {Runs}.UpdateSettingsAsync<{types}>(host, update, ct);
                 """);
         }
     }
 
-    // D50: the host's conversation's interrupted run, continued without input
-    private static void WriteResume(SourceWriter writer, string name, string returns, string settings, string run)
+    // D40: settings written under a newer schema version are refused, by every member that loads them
+    private static void WriteNewerSettings(SourceWriter writer) =>
+        Docs.WriteException(
+            writer,
+            "global::System.Text.Json.JsonException",
+            "The stored settings were written under a newer schema version than this code's.");
+
+    // D50: what every member that starts a run throws on a conversation whose run is going on
+    private const string Busy = "global::Typeshift.ConversationBusyException";
+
+    private const string Going =
+        "A run of the host's conversation is going on in this container, or the store refused a step of this run "
+        + "because a run in another container appended first. A streaming run throws it when its updates are read.";
+
+    // D46: what a run throws, by default, when the store failed to append one of its steps
+    private const string NotStored = "global::Typeshift.ConversationStoreException";
+
+    private const string Lacking =
+        "The store failed to append a step of the run, which then fails as it ends, unless "
+        + "<c>TypeshiftOptions.StoreFailure</c> lets it continue. The exception holds what the run answered.";
+
+    // D50, D80: the host's conversation's interrupted run or answered decisions, continued without input
+    private static void WriteResume(
+        SourceWriter writer,
+        string name,
+        string returns,
+        string returnsDoc,
+        string call,
+        string settings,
+        string how = "")
     {
         Docs.WriteSummary(
             writer,
-            "Continues the run of the host's conversation, from <c>WithConversationId</c>, that was interrupted, from "
-            + "its last stored step, without new input.");
+            "Continues the host's conversation, from <c>WithConversationId</c>, without new input: the run that was "
+            + $"interrupted, from its last stored step, or the decisions your app answered{how}. While decisions are "
+            + "still open it calls no model, and what it returns lists them."
+            + Docs.Guide("conversations#resuming", "Resuming"));
+        if (name.EndsWith("<TResult>", StringComparison.Ordinal))
+            Docs.WriteTypeParam(writer, "TResult", "The result's type.");
+
         Docs.WriteParam(writer, "settings", "What the run changes over the stored settings; null for nothing.");
         Docs.WriteParam(writer, "ct", "Cancels the run.");
-        Docs.WriteReturns(
-            writer,
-            returns.Contains("IAsyncEnumerable") ? "The updates." : "The response.");
+        Docs.WriteReturns(writer, returnsDoc);
         Docs.WriteException(
             writer,
-            "global::System.InvalidOperationException",
-            "The host has no conversation, or the conversation has no interrupted run.");
+            "global::Typeshift.NothingToResumeException",
+            "The conversation has nothing to continue: its last run ended, and no decision your app answered or "
+            + "withdrew waits.");
+        Docs.WriteException(writer, Busy, Going);
+        Docs.WriteException(writer, NotStored, Lacking);
+        Docs.WriteException(
+            writer,
+            InvalidOperation,
+            $"The host has no conversation, {OwnLoop}, or {MissingRegistration}.");
+        WriteNewerSettings(writer);
         writer.Lines(
             $"""
             public {returns} {name}({settings}? settings = null, {CancellationToken} ct = default) =>
-                {Runs}.{run}(host, settings, ct);
+                {Runs}.{call}(host, settings, ct);
             """);
+    }
+
+    // D50: a resume that also continues a run that failed, without storing its input again
+    private static void WriteRetry(
+        SourceWriter writer,
+        string name,
+        string returns,
+        string returnsDoc,
+        string call,
+        string settings,
+        string how = "")
+    {
+        Docs.WriteSummary(
+            writer,
+            "Continues the host's conversation as <c>ResumeAsync</c> does, and also when its last run failed, was "
+            + $"cancelled or stopped, as on a provider's error: from that run's stored steps{how}, so the model "
+            + "receives the user's message once."
+            + Docs.Guide("conversations#retrying-a-failed-run", "Retrying a failed run"));
+        if (name.EndsWith("<TResult>", StringComparison.Ordinal))
+            Docs.WriteTypeParam(writer, "TResult", "The result's type.");
+
+        Docs.WriteParam(writer, "settings", "What the run changes over the stored settings; null for nothing.");
+        Docs.WriteParam(writer, "ct", "Cancels the run.");
+        Docs.WriteReturns(writer, returnsDoc);
+        Docs.WriteException(
+            writer,
+            "global::Typeshift.NothingToResumeException",
+            "The conversation has nothing to retry: its last run answered or waits for your app, and no decision "
+            + "your app answered or withdrew waits.");
+        Docs.WriteException(writer, Busy, Going);
+        Docs.WriteException(writer, NotStored, Lacking);
+        Docs.WriteException(
+            writer,
+            InvalidOperation,
+            $"The host has no conversation, {OwnLoop}, or {MissingRegistration}.");
+        WriteNewerSettings(writer);
+        writer.Lines(
+            $"""
+            public {returns} {name}({settings}? settings = null, {CancellationToken} ct = default) =>
+                {Runs}.{call}(host, settings, ct);
+            """);
+    }
+
+    // D80: the answers to decisions of the host's conversation, and the run they continue
+    private sealed class HostAnswer(string settings)
+    {
+        private const string Answers =
+            "global::System.Collections.Generic.IReadOnlyList<global::Typeshift.DecisionAnswer>";
+
+        public void Write(
+            SourceWriter writer,
+            string how,
+            string returns,
+            string returnsDoc,
+            string name,
+            string call,
+            string note)
+        {
+            Docs.WriteSummary(
+                writer,
+                "Records your app's answers to decisions of the host's conversation, from <c>WithConversationId</c>, "
+                + $"and, once no decision is left open, carries them out and continues the run{how}.{note}"
+                + Docs.Guide("tool-approval#approving-or-rejecting", "Approving or rejecting"));
+            if (name.EndsWith("<TResult>", StringComparison.Ordinal))
+                Docs.WriteTypeParam(writer, "TResult", "The result's type.");
+
+            Docs.WriteParam(
+                writer,
+                "answers",
+                "The answers, each made from its decision, as <c>decision.Approve()</c> makes one, or by its id.");
+            Docs.WriteParam(writer, "settings", "What the run changes over the stored settings; null for nothing.");
+            Docs.WriteParam(writer, "ct", "Cancels the run.");
+            Docs.WriteReturns(writer, returnsDoc);
+            Docs.WriteException(
+                writer,
+                "global::Typeshift.DecisionClosedException",
+                "An answer names a decision that is not open: answered already, passed by a new message, or unknown. "
+                + "Nothing of the call is recorded.");
+            Docs.WriteException(
+                writer,
+                "global::System.ArgumentException",
+                "An answer does not fit its decision, one decision is answered twice, or there is no answer. Nothing "
+                + "is recorded.");
+            Docs.WriteException(
+                writer,
+                "global::Typeshift.StoreConflictException",
+                "Other saves of the conversation's decisions came first ten times in a row.");
+            Docs.WriteException(
+                writer,
+                Busy,
+                "A run of the host's conversation is going on in this container, or one in another container "
+                + "appended first. The answers are recorded: continue with <c>ResumeAsync</c> once it has ended.");
+            Docs.WriteException(writer, NotStored, Lacking);
+            Docs.WriteException(
+                writer,
+                InvalidOperation,
+                $"The host has no conversation, {OwnLoop}, or {MissingRegistration}.");
+            WriteNewerSettings(writer);
+            writer.Lines(
+                $"""
+                public {returns} {name}(
+                    {Answers} answers,
+                    {settings}? settings = null,
+                    {CancellationToken} ct = default) =>
+                    {call}
+                """);
+        }
     }
 
     // The parameters every run takes, after its input
@@ -670,7 +1068,8 @@ internal static class AgentEmitter
             Docs.WriteSummary(
                 writer,
                 $"{summary}, in the host's conversation if it has one, with the stored and the run's settings over the "
-                + $"agent's code.{note}");
+                + $"agent's code.{note}"
+                + Docs.Guide("running-agents", "Running an agent"));
             if (name.EndsWith("<TResult>", StringComparison.Ordinal))
                 Docs.WriteTypeParam(writer, "TResult", "The result's type.");
 
@@ -678,6 +1077,18 @@ internal static class AgentEmitter
             Docs.WriteParam(writer, "settings", "What the run changes over the stored settings; null for nothing.");
             Docs.WriteParam(writer, "ct", "Cancels the run.");
             Docs.WriteReturns(writer, returnsDoc);
+            Docs.WriteException(
+                writer,
+                "global::Typeshift.DecisionUnavailableException",
+                "A call would need a decision of your app, and the run has no conversation to keep it in. The run "
+                + "throws before it calls the model, or, with approval rules registered, at a call no rule decided.");
+            Docs.WriteException(writer, Busy, Going);
+            Docs.WriteException(writer, NotStored, Lacking);
+            Docs.WriteException(
+                writer,
+                InvalidOperation,
+                $"The agent's chat client runs a tool loop of its own, or {MissingRegistration}.");
+            WriteNewerSettings(writer);
             writer.Lines(
                 $"""
                 public {returns} {name}(

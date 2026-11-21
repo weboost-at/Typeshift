@@ -3,21 +3,24 @@ using System.Diagnostics;
 
 namespace Typeshift.Tests.Telemetry.Support;
 
-// Every span of the Typeshift source from its creation on, as an exporter would receive them
-public sealed class RecordedActivities
+// Every span of the Typeshift source from its creation on, as an exporter would receive them, until it is disposed.
+// A listener left attached records the spans of every later test, on the thread that stops them, which counts the
+// queue's growth into the allocations a budget test measures there
+public sealed class RecordedActivities : IDisposable
 {
     private readonly ConcurrentQueue<Activity> _stopped = new();
+    private readonly ActivityListener _listener;
 
     public RecordedActivities()
     {
-        var listener = new ActivityListener
+        _listener = new ActivityListener
         {
             ShouldListenTo = source => source.Name == "Typeshift",
             Sample = (ref _) => ActivitySamplingResult.AllDataAndRecorded,
             ActivityStopped = _stopped.Enqueue
         };
 
-        ActivitySource.AddActivityListener(listener);
+        ActivitySource.AddActivityListener(_listener);
     }
 
     // The run of a conversation, tests running alongside have their own
@@ -37,4 +40,10 @@ public sealed class RecordedActivities
 
     public IReadOnlyList<Activity> Inside(Activity run) =>
         [.. _stopped.Where(activity => activity.TraceId == run.TraceId && activity != run)];
+
+    // The run's children; under a request's span every span is in the request's trace, wherever it hangs
+    public IReadOnlyList<Activity> Under(Activity run) =>
+        [.. _stopped.Where(activity => activity.ParentSpanId == run.SpanId)];
+
+    public void Dispose() => _listener.Dispose();
 }

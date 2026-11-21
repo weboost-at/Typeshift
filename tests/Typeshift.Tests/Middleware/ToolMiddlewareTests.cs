@@ -6,8 +6,10 @@ namespace Typeshift.Tests.Middleware;
 
 public class ToolMiddlewareTests : MiddlewareTestBase
 {
-    [Fact]
-    public async Task Given_Tool_Middleware_It_Wraps_Each_Call_The_First_Registered_Outermost()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Given_Tool_Middleware_It_Wraps_Each_Call_The_First_Registered_Outermost(bool streaming)
     {
         // Arrange
         ChatClient
@@ -15,7 +17,7 @@ public class ToolMiddlewareTests : MiddlewareTestBase
             .Reply(Text(Data.Tool.Answer));
 
         // Act
-        await RunAsync(Data.Tool.Question);
+        await RunAsync(Data.Tool.Question, settings: null, streaming);
 
         // Assert
         Script.Log.Where(entry => entry.StartsWith("tool")).Should().Equal(
@@ -24,6 +26,48 @@ public class ToolMiddlewareTests : MiddlewareTestBase
             "tool 1 after note",
             "tool 0 after note");
         ToolCalls.Should().Equal($"note {Data.Tool.Query}");
+    }
+
+    [Fact]
+    public async Task Given_A_Tool_Call_Its_Middleware_Reads_The_Runs_Agent_And_Settings_Id()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "note", ("text", Data.Tool.Query)))
+            .Reply(Text(Data.Tool.Answer));
+
+        var runs = new List<AgentRun>();
+
+        Script.Tools[0] = (call, next) =>
+        {
+            runs.Add(call.Run);
+            return next();
+        };
+
+        // Act
+        await Host<ContextAgent>()
+            .WithSettingsId(Data.Persistence.SettingsId)
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync(Data.Tool.Question, Ct);
+        runs[0].TryGetSettingsId<Guid>(out var customer);
+
+        // Assert
+        runs[0].Agent.Name.Should().Be("context_agent");
+        customer.Should().Be(Data.Persistence.SettingsId);
+    }
+
+    [Fact]
+    public void Given_A_Call_Outside_A_Run_Reading_Its_Run_Throws()
+    {
+        // Arrange
+        var tool = AIFunctionFactory.Create(() => Data.Tool.Answer, "note");
+        var call = new FunctionInvocationContext { Function = tool };
+
+        // Act
+        var read = () => call.Run;
+
+        // Assert
+        read.Should().Throw<InvalidOperationException>().WithMessage("*'note'*");
     }
 
     [Fact]
@@ -71,5 +115,44 @@ public class ToolMiddlewareTests : MiddlewareTestBase
             .OfType<FunctionResultContent>()
             .Should()
             .ContainSingle(result => result.CallId == Data.Tool.CallId);
+    }
+
+    [Fact]
+    public async Task Given_A_Call_That_Waits_For_Approval_Tool_Middleware_Sees_It_Only_Once_It_Runs()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "close_ticket", ("number", Data.Agent.Ticket.Default)))
+            .Reply(Text(Data.Tool.Answer));
+
+        var chat = Host<ContextAgent>().WithConversationId(Data.Agent.ConversationId);
+        var asked = await RunAsync(Data.Tool.Question);
+        var seenWhileWaiting = Script.Log.Count(entry => entry.StartsWith("tool"));
+
+        // Act
+        await chat.AnswerAsync([DecisionAnswer.Approve(asked.Decisions[0].Id)], ct: Ct);
+
+        // Assert
+        seenWhileWaiting.Should().Be(0);
+        Script.Log.Where(entry => entry.StartsWith("tool")).Should().StartWith("tool 0 before close_ticket");
+    }
+
+    [Fact]
+    public async Task Given_A_Rejected_Call_Tool_Middleware_Never_Sees_It()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "close_ticket", ("number", Data.Agent.Ticket.Default)))
+            .Reply(Text(Data.Tool.Answer));
+
+        var chat = Host<ContextAgent>().WithConversationId(Data.Agent.ConversationId);
+        var asked = await RunAsync(Data.Tool.Question);
+
+        // Act
+        await chat.AnswerAsync([asked.Decisions[0].Reject(Data.Agent.Reason)], ct: Ct);
+
+        // Assert
+        Script.Log.Where(entry => entry.StartsWith("tool")).Should().BeEmpty();
+        ToolCalls.Should().BeEmpty();
     }
 }

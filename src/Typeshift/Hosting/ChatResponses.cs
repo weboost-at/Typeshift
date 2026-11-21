@@ -18,37 +18,14 @@ internal static class ChatResponses
             (merged.Usage ??= new UsageDetails()).Add(usage);
         }
 
+        if (first.ConversationIncomplete || next.ConversationIncomplete) Incomplete(merged);
         return merged;
     }
 
-    // The response without these approval requests, and without a message that held only them
-    public static ChatResponse WithoutRequests(ChatResponse response, IReadOnlySet<string> requests)
-    {
-        if (requests.Count == 0) return response;
+    // D46: a run that was not stored whole says so on what it returns
+    public static void Incomplete(ChatResponse response) =>
+        (response.AdditionalProperties ??= [])[ChatResponseExtensions.Incomplete] = true;
 
-        var messages = response.Messages
-            .Select(message =>
-            {
-                if (!message.Contents.Any(content => IsAmong(content, requests))) return message;
-
-                var left = message.Clone();
-                left.Contents = [.. message.Contents.Where(content => !IsAmong(content, requests))];
-                return left.Contents.Count > 0 ? left : null;
-            })
-            .OfType<ChatMessage>()
-            .ToList();
-
-        return new ChatResponse(messages)
-        {
-            ModelId = response.ModelId,
-            FinishReason = response.FinishReason,
-            Usage = response.Usage,
-            ResponseId = response.ResponseId,
-            CreatedAt = response.CreatedAt,
-            AdditionalProperties = response.AdditionalProperties
-        };
-    }
-
-    private static bool IsAmong(AIContent content, IReadOnlySet<string> requests) =>
-        content is ToolApprovalRequestContent request && requests.Contains(request.RequestId);
+    public static ChatResponseUpdate IncompleteUpdate() =>
+        new() { AdditionalProperties = new() { [ChatResponseExtensions.Incomplete] = true } };
 }

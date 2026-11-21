@@ -23,12 +23,32 @@ public sealed class ChatOptionsBuilder
     /// <param name="provider">The provider.</param>
     /// <param name="model">The model, as the provider's API names it.</param>
     /// <returns>The same chain.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="provider"/> is null.</exception>
+    /// <exception cref="ArgumentException">
+    /// <paramref name="model"/> is null or white space, or <paramref name="provider"/> is text that is white space.
+    /// </exception>
     public ChatOptionsBuilder WithModel<TProviderId>(TProviderId provider, string model) where TProviderId : notnull
     {
         ArgumentNullException.ThrowIfNull(provider);
+        if (provider is string text) ArgumentException.ThrowIfNullOrWhiteSpace(text, nameof(provider));
+        ArgumentException.ThrowIfNullOrWhiteSpace(model);
 
         // D77: typed here, where the provider's type is known, so the run asks the IChatClientProvider of that type
         _agent.Provider = new ProviderId<TProviderId>(provider);
+        return Set(options => options.ModelId = model);
+    }
+
+    /// <summary>
+    /// Sets the model alone. An agent that names no provider, here or in its settings, runs on the default client:
+    /// the one registered for every agent. <c>Configurable(o => o.ModelId)</c> lets stored settings or a run choose
+    /// another model, or name a provider.
+    /// </summary>
+    /// <param name="model">The model, as the API of the client that serves the run names it.</param>
+    /// <returns>The same chain.</returns>
+    /// <exception cref="ArgumentException"><paramref name="model"/> is null or white space.</exception>
+    public ChatOptionsBuilder WithModel(string model)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(model);
         return Set(options => options.ModelId = model);
     }
 
@@ -129,6 +149,22 @@ public sealed class ChatOptionsBuilder
     /// <returns>The same chain.</returns>
     public ChatOptionsBuilder WithTools(params AITool[] tools) =>
         Set(options => options.Tools = [.. options.Tools ?? [], .. tools]);
+
+    /// <summary>
+    /// Adds tools of no toolset that only read, such as a <see cref="HostedWebSearchTool"/>, as
+    /// <see cref="WithTools"/> does, and marks them so plan mode offers them. The provider receives each tool as it
+    /// is given.
+    /// More in the guide:
+    /// <see href="https://weboost-at.github.io/Typeshift/guide/tool-approval#plan-mode">Plan mode</see>.
+    /// </summary>
+    /// <param name="tools">The tools.</param>
+    /// <returns>The same chain.</returns>
+    public ChatOptionsBuilder WithReadOnlyTools(params AITool[] tools)
+    {
+        // D52: the agent knows the tools themselves, so no wrapper hides a hosted tool from the provider's client
+        _agent.ReadOnlyTools.UnionWith(tools);
+        return WithTools(tools);
+    }
 
     /// <summary>
     /// Sets a provider-specific option.

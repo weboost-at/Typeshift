@@ -20,22 +20,33 @@ internal static class Modes
         // end-snippet
 
         // begin-snippet: plan-mode
-        var proposal = planned.ApprovalRequests.Single();
+        var proposal = planned.Decisions.OfType<PlanDecision>().Single();
 
-        if (proposal.ToolCall is FunctionCallContent { Arguments: { } arguments })
-            Console.WriteLine(arguments["plan"]);
+        Console.WriteLine(proposal.Plan);
         // end-snippet
 
         // begin-snippet: approve-plan
-        var approval = new ChatMessage(ChatRole.User, [proposal.ApprovePlan(AgentMode.Auto)]);
-
-        await chat.RunAsync(approval);
+        await chat.AnswerAsync([proposal.Approve(AgentMode.Auto)]);
         // end-snippet
 
-        var store = provider.GetRequiredService<ITypeshiftStore<int>>();
-        var entries = await store.LoadConversationAsync(conversationId, default);
+        if ((await chat.GetDecisionsAsync()).Mode != AgentMode.Auto)
+            throw new InvalidOperationException("Expected the conversation to continue in auto mode.");
 
-        if (entries[^1].Mode != AgentMode.Auto)
-            throw new InvalidOperationException("Expected the run to end in auto mode.");
+        // begin-snippet: set-mode
+        await chat.SetModeAsync(AgentMode.Default);
+        // end-snippet
+
+        if ((await chat.GetDecisionsAsync()).Mode != AgentMode.Default)
+            throw new InvalidOperationException("Expected the conversation to be back in the default mode.");
+
+        var troubleshooting = scope.ServiceProvider.GetRequiredService<AgentHost<TroubleshootingAgent>>();
+
+        var research = await troubleshooting.ResolveOptionsAsync();
+        if (!research.Tools!.Any(tool => tool is HostedWebSearchTool))
+            throw new InvalidOperationException("Expected the provider to receive the hosted tool as it was given.");
+
+        var troubleshot = await troubleshooting.WithConversationId(14).RunAsync("The printer jams.");
+        if (troubleshot.Decisions is not [PlanDecision])
+            throw new InvalidOperationException("Expected the agent to plan with its read-only tools first.");
     }
 }

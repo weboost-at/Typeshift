@@ -6,6 +6,7 @@ obj/
 .idea/
 *.user
 artifacts/
+TestResults/
 node_modules/
 docs/.vitepress/cache/
 docs/.vitepress/dist/

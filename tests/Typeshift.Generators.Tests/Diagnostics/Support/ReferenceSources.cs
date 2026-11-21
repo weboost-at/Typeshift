@@ -71,6 +71,109 @@ public static class ReferenceSources
         }
         """;
 
+    // A second assembly with a find_companies, which has overrides as the first one's has
+    public const string SearchToolset =
+        """
+        using Typeshift;
+
+        namespace Search;
+
+        public record FindSettings
+        {
+            public int Limit { get; init; } = 5;
+        }
+
+        public partial class SearchToolset : Toolset
+        {
+            public SearchToolset() =>
+                AddTool(FindCompanies).WithDescription("Finds companies too.").WithConfigurableSettings<FindSettings>();
+
+            public static string FindCompanies(string name, FindSettings settings) => name;
+        }
+        """;
+
+    public const string BothCompanyToolsetsAgent =
+        """
+        using Typeshift;
+
+        namespace Research;
+
+        internal partial class ResearchAgent : Agent
+        {
+            public ResearchAgent()
+            {
+                WithDescription("Researches companies.");
+                UseToolset<Companies.CompanyToolset>();
+                UseToolset<Search.SearchToolset>();
+            }
+        }
+        """;
+
+    // As a library built by an earlier Typeshift left it: a module of another stamp version, which this generator
+    // does not read
+    public const string StaleStampToolset =
+        """
+        using Typeshift;
+
+        [assembly: Typeshift.Generated.GeneratedModule(typeof(Stale.StaleModule), 1)]
+
+        namespace Stale;
+
+        public static class StaleModule;
+
+        public partial class StaleToolset : Toolset
+        {
+            public StaleToolset() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+        }
+        """;
+
+    // Times is obsolete and not configurable, so no generated member names it, in this project or in one that
+    // references it
+    public const string ObsoleteSettingToolset =
+        """
+        #pragma warning disable CS1591
+
+        using System;
+        using Typeshift;
+
+        namespace Echoes;
+
+        public record EchoSettings
+        {
+            public int Repeat { get; init; } = 1;
+
+            [Obsolete("Use Repeat.")]
+            public int Times { get; init; }
+        }
+
+        public partial class EchoToolset : Toolset
+        {
+            public EchoToolset() =>
+                AddTool(Echo).WithDescription("Echoes.").WithSettings<EchoSettings>().Configurable(s => s.Repeat);
+
+            public static string Echo(string text, EchoSettings settings) => text;
+        }
+        """;
+
+    public const string ObsoleteSettingAgent =
+        """
+        using Typeshift;
+
+        namespace Research;
+
+        internal partial class EchoAgent : Agent
+        {
+            public EchoAgent()
+            {
+                WithDescription("Echoes.");
+                UseToolset<Echoes.EchoToolset>();
+                ConfigureEcho().WithRepeat(2);
+            }
+        }
+        """;
+
     public const string CompanyAgent =
         """
         using Typeshift;
@@ -175,6 +278,23 @@ public static class ReferenceSources
         }
         """;
 
+    public const string QuestioningHelpAgent =
+        """
+        using Typeshift;
+
+        namespace Help;
+
+        public partial class HelpAgent : Agent
+        {
+            public HelpAgent()
+            {
+                WithDescription("Helps.");
+
+                UseQuestions();
+            }
+        }
+        """;
+
     public const string HelpAgentWithOwnTool =
         """
         using Typeshift;
@@ -249,6 +369,207 @@ public static class ReferenceSources
         internal partial class LeadAgent : Agent
         {
             public LeadAgent() => UseAgent<HelpAgent>();
+        }
+        """;
+
+    public const string ExperimentalToolset =
+        """
+        using System.Diagnostics.CodeAnalysis;
+        using Typeshift;
+
+        namespace Trials;
+
+        [Experimental("TRIAL001")]
+        public enum Depth
+        {
+            Shallow,
+            Deep
+        }
+
+        [Experimental("TRIAL002")]
+        public record TrialSettings
+        {
+        #pragma warning disable TRIAL001
+            public Depth Depth { get; init; }
+        #pragma warning restore TRIAL001
+
+            public int Limit { get; init; } = 3;
+        }
+
+        [Experimental("TRIAL003")]
+        public partial class TrialToolset : Toolset
+        {
+            public TrialToolset()
+            {
+        #pragma warning disable TRIAL002
+                AddTool(Try).WithDescription("Tries.").WithConfigurableSettings<TrialSettings>();
+        #pragma warning restore TRIAL002
+            }
+
+        #pragma warning disable TRIAL002
+            public static string Try(string text, TrialSettings settings) => text;
+        #pragma warning restore TRIAL002
+        }
+        """;
+
+    public const string ExperimentalToolsetAgent =
+        """
+        using Typeshift;
+        using Trials;
+
+        namespace Research;
+
+        internal partial class TrialAgent : Agent
+        {
+            public TrialAgent()
+            {
+                WithDescription("Tries.");
+
+        #pragma warning disable TRIAL001, TRIAL003
+                UseToolset<TrialToolset>();
+                ConfigureTry().WithDepth(Depth.Deep);
+        #pragma warning restore TRIAL001, TRIAL003
+            }
+        }
+        """;
+
+    // Every type of an assembly marked [Experimental] reports the assembly's id where it is named
+    public const string ExperimentalAssembly =
+        """
+        [assembly: System.Diagnostics.CodeAnalysis.Experimental("LAB001")]
+
+        namespace Lab;
+
+        public record Sample(string Text);
+        """;
+
+    public const string ExperimentalAssemblyToolset =
+        """
+        using Lab;
+        using Typeshift;
+
+        namespace Research;
+
+        internal partial class SampleTools : Toolset
+        {
+            public SampleTools()
+            {
+                AddTool(Take).WithDescription("Takes a sample.");
+            }
+
+        #pragma warning disable LAB001
+            public static string Take(Sample sample) => sample.Text;
+        #pragma warning restore LAB001
+        }
+        """;
+
+    // Generated code names types from global::, which a reference under an extern alias alone is no part of
+    public const string AliasedToolsetAgent =
+        """
+        extern alias lib;
+
+        using lib::Demo;
+        using Microsoft.Extensions.DependencyInjection;
+        using Typeshift;
+
+        namespace App;
+
+        internal partial class AliasedAgent : Agent
+        {
+            public AliasedAgent()
+            {
+                WithDescription("Uses an aliased reference.");
+                UseToolset<TicketToolset>();
+            }
+        }
+
+        internal static class Startup
+        {
+            public static void Register(IServiceCollection services) => services.AddTypeshift();
+        }
+        """;
+
+    // A toolset for an assembly of any name: the namespace, the class and its one tool method
+    public static string EchoToolset(string ns, string toolset, string method) =>
+        $$"""
+        #pragma warning disable CS1591
+
+        using Typeshift;
+
+        namespace {{ns}};
+
+        public partial class {{toolset}} : Toolset
+        {
+            public {{toolset}}() => AddTool({{method}}).WithDescription("Echoes.");
+
+            public static string {{method}}(string text) => text;
+        }
+        """;
+
+    // One toolset in two files, each with a constructor that declares the same tool
+    public const string SplitToolsetFirst =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class SplitToolset : Toolset
+        {
+            public SplitToolset() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+        }
+        """;
+
+    public const string SplitToolsetSecond =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class SplitToolset
+        {
+            public SplitToolset(int times) => AddTool(Echo).WithDescription("Echoes again.");
+        }
+        """;
+
+    public const string TwoToolsetsHost =
+        """
+        using Microsoft.Extensions.DependencyInjection;
+        using Typeshift;
+
+        namespace Host;
+
+        internal partial class HostAgent : Agent
+        {
+            public HostAgent()
+            {
+                WithDescription("Hosts.");
+                UseToolset<First.FirstTools>();
+                UseToolset<Second.SecondTools>();
+            }
+        }
+
+        internal static class Startup
+        {
+            public static void Register(IServiceCollection services) => services.AddTypeshift();
+        }
+        """;
+
+    // Names the reference's toolset in full, with no using for its namespace
+    public const string CompanyAgentNamingTheToolsetInFull =
+        """
+        using Typeshift;
+
+        namespace Research;
+
+        internal partial class ResearchAgent : Agent
+        {
+            public ResearchAgent()
+            {
+                WithDescription("Researches companies.");
+                UseToolset<Companies.CompanyToolset>().Include(t => t.FindCompanies);
+            }
         }
         """;
 }

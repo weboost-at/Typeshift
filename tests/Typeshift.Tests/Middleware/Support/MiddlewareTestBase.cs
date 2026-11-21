@@ -26,30 +26,38 @@ public abstract class MiddlewareTestBase : AgentTestBase
         services.AddSingleton(ToolCalls);
     }
 
-    protected Task<ChatResponse> RunAsync(string input) =>
-        Host<ContextAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(input, ct: Ct);
+    protected Task<ChatResponse> RunAsync(string input, ContextAgent.Settings? settings = null) =>
+        Host<ContextAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(input, settings: settings, ct: Ct);
 
-    protected async Task<ChatResponse> StreamAsync(string input) =>
+    protected async Task<ChatResponse> StreamAsync(string input, ContextAgent.Settings? settings = null) =>
         (await Host<ContextAgent>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunStreamingAsync(input, ct: Ct)
+            .RunStreamingAsync(input, settings: settings, ct: Ct)
             .ToListAsync(Ct))
         .ToChatResponse();
+
+    // The same run on either path, a streamed one as the response its updates make
+    protected Task<ChatResponse> RunAsync(string input, ContextAgent.Settings? settings, bool streaming) =>
+        streaming ? StreamAsync(input, settings) : RunAsync(input, settings);
 }
 
-// The guarded tools, with a context provider
+// The guarded tools, with a context provider, compacting once a test's run settings turn it on
 public partial class ContextAgent : Agent
 {
     public const string Prompt = "Help with tickets.";
 
     public ContextAgent()
     {
+        WithInstructions(Prompt);
+
         WithChatOptions().WithModel("scripted", "context-model");
+
+        WithRunOptions()
+            .Configurable(r => r.MaxInputTokens)
+            .Configurable(r => r.TargetInputTokens);
 
         UseToolset<GuardedToolset>();
 
         UseContext<ScriptedContext>();
     }
-
-    protected override string GetInstructions() => Prompt;
 }

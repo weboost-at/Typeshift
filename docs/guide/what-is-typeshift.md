@@ -1,21 +1,29 @@
 ---
 title: What is Typeshift?
-description: What Typeshift is for, what it builds on, how it compares with writing the same on Microsoft.Extensions.AI by hand, and what it leaves to you.
+description: What Typeshift is for, what it builds on, how it compares with code written by hand and with Agent Framework, and what it leaves to you.
 ---
 
 # What is Typeshift?
 
 Typeshift is a .NET library for AI agents that you define in code. You write each tool as a static method with XML
 docs and each agent as a small class that names its model, its instructions and its tools. A source generator turns
-them into what Microsoft.Extensions.AI runs, and an analyzer reports mistakes while you type, such as configuring a
-tool the agent doesn't offer.
+them into what Microsoft.Extensions.AI runs, so a mistake such as configuring a tool the agent doesn't offer fails
+the build, and an analyzer reports others while you type.
+
+::: warning Typeshift is in alpha
+The API may change between releases. The [changelog](https://github.com/weboost-at/Typeshift/blob/main/CHANGELOG.md)
+lists what changed in each release, and [Known gaps](../contributing/status.md#known-gaps) lists what is open.
+
+These pages describe the `main` branch, so they can be ahead of the package you installed. The version beside the
+Typeshift logo is the newest package.
+:::
 
 ## Why agents in code
 
-An agent is code you review, version and test like the rest of your app. Its tools are methods the compiler checks,
-and what may change at runtime is a typed `Settings` record that Typeshift generates from what you mark configurable.
-Your customers can store their own instructions or a lower search limit, and the code decides which values they may
-touch.
+An agent is code you review, version and [test](./running-agents.md#testing-an-agent) like the rest of your app. Its
+tools are methods the compiler checks, and what may change at runtime is a typed `Settings` record that Typeshift
+generates from what you mark configurable. Your customers can store their own instructions or a lower search limit,
+and the code decides which values they may touch.
 
 The cost is that an agent cannot be created at runtime, for example from a prompt your users write. Stored settings and
 [context providers](./middleware.md#context-providers) cover most of what such agents are used for: instructions per
@@ -39,8 +47,34 @@ Everything Typeshift does, you could write on Microsoft.Extensions.AI yourself. 
 | A `ChatOptions` per agent, and code that picks the client for its provider | `WithChatOptions().WithModel(...)` and a registered `IChatClient` |
 | Storing the history between requests, and resuming after a crash | A conversation id on the run |
 | Asking a person before a call that closes a ticket | `RequiresApproval()`, approval rules, and plan and auto modes |
+| A tool with which the model asks the user, and a place where the question waits for its answer | `UseQuestions()`, and a decision your app answers by its id |
 | Agents that call each other, or hand a conversation on | `UseAgent<T>()` and `UseHandoff<T>()` |
 | Registration for each of the above | `services.AddTypeshift()` |
+
+## Typeshift and Agent Framework
+
+[Microsoft Agent Framework](https://learn.microsoft.com/agent-framework/overview/agent-framework-overview) is
+Microsoft's library for agents and multi-agent workflows, and the successor of Semantic Kernel and AutoGen. It builds
+on Microsoft.Extensions.AI too, so both work with `IChatClient`, `AIFunction` and `ChatOptions`. They differ in where
+an agent is defined and in what the library keeps for you:
+
+| | Typeshift | Agent Framework |
+|---|---|---|
+| An agent | A class whose constructor declares its model, instructions and tools, checked when you build | An `AIAgent` your code creates at runtime, for example with `AsAIAgent(instructions: ...)` |
+| A tool | A static method with XML docs, its schema generated when you build | An `AIFunction`, for example from `AIFunctionFactory.Create` over a method with `[Description]` attributes |
+| Values per customer | A typed `Settings` record of what the agent marks configurable, stored under your ids | The options your code passes when it creates or runs the agent |
+| A conversation | Stored step by step in your store, under an id of your type, and resumed after a crash | An `AgentSession` that your app serializes to keep it across a restart, with a history provider for the messages |
+| Several agents | Sub-agents and handoffs | Sequential, concurrent, group chat and handoff orchestrations, and graph workflows with checkpoints |
+| Serving the agent | Endpoints your app writes | Hosting for protocols such as A2A and AG-UI, and a developer UI |
+
+Typeshift suits agents that belong in your app's code, for the reasons [Why agents in code](#why-agents-in-code)
+gives. Agent Framework also covers what lies around such agents: workflows across agents, and hosting through agent
+protocols. Several of Agent Framework's packages are previews, among them the hosting for A2A and AG-UI, so check the
+one you need on NuGet.
+
+You can also have both. A Typeshift agent runs as an Agent Framework `AIAgent`, with its tools, its settings and its
+stored conversation, so Agent Framework's workflows can take it as one of their agents
+([Use an agent in Agent Framework](./running-agents.md#use-an-agent-in-agent-framework)).
 
 ## How the pieces fit
 
@@ -69,8 +103,8 @@ compile-time half, and [How a run works](./how-a-run-works.md) the steps of a ru
 | Toolset | A `partial` class deriving from `Toolset` that declares a group of related tools | [Toolsets](./toolsets.md) |
 | Tool settings | A record of values a tool needs that the model must not choose | [Tool settings](./tool-settings.md) |
 | Agent | A `partial` class deriving from `Agent`, with chat options, instructions and tools | [Agents](./defining-agents.md) |
-| Agent host | `AgentHost<TAgent>`, which runs one agent in the scope it was resolved from | [Using an agent](./using-an-agent.md) |
-| Store | Your `ITypeshiftStore<TId>`, or an `ISettingsStore<TId>` and an `IConversationStore<TId>`, which keep settings and conversations under ids of your type; an `IAgentSettingsStore` for each agent's own settings | [Settings and stores](./settings-and-stores.md) |
+| Agent host | `AgentHost<TAgent>`, which runs one agent in a scope: the one it was resolved from, or the one the runtime created for it | [Using an agent](./using-an-agent.md) |
+| Store | Your `ITypeshiftStore<TId>`, or an `ISettingsStore<TId>`, an `IConversationStore<TId>` and an `IDecisionStore<TId>`, which keep settings, conversations and their decisions under ids of your type; an `IAgentSettingsStore` for each agent's own settings | [Settings and stores](./settings-and-stores.md) |
 
 The [glossary](./glossary.md) defines every other term.
 
@@ -83,6 +117,46 @@ The [glossary](./glossary.md) defines every other term.
   survive a restart, you write a [store](./implementing-a-store.md) over your own database.
 - **Search over your documents.** A [context provider](./middleware.md#context-providers) adds what your own search
   returns to a run.
+
+## Before you ship
+
+Typeshift's defaults get a first run going, and some of them suit a demo better than an app with customers. Before
+you ship, your app has to do these things itself:
+
+- Register a store for everything that must survive a restart
+  ([Which store serves a call](./implementing-a-store.md#which-store-serves-a-call)).
+- Check the caller before you run, watch or steer a conversation by an id from a request
+  ([Conversation ids](./conversations.md#conversation-ids)).
+- Filter the tracker's `Runs` and `WatchRunsAsync` by the caller before you return them
+  ([Live runs](./conversations.md#live-runs)).
+- Mark as configurable only what may change at runtime, and let a customer's settings form set only what the
+  customer may change, under their own settings id
+  ([Settings from a request](./settings-and-stores.md#settings-from-a-request)).
+- Decide which tool calls wait for a person, and write your rules before a run goes in auto mode
+  ([Approval and modes](./tool-approval.md)).
+- Check input steered into a run where you check a run's input: a guardrail in run middleware implements
+  `OnSteeringAsync` too ([Steering input](./middleware.md#steering-input)).
+- Switch a conversation back once a plan approved into auto mode is carried out, and let your user see and withdraw
+  what they approved for a conversation ([Setting the mode](./tool-approval.md#setting-the-mode),
+  [Approving for the conversation](./tool-approval.md#approving-for-the-conversation)).
+- Treat the tools of an MCP server you do not control as untrusted, and mark a server `ReadOnly()` only when its
+  tools change nothing ([How the agent offers the tools](./mcp.md#how-the-agent-offers-the-tools)).
+- Throw a `ToolException` for what the model should read of a failed tool call, and keep out of its message what
+  the model provider may not hold ([When a tool fails](./toolsets.md#when-a-tool-fails)).
+- Make tools with side effects safe to repeat ([Resuming](./conversations.md#resuming)).
+- Turn compaction on for agents whose conversations grow long ([Compaction](./conversations.md#compaction)).
+- Answer a message to a chat that is still answering with a status of its own, not an error
+  ([A chat that is answering](./chat-endpoint.md#a-chat-that-is-answering)). With several instances of your app,
+  write a store that refuses a second run's entries
+  ([Refuse a second run](./implementing-a-store.md#refuse-a-second-run)), and route each conversation to one
+  instance ([Running on several instances](./conversations.md#running-on-several-instances)).
+- Read API keys from your app's configuration, never from code ([A real client](./models.md#a-real-client)).
+- Where each customer brings a key, register no default client, so an agent that names no provider fails instead of
+  running on your app's own key ([A key per customer](./models.md#a-key-per-customer)).
+- Decide what your app shows when a run fails because its conversation could not be saved, and watch your logs or
+  spans for those failures ([When the store fails](./conversations.md#when-the-store-fails)).
+- Capture message content in traces only where your tracing backend may keep it
+  ([Message content](./observability.md#message-content)).
 
 ## Related
 

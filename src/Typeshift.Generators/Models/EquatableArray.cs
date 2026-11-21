@@ -12,7 +12,7 @@ internal readonly struct EquatableArray<T>(ImmutableArray<T> items) : IEquatable
 {
     private readonly ImmutableArray<T> _items = items;
 
-    private ImmutableArray<T> Items => _items.IsDefault ? ImmutableArray<T>.Empty : _items;
+    private ImmutableArray<T> Items => _items.IsDefault ? [] : _items;
 
     public int Count => Items.Length;
 
@@ -33,6 +33,6 @@ internal static class EquatableArray
 {
     extension<T>(IEnumerable<T> items) where T : IEquatable<T>
     {
-        public EquatableArray<T> ToEquatableArray() => new(items.ToImmutableArray());
+        public EquatableArray<T> ToEquatableArray() => new([.. items]);
     }
 }

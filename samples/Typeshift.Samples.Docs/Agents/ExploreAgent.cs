@@ -9,6 +9,8 @@ internal partial class ExploreAgent : Agent
     {
         WithDescription("Explores the workspace and answers one question about it, citing files and lines.");
 
+        WithInstructions("Answer the question from the files. Read only what you need; quote the lines you rely on.");
+
         WithChatOptions()
             .WithModel("openai", "gpt-5-mini");
 
@@ -17,8 +19,5 @@ internal partial class ExploreAgent : Agent
             .Include(t => t.ListFiles)
             .Include(t => t.SearchFiles);
     }
-
-    protected override string GetInstructions() =>
-        "Answer the question from the files. Read only what you need; quote the lines you rely on.";
 }
 // end-snippet

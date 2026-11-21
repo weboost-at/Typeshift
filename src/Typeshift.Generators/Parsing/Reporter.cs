@@ -12,4 +12,12 @@ internal sealed class Reporter(System.Action<Diagnostic>? report)
 
     public void Report(DiagnosticDescriptor descriptor, SyntaxNode node, params object?[] arguments) =>
         Report(descriptor, node.GetLocation(), arguments);
+
+    // With the other place the mistake involves, such as the declaration a name clashes with
+    public void ReportBeside(
+        DiagnosticDescriptor descriptor,
+        SyntaxNode node,
+        SyntaxNode other,
+        params object?[] arguments) =>
+        report?.Invoke(Diagnostic.Create(descriptor, node.GetLocation(), [other.GetLocation()], arguments));
 }

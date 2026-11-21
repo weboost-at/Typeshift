@@ -8,7 +8,8 @@ namespace Typeshift.Tests.Tools;
 
 public class ToolInvocationTests : HostTestBase
 {
-    protected override void ConfigureServices(IServiceCollection services) => services.AddScoped<CallScope>();
+    protected override void ConfigureServices(IServiceCollection services) =>
+        services.AddScoped<CallScope>().AddSingleton<StreamGate>();
 
     [Fact]
     public async Task Given_A_Scripted_Call_The_Tool_Receives_Its_Arguments()
@@ -112,6 +113,53 @@ public class ToolInvocationTests : HostTestBase
     }
 
     [Fact]
+    public async Task Given_A_Tool_That_Returns_Content_The_Model_Receives_The_Content()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, ContentToolset.ToolNames.Picture, ("caption", Data.Tool.Query)))
+            .Reply(Text(Data.Tool.Answer));
+
+        var options = new ChatOptions { Tools = [ContentToolset.CreatePicture(Json)] };
+
+        // Act
+        await FunctionLoop().GetResponseAsync(Data.Tool.Question, options, Ct);
+
+        // Assert
+        ((SentResult(request: 1) as DataContent)?.Uri).Should().Be(ContentToolset.Drawn(Data.Tool.Query).Uri);
+    }
+
+    [Fact]
+    public async Task Given_A_Tool_That_Awaits_Its_Content_The_Model_Receives_The_Content()
+    {
+        // Arrange
+        var scan = ContentToolset.CreateScan(Json);
+
+        // Act
+        var result = await scan.InvokeAsync(Arguments(("caption", Data.Tool.Query)), Ct);
+
+        // Assert
+        ((result as DataContent)?.Uri).Should().Be(ContentToolset.Drawn(Data.Tool.Query).Uri);
+    }
+
+    [Fact]
+    public async Task Given_A_Tool_That_Returns_A_Sequence_Of_Content_The_Model_Receives_Each()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, ContentToolset.ToolNames.Annotate, ("caption", Data.Tool.Query)))
+            .Reply(Text(Data.Tool.Answer));
+
+        var options = new ChatOptions { Tools = [ContentToolset.CreateAnnotate(Json)] };
+
+        // Act
+        await FunctionLoop().GetResponseAsync(Data.Tool.Question, options, Ct);
+
+        // Assert
+        Described(SentResult(request: 1)).Should().Equal(Data.Tool.Query, ContentToolset.Drawn(Data.Tool.Query).Uri);
+    }
+
+    [Fact]
     public async Task Given_No_Services_The_Call_Fails_Saying_How_To_Run_It()
     {
         // Arrange
@@ -139,7 +187,26 @@ public class ToolInvocationTests : HostTestBase
     }
 
     [Fact]
-    public async Task Given_A_Missing_Required_Argument_The_Call_Fails_With_An_ArgumentException()
+    public async Task Given_A_Stream_Tool_Without_A_Token_A_Cancelled_Call_Stops_Reading()
+    {
+        // Arrange
+        var count = StreamingToolset.CreateCountSlowly(Json);
+        var gate = Scope.GetRequiredService<StreamGate>();
+        using var cancelling = CancellationTokenSource.CreateLinkedTokenSource(Ct);
+
+        // Act
+        var reading = count.InvokeAsync(Arguments(), cancelling.Token).AsTask();
+        await gate.FirstRead.Task.WaitAsync(Ct);
+        await cancelling.CancelAsync();
+        gate.Opened.SetResult();
+        var read = async () => await reading;
+
+        // Assert
+        await read.Should().ThrowAsync<OperationCanceledException>();
+    }
+
+    [Fact]
+    public async Task Given_A_Missing_Required_Argument_The_Call_Fails_With_A_ToolException_Naming_It()
     {
         // Arrange
         var count = SchemaToolset.CreateCountWords(Json);
@@ -148,7 +215,120 @@ public class ToolInvocationTests : HostTestBase
         var invoke = async () => await count.InvokeAsync(Arguments(), Ct);
 
         // Assert
-        await invoke.Should().ThrowAsync<ArgumentException>();
+        await invoke.Should()
+            .ThrowExactlyAsync<ToolException>()
+            .WithMessage("The tool 'count_words' requires the argument 'text'.");
+    }
+
+    [Theory]
+    [InlineData("number", true)]
+    [InlineData("number", false)]
+    [InlineData("reason", true)]
+    [InlineData("reason", false)]
+    public async Task Given_A_Null_For_A_Required_Argument_The_Call_Fails_Naming_It(string argument, bool asJson)
+    {
+        // Arrange
+        var refund = BindingToolset.CreateRefund(Json);
+        var arguments = Arguments(("number", Data.Tool.Lives), ("reason", Data.Tool.Query));
+        arguments[argument] = asJson ? JsonElement.Parse("null") : null;
+
+        // Act
+        var invoke = async () => await refund.InvokeAsync(arguments, Ct);
+
+        // Assert
+        await invoke.Should()
+            .ThrowExactlyAsync<ToolException>()
+            .WithMessage($"The tool 'refund' requires the argument '{argument}', and it was null.");
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Given_A_Null_For_A_Nullable_Required_Argument_The_Tool_Receives_Null(bool asJson)
+    {
+        // Arrange
+        var remind = BindingToolset.CreateRemind(Json);
+        object? nothing = asJson ? JsonElement.Parse("null") : null;
+
+        // Act
+        var result = await remind.InvokeAsync(Arguments(("days", nothing), ("note", nothing)), Ct);
+
+        // Assert
+        ReadResult<Reminder>(result).Should().Be(new Reminder(null, null));
+    }
+
+    [Fact]
+    public async Task Given_A_Json_Null_For_An_Argument_That_Takes_Any_Json_The_Tool_Receives_It()
+    {
+        // Arrange
+        var echo = SchemaToolset.CreateEchoJson(Json);
+
+        // Act
+        var result = await echo.InvokeAsync(Arguments(("value", JsonElement.Parse("null"))), Ct);
+
+        // Assert
+        ((JsonElement)result!).ValueKind.Should().Be(JsonValueKind.Null);
+    }
+
+    [Fact]
+    public async Task Given_An_Argument_Of_The_Wrong_Type_The_Failure_Names_The_Argument_And_The_Tool()
+    {
+        // Arrange
+        var refund = BindingToolset.CreateRefund(Json);
+        var arguments = Arguments(("number", JsonElement.Parse("\"abc\"")), ("reason", Data.Tool.Query));
+
+        // Act
+        var failure = await Record.ExceptionAsync(() => refund.InvokeAsync(arguments, Ct).AsTask());
+
+        // Assert
+        failure!.Message.Should().StartWith("The argument 'number' of the tool 'refund' does not fit its schema:");
+    }
+
+    [Fact]
+    public async Task Given_An_Argument_Of_The_Wrong_Type_The_Model_Reads_The_Tools_And_The_Arguments_Name()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "refund", ("number", Data.Tool.Lives), ("reason", Data.Tool.Lives)))
+            .Reply(Text(Data.Tool.Answer));
+
+        var options = new ChatOptions { Tools = [BindingToolset.CreateRefund(Json)] };
+        var loop = new FunctionInvokingChatClient(ChatClient, null, Scope) { IncludeDetailedErrors = true };
+
+        // Act
+        var response = await loop.GetResponseAsync(Data.Tool.Question, options, Ct);
+        var result = response.Assert.ToolResult(Data.Tool.CallId).Result;
+
+        // Assert
+        result.As<string>().Should().Contain("The argument 'reason' of the tool 'refund' does not fit");
+    }
+
+    [Fact]
+    public async Task Given_An_Object_Argument_Without_A_Required_Member_The_Failure_Names_The_Member()
+    {
+        // Arrange
+        var ship = BindingToolset.CreateShip(Json);
+        var parcel = JsonElement.Parse("""{"id":"p1"}""");
+
+        // Act
+        var failure = await Record.ExceptionAsync(() => ship.InvokeAsync(Arguments(("parcel", parcel)), Ct).AsTask());
+
+        // Assert
+        failure!.Message.Should().Contain("'destination'");
+    }
+
+    [Fact]
+    public async Task Given_An_Object_Argument_With_A_Null_For_A_Member_That_Takes_None_The_Failure_Names_The_Member()
+    {
+        // Arrange
+        var ship = BindingToolset.CreateShip(Json);
+        var parcel = JsonElement.Parse("""{"id":"p1","destination":null}""");
+
+        // Act
+        var failure = await Record.ExceptionAsync(() => ship.InvokeAsync(Arguments(("parcel", parcel)), Ct).AsTask());
+
+        // Assert
+        failure!.Message.Should().Contain("'Destination'");
     }
 
     [Fact]
@@ -207,12 +387,15 @@ public class ToolInvocationTests : HostTestBase
         ReadResult<int>(result).Should().Be(Data.Tool.Limit.Default);
     }
 
-    [Fact]
-    public async Task Given_An_Object_Argument_As_Json_Text_The_Tool_Receives_The_Object()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Given_An_Object_Argument_As_Json_Text_The_Tool_Receives_The_Object(bool asJson)
     {
         // Arrange
         var locate = SchemaToolset.CreateLocate(Json);
-        var point = JsonSerializer.Serialize(Data.Tool.Point, Json.SerializerOptions);
+        var text = JsonSerializer.Serialize(Data.Tool.Point, Json.SerializerOptions);
+        object point = asJson ? JsonSerializer.SerializeToElement(text) : text;
 
         // Act
         var result = await locate.InvokeAsync(Arguments(("point", point)), Ct);
@@ -233,4 +416,23 @@ public class ToolInvocationTests : HostTestBase
         // Assert
         ReadResult<GeoPoint>(result).Should().Be(default(GeoPoint));
     }
+
+    // Each content of a result that is a sequence of them, as its text or its data's URI; none for any other result
+    private static IReadOnlyList<string> Described(object? result) =>
+    [
+        .. (result as IEnumerable<AIContent> ?? []).Select(content => content switch
+        {
+            TextContent text => text.Text,
+            DataContent data => data.Uri,
+            _ => content.GetType().Name
+        })
+    ];
+
+    // The one tool result a request carried to the model, as the loop handed it on
+    private object? SentResult(int request) =>
+        ChatClient.Requests[request]
+            .SelectMany(message => message.Contents)
+            .OfType<FunctionResultContent>()
+            .Single()
+            .Result;
 }

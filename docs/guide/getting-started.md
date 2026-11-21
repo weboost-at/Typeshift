@@ -1,6 +1,6 @@
 ---
 title: Getting started
-description: Build your first agent in four steps, from installing the package to running it and reading its answer, then see how the pieces fit and how to point a coding assistant at these docs.
+description: Build your first agent in four steps, from installing the package to running it and reading its answer, then see what your app implements and how to point a coding assistant at these docs.
 ---
 
 # Getting started
@@ -12,20 +12,21 @@ explains what the library is for, if you'd like that first.
 
 ## 1. Install
 
-Add the package to the project that will hold your agent. A console app also needs the dependency injection
-container, which builds the service provider in step 4:
+Add the package to the project that will hold your agent:
 
 ```bash
 dotnet add package Typeshift --prerelease
-dotnet add package Microsoft.Extensions.DependencyInjection
 ```
 
-Typeshift needs .NET 11. Add `using Typeshift;` to your files, and `using Microsoft.Extensions.DependencyInjection;`
-to the `Program.cs` of step 4. A solution of several projects needs the package in more than one of them
-([Project setup](./registration.md#project-setup)).
+Typeshift needs .NET 11. Add `using Typeshift;` to your files. In a solution of several projects, reference the
+package in each project that declares toolsets or agents ([Project setup](./registration.md#project-setup)).
 
 The package turns on XML docs in your project, because Typeshift builds each tool's description for the model from
 them.
+
+Your project needs nothing else. The smallest agent is a class with its instructions, which
+[Agents](./defining-agents.md#the-smallest-agent) runs in three lines, and the steps below build one with a tool and
+its settings.
 
 ## 2. Write a toolset
 
@@ -62,13 +63,14 @@ internal partial class CompanyToolset : Toolset
     [
         new("Danube Robotics", "Vienna", Active: true),
         new("Prater Motion", "Vienna", Active: true),
+        new("Belvedere Optics", "Vienna", Active: true),
         new("Graz Gearworks", "Graz", Active: false)
     ];
 }
 
 internal sealed record Company(string Name, string City, bool Active);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/CompanyToolset.cs#L3-L36' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-toolset' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/CompanyToolset.cs#L3-L37' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-toolset' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 From the method and its XML docs, Typeshift builds the `find_companies` tool, with a schema that has one parameter,
@@ -109,7 +111,7 @@ internal partial class ResearchAgent : Agent
         WithInstructions("Find companies with the find_companies tool and list them.");
 
         WithChatOptions()
-            .WithModel("openai", "gpt-5-mini")
+            .WithModel("gpt-5-mini")
             .WithTemperature(0.2f)
             .Configurable(o => o.Instructions)
             .Configurable(o => o.Temperature);
@@ -124,8 +126,9 @@ internal partial class ResearchAgent : Agent
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/ResearchAgent.cs#L3-L23' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-agent' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-- `WithModel("openai", "gpt-5-mini")` names a provider and the model as that provider calls it. Step 4 registers the
-  client for `"openai"`.
+- `WithModel("gpt-5-mini")` names the model as your provider calls it. Step 4 creates the client that serves it.
+  With clients of several providers, an agent names its provider too
+  ([Registering clients](./models.md#registering-clients)).
 - The two `Configurable` calls let stored settings change the instructions and the temperature, but not the model.
 - `ConfigureFindCompanies().WithLimit(3)` lowers the limit from the record's 5 to 3 for this agent. Typeshift writes a
   `Configure` method for each tool with settings that the agent offers.
@@ -136,76 +139,81 @@ Call one for a tool the agent doesn't offer, such as a ticket search, and the bu
 ResearchAgent.cs(18,9): error CS0103: The name 'ConfigureSearchTickets' does not exist in the current context
 ```
 
-## 4. Register and run
+## 4. Run it
 
-`AddTypeshift()` registers every toolset and agent of your project. Chain a store to it, then register the chat
-client of the agent's provider under the provider's name:
+Every run needs an `IChatClient`, the interface Microsoft.Extensions.AI has for a model. For OpenAI, add the
+`Microsoft.Extensions.AI.OpenAI` package and create its client:
 
-<!-- snippet: quickstart-clients -->
-<a id='snippet-quickstart-clients'></a>
+<!-- snippet: openai-chat-client -->
+<a id='snippet-openai-chat-client'></a>
 ```cs
-var services = new ServiceCollection();
-
-services.AddTypeshift()
-    .WithStore<InMemoryTypeshiftStore<int>>();
-
-services.AddKeyedChatClient("openai", new CannedChatClient());
-
-await using var provider = services.BuildServiceProvider(validateScopes: true);
-```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/Quickstart.cs#L11-L20' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-clients' title='Start of snippet'>anchor</a></sup>
-<!-- endSnippet -->
-
-`InMemoryTypeshiftStore<int>` keeps settings and conversations under `int` ids, so the ids in this tutorial stay
-short. It holds them in memory and loses them when the app stops. That is fine for this tutorial and for tests, and
-[Implementing a store](./implementing-a-store.md) shows how to keep them in your database.
-
-`CannedChatClient` is a fake from the docs samples, so they run without a network. In your app, register your
-provider's client instead. For OpenAI, with the `Microsoft.Extensions.AI.OpenAI` package, that is:
-
-<!-- snippet: openai-client -->
-<a id='snippet-openai-client'></a>
-```cs
-var openAi = new OpenAIClient(apiKey)
+var client = new OpenAIClient(apiKey)
     .GetChatClient("gpt-5-mini")
     .AsIChatClient();
-
-services.AddKeyedChatClient("openai", openAi);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L31-L37' title='Snippet source file'>snippet source</a> | <a href='#snippet-openai-client' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L141-L145' title='Snippet source file'>snippet source</a> | <a href='#snippet-openai-chat-client' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 `OpenAIClient` is in the `OpenAI` namespace and `AsIChatClient` in `Microsoft.Extensions.AI`. Read `apiKey` from your
-app's configuration, for example an environment variable. The key `"openai"` is a name you choose, and it has to
-match the provider the agent names in `WithModel`. [A real client](./models.md#a-real-client) shows a local server
-and other providers, and [Registering clients](./models.md#registering-clients) one client for every agent.
+app's configuration, for example an environment variable. Each run asks for the model its agent names in `WithModel`,
+so the model you pass to `GetChatClient` answers only an agent that names none.
+[A real client](./models.md#a-real-client) shows a local server and other providers.
 
-You configure and run the agent through its host, `AgentHost<ResearchAgent>`. A console app resolves it from a scope,
-and a web app takes it as a constructor parameter ([Using an agent](./using-an-agent.md)). Settings are stored under
-a settings id that you choose, for example one per customer. `research.WithSettingsId(settingsId)` returns a copy of
-the host whose runs and settings members use the settings under that id, so this code stores a limit of 2 and a
-temperature of 0.4 under the id 42:
+Create the runtime with that client, take the agent's host from it and run the agent:
+
+<!-- snippet: quickstart-runtime -->
+<a id='snippet-quickstart-runtime'></a>
+```cs
+await using var runtime = TypeshiftRuntime.Create(client);
+await using var research = runtime.CreateHost<ResearchAgent>();
+
+var first = await research.RunAsync("Vienna");
+
+Console.WriteLine($"{research.Agent.Name}: {first.Text}");
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/Quickstart.cs#L9-L16' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-runtime' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+```text
+research_agent: Found Danube Robotics, Prater Motion and Belvedere Optics.
+```
+
+- `TypeshiftRuntime.Create(client)` sets up Typeshift in an app without a dependency injection container, such as a
+  console app or a script. Its client is the default client, which serves every agent that names no provider
+  ([The runtime](./registration.md#the-runtime)).
+- `runtime.CreateHost<ResearchAgent>()` returns the agent's host, `AgentHost<ResearchAgent>`. You configure and run the
+  agent through it.
+- The model called `find_companies` with `Vienna`, and the tool ran with the agent's limit of 3, so the answer lists
+  the three active companies of Vienna.
+
+The answers on this page come from the canned client of the
+[docs samples](https://github.com/weboost-at/Typeshift/tree/main/samples/Typeshift.Samples.Docs), which lists what the
+tool returned. A real model words its answer its own way, and a test of yours runs on a fake model like it
+([Testing an agent](./running-agents.md#testing-an-agent)).
+
+Settings are stored under a settings id that you choose, for example one per customer.
+`research.WithSettingsId(settingsId)` returns a copy of the host whose runs and settings members use the settings
+under that id, so this code stores a limit of 2 and a temperature of 0.4 under the id 42:
 
 <!-- snippet: quickstart-settings -->
 <a id='snippet-quickstart-settings'></a>
 ```cs
-await using var scope = provider.CreateAsyncScope();
-var research = scope.ServiceProvider.GetRequiredService<AgentHost<ResearchAgent>>();
 var settingsId = 42;
 
-await research.WithSettingsId(settingsId).ConfigureAsync(settings => settings with
+await research.WithSettingsId(settingsId).UpdateSettingsAsync(settings => settings with
 {
     Temperature = 0.4f,
     FindCompanies = settings.FindCompanies with { Limit = 2 }
 });
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/Quickstart.cs#L22-L32' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-settings' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/Quickstart.cs#L18-L26' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-`ConfigureAsync` loads the agent's generated `ResearchAgent.Settings` record, which holds only what the code marked
-`Configurable`, applies your change and saves it. Now run the agent with that settings id, and add
-`WithConversationId(1)` so the run takes place in conversation 1. With the docs samples' fake client, it prints the
-line below; a real model words its answer its own way:
+`UpdateSettingsAsync` loads the agent's generated `ResearchAgent.Settings` record, which holds only what the code
+marked `Configurable`, applies your change and saves it. Typeshift keeps settings and conversations in memory until you
+[register a store](./implementing-a-store.md#register-your-store).
+
+Now run the agent with that settings id, and add `WithConversationId(1)` so the run takes place in conversation 1:
 
 <!-- snippet: quickstart-run -->
 <a id='snippet-quickstart-run'></a>
@@ -214,17 +222,17 @@ var answer = await research.WithSettingsId(settingsId).WithConversationId(1).Run
 
 Console.WriteLine($"{research.Agent.Name}: {answer.Text}");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/Quickstart.cs#L34-L38' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-run' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/Quickstart.cs#L28-L32' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-run' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ```text
 research_agent: Found Danube Robotics and Prater Motion.
 ```
 
-The model called `find_companies` with `Vienna`, and the tool ran with the stored limit of 2, which wins over the
-agent's 3 and the record's 5. Vienna has only two active companies, so both fit.
+This time the tool ran with the stored limit of 2, which wins over the agent's 3 and the record's 5, so the answer
+lists two companies.
 
-Because the run had conversation id 1, the store kept the conversation, and a later run with that id continues it
+Because the run had conversation id 1, Typeshift kept the conversation, and a later run with that id continues it
 ([Conversations](./conversations.md)).
 
 A run can also pass settings of its own, for that run only. With a limit of 1, the tool returns one company:
@@ -240,7 +248,7 @@ var run = new ResearchAgent.Settings
 await foreach (var update in research.WithSettingsId(settingsId).RunStreamingAsync("Vienna", settings: run))
     Console.Write(update.Text);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/Quickstart.cs#L40-L48' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-run-settings' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/Quickstart.cs#L34-L42' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-run-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ```text
@@ -250,6 +258,26 @@ Found Danube Robotics.
 The record, the agent, the stored settings and the run are layers, and the highest one that sets a value wins.
 [Settings layering](./settings-and-stores.md#settings-layering) follows this limit through all four.
 
+In an app with a container, such as ASP.NET Core, `AddTypeshift()` registers every toolset and agent, and you inject
+the agent's host where you run it:
+
+<!-- snippet: minimal-api -->
+<a id='snippet-minimal-api'></a>
+```cs
+builder.Services.AddTypeshift();
+builder.Services.AddChatClient(client);
+
+var app = builder.Build();
+
+app.MapGet("/research/{city}", async (string city, AgentHost<ResearchAgent> research) =>
+    (await research.RunAsync(city)).Text);
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/MinimalApi.cs#L21-L29' title='Snippet source file'>snippet source</a> | <a href='#snippet-minimal-api' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+`builder` is the `WebApplicationBuilder` of your `Program.cs`. The endpoint takes the host as a parameter, and
+[Using an agent](./using-an-agent.md) shows it in a class of your own and in a background job.
+
 ## What your app implements
 
 Your app implements a few interfaces when it needs the feature that uses them:
@@ -257,7 +285,7 @@ Your app implements a few interfaces when it needs the feature that uses them:
 | Interface | Needed for | Read |
 |---|---|---|
 | `IChatClientProvider<T>` | A client that depends on more than its provider, such as a key per customer. | [Your own provider](./models.md#your-own-provider) |
-| `ITypeshiftStore<TId>`, or `ISettingsStore<TId>` and `IConversationStore<TId>` | Settings and conversations under ids of your type `TId`; `IAgentSettingsStore` for each agent's own settings. A singleton; `InMemoryTypeshiftStore<TId>` serves tests and samples. | [Implementing a store](./implementing-a-store.md) |
+| `ITypeshiftStore<TId>`, or `ISettingsStore<TId>`, `IConversationStore<TId>` and `IDecisionStore<TId>` | Settings, conversations and their decisions under ids of your type `TId`; `IAgentSettingsStore` for each agent's own settings. A singleton; `InMemoryTypeshiftStore<TId>` serves tests and samples. | [Implementing a store](./implementing-a-store.md) |
 | `IContextProvider` | Memory, documents or other data added to every run of an agent. | [Context providers](./middleware.md#context-providers) |
 | `IToolApprovalRule`, `IRunMiddleware`, `IToolMiddleware`, `IMcpToolProvider` | Approval rules, middleware and MCP servers. | [The chain](./registration.md#the-chain) |
 
@@ -279,12 +307,14 @@ at hand. Add `llms-full.txt` to the context of one that cannot fetch. `llms.txt`
 
 ## Related
 
+- [The quickstart's code](https://github.com/weboost-at/Typeshift/tree/main/samples/Typeshift.Samples.Docs/Quickstart):
+  the toolset, the settings record, the agent and the runs of this page, as the docs samples build and run them.
 - [Toolsets](./toolsets.md): tools, their names, parameters and results in depth.
 - [Tool settings](./tool-settings.md): what a settings record may hold and what may change it.
 - [Agents](./defining-agents.md): everything an agent's constructor can declare.
 - [Using an agent](./using-an-agent.md): the host in a controller, an endpoint or a background job.
 - [Models and providers](./models.md): real chat clients, local servers and a client per customer.
 - [Settings and stores](./settings-and-stores.md): the settings layers and the store behind them.
-- [Running agents](./running-agents.md): structured output and streaming.
+- [Running an agent](./running-agents.md): typed runs and streaming.
 - [Conversations](./conversations.md): resuming, steering and watching runs.
 - [Glossary](./glossary.md): the words these docs use.

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Typeshift.Generators.Models;
+using Typeshift.Generators.Naming;
 
 namespace Typeshift.Generators.Emitting;
 
@@ -15,31 +16,43 @@ internal static class ToolsetEmitter
 
     private const string ApprovalRequired = "global::Microsoft.Extensions.AI.ApprovalRequiredAIFunction";
 
-    private const string ToList = "global::System.Linq.AsyncEnumerable.ToListAsync";
-
     // The members of a record the overrides' properties must not be named like
     private static readonly string[] RecordMembers =
     [
-        "ApplyTo", "Clone", "Deconstruct", "EqualityContract", "Equals", "GetHashCode", "PrintMembers", "ToString",
-        "TryReadJson", "WriteJson"
+        .. Names.ObjectMembers,
+        "ApplyTo", "CheckJson", "Clone", "Deconstruct", "EqualityContract", "PrintMembers", "TryReadJson", "WriteJson"
     ];
 
     public static string Emit(ToolsetModel toolset) =>
         TypeEmitter.EmitPartial(
             toolset.Type,
+            toolset.ExperimentalIds.Concat(GetExperimentalIds(toolset.Tools)),
             toolset.Tools.Select(tool => Stamp(toolset, tool)),
-            writer => WriteTools(writer, toolset.Tools),
-            writer =>
-            {
-                if (toolset.IsReachable) WriteToolList(writer, toolset);
-            });
+            writer => WriteTools(writer, toolset.Tools));
 
-    // The members of each tool, in the toolset or the agent that declares it
+    // D4, D12: what agents pick in UseToolset<T>().Include(t => t.X), in the global namespace and a file of its own,
+    // so every file has the picks in scope, whatever it imports; null for a toolset the generated code cannot reach
+    public static string? EmitToolList(ToolsetModel toolset)
+    {
+        if (!toolset.IsReachable) return null;
+
+        var writer = new SourceWriter();
+        writer.Line(SourceWriter.GetHeader(toolset.ExperimentalIds));
+
+        WriteToolList(writer, toolset);
+        return writer.ToString();
+    }
+
+    // The members of each tool, in the toolset or the agent that declares it, after the constants that name them
     public static void WriteTools(SourceWriter writer, EquatableArray<ToolModel> tools)
     {
+        if (tools.Count == 0) return;
+
+        WriteToolNames(writer, tools);
+
         foreach (var tool in tools)
         {
-            if (tool != tools[0]) writer.Line();
+            writer.Line();
 
             if (HasOverrides(tool))
             {
@@ -53,7 +66,36 @@ internal static class ToolsetEmitter
         }
     }
 
+    // The ids of every [Experimental] the members of the tools name
+    public static IEnumerable<string> GetExperimentalIds(EquatableArray<ToolModel> tools) =>
+        tools.SelectMany(tool => tool.ExperimentalIds.Concat(tool.Settings?.ExperimentalIds ?? default));
+
     private static bool HasOverrides(ToolModel tool) => tool.Settings?.HasConfigurable is true;
+
+    // D13: a rule, a middleware or a UI names a tool by a constant, so renaming the tool's method fails to compile
+    // where a string would stop matching
+    private static void WriteToolNames(SourceWriter writer, EquatableArray<ToolModel> tools)
+    {
+        Docs.WriteSummary(
+            writer,
+            "The names of the tools declared here, as the model, approval rules, tool middleware and decisions see "
+            + "them.");
+
+        writer.Lines(Names.Generated);
+
+        using (writer.Block($"public static class {Names.ToolNamesClass}"))
+        {
+            foreach (var tool in tools)
+            {
+                if (tool != tools[0]) writer.Line();
+
+                var description = tool.Description is { } text ? $": {Docs.Escape(text)}" : ".";
+
+                Docs.WriteSummary(writer, $"The <c>{tool.Name}</c> tool{description}");
+                writer.Line($"public const string {Names.ToolProperty(tool.Name)} = {Names.Literal(tool.Name)};");
+            }
+        }
+    }
 
     // D7: what an agent in another assembly reads instead of the tool's declaration
     private static string Stamp(ToolsetModel toolset, ToolModel tool)
@@ -87,6 +129,7 @@ internal static class ToolsetEmitter
             $"The configurable settings of the <c>{tool.Name}</c> tool, as an agent's stored settings or a run "
             + "override them. A null value keeps what the layer below sets.");
 
+        writer.Lines(Names.Generated);
         writer.Line(
             "[global::System.Text.Json.Serialization.JsonConverter("
             + $"typeof(global::Typeshift.Generated.StorableJsonConverter<{type}>))]");
@@ -116,10 +159,11 @@ internal static class ToolsetEmitter
 
                 using (writer.Block(close: "};"))
                 {
+                    // this, since a member may be named like the parameter
                     writer.List(
                     [
                         .. configurable.Select(property =>
-                            $"{Names.Identifier(property.Name)} = {Member(property, reserved)} ?? "
+                            $"{Names.Identifier(property.Name)} = this.{Member(property, reserved)} ?? "
                             + $"settings.{Names.Identifier(property.Name)}")
                     ]);
                 }
@@ -127,7 +171,7 @@ internal static class ToolsetEmitter
 
             // D44: the overrides as an agent's stored settings keep them, under the tool's name
             StorageEmitter.WriteRecordJson(writer, type, versioned: false, configurable.Select(property =>
-                (Member(property, reserved), Parsing.Storage.JsonName(property.Name), property.Storage!)));
+                (Member(property, reserved), Names.JsonName(property.Name), property.Storage!)));
         }
     }
 
@@ -146,6 +190,8 @@ internal static class ToolsetEmitter
         Docs.WriteParam(writer, "json", "How the tool binds its arguments and serializes its result.");
         Docs.WriteReturns(writer, "The tool.");
         writer.Line(Names.Hidden);
+        writer.Lines(Names.Generated);
+        writer.Line(Names.SteppedThrough);
         writer.Line($"public static {AIFunction} {Names.FactoryName(tool.Name)}(");
 
         using (writer.Indent())
@@ -154,7 +200,7 @@ internal static class ToolsetEmitter
 
             writer.Line($"{ToolJson} json) =>");
 
-            // D24: the tool loop asks the host before it calls the tool
+            // D81: the mark by which the gate knows a tool whose calls your app decides
             writer.Line(tool.RequiresApproval
                 ? $"new {ApprovalRequired}(new {Names.FunctionName(tool.Name)}({arguments}));"
                 : $"new {Names.FunctionName(tool.Name)}({arguments});");
@@ -167,6 +213,7 @@ internal static class ToolsetEmitter
 
     private static void WriteFunction(SourceWriter writer, ToolModel tool)
     {
+        writer.Lines(Names.Generated);
         writer.Line($"private sealed class {Names.FunctionName(tool.Name)}(");
 
         using (writer.Indent())
@@ -224,7 +271,9 @@ internal static class ToolsetEmitter
                     {
                         parameter.Description is { } description ? $"Description = {Names.Literal(description)}" : null,
                         parameter.DefaultValue is null ? null : "HasDefaultValue = true",
-                        parameter.DefaultValue is { } value and not "null" ? $"DefaultValue = {value}" : null,
+                        parameter.DefaultValue is { } value && !parameter.DefaultsToNull
+                            ? $"DefaultValue = {value}"
+                            : null,
                         parameter.IsNullable ? "IsNullable = true" : null
                     }
                     .OfType<string>()
@@ -251,8 +300,8 @@ internal static class ToolsetEmitter
     private static void WriteInvoke(SourceWriter writer, ToolModel tool)
     {
         var kind = tool.Return;
-        var isAsync = kind is ReturnKind.Awaitable or ReturnKind.AwaitableValue or ReturnKind.Stream;
-        var isExpression = kind is ReturnKind.Value or ReturnKind.AwaitableValue or ReturnKind.Stream;
+        var isAsync = kind is ReturnKind.Awaitable or ReturnKind.AwaitableValue or ReturnKind.AwaitableContent;
+        var isExpression = kind is not (ReturnKind.Void or ReturnKind.Awaitable);
         var call = $"{tool.Target}.{tool.Method}";
         var arguments = tool.Parameters.Select(GetArgument).ToList();
 
@@ -269,22 +318,31 @@ internal static class ToolsetEmitter
         using (writer.Indent())
         {
             if (kind == ReturnKind.Value) WriteCall(writer, "new(GetResult(", call, arguments, ")));");
-            if (kind == ReturnKind.AwaitableValue) WriteCall(writer, "GetResult(await ", call, arguments, "));");
 
-            // The model takes one result per call, so a stream reaches it as the list of its items
-            if (kind == ReturnKind.Stream)
-            {
-                WriteCall(writer, $"GetResult(await {ToList}(", call, arguments, "), ct));");
-            }
+            if (kind == ReturnKind.AwaitableValue)
+                WriteCall(writer, "GetResult(await ", call, arguments, ").ConfigureAwait(false));");
+
+            // D45: content goes to the model as it is, never through JSON
+            if (kind == ReturnKind.Content) WriteCall(writer, "new(GetContentResult(", call, arguments, ")));");
+
+            if (kind == ReturnKind.AwaitableContent)
+                WriteCall(writer, "GetContentResult(await ", call, arguments, ").ConfigureAwait(false));");
+
+            // D45: the model takes one result per call, so a stream reaches it as the list of its items, which the
+            // library reads: generated code that named an async LINQ type would be ambiguous in a consumer that
+            // references another assembly with a type of that name
+            if (kind == ReturnKind.Stream) WriteCall(writer, "GetResultAsync(", call, arguments, "), ct);");
         }
 
         if (isExpression) return;
 
+        var awaited = kind == ReturnKind.Awaitable;
+
         using (writer.Block())
         {
-            WriteCall(writer, kind == ReturnKind.Awaitable ? "await " : "", call, arguments, ");");
+            WriteCall(writer, awaited ? "await " : "", call, arguments, awaited ? ").ConfigureAwait(false);" : ");");
             if (arguments.Count > 1) writer.Line();
-            writer.Line(kind == ReturnKind.Awaitable ? "return null;" : "return default;");
+            writer.Line(awaited ? "return null;" : "return default;");
         }
     }
 
@@ -321,31 +379,32 @@ internal static class ToolsetEmitter
             _ => $"GetArgument<{parameter.Type}>(arguments, {Names.Literal(parameter.Name)})"
         };
 
-    // D4: what agents pick in UseToolset<T>().Include(t => t.X), next to the toolset in its namespace
     private static void WriteToolList(SourceWriter writer, ToolsetModel toolset)
     {
         var list = $"global::Typeshift.ToolList<{toolset.Type.FullName}>";
+        var name = Names.GlobalClassName(Names.ToolListClassPrefix, toolset.Type);
 
-        writer.Line();
         Docs.WriteSummary(
             writer,
             $"The tools of <see cref=\"{toolset.Type.FullName}\"/>, to include in or exclude from an agent.");
 
-        using (writer.Block($"{toolset.Type.Accessibility} static class {toolset.Type.FlatName}ToolList"))
+        // Hidden, so the class stays out of type completion in every file; the properties stay in member completion
+        writer.Line(Names.Hidden);
+        writer.Lines(Names.Generated);
+
+        using (writer.Block($"{toolset.Type.Accessibility} static class {name}"))
+        using (writer.Block($"extension({list} tools)"))
         {
-            using (writer.Block($"extension({list} tools)"))
+            foreach (var tool in toolset.Tools)
             {
-                foreach (var tool in toolset.Tools)
-                {
-                    if (tool != toolset.Tools[0]) writer.Line();
+                if (tool != toolset.Tools[0]) writer.Line();
 
-                    var description = tool.Description is { } text ? $": {Docs.Escape(text)}" : ".";
+                var description = tool.Description is { } text ? $": {Docs.Escape(text)}" : ".";
 
-                    Docs.WriteSummary(writer, $"The <c>{tool.Name}</c> tool{description}");
-                    writer.Line(
-                        $"public global::Typeshift.ToolName {Names.ToolProperty(tool.Name)} => "
-                        + $"new({Names.Literal(tool.Name)});");
-                }
+                Docs.WriteSummary(writer, $"The <c>{tool.Name}</c> tool{description}");
+                writer.Line(
+                    $"public global::Typeshift.ToolName {Names.ToolProperty(tool.Name)} => "
+                    + $"new({Names.Literal(tool.Name)});");
             }
         }
     }

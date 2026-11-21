@@ -4,16 +4,18 @@ namespace Typeshift;
 /// The base of a partial class that declares its tools in its constructor. The generator turns each tool into a
 /// reflection-free <c>AIFunction</c>, its configurable settings into a <c>{Tool}Overrides</c> record, and its tools
 /// into properties of <see cref="ToolList{TToolset}"/>.
+/// More in the guide: <see href="https://weboost-at.github.io/Typeshift/guide/toolsets">Toolsets</see>.
 /// </summary>
 public abstract class Toolset
 {
     /// <summary>
-    /// A name for people, a tool picker say; null unless <see cref="WithDisplayName"/> sets it.
+    /// A name for people, which the runtime's <see cref="TypeshiftRuntime.Toolsets"/> lists for a tool picker; null
+    /// unless <see cref="WithDisplayName"/> sets it.
     /// </summary>
     public string? DisplayName { get; private set; }
 
     /// <summary>
-    /// Names the toolset for people.
+    /// Names the toolset for people, as <see cref="TypeshiftRuntime.Toolsets"/> lists it.
     /// </summary>
     /// <param name="displayName">The name.</param>
     protected void WithDisplayName(string displayName) => DisplayName = displayName;

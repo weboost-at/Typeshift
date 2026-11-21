@@ -16,7 +16,8 @@ internal static class ChatEndpoints
         {
             // begin-snippet: chat-endpoint
             var chat = app.MapGroup("/chats/{chatId:int}")
-                .AddEndpointFilter<ChatOwnerFilter>();
+                .AddEndpointFilter<ChatOwnerFilter>()
+                .AddEndpointFilter<ChatBusyFilter>();
 
             chat.MapPost("/messages", async (
                 int chatId,
@@ -28,14 +29,14 @@ internal static class ChatEndpoints
                 var response = await support
                     .WithSettingsId(customer.Id)
                     .WithConversationId(chatId)
-                    .RunAsync(input.Text, ct: ct);
+                    .RunAsync(input.Text, ct);
 
                 return ChatReply.From(response);
             });
             // end-snippet
 
             // begin-snippet: chat-stream-endpoint
-            chat.MapPost("/messages/stream", (
+            chat.MapPost("/messages/stream", async (
                 int chatId,
                 ChatInput input,
                 AgentHost<SupportAgent> support,
@@ -45,35 +46,41 @@ internal static class ChatEndpoints
                 var updates = support
                     .WithSettingsId(customer.Id)
                     .WithConversationId(chatId)
-                    .RunStreamingAsync(input.Text, ct: ct);
+                    .RunStreamingAsync(input.Text, ct);
 
-                return TypedResults.ServerSentEvents(Events(updates));
+                return TypedResults.ServerSentEvents(Events(await StartedAsync(updates, ct)));
             });
             // end-snippet
 
-            // begin-snippet: chat-approval-endpoint
-            chat.MapPost("/approvals", async Task<IResult> (
+            // begin-snippet: chat-history-endpoint
+            chat.MapGet("/messages", async (int chatId, AgentHost<SupportAgent> support, CancellationToken ct) =>
+                ChatLine.From(await support.WithConversationId(chatId).LoadConversationAsync(ct)));
+            // end-snippet
+
+            // begin-snippet: chat-decisions-endpoint
+            chat.MapGet("/decisions", async (int chatId, AgentHost<SupportAgent> support, CancellationToken ct) =>
+                (await support.WithConversationId(chatId).GetDecisionsAsync(ct)).Open);
+            // end-snippet
+
+            // begin-snippet: chat-answer-endpoint
+            chat.MapPost("/decisions", async Task<IResult> (
                 int chatId,
-                ApprovalAnswer[] answers,
+                DecisionAnswer answer,
                 AgentHost<SupportAgent> support,
                 ICurrentCustomer customer,
                 CancellationToken ct) =>
             {
-                // No answers would drop every pending request
-                if (answers.Length == 0) return TypedResults.BadRequest();
-
-                var reply = new ChatMessage(ChatRole.User, [.. answers.Select(answer => answer.ToResponse())]);
-
                 try
                 {
                     var resumed = await support
                         .WithSettingsId(customer.Id)
                         .WithConversationId(chatId)
-                        .RunAsync(reply, ct: ct);
+                        .AnswerAsync([answer], ct);
 
+                    // Its Decisions list what still waits
                     return TypedResults.Ok(ChatReply.From(resumed));
                 }
-                catch (ApprovalClosedException)
+                catch (DecisionClosedException)
                 {
                     // Answered already, in another tab or by a retry, or passed by a newer message: the UI drops it
                     return TypedResults.Conflict();
@@ -83,6 +90,39 @@ internal static class ChatEndpoints
         }
     }
 
+    // begin-snippet: chat-stream-start
+    private static async Task<IAsyncEnumerable<ChatResponseUpdate>> StartedAsync(
+        IAsyncEnumerable<ChatResponseUpdate> updates,
+        CancellationToken ct)
+    {
+        var reader = updates.GetAsyncEnumerator(ct);
+
+        try
+        {
+            // The run starts with its first update: one that cannot start fails here, before the response begins
+            return Rest(reader, await reader.MoveNextAsync());
+        }
+        catch
+        {
+            await reader.DisposeAsync();
+            throw;
+        }
+    }
+
+    private static async IAsyncEnumerable<ChatResponseUpdate> Rest(
+        IAsyncEnumerator<ChatResponseUpdate> reader,
+        bool any)
+    {
+        await using (reader)
+        {
+            for (; any; any = await reader.MoveNextAsync())
+            {
+                yield return reader.Current;
+            }
+        }
+    }
+    // end-snippet
+
     // begin-snippet: chat-stream-events
     private static async IAsyncEnumerable<SseItem<object>> Events(IAsyncEnumerable<ChatResponseUpdate> updates)
     {
@@ -90,10 +130,10 @@ internal static class ChatEndpoints
         {
             if (update.Text is { Length: > 0 } text) yield return new SseItem<object>(text, "text");
 
-            foreach (var request in update.Contents.OfType<ToolApprovalRequestContent>())
+            // Decisions come with the run's last update, so each one the UI shows can be answered
+            foreach (var decision in update.Decisions)
             {
-                if (PendingApproval.From(request) is { } approval)
-                    yield return new SseItem<object>(approval, "approval");
+                yield return new SseItem<object>(decision, "decision");
             }
         }
     }

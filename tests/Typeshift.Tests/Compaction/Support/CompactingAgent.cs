@@ -1,11 +1,14 @@
 namespace Typeshift.Tests.Compaction.Support;
 
-// A tool whose results are as long as the model asks, to fill a run's context
+// Tools whose results are as long as the model asks, to fill a run's context: one that only reads, one that does not
 public partial class ReadingToolset : Toolset
 {
     public ReadingToolset()
     {
-        AddTool(Read);
+        AddTool(Read)
+            .ReadOnly();
+
+        AddTool(Send);
     }
 
     /// <summary>
@@ -13,21 +16,25 @@ public partial class ReadingToolset : Toolset
     /// </summary>
     /// <param name="length">How many characters it has.</param>
     public static string Read(int length) => new('x', length);
+
+    /// <summary>
+    /// Sends a page and returns what went out.
+    /// </summary>
+    /// <param name="length">How many characters it has.</param>
+    public static string Send(int length) => new('y', length);
 }
 
 // A to-do tool of the app's own, whose latest call compaction keeps by its name
 public partial class PlanningToolset : Toolset
 {
-    public PlanningToolset()
-    {
-        AddTool(WriteTodos);
-    }
+    public PlanningToolset() => AddTool(WriteTodos);
 
     /// <summary>
     /// Replaces the to-do list.
     /// </summary>
     /// <param name="todos">The whole list, in order.</param>
-    public static string WriteTodos(IReadOnlyList<PlannedItem> todos) => $"The list has {todos.Count} items.";
+    public static string WriteTodos(IReadOnlyList<PlannedItem> todos) =>
+        string.Join('\n', todos.Select(todo => $"{todo.Status}: {todo.Title}"));
 }
 
 public sealed record PlannedItem(string Title, string Status);
@@ -46,7 +53,8 @@ public partial class CompactingAgent : Agent
         WithRunOptions()
             .Configurable(r => r.MaxInputTokens)
             .Configurable(r => r.TargetInputTokens)
-            .Configurable(r => r.SummaryModel);
+            .Configurable(r => r.SummaryModel)
+            .Configurable(r => r.SummaryInstructions);
 
         UseToolset<ReadingToolset>();
 

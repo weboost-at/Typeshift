@@ -70,13 +70,14 @@ internal partial class CompanyToolset : Toolset
     [
         new("Danube Robotics", "Vienna", Active: true),
         new("Prater Motion", "Vienna", Active: true),
+        new("Belvedere Optics", "Vienna", Active: true),
         new("Graz Gearworks", "Graz", Active: false)
     ];
 }
 
 internal sealed record Company(string Name, string City, bool Active);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/CompanyToolset.cs#L3-L36' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-toolset' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/CompanyToolset.cs#L3-L37' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-toolset' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 <details>
@@ -127,7 +128,7 @@ internal partial class ResearchAgent : Agent
         WithInstructions("Find companies with the find_companies tool and list them.");
 
         WithChatOptions()
-            .WithModel("openai", "gpt-5-mini")
+            .WithModel("gpt-5-mini")
             .WithTemperature(0.2f)
             .Configurable(o => o.Instructions)
             .Configurable(o => o.Temperature);
@@ -144,8 +145,10 @@ internal partial class ResearchAgent : Agent
 
 ### 3. Run it
 
-Every run needs an `IChatClient`. For OpenAI, with the `Microsoft.Extensions.AI.OpenAI` package and a key from your
-configuration:
+Every run needs an `IChatClient`. For OpenAI, add the `Microsoft.Extensions.AI.OpenAI` package and `using OpenAI;` and
+`using Microsoft.Extensions.AI;`, and read `apiKey` from your configuration, for example an environment variable. The
+agent's `WithModel` picks the model of each run, so the one you pass to `GetChatClient` serves only an agent that
+names none:
 
 <!-- snippet: openai-chat-client -->
 <a id='snippet-openai-chat-client'></a>
@@ -154,7 +157,7 @@ var client = new OpenAIClient(apiKey)
     .GetChatClient("gpt-5-mini")
     .AsIChatClient();
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L127-L131' title='Snippet source file'>snippet source</a> | <a href='#snippet-openai-chat-client' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L141-L145' title='Snippet source file'>snippet source</a> | <a href='#snippet-openai-chat-client' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 A console app or a script creates the runtime with that client and takes the agent's host from it:
@@ -163,11 +166,13 @@ A console app or a script creates the runtime with that client and takes the age
 <a id='snippet-typeshift-runtime'></a>
 ```cs
 await using var runtime = TypeshiftRuntime.Create(client);
-await using var research = runtime.Agent<ResearchAgent>();
+await using var research = runtime.CreateHost<ResearchAgent>();
 
 var answer = await research.RunAsync("Vienna");
+
+Console.WriteLine($"{research.Agent.Name}: {answer.Text}");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/NoContainer.cs#L11-L16' title='Snippet source file'>snippet source</a> | <a href='#snippet-typeshift-runtime' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/NoContainer.cs#L14-L21' title='Snippet source file'>snippet source</a> | <a href='#snippet-typeshift-runtime' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 In an app with a container, such as ASP.NET Core, `AddTypeshift()` registers every toolset and agent, and you inject
@@ -233,6 +238,9 @@ internal partial class CodingAgent : Agent
 {
     public CodingAgent()
     {
+        WithInstructions(
+            "Work in the customer's workspace. Read before you change anything, and run the tests after every change.");
+
         WithChatOptions()
             .WithModel("anthropic", "claude-sonnet-5-5");
 
@@ -246,18 +254,12 @@ internal partial class CodingAgent : Agent
             .WithMaxToolIterations(500)
             .WithMaxInputTokens(150_000)
             .WithSummaryModel("claude-haiku-5-5")
-            .Configurable(r => r.Mode)
             .Configurable(r => r.MaxToolIterations)
             .Configurable(r => r.SummaryModel);
     }
-
-    protected override string GetInstructions() =>
-        """
-        Work in the customer's workspace. Read before you change anything, and run the tests after every change.
-        """;
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/CodingAgent.cs#L5-L37' title='Snippet source file'>snippet source</a> | <a href='#snippet-coding-agent' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/CodingAgent.cs#L5-L34' title='Snippet source file'>snippet source</a> | <a href='#snippet-coding-agent' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 </details>

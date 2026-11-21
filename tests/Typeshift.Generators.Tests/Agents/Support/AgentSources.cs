@@ -12,6 +12,9 @@ public static class AgentSources
 
         public record SearchTicketsSettings
         {
+            /// <summary>
+            /// The most tickets a search returns.
+            /// </summary>
             public int Limit { get; init; } = 10;
 
             public bool IncludeClosed { get; init; }
@@ -270,11 +273,13 @@ public static class AgentSources
 
                 UseToolset<TicketToolset>().Exclude(t => t.DeleteTicket);
 
+                UseQuestions();
+
                 ConfigureSearchTickets()
                     .WithLimit(5);
             }
 
-            protected override string GetInstructions() => "Answer.";
+            protected override string GetInstructions(System.IServiceProvider services) => "Answer.";
         }
 
         internal static class Startup
@@ -426,6 +431,56 @@ public static class AgentSources
         internal static class Program
         {
             public static TypeshiftRuntime Start(IChatClient client) => {{receiver}}.Create(client);
+        }
+        """;
+
+    // D67: an app without a container that knows the Typeshift namespace alone and keeps its agents' settings in files
+    public const string RuntimeWithFileStore =
+        """
+        #pragma warning disable CS1591
+
+        using Typeshift;
+
+        namespace Demo;
+
+        public partial class SupportAgent : Agent
+        {
+            public SupportAgent() => WithChatOptions().WithModel("openai", "fast-model");
+        }
+
+        internal static class Program
+        {
+            public static TypeshiftRuntime Start(Microsoft.Extensions.AI.IChatClient client) =>
+                TypeshiftRuntime.Create(client, typeshift => typeshift.WithFileStore(store => store.Folder = "data"));
+        }
+        """;
+
+    // An app whose agents and toolsets live in its references: it holds the JSON context of its typed results and
+    // no toolset, agent or schema annotations class. The System.Text.Json generator does not run here; what it would
+    // write is stubbed
+    public const string JsonContextOnly =
+        """
+        using System.Text.Json.Serialization;
+        using Microsoft.Extensions.DependencyInjection;
+        using Typeshift;
+
+        namespace App;
+
+        internal record CompanyCount(int Count);
+
+        [JsonSerializable(typeof(CompanyCount))]
+        internal partial class AppJsonContext() : JsonSerializerContext(null)
+        {
+            public static AppJsonContext Default { get; } = new();
+
+            protected override System.Text.Json.JsonSerializerOptions? GeneratedSerializerOptions => null;
+
+            public override System.Text.Json.Serialization.Metadata.JsonTypeInfo? GetTypeInfo(System.Type type) => null;
+        }
+
+        internal static class Startup
+        {
+            public static void Register(IServiceCollection services) => services.AddTypeshift();
         }
         """;
 

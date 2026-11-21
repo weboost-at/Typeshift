@@ -3,7 +3,8 @@ using Microsoft.EntityFrameworkCore;
 namespace Typeshift.Samples.Stores.EfCore;
 
 // begin-snippet: ef-core-load
-internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) : ITypeshiftStore<int>
+internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts)
+    : ITypeshiftStore<int>, IAgentSettingsStore
 {
     public async Task<StoredDocument?> LoadAsync(int id, string kind, CancellationToken ct)
     {
@@ -55,6 +56,42 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
                 ct);
     // end-snippet
 
+    // begin-snippet: ef-agent-settings
+    public async Task<StoredDocument?> LoadAsync(string kind, CancellationToken ct)
+    {
+        await using var db = await contexts.CreateDbContextAsync(ct);
+
+        return await db.AgentDocuments.FindAsync([kind], ct) is { } row
+            ? new StoredDocument(row.Json, row.Version)
+            : null;
+    }
+
+    public async Task<long> SaveAsync(string kind, string json, long loadedVersion, CancellationToken ct)
+    {
+        await using var db = await contexts.CreateDbContextAsync(ct);
+
+        var rows = loadedVersion == 0
+            ? await db.Database.ExecuteSqlAsync(
+                $"""
+                INSERT INTO "AgentDocuments" ("Kind", "Version", "Json")
+                VALUES ({kind}, 1, {json})
+                ON CONFLICT ("Kind") DO NOTHING
+                """,
+                ct)
+            : await db.AgentDocuments
+                .Where(row => row.Kind == kind && row.Version == loadedVersion)
+                .ExecuteUpdateAsync(
+                    set => set
+                        .SetProperty(row => row.Json, json)
+                        .SetProperty(row => row.Version, loadedVersion + 1),
+                    ct);
+
+        return rows == 1
+            ? loadedVersion + 1
+            : throw new StoreConflictException($"The agent's {kind} was saved after version {loadedVersion}.");
+    }
+    // end-snippet
+
     // begin-snippet: ef-core-conversations
     public async Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(int conversation, CancellationToken ct)
     {
@@ -62,7 +99,7 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
 
         var rows = await db.Entries
             .Where(entry => entry.Conversation == conversation)
-            .OrderBy(entry => entry.Sequence)
+            .OrderBy(entry => entry.Id)
             .ToListAsync(ct);
 
         return [.. rows.Select(row => ConversationEntry.Deserialize(row.Json))];
@@ -78,28 +115,76 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
 
         var start = await entries
             .Where(entry => entry.IsSummary)
-            .MaxAsync(entry => (long?)entry.Sequence, ct) ?? 0;
+            .MaxAsync(entry => (long?)entry.Id, ct) ?? 0;
 
         var rows = await entries
-            .Where(entry => entry.Sequence >= start)
-            .OrderBy(entry => entry.Sequence)
+            .Where(entry => entry.Id >= start)
+            .OrderBy(entry => entry.Id)
             .ToListAsync(ct);
 
         return [.. rows.Select(row => ConversationEntry.Deserialize(row.Json))];
     }
+    // end-snippet
+
+    // begin-snippet: ef-core-append
+    public bool RefusesTakenSequences => true;
 
     public async Task AppendConversationAsync(int conversation, ConversationEntry entry, CancellationToken ct)
     {
         await using var db = await contexts.CreateDbContextAsync(ct);
 
-        db.Entries.Add(new EntryRow
-        {
-            Conversation = conversation,
-            IsSummary = entry.IsSummary,
-            Json = entry.Serialize()
-        });
+        // An entry without a number, as an earlier version wrote it, keeps NULL, which the unique key allows twice
+        long? sequence = entry.Sequence > 0 ? entry.Sequence : null;
 
-        await db.SaveChangesAsync(ct);
+        var rows = await db.Database.ExecuteSqlAsync(
+            $"""
+            INSERT INTO "Entries" ("Conversation", "Sequence", "IsSummary", "Json")
+            VALUES ({conversation}, {sequence}, {entry.IsSummary}, {entry.Serialize()})
+            ON CONFLICT ("Conversation", "Sequence") DO NOTHING
+            """,
+            ct);
+
+        // The unique key refused the number: a run of another instance of the app appended under it first
+        if (rows == 0)
+            throw new StoreConflictException($"Conversation {conversation} holds entry {entry.Sequence} already.");
+    }
+    // end-snippet
+
+    // begin-snippet: ef-core-decisions
+    public async Task<StoredDocument?> LoadDecisionsAsync(int conversation, CancellationToken ct)
+    {
+        await using var db = await contexts.CreateDbContextAsync(ct);
+
+        return await db.Decisions.FindAsync([conversation], ct) is { } row
+            ? new StoredDocument(row.Json, row.Version)
+            : null;
+    }
+
+    public async Task<long> SaveDecisionsAsync(int conversation, string json, long loadedVersion, CancellationToken ct)
+    {
+        await using var db = await contexts.CreateDbContextAsync(ct);
+
+        var rows = loadedVersion == 0
+            ? await db.Database.ExecuteSqlAsync(
+                $"""
+                INSERT INTO "Decisions" ("Conversation", "Version", "Json")
+                VALUES ({conversation}, 1, {json})
+                ON CONFLICT ("Conversation") DO NOTHING
+                """,
+                ct)
+            : await db.Decisions
+                .Where(row => row.Conversation == conversation && row.Version == loadedVersion)
+                .ExecuteUpdateAsync(
+                    set => set
+                        .SetProperty(row => row.Json, json)
+                        .SetProperty(row => row.Version, loadedVersion + 1),
+                    ct);
+
+        // One statement checks the version and writes, which is what lets an approved call start only once
+        return rows == 1
+            ? loadedVersion + 1
+            : throw new StoreConflictException(
+                $"The decisions of conversation {conversation} were saved after version {loadedVersion}.");
     }
 }
 // end-snippet

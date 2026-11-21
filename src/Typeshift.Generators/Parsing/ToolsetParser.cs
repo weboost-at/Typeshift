@@ -2,9 +2,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using Typeshift.Generators.Diagnostics;
-using Typeshift.Generators.Emitting;
 using Typeshift.Generators.Models;
+using Typeshift.Generators.Naming;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
 
 namespace Typeshift.Generators.Parsing;
@@ -29,23 +30,57 @@ internal static class ToolsetParser
         CancellationToken ct,
         out IReadOnlyList<(ToolModel Tool, IInvocationOperation AddTool)> declarations)
     {
-        var notPartial = toolset.GetNotPartial(ct);
+        var (notPartial, unreachable) = ReadDeclaration(toolset, reporter, ct);
+
+        declarations = ParseTools(toolset, constructors, documented, reporter, ct);
+        var tools = declarations.Select(declaration => declaration.Tool).ToEquatableArray();
+        var clash = ClashesWithToolNames(toolset, tools.Count, reporter);
+
+        // A partial in another file would declare another class than a file-local one
+        return notPartial is null && !clash && !toolset.IsFileLocalOrNestedInOne()
+            ? new ToolsetModel(TypeModels.From(toolset), unreachable is null, tools, toolset.GetExperimentalIds())
+            : null;
+    }
+
+    // D6: a toolset or an agent with tools gets a class of constants that name them, which no member of the user's
+    // may share and the class itself cannot be named like (TSH018)
+    public static bool ClashesWithToolNames(INamedTypeSymbol owner, int tools, Reporter reporter)
+    {
+        if (tools == 0) return false;
+
+        var clash = owner.Name == Names.ToolNamesClass
+            ? owner
+            : owner.GetMembers(Names.ToolNamesClass).FirstOrDefault(Names.IsUsers);
+
+        if (clash is null) return false;
+
+        reporter.Report(
+            Descriptors.GeneratedNameClash,
+            clash.Locations.FirstOrDefault(),
+            clash is INamedTypeSymbol ? $"The class '{clash.Name}'" : $"The member '{clash.Name}'",
+            owner.Name);
+
+        return true;
+    }
+
+    // TSH001 and TSH016 for a toolset or an agent: the class that is not partial, and why generated code outside the
+    // class cannot reach it; each null when there is none
+    public static (INamedTypeSymbol? NotPartial, string? Unreachable) ReadDeclaration(
+        INamedTypeSymbol owner,
+        Reporter reporter,
+        CancellationToken ct)
+    {
+        var notPartial = owner.GetNotPartial(ct);
 
         if (notPartial is not null)
             reporter.Report(Descriptors.NotPartial, notPartial.Locations.FirstOrDefault(), notPartial.Name);
 
-        var unreachable = toolset.GetUnreachableReason();
-        var isReachable = unreachable is null;
+        var unreachable = owner.GetUnreachableReason();
 
         if (unreachable is not null)
-            reporter.Report(Descriptors.Unreachable, toolset.Locations.FirstOrDefault(), toolset.Name, unreachable);
+            reporter.Report(Descriptors.Unreachable, owner.Locations.FirstOrDefault(), owner.Name, unreachable);
 
-        declarations = ParseTools(toolset, constructors, documented, reporter, ct);
-        var tools = declarations.Select(declaration => declaration.Tool).ToEquatableArray();
-
-        return notPartial is null
-            ? new ToolsetModel(TypeModels.From(toolset), isReachable, tools)
-            : null;
+        return (notPartial, unreachable);
     }
 
     // The tools a toolset or an agent declares in its constructors; a tool that clashes is reported and left out
@@ -57,18 +92,53 @@ internal static class ToolsetParser
         CancellationToken ct)
     {
         var declared = new List<(ToolModel Tool, IInvocationOperation AddTool)>();
+        var addTools = ConstructorChains.GetInvocations(constructors).Where(IsAddTool).ToList();
 
-        foreach (var addTool in ConstructorChains.GetInvocations(constructors).Where(IsAddTool))
+        // The settings types the owner's tools name, for a tool that takes one of them without naming it (TSH038)
+        var settingsTypes = new HashSet<ITypeSymbol>(
+            addTools.SelectMany(ConstructorChains.GetChainedCalls)
+                .Where(call => call.TargetMethod.Name is "WithSettings" or "WithConfigurableSettings")
+                .Select(call => call.TargetMethod.TypeArguments[0]),
+            SymbolEqualityComparer.Default);
+
+        // D3: each edit parses every toolset again, and the tools of one often share their settings type
+        var read = new Dictionary<ITypeSymbol, SettingsType>(SymbolEqualityComparer.Default);
+
+        foreach (var addTool in addTools)
         {
-            if (ParseTool(addTool, owner, documented, reporter, ct) is not { } tool) continue;
+            if (ParseTool(addTool, owner, settingsTypes, read, documented, reporter, ct) is not { } tool) continue;
 
-            if (declared.Any(offered => Clashes(offered.Tool, tool)))
+            var clash = declared
+                .Select(other => (
+                    other.Tool.Name,
+                    other.AddTool,
+                    Member: Names.SharedMember(other.Tool.Name, tool.Name)))
+                .FirstOrDefault(other => other.Member is not null);
+
+            if (clash.Member is not null)
             {
-                reporter.Report(
+                reporter.ReportBeside(
                     Descriptors.DuplicateToolName,
                     addTool.Syntax,
+                    clash.AddTool.Syntax,
                     tool.Name,
-                    Names.ToPascalCase(tool.Name));
+                    $"'{owner.Name}'",
+                    clash.Name == tool.Name
+                        ? "is declared twice"
+                        : $"maps to the same generated member as its tool '{clash.Name}', '{clash.Member}'",
+                    "give one of the two another name with WithName(\"...\")");
+
+                continue;
+            }
+
+            // A class cannot hold a member of its own name
+            if (GetGeneratedMembers(tool).Contains(owner.Name))
+            {
+                reporter.Report(
+                    Descriptors.GeneratedNameClash,
+                    owner.Locations.FirstOrDefault(),
+                    $"The class '{owner.Name}'",
+                    tool.Name);
                 continue;
             }
 
@@ -77,7 +147,7 @@ internal static class ToolsetParser
                 reporter.Report(
                     Descriptors.GeneratedNameClash,
                     member.Locations.FirstOrDefault(),
-                    member.Name,
+                    $"The member '{member.Name}'",
                     tool.Name);
                 continue;
             }
@@ -88,43 +158,69 @@ internal static class ToolsetParser
         return declared;
     }
 
-    public static bool IsAddTool(IInvocationOperation invocation) =>
-        invocation.TargetMethod.Name == "AddTool"
-        && (invocation.TargetMethod.ContainingType.Is(KnownTypes.Toolset)
-            || invocation.TargetMethod.ContainingType.Is(KnownTypes.Agent));
+    public static bool IsAddTool(IInvocationOperation invocation) => IsAddTool(invocation.TargetMethod);
 
-    // get_v2 and get_v_2 differ, but both generate CreateGetV2
-    private static bool Clashes(ToolModel offered, ToolModel tool) =>
-        offered.Name == tool.Name || Names.ToPascalCase(offered.Name) == Names.ToPascalCase(tool.Name);
+    public static bool IsAddTool(IMethodSymbol method) =>
+        method.Name == "AddTool"
+        && (method.ContainingType.Is(KnownTypes.Toolset) || method.ContainingType.Is(KnownTypes.Agent));
 
-    // The analyzer sees the generated members too; only the user's own can clash
     private static ISymbol? ClashingMember(INamedTypeSymbol owner, ToolModel tool) =>
-        Names.ToolsetMembers(tool.Name, tool.Settings?.HasConfigurable is true)
-            .SelectMany(name => owner.GetMembers(name))
-            .FirstOrDefault(member => member.DeclaringSyntaxReferences
-                .Any(reference => !Names.IsGenerated(reference.SyntaxTree)));
+        GetGeneratedMembers(tool).SelectMany(name => owner.GetMembers(name)).FirstOrDefault(Names.IsUsers);
+
+    private static IEnumerable<string> GetGeneratedMembers(ToolModel tool) =>
+        Names.ToolsetMembers(tool.Name, tool.Settings?.HasConfigurable is true);
 
     private static ToolModel? ParseTool(
         IInvocationOperation addTool,
         INamedTypeSymbol owner,
+        ISet<ITypeSymbol> ownerSettings,
+        IDictionary<ITypeSymbol, SettingsType> read,
         bool documented,
         Reporter reporter,
         CancellationToken ct)
     {
         var argument = addTool.Arguments[0].Value;
 
-        // A static local function is no method the generated code can call, nor is a generic one it would have to close
-        if (ConstructorChains.Unwrap(argument) is not IDelegateCreationOperation
-            {
-                Target: IMethodReferenceOperation
-                {
-                    Method: { IsStatic: true, MethodKind: MethodKind.Ordinary, IsGenericMethod: false } method
-                }
-            })
+        var (method, uncallable) = ReadMethod(ConstructorChains.Unwrap(argument));
+
+        if (method is null)
         {
-            reporter.Report(Descriptors.NotStaticMethodGroup, argument.Syntax, argument.Syntax.ToString());
+            reporter.Report(
+                Descriptors.NotStaticMethodGroup,
+                argument.Syntax,
+                argument.Syntax.ToString(),
+                $"{uncallable}; pass a static method that is not generic, AddTool(Method)");
+
             return null;
         }
+
+        // A static member of a C# 14 extension block is called on the class that declares the block
+        var target = method.ContainingType;
+
+        while (target.IsExtension)
+        {
+            target = target.ContainingType;
+        }
+
+        // A file-local owner is reported itself (TSH016), and generates nothing that would call the method
+        if (target.IsFileLocalOrNestedInOne() && !owner.IsFileLocalOrNestedInOne())
+        {
+            reporter.Report(
+                Descriptors.NotStaticMethodGroup,
+                argument.Syntax,
+                argument.Syntax.ToString(),
+                $"its class '{target.Name}' is file-local, and generated code is written to other files");
+
+            return null;
+        }
+
+        // A static abstract or virtual member of an interface is the compiler's CS8926 where AddTool names it, and a
+        // member of a generic class without its type argument, AddTool(Finder<>.Find) while it is typed, its CS0305
+        if (method.IsAbstract || method.IsVirtual || method.ContainingType.ContainsTypeParameter()) return null;
+
+        // So is a chain call that does not bind, as WithSettings() while its type is typed: what the chain declares
+        // is unknown until it does
+        if (ConstructorChains.GetChain(addTool).Any(link => link is IInvalidOperation)) return null;
 
         if (!ConstructorChains.EndsInStatement(addTool))
         {
@@ -153,35 +249,86 @@ internal static class ToolsetParser
             return null;
         }
 
-        var settings = chain.SettingsCall is null ? null : ParseSettings(chain, owner, reporter, ct);
+        // D35, D82: a run offers these names itself, and the model would see one of two tools
+        if (ToolNames.GetReservedFor(name) is { } reserved)
+        {
+            reporter.Report(
+                Descriptors.ReservedToolName,
+                chain.NameCall?.Arguments[0].Syntax ?? addTool.Arguments[0].Syntax,
+                name,
+                reserved);
+
+            return null;
+        }
+
+        var settings = chain.SettingsCall is null ? null : ParseSettings(chain, owner, read, reporter, ct);
         if (chain.SettingsCall is not null && settings is null) return null;
 
+        // WithDescription("") describes as little as no call
         var docs = XmlDocs.Read(method, ct);
-        var description = chain.Description ?? docs.Summary;
+        var stated = string.IsNullOrWhiteSpace(chain.Description) ? null : chain.Description;
+        var description = stated ?? docs.Summary ?? GetDescription(method);
 
-        // Without generated docs a summary is lost unless WithDescription replaces it, a <param> always is
-        var unread = documented ? "" : XmlDocs.ReadUnparsed(method, ct);
+        if (description is null)
+            reporter.Report(
+                Descriptors.MissingDescription,
+                chain.DescriptionCall?.Arguments[0].Syntax ?? addTool.Syntax,
+                name);
 
-        if (unread.Contains("<param ") || (chain.Description is null && unread.Length > 0))
-            reporter.Report(Descriptors.DocumentationOff, addTool.Syntax, $"The tool '{name}'");
-        else if (description is null)
-            reporter.Report(Descriptors.MissingDescription, addTool.Syntax, name);
+        // Generated code would name a type that does not resolve yet, or a file-local one in the signature of a class
+        // that is not (CS9051), and repeat the compiler's error
+        if (IsCompilersToReport(method.ReturnType) || method.Parameters.Any(each => IsCompilersToReport(each.Type)))
+            return null;
 
         var parameters = new List<ParameterModel>();
 
         foreach (var parameter in method.Parameters)
         {
-            if (!IsBindable(parameter))
+            // A method of a reference has no source here
+            var declared = parameter.Locations.FirstOrDefault(location => location.IsInSource)
+                ?? argument.Syntax.GetLocation();
+
+            if (GetUnboundReason(parameter) is { } unbound)
             {
                 reporter.Report(
-                    Descriptors.UnboundParameter,
-                    parameter.Locations.FirstOrDefault(),
-                    parameter.Name,
-                    name);
+                    Descriptors.NotBindable,
+                    declared,
+                    $"parameter '{parameter.Name}'",
+                    name,
+                    "bound from the model's arguments",
+                    unbound);
+
                 return null;
             }
 
-            parameters.Add(ParseParameter(parameter, chain.SettingsType, docs));
+            var parsed = ParseParameter(parameter, chain.SettingsType, docs);
+            parameters.Add(parsed);
+
+            if (parsed.Kind == ParameterKind.Argument && GetMisfilledReason(parameter, ownerSettings) is { } misfilled)
+                reporter.Report(Descriptors.ModelFilledParameter, declared, parameter.Name, name, misfilled);
+
+            // D55, D68: the parser reads a tool's own docs without generated docs, but the docs of the types it takes
+            // reach its schema only through the docs the compiler writes
+            if (parsed.Kind == ParameterKind.Argument && !documented && HasPlainDocs(parameter.Type, ct))
+            {
+                reporter.Report(
+                    Descriptors.DocumentationOff,
+                    declared,
+                    $"The parameter '{parameter.Name}' of the tool '{name}'");
+            }
+        }
+
+        if (GetUnreturnedReason(method.ReturnType) is { } unreturned)
+        {
+            reporter.Report(
+                Descriptors.NotBindable,
+                GetReturnType(method, ct)?.GetLocation() ?? argument.Syntax.GetLocation(),
+                "result",
+                name,
+                "returned to the model",
+                unreturned);
+
+            return null;
         }
 
         if (settings is not null && parameters.All(parameter => parameter.Kind != ParameterKind.Settings))
@@ -194,18 +341,45 @@ internal static class ToolsetParser
         }
 
         var returns = ParseReturn(method.ReturnType);
+        ISymbol[] named = [method, method.ReturnType, .. method.Parameters.Select(parameter => parameter.Type)];
 
+        // The target's type arguments keep their nullable annotations, as the method's parameters expect them
         return new ToolModel(
             Name: name,
             Method: Names.Identifier(method.Name),
-            Target: method.ContainingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+            Target: target.ToFullyQualified(),
             Description: description,
             IsReadOnly: chain.IsReadOnly,
             RequiresApproval: chain.RequiresApproval,
             Settings: settings,
             Parameters: parameters.ToEquatableArray(),
             Return: returns,
-            Result: GetResultType(method.ReturnType, returns));
+            Result: GetResultType(method.ReturnType, returns),
+            ExperimentalIds: named.GetExperimentalIds());
+    }
+
+    // The static method AddTool names, or why the generated code cannot call what it names: a local function has no
+    // name outside its method, and a generic method, by itself or as a member of a generic extension block, would
+    // have to be closed
+    private static (IMethodSymbol? Method, string? Reason) ReadMethod(IOperation argument)
+    {
+        if (argument is not IDelegateCreationOperation { Target: var target })
+            return (null, "it is a delegate, not a method");
+
+        if (target is not IMethodReferenceOperation { Method: var method }) return (null, "it is a lambda");
+
+        var reason = method switch
+        {
+            { MethodKind: MethodKind.LocalFunction } => "it is a local function",
+            { IsStatic: false } => "it is an instance method",
+            { IsGenericMethod: true } => "it is generic",
+            { ContainingType: { IsExtension: true, IsGenericType: true } } => "its extension block is generic",
+            { IsVararg: true } => "it takes __arglist",
+            { MethodKind: not MethodKind.Ordinary } => "it is no ordinary method",
+            _ => null
+        };
+
+        return reason is null ? (method, null) : (null, reason);
     }
 
     private static ToolChain? ReadChain(IInvocationOperation addTool, Reporter reporter)
@@ -218,13 +392,14 @@ internal static class ToolsetParser
             switch (call.TargetMethod.Name)
             {
                 case "WithName":
-                    chain.Name = ReadConstant(call, "tool name", reporter);
+                    chain.Name = ConstructorChains.ReadConstant(call, "tool name", reporter);
                     chain.NameCall = call;
                     valid &= chain.Name is not null;
                     break;
 
                 case "WithDescription":
-                    chain.Description = ReadConstant(call, "tool description", reporter);
+                    chain.Description = ConstructorChains.ReadConstant(call, "tool description", reporter);
+                    chain.DescriptionCall = call;
                     valid &= chain.Description is not null;
                     break;
 
@@ -249,7 +424,10 @@ internal static class ToolsetParser
                         break;
                     }
 
-                    reporter.Report(Descriptors.UnreadableChain, call.Arguments[0].Syntax, "settings pick");
+                    // No pick binds while the settings type does not resolve, which the compiler reports
+                    if (chain.SettingsType?.ContainsErrorType() is not true)
+                        reporter.Report(Descriptors.UnreadableChain, call.Arguments[0].Syntax, "settings pick");
+
                     valid = false;
                     break;
             }
@@ -258,31 +436,29 @@ internal static class ToolsetParser
         return valid ? chain : null;
     }
 
-    private static string? ReadConstant(IInvocationOperation call, string what, Reporter reporter)
-    {
-        if (ConstructorChains.GetConstantString(call) is { } text) return text;
-
-        reporter.Report(Descriptors.NotConstant, call.Arguments[0].Syntax, what);
-        return null;
-    }
-
     private static SettingsModel? ParseSettings(
         ToolChain chain,
         INamedTypeSymbol owner,
+        IDictionary<ITypeSymbol, SettingsType> read,
         Reporter reporter,
         CancellationToken ct)
     {
         var type = chain.SettingsType!;
         var settingsName = ConstructorChains.GetCalledName(chain.SettingsCall!);
 
-        if (!type.IsRecord)
+        // A type that does not resolve yet is the compiler's to report, here and for a member below
+        if (type.ContainsErrorType()) return null;
+
+        if (GetUnusableSettingsReason(type) is var (reason, fix))
         {
-            reporter.Report(Descriptors.SettingsNotRecord, settingsName, type.Name);
+            reporter.Report(Descriptors.SettingsNotRecord, settingsName, type.Name, reason, fix);
             return null;
         }
 
-        // The overrides, the factories and the agents name the settings wherever the toolset or the agent can be named
-        var reachable = owner.IsEffectivelyPublic() ? type.IsEffectivelyPublic() : type.IsVisibleInAssembly();
+        // The overrides, the factories and the agents name the settings wherever the toolset or the agent can be
+        // named; a file-local owner is named nowhere else (TSH016)
+        var reachable = owner.IsFileLocalOrNestedInOne()
+            || (owner.IsEffectivelyPublic() ? type.IsEffectivelyPublic() : type.IsVisibleInAssembly());
 
         if (!reachable)
         {
@@ -300,52 +476,186 @@ internal static class ToolsetParser
         }
 
         // D18: allowed one by one, or all but the excluded and the obsolete ones
-        bool IsConfigurable(IPropertySymbol property) =>
+        bool IsConfigurable(SettingsMember member) =>
             chain.ConfigurableByDefault
-                ? excluded.All(pick => pick.Property.Name != property.Name) && !property.IsObsolete
-                : picked.Any(pick => pick.Property.Name == property.Name);
+                ? excluded.All(pick => pick.Property.Name != member.Property.Name) && !member.IsObsolete
+                : picked.Any(pick => pick.Property.Name == member.Property.Name);
+
+        if (!read.TryGetValue(type, out var settings)) read[type] = settings = new SettingsType(type, ct);
 
         // An obsolete member that is not configurable stays out, so no generated member uses it and the consumer
         // gets no CS0618
         var properties = new List<SettingsPropertyModel>();
 
-        foreach (var property in type.GetPublicProperties().Where(property => property.IsSettable))
+        foreach (var member in settings.Members)
         {
-            var configurable = IsConfigurable(property);
-            if (!configurable && property.IsObsolete) continue;
+            var property = member.Property;
+            var configurable = IsConfigurable(member);
+            if (!configurable && member.IsObsolete) continue;
 
             // D19: what a store keeps; a pick names the member, a deny list the call that allowed it
-            var storage = configurable ? Storage.Of(property.Type) : null;
+            var storage = configurable ? settings.GetStorage(property) : null;
 
             if (configurable && storage is null)
             {
+                if (property.Type.ContainsErrorType()) return null;
+
                 var pick = picked.FirstOrDefault(candidate => candidate.Property.Name == property.Name).Call;
                 var location = pick?.Arguments[0].Syntax ?? settingsName;
+                var unstorable = property.Type.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
 
-                reporter.Report(Descriptors.NotStorable, location, property.Name);
+                reporter.Report(
+                    Descriptors.NotStorable,
+                    location,
+                    property.Name,
+                    $"settings cannot store its type '{unstorable}' (they store strings, numbers, enums, dates, and "
+                    + "records and collections made of those)",
+                    pick is null
+                        ? $"keep it in code with NotConfigurable(s => s.{property.Name}), or change its type"
+                        : "remove the pick, or change the member's type");
+
                 return null;
             }
 
             properties.Add(new SettingsPropertyModel(
                 Name: property.Name,
-                Type: property.Type.ToFullyQualified(),
-                NullableType: property.Type.ToNullableFullyQualified(),
+                Type: member.Type,
+                NullableType: member.NullableType,
                 Storage: storage,
-                Summary: XmlDocs.Read(property, ct).Summary));
+                Summary: member.Summary));
         }
 
-        return new SettingsModel(type.ToTypeOf(), properties.ToEquatableArray());
+        return new SettingsModel(settings.Name, properties.ToEquatableArray(), settings.ExperimentalIds);
     }
 
-    // The model's JSON fills a value; it cannot fill a reference, a pointer or a stack-only type
-    private static bool IsBindable(IParameterSymbol parameter) =>
+    // A layer applies to a copy of the code defaults, made with `with`, and the generated code of every agent that
+    // offers the tool creates those with new(), in its own assembly. Null for a record it can create
+    private static (string Reason, string Fix)? GetUnusableSettingsReason(ITypeSymbol type) =>
+        type switch
+        {
+            { IsRecord: false } => ("must be a record", "each layer applies to a copy of the code defaults"),
+            { IsAbstract: true } => (
+                "is abstract",
+                "the code defaults are a record of this type, so name a record that is not abstract"),
+            INamedTypeSymbol named when !named.InstanceConstructors.Any(constructor => constructor is
+            {
+                Parameters.IsEmpty: true,
+                DeclaredAccessibility: Accessibility.Public
+            }) => (
+                "has no public parameterless constructor, which sets the code defaults",
+                "declare its members as properties with defaults, as in 'public int Limit { get; init; } = 5;', or "
+                + "add the constructor"),
+            _ => null
+        };
+
+    private static bool IsCompilersToReport(ITypeSymbol type) =>
+        type.ContainsErrorType() || type.ContainsFileLocalType();
+
+    // The model's JSON fills a value; it cannot fill a reference, a pointer, a stack-only type or dynamic. Null for a
+    // parameter it can fill
+    private static string? GetUnboundReason(IParameterSymbol parameter) =>
         parameter.RefKind is RefKind.None or RefKind.In
-        && parameter.Type is not (IPointerTypeSymbol or IFunctionPointerTypeSymbol)
-        && !parameter.Type.IsRefLikeType;
+            ? GetUnwrittenReason(parameter.Type, "take a JsonElement or the value's own type")
+            : "it is passed by reference";
+
+    // A task or a stream is awaited or read, so it must be there; the value it yields, or the method returns, is
+    // serialized as its type. Null for a result the generated code can return
+    private static string? GetUnreturnedReason(ITypeSymbol type)
+    {
+        var awaited = Unwrap(type);
+        var kind = ParseReturn(awaited);
+        var isNullable = type.NullableAnnotation == NullableAnnotation.Annotated
+            || !SymbolEqualityComparer.Default.Equals(awaited, type);
+
+        if (kind is not (ReturnKind.Void or ReturnKind.Value or ReturnKind.Content) && isNullable)
+        {
+            return "the task or the stream itself may be null; return one always and make its value nullable, as in "
+                + "Task<string?>";
+        }
+
+        return kind switch
+        {
+            ReturnKind.Value => GetUnwrittenReason(type, "return object or the value's own type"),
+            ReturnKind.AwaitableValue => GetUnwrittenReason(
+                ((INamedTypeSymbol)type).TypeArguments[0],
+                "return object or the value's own type"),
+            _ => null
+        };
+    }
+
+    // dynamic inside another type, as in List<dynamic>, is object there
+    private static string? GetUnwrittenReason(ITypeSymbol type, string instead) =>
+        type switch
+        {
+            _ when IsPointer(type) => "its type is a pointer or an array of pointers",
+            { IsRefLikeType: true } => "its type is a ref struct",
+            { TypeKind: TypeKind.Dynamic } => $"its type is dynamic; {instead}",
+            _ => null
+        };
+
+    // D15, D16: the call fills the settings and the services, and every other parameter is the model's. Null for a
+    // parameter the model may and can fill; a reason for one that looks like settings the chain forgot to name, or
+    // like a service that minimal APIs would inject
+    private static string? GetMisfilledReason(IParameterSymbol parameter, ISet<ITypeSymbol> ownerSettings)
+    {
+        var type = Unwrap(parameter.Type).WithNullableAnnotation(NullableAnnotation.NotAnnotated);
+        var name = type.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
+
+        var named = parameter.Name == "settings" && type is { IsRecord: true, IsValueType: false };
+
+        if (named || ownerSettings.Contains(type))
+        {
+            return $"and its type '{name}' looks like settings: chain WithSettings<{name}>() onto AddTool to keep its "
+                + "values with your app";
+        }
+
+        return GetUncreatableKind(type) is { } kind
+            ? $"and its type '{name}' is {kind}, which JSON cannot create: for a service, take an IServiceProvider "
+            + $"parameter and call GetRequiredService<{name}>()"
+            : null;
+    }
+
+    // An interface, an abstract class or a delegate has no JSON form, unless JSON knows the type: a collection
+    // interface, a node of System.Text.Json, or a type that names its converter or its derived types
+    private static string? GetUncreatableKind(ITypeSymbol type)
+    {
+        var known = type.ContainingNamespace?.ToDisplayString() is { } home
+            && (home.StartsWith("System.Collections", System.StringComparison.Ordinal)
+                || home.StartsWith("System.Text.Json", System.StringComparison.Ordinal));
+
+        if (known || type.GetAttributes().Any(attribute => KnownTypes.JsonShapes.Any(attribute.AttributeClass.Is)))
+            return null;
+
+        return type switch
+        {
+            { TypeKind: TypeKind.Interface } => "an interface",
+            { TypeKind: TypeKind.Delegate } => "a delegate",
+            { TypeKind: TypeKind.Class, IsAbstract: true } => "an abstract class",
+            _ => null
+        };
+    }
+
+    private static bool IsPointer(ITypeSymbol type) =>
+        type is IPointerTypeSymbol or IFunctionPointerTypeSymbol
+        || (type is IArrayTypeSymbol array && IsPointer(array.ElementType));
+
+    private static ITypeSymbol Unwrap(ITypeSymbol type) =>
+        type is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } nullable
+            ? nullable.TypeArguments[0]
+            : type;
+
+    // Null for a method of a reference, which has no syntax here
+    private static TypeSyntax? GetReturnType(IMethodSymbol method, CancellationToken ct) =>
+        method.DeclaringSyntaxReferences
+            .Select(reference => reference.GetSyntax(ct))
+            .OfType<MethodDeclarationSyntax>()
+            .FirstOrDefault()
+            ?.ReturnType;
 
     private static ParameterModel ParseParameter(IParameterSymbol parameter, ITypeSymbol? settings, XmlDocs docs)
     {
-        var kind = parameter.Type switch
+        // What the call fills is told by its type, nullable or not: CancellationToken? takes the call's token too
+        var kind = Unwrap(parameter.Type) switch
         {
             // D16: the settings are bound like the services, never by the model
             var type when SymbolEqualityComparer.Default.Equals(type, settings) => ParameterKind.Settings,
@@ -355,14 +665,54 @@ internal static class ToolsetParser
             _ => ParameterKind.Argument
         };
 
+        var defaultValue = parameter.HasExplicitDefaultValue ? DefaultValues.Format(parameter) : null;
+
+        // The schema allows the null the method itself defaults to, with a ? or without
         return new ParameterModel(
             Name: parameter.Name,
             Kind: kind,
             Type: parameter.Type.ToFullyQualified(),
             TypeOf: parameter.Type.ToTypeOf(),
-            IsNullable: parameter.Type is { IsReferenceType: true, NullableAnnotation: NullableAnnotation.Annotated },
-            DefaultValue: parameter.HasExplicitDefaultValue ? DefaultValues.Format(parameter) : null,
-            Description: docs.Parameters.TryGetValue(parameter.Name, out var description) ? description : null);
+            IsNullable: parameter.Type is { IsReferenceType: true, NullableAnnotation: NullableAnnotation.Annotated }
+                || defaultValue == ParameterModel.ForgivenNull,
+            DefaultValue: defaultValue,
+            Description: docs.Parameters.TryGetValue(parameter.Name, out var description)
+                ? description
+                : GetDescription(parameter));
+    }
+
+    // A type of this compilation whose own docs or whose properties' docs are written, as /// lines the compiler keeps
+    // as plain comments; the docs of a list's or a dictionary's items describe them as well
+    private static bool HasPlainDocs(ITypeSymbol type, CancellationToken ct) =>
+        Unwrap(type) switch
+        {
+            IArrayTypeSymbol array => HasPlainDocs(array.ElementType, ct),
+            INamedTypeSymbol named => IsDocumented(named.OriginalDefinition, ct)
+                || named.TypeArguments.Any(argument => HasPlainDocs(argument, ct)),
+            _ => false
+        };
+
+    private static bool IsDocumented(INamedTypeSymbol type, CancellationToken ct)
+    {
+        ISymbol[] described = [type, .. type.GetMembers().OfType<IPropertySymbol>()];
+
+        return type.Locations.Any(location => location.IsInSource)
+            && described.Any(symbol => XmlDocs.ReadUnparsed(symbol, ct).Length > 0);
+    }
+
+    // D14: the [Description] of Microsoft.Extensions.AI's samples, where the XML docs say nothing; a blank one says
+    // nothing either
+    private static string? GetDescription(ISymbol symbol)
+    {
+        var arguments = symbol.GetAttributes()
+            .FirstOrDefault(attribute => attribute.AttributeClass.Is(KnownTypes.Description))
+            ?.ConstructorArguments;
+
+        return arguments is { Length: 1 }
+            && arguments.Value[0] is { Kind: TypedConstantKind.Primitive, Value: string text }
+            && !string.IsNullOrWhiteSpace(text)
+                ? text
+                : null;
     }
 
     private static ReturnKind ParseReturn(ITypeSymbol type) =>
@@ -370,10 +720,26 @@ internal static class ToolsetParser
         {
             { SpecialType: SpecialType.System_Void } => ReturnKind.Void,
             _ when type.Is(KnownTypes.Task) || type.Is(KnownTypes.ValueTask) => ReturnKind.Awaitable,
-            _ when type.Is(KnownTypes.TaskOfT) || type.Is(KnownTypes.ValueTaskOfT) => ReturnKind.AwaitableValue,
+            _ when type.Is(KnownTypes.TaskOfT) || type.Is(KnownTypes.ValueTaskOfT) =>
+                IsContent(((INamedTypeSymbol)type).TypeArguments[0])
+                    ? ReturnKind.AwaitableContent
+                    : ReturnKind.AwaitableValue,
             _ when type.Is(KnownTypes.AsyncEnumerableOfT) => ReturnKind.Stream,
+            _ when IsContent(type) => ReturnKind.Content,
             _ => ReturnKind.Value
         };
+
+    // D45: an AIContent, such as an image, or a sequence of them reaches the model as content, never as its JSON, as
+    // AIFunctionFactory hands it on
+    private static bool IsContent(ITypeSymbol type) =>
+        IsContentType(type)
+        || new[] { type }
+            .Concat(type.AllInterfaces)
+            .Any(face => face.Is(KnownTypes.EnumerableOfT)
+                && IsContentType(((INamedTypeSymbol)face).TypeArguments[0]));
+
+    private static bool IsContentType(ITypeSymbol type) =>
+        type.Is(KnownTypes.Content) || (type is INamedTypeSymbol named && named.DerivesFrom(KnownTypes.Content));
 
     private static string? GetResultType(ITypeSymbol type, ReturnKind returns) =>
         returns switch
@@ -386,6 +752,51 @@ internal static class ToolsetParser
 
     private static string TypeArgument(ITypeSymbol type) => ((INamedTypeSymbol)type).TypeArguments[0].ToTypeOf();
 
+    // What a settings type declares and its docs say, read once for every tool of a toolset or an agent that
+    // names it; what a tool picks of it is that tool's own
+    private sealed class SettingsType
+    {
+        private readonly Dictionary<IPropertySymbol, StorageModel?> storage = new(SymbolEqualityComparer.Default);
+
+        public SettingsType(ITypeSymbol type, CancellationToken ct)
+        {
+            Name = type.ToTypeOf();
+            ExperimentalIds = type.GetSettingsExperimentalIds();
+
+            Members =
+            [
+                .. type.GetPublicProperties()
+                    .Where(property => property.IsSettable)
+                    .Select(property => new SettingsMember(
+                        property,
+                        property.IsObsolete,
+                        property.Type.ToFullyQualified(),
+                        property.Type.ToNullableFullyQualified(),
+                        XmlDocs.Read(property, ct).Summary))
+            ];
+        }
+
+        public string Name { get; }
+
+        public EquatableArray<string> ExperimentalIds { get; }
+
+        public IReadOnlyList<SettingsMember> Members { get; }
+
+        public StorageModel? GetStorage(IPropertySymbol property)
+        {
+            if (!storage.TryGetValue(property, out var model)) storage[property] = model = Storage.Of(property.Type);
+
+            return model;
+        }
+    }
+
+    private sealed record SettingsMember(
+        IPropertySymbol Property,
+        bool IsObsolete,
+        string Type,
+        string NullableType,
+        string? Summary);
+
     // What one AddTool chain declares, before it is checked
     private sealed class ToolChain
     {
@@ -394,6 +805,8 @@ internal static class ToolsetParser
         public IInvocationOperation? NameCall { get; set; }
 
         public string? Description { get; set; }
+
+        public IInvocationOperation? DescriptionCall { get; set; }
 
         public bool RequiresApproval { get; set; }
 

@@ -13,4 +13,4 @@ dotnet run --project demos/Typeshift.Demos.Support -- --trace
 dotnet run --project demos/Typeshift.Demos.Support -- lmstudio/qwen/qwen3.8-27b
 ```
 
-Conversations and settings live under `.typeshift/` in the current directory.
+Conversations, settings and the providers live under `.typeshift/` in the current directory.

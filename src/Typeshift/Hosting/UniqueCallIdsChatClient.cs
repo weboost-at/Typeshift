@@ -4,7 +4,7 @@ using Microsoft.Extensions.AI;
 namespace Typeshift;
 
 // D59: a provider may number its calls per response, so a later response reuses an id the conversation holds. The
-// tool loop and the conversation key calls and approval requests by id, so a reused id is renamed before the
+// tool loop and the conversation key calls and their results by id, so a reused id is renamed before the
 // checkpoints store the response and the tool loop reads it. A provider that keeps the conversation itself, which a
 // response with a conversation id shows, keeps its ids, as it matches the results to them
 internal sealed class UniqueCallIdsChatClient(IChatClient inner) : DelegatingChatClient(inner)
@@ -16,7 +16,7 @@ internal sealed class UniqueCallIdsChatClient(IChatClient inner) : DelegatingCha
     {
         var call = messages.ToList();
         var used = Used(call, options);
-        var response = await base.GetResponseAsync(call, options, cancellationToken);
+        var response = await base.GetResponseAsync(call, options, cancellationToken).ConfigureAwait(false);
 
         if (response.ConversationId is not null) return response;
 
@@ -39,8 +39,9 @@ internal sealed class UniqueCallIdsChatClient(IChatClient inner) : DelegatingCha
         var used = Used(call, options);
         var renamed = new Dictionary<string, string>();
         var kept = false;
+        var answer = base.GetStreamingResponseAsync(call, options, cancellationToken);
 
-        await foreach (var update in base.GetStreamingResponseAsync(call, options, cancellationToken))
+        await foreach (var update in answer.ConfigureAwait(false))
         {
             kept |= update.ConversationId is not null;
             if (!kept) update.Contents = Renamed(update.Contents, used, renamed);
@@ -49,24 +50,35 @@ internal sealed class UniqueCallIdsChatClient(IChatClient inner) : DelegatingCha
         }
     }
 
-    public static IEnumerable<string> Ids(IEnumerable<ChatMessage> messages) =>
-        messages
-            .SelectMany(message => message.Contents)
-            .Select(content => content switch
+    // Read for every message a run starts from, so by index rather than an enumerator per message
+    public static IEnumerable<string> Ids(IEnumerable<ChatMessage> messages)
+    {
+        foreach (var message in messages)
+        {
+            for (var i = 0; i < message.Contents.Count; i++)
             {
-                FunctionCallContent call => call.CallId,
-                FunctionResultContent result => result.CallId,
-                ToolApprovalRequestContent { ToolCall: { } call } => call.CallId,
-                ToolApprovalResponseContent { ToolCall: { } call } => call.CallId,
-                _ => null
-            })
-            .OfType<string>();
+                if (message.Contents[i] is FunctionCallContent call) yield return call.CallId;
+                if (message.Contents[i] is FunctionResultContent result) yield return result.CallId;
+            }
+        }
+    }
+
+    public static IEnumerable<string> Ids(IReadOnlyList<ConversationEntry> entries)
+    {
+        for (var i = 0; i < entries.Count; i++)
+        {
+            foreach (var id in Ids(entries[i].Messages))
+            {
+                yield return id;
+            }
+        }
+    }
 
     // The ids of the call and of the conversation, those its history leaves out included
     private static HashSet<string> Used(IEnumerable<ChatMessage> messages, ChatOptions? options)
     {
         HashSet<string> used = [.. Ids(messages)];
-        if (options is ResolvedChatOptions { ConversationRun: { } run }) run.AddCallIdsTo(used);
+        ((ResolvedChatOptions)options!).ConversationRun!.AddCallIdsTo(used);
         return used;
     }
 

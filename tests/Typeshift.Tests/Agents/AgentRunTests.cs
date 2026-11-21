@@ -200,22 +200,6 @@ public class AgentRunTests : AgentTestBase
     }
 
     [Fact]
-    public async Task Given_A_Failing_Tool_Call_The_Model_Reads_Why_It_Failed()
-    {
-        // Arrange
-        ChatClient
-            .Reply(Call(Data.Tool.CallId, "probe"))
-            .Reply(Text(Data.Tool.Answer));
-
-        // Act
-        var response = await Host<ProbeAgent>().RunAsync(Data.Tool.Question, ct: Ct);
-        var result = response.Assert.ToolResult(Data.Tool.CallId).Result;
-
-        // Assert
-        result.As<string>().Should().Contain("The tool 'probe' requires the argument 'query'.");
-    }
-
-    [Fact]
     public async Task Given_Two_Tool_Calls_Of_A_Run_Both_Resolve_From_The_Hosts_Scope()
     {
         // Arrange
@@ -336,6 +320,66 @@ public class AgentRunTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Result_Held_Under_Data_Its_Schema_Allows_Nothing_Else()
+    {
+        // Arrange
+        var answer = new { data = Data.Tool.Limit.Default };
+        ChatClient.Reply(Text(JsonSerializer.Serialize(answer, Json.SerializerOptions)));
+
+        // Act
+        await Host<ProbeAgent>().RunAsync<int>(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        ResponseSchema().GetProperty("additionalProperties").GetBoolean().Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Given_A_Recursive_Result_Held_Under_Data_Its_References_Point_Into_Data()
+    {
+        // Arrange
+        var answer = new { data = new[] { new Category(Data.Tool.Query, []) } };
+        ChatClient.Reply(Text(JsonSerializer.Serialize(answer, Json.SerializerOptions)));
+
+        // Act
+        await Host<ProbeAgent>().RunAsync<Category[]>(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        ResponseSchema().Assert.ReferencesResolve();
+    }
+
+    [Fact]
+    public async Task Given_A_Result_Type_With_A_Display_Name_And_A_Description_Its_Schema_Carries_Both()
+    {
+        // Arrange
+        var finding = new NamedFinding(Data.Agent.Reason);
+        ChatClient.Reply(Text(JsonSerializer.Serialize(finding, Json.GetTypeInfo<NamedFinding>())));
+
+        // Act
+        await Host<ProbeAgent>().RunAsync<NamedFinding>(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        ChatClient.Assert.Request(0).Options!.ResponseFormat.Should().BeEquivalentTo(new
+        {
+            SchemaName = NamedFinding.Name,
+            SchemaDescription = NamedFinding.About
+        });
+    }
+
+    [Fact]
+    public async Task Given_An_Answer_That_Is_No_Object_Reading_The_Result_Fails_Naming_Data()
+    {
+        // Arrange
+        ChatClient.Reply(Text($"{Data.Tool.Lives}"));
+        var response = await Host<ProbeAgent>().RunAsync<int>(Data.Tool.Question, ct: Ct);
+
+        // Act
+        var read = () => response.Result;
+
+        // Assert
+        read.Should().Throw<JsonException>().WithMessage("*no JSON object holding a data property*");
+    }
+
+    [Fact]
     public async Task Given_A_Result_Type_With_An_Exception_The_Run_Fails_Naming_The_Member()
     {
         // Act
@@ -361,6 +405,20 @@ public class AgentRunTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_An_Answer_In_Prose_Reading_Its_Result_Throws_A_Json_Exception()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        var response = await Host<ProbeAgent>().RunAsync<Company>(Data.Tool.Question, ct: Ct);
+        var read = () => response.Result;
+
+        // Assert
+        read.Should().Throw<JsonException>();
+    }
+
+    [Fact]
     public async Task Given_A_Result_Type_With_Xml_Docs_The_Response_Schema_Describes_Its_Properties()
     {
         // Arrange
@@ -380,14 +438,198 @@ public class AgentRunTests : AgentTestBase
         // Arrange
         ChatClient
             .Reply(Call(Data.Tool.CallId, "probe", ("query", Data.Tool.Query)))
-            .Reply(Call(Data.Tool.SecondCallId, "probe", ("query", Data.Tool.Query)))
-            .Reply(Text(Data.Tool.Answer));
+            .Reply(Call(Data.Tool.SecondCallId, "probe", ("query", Data.Tool.Query)));
 
         // Act
         await Host<ProbeAgent>().RunAsync(Data.Tool.Question, settings: new() { MaxToolIterations = 1 }, ct: Ct);
 
         // Assert
         ChatClient.Requests.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public async Task Given_Every_Chat_Option_Set_In_Code_The_Model_Receives_Each()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await Host<OptionsAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        ChatClient.Assert.Request(0).Options.Should().BeEquivalentTo(new
+        {
+            ModelId = OptionsAgent.Model,
+            OptionsAgent.Temperature,
+            OptionsAgent.MaxOutputTokens,
+            OptionsAgent.TopP,
+            OptionsAgent.TopK,
+            OptionsAgent.FrequencyPenalty,
+            OptionsAgent.PresencePenalty,
+            OptionsAgent.Seed,
+            Reasoning = new { Effort = ReasoningEffort.Low, Output = ReasoningOutput.Summary },
+            ResponseFormat = ChatResponseFormat.Json,
+            StopSequences = new[] { OptionsAgent.Stop },
+            ToolMode = ChatToolMode.RequireAny,
+            AllowMultipleToolCalls = true,
+            AdditionalProperties = new Dictionary<string, object?>
+            {
+                [OptionsAgent.Property] = OptionsAgent.PropertyValue
+            }
+        });
+    }
+
+    [Fact]
+    public async Task Given_Every_Run_Option_Set_In_Code_The_Run_Resolves_Each()
+    {
+        // Act
+        var resolved = (ResolvedChatOptions)await Host<OptionsAgent>().ResolveOptionsAsync(ct: Ct);
+
+        // Assert
+        resolved.RunOptions.Should().Be(new RunOptions
+        {
+            Mode = AgentMode.Auto,
+            MaxToolIterations = OptionsAgent.MaxToolIterations,
+            MaxConsecutiveToolErrors = OptionsAgent.MaxConsecutiveToolErrors,
+            ConcurrentToolCalls = true,
+            MaxInputTokens = OptionsAgent.MaxInputTokens,
+            TargetInputTokens = OptionsAgent.TargetInputTokens,
+            SummaryModel = OptionsAgent.SummaryModel
+        });
+    }
+
+    [Fact]
+    public async Task Given_Concurrent_Tool_Calls_Two_Calls_Of_One_Response_Run_At_The_Same_Time()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Calls(Meet(Data.Tool.CallId), Meet(Data.Tool.SecondCallId)))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await Host<OptionsAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        ChatClient.Assert.Request(1).Results.Should().Equal(Data.Tool.CallId, Data.Tool.SecondCallId);
+    }
+
+    [Theory]
+    [InlineData(nameof(RunOptions.MaxToolIterations), 0)]
+    [InlineData(nameof(RunOptions.MaxConsecutiveToolErrors), -1)]
+    [InlineData(nameof(RunOptions.MaxInputTokens), 0)]
+    [InlineData(nameof(RunOptions.TargetInputTokens), 0)]
+    public async Task Given_A_Run_Setting_Out_Of_Range_The_Run_Throws_Naming_The_Option(string option, int value)
+    {
+        // Arrange
+        var settings = LimitsAgent.Limit(option, value);
+
+        // Act
+        var run = () => Host<LimitsAgent>().RunAsync(Data.Tool.Question, settings, Ct);
+
+        // Assert
+        await run.Should()
+            .ThrowAsync<InvalidOperationException>()
+            .WithMessage($"*'{LimitsAgent.AgentName}'*{option} {value}*");
+    }
+
+    [Fact]
+    public async Task Given_A_Target_Of_One_Layer_Not_Below_The_Maximum_Of_Another_The_Run_Throws_Naming_Both()
+    {
+        // Arrange
+        var host = Host<LimitsAgent>();
+        await host.SaveSettingsAsync(new() { MaxInputTokens = 1_000 }, 0, Ct);
+
+        // Act
+        var run = () => host.RunAsync(Data.Tool.Question, new() { TargetInputTokens = 1_000 }, Ct);
+
+        // Assert
+        await run.Should().ThrowAsync<InvalidOperationException>().WithMessage(
+            $"The agent '{LimitsAgent.AgentName}' resolved TargetInputTokens 1000 from the settings of its code, its "
+            + "stored settings, the run: it must be below MaxInputTokens, 1000.");
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("  ")]
+    public async Task Given_Run_Settings_With_A_Blank_Model_The_Run_Throws_Naming_It(string model)
+    {
+        // Act
+        var run = () => Host<LimitsAgent>().RunAsync(Data.Tool.Question, new() { Model = model }, Ct);
+
+        // Assert
+        await run.Should().ThrowAsync<InvalidOperationException>().WithMessage($"*Model '{model}'*name a model*");
+    }
+
+    [Fact]
+    public async Task Given_Run_Settings_With_A_Blank_Summary_Model_The_Run_Throws_Naming_It()
+    {
+        // Act
+        var run = () => Host<LimitsAgent>().RunAsync(Data.Tool.Question, new() { SummaryModel = " " }, Ct);
+
+        // Assert
+        await run.Should().ThrowAsync<InvalidOperationException>().WithMessage("*SummaryModel ' '*");
+    }
+
+    [Theory]
+    [InlineData(0, 3, 1_000, 500, "MaxToolIterations")]
+    [InlineData(40, -1, 1_000, 500, "MaxConsecutiveToolErrors")]
+    [InlineData(40, 3, 0, 500, "MaxInputTokens")]
+    [InlineData(40, 3, 1_000, 0, "TargetInputTokens")]
+    public void Given_A_Limit_Out_Of_Range_The_Agent_Fails_To_Declare_Naming_It(
+        int iterations,
+        int errors,
+        int maximum,
+        int target,
+        string option)
+    {
+        // Act
+        var declare = () => new LimitsAgent(iterations, errors, maximum, target);
+
+        // Assert
+        declare.Should().Throw<ArgumentOutOfRangeException>().WithMessage($"{option} must *");
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    [InlineData(null)]
+    public void Given_A_Blank_Model_The_Agent_Fails_To_Declare(string? model)
+    {
+        // Act
+        var declare = () => new LimitsAgent(LimitsAgent.ModelProvider, model!);
+
+        // Assert
+        declare.Should().Throw<ArgumentException>().WithParameterName("model");
+    }
+
+    [Fact]
+    public void Given_A_Blank_Provider_The_Agent_Fails_To_Declare()
+    {
+        // Act
+        var declare = () => new LimitsAgent(" ", LimitsAgent.Model);
+
+        // Assert
+        declare.Should().Throw<ArgumentException>().WithParameterName("provider");
+    }
+
+    [Fact]
+    public async Task Given_Run_Settings_With_Blank_Summary_Instructions_The_Run_Throws_Naming_Them()
+    {
+        // Act
+        var run = () => Host<LimitsAgent>().RunAsync(Data.Tool.Question, new() { SummaryInstructions = " " }, Ct);
+
+        // Assert
+        await run.Should().ThrowAsync<InvalidOperationException>().WithMessage("*SummaryInstructions ' '*");
+    }
+
+    [Fact]
+    public void Given_A_Blank_Summary_Model_The_Agent_Fails_To_Declare()
+    {
+        // Act
+        var declare = () => new LimitsAgent(summaryModel: " ");
+
+        // Assert
+        declare.Should().Throw<ArgumentException>().WithParameterName("model");
     }
 
     [Fact]
@@ -415,6 +657,115 @@ public class AgentRunTests : AgentTestBase
 
         // Assert
         ChatClient.Options[0]!.Instructions.Should().Be(Data.Agent.Reason);
+    }
+
+    [Fact]
+    public async Task Given_A_Generic_Method_Over_Any_Agent_It_Runs_The_Agent()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        var answer = await AskAsync(Host<InstructedAgent>(), Data.Tool.Question, Ct);
+
+        // Assert
+        answer.Should().Be(Data.Tool.Answer);
+        ChatClient.Options[0]!.Instructions.Should().Be(InstructedAgent.Prompt);
+    }
+
+    [Fact]
+    public async Task Given_A_Token_Passed_Positionally_The_Run_Takes_It()
+    {
+        // Arrange
+        using var stopping = CancellationTokenSource.CreateLinkedTokenSource(Ct);
+        ChatClient.Reply(new TaskCompletionSource());
+
+        var run = Host<ProbeAgent>().RunAsync(Data.Tool.Question, stopping.Token);
+        await ChatClient.Requested;
+
+        // Act
+        await stopping.CancelAsync();
+        var ending = () => run;
+
+        // Assert
+        await ending.Should().ThrowAsync<OperationCanceledException>();
+    }
+
+    [Fact]
+    public async Task Given_The_Untyped_Stream_Read_Twice_The_Second_Read_Throws()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        var chat = Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId);
+        var run = chat.RunStreamingAsync(Data.Tool.Question, Ct);
+        await run.ToListAsync(Ct);
+
+        // Act
+        var again = () => run.ToChatResponseAsync(Ct);
+
+        // Assert
+        await again.Should().ThrowAsync<InvalidOperationException>().WithMessage("*streams its updates once*");
+        ChatClient.Requests.Should().ContainSingle();
+        (await EntriesAsync(Data.Agent.ConversationId)).Count(entry => entry.EndsRun).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Given_An_Untyped_Stream_Read_To_Its_End_Its_Response_Holds_The_Answer()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        var run = Host<ProbeAgent>().RunStreamingAsync(Data.Tool.Question, Ct);
+
+        // Act
+        await run.ToListAsync(Ct);
+
+        // Assert
+        run.Response.Text.Should().Be(Data.Tool.Answer);
+    }
+
+    [Fact]
+    public async Task Given_A_Generic_Method_Over_Any_Agent_It_Resumes_Typed()
+    {
+        // Arrange
+        var expected = new ProbeSettings { Limit = Data.Tool.Limit };
+        var input = new ChatMessage(ChatRole.User, Data.Tool.Question);
+        var interrupted = new ConversationEntry("probe_agent", [input], Time.GetUtcNow());
+
+        await Services.GetRequiredService<ITypeshiftStore<Guid>>()
+            .AppendConversationAsync(Data.Agent.ConversationId, interrupted, Ct);
+
+        ChatClient.Reply(Text(JsonSerializer.Serialize(expected, Json.GetTypeInfo<ProbeSettings>())));
+
+        // Act
+        var resumed = await ResumeAsync<ProbeAgent, ProbeSettings>(
+            Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId),
+            Ct);
+
+        // Assert
+        resumed.Should().Be(expected);
+    }
+
+    [Fact]
+    public async Task Given_Instructions_Built_From_The_Runs_Services_The_Model_Receives_Them()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(Text(Data.Tool.Answer));
+
+        await using var other = Services.CreateAsyncScope();
+        var otherHost = other.ServiceProvider.GetRequiredService<AgentHost<ScopedInstructionsAgent>>();
+
+        // Act
+        await Host<ScopedInstructionsAgent>().RunAsync(Data.Tool.Question, Ct);
+        await otherHost.RunAsync(Data.Tool.Question, Ct);
+
+        // Assert
+        ChatClient.Options.Select(options => options!.Instructions).Should().Equal(
+            ScopedInstructionsAgent.For(Scope.GetRequiredService<CallScope>().Id),
+            ScopedInstructionsAgent.For(other.ServiceProvider.GetRequiredService<CallScope>().Id));
     }
 
     [Fact]
@@ -446,20 +797,194 @@ public class AgentRunTests : AgentTestBase
     }
 
     [Fact]
-    public async Task Given_Options_Of_Its_Own_The_Created_Client_Asks_The_Agents_Provider()
+    public async Task Given_Options_Nothing_Resolved_Creating_The_Raw_Client_Throws()
+    {
+        // Arrange
+        var options = new ChatOptions { ModelId = Data.Agent.Model };
+
+        // Act
+        var create = () => Host<ProbeAgent>().CreateChatClientAsync(options, Ct);
+
+        // Assert
+        await create.Should().ThrowAsync<ArgumentException>().WithMessage("*ResolveOptionsAsync returns*");
+    }
+
+    [Fact]
+    public async Task Given_The_Raw_Client_Called_Without_Options_The_Agents_Instructions_And_Tools_Reach_The_Model()
     {
         // Arrange
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         var host = Host<ProbeAgent>();
-        var options = new ChatOptions { ModelId = Data.Agent.Model };
+        var options = await host.ResolveOptionsAsync(ct: Ct);
+        using var client = await host.CreateChatClientAsync(options, Ct);
 
         // Act
-        using var client = await host.CreateChatClientAsync(options, Ct);
-        await client.GetResponseAsync([new(ChatRole.User, Data.Tool.Question)], options, Ct);
+        await client.GetResponseAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
-        Models.Should().Equal(new ProvidedModel(ProbeAgent.ModelProvider, Data.Agent.Model));
+        ChatClient.Options[0]!.Instructions.Should().Be(ProbeAgent.Prompt);
+        ChatClient.Options[0]!.Tools!.Select(tool => tool.Name).Should().Contain("probe");
+    }
+
+    [Fact]
+    public async Task Given_The_Raw_Client_Called_With_Options_Of_The_Callers_Own_The_Agents_Model_Answers()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        var host = Host<ProbeAgent>();
+        var options = await host.ResolveOptionsAsync(settings: new() { Model = Data.Agent.Model }, ct: Ct);
+        using var client = await host.CreateChatClientAsync(options, Ct);
+
+        // Act
+        await client.GetResponseAsync(Data.Tool.Question, new ChatOptions { ModelId = ProbeAgent.Model }, Ct);
+
+        // Assert
+        ChatClient.Options[0]!.ModelId.Should().Be(Data.Agent.Model);
+    }
+
+    [Fact]
+    public async Task Given_No_Options_The_Raw_Client_Created_In_One_Call_Runs_The_Agent()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        using var client = await Host<ProbeAgent>().CreateChatClientAsync(Ct);
+
+        // Act
+        await client.GetResponseAsync(Data.Tool.Question, cancellationToken: Ct);
+
+        // Assert
+        ChatClient.Options[0]!.Instructions.Should().Be(ProbeAgent.Prompt);
+    }
+
+    [Fact]
+    public async Task Given_Run_Settings_The_Raw_Client_Created_In_One_Call_Runs_With_Them()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        var host = Host<ProbeAgent>();
+        using var client = await host.CreateChatClientAsync(settings: new() { Model = Data.Agent.Model }, ct: Ct);
+
+        // Act
+        await client.GetResponseAsync(Data.Tool.Question, cancellationToken: Ct);
+
+        // Assert
+        ChatClient.Options[0]!.ModelId.Should().Be(Data.Agent.Model);
+    }
+
+    [Fact]
+    public async Task Given_Options_Resolved_For_Another_Provider_The_Raw_Client_Refuses_Them()
+    {
+        // Arrange
+        var host = Host<ProbeAgent>();
+        var options = await host.ResolveOptionsAsync(ct: Ct);
+        var other = await host.ResolveOptionsAsync(settings: new() { Provider = Data.Agent.Provider }, ct: Ct);
+        using var client = await host.CreateChatClientAsync(options, Ct);
+
+        // Act
+        var call = () => client.GetResponseAsync(Data.Tool.Question, other, Ct);
+
+        // Assert
+        await call.Should().ThrowAsync<InvalidOperationException>().WithMessage(
+            $"This chat client serves '{ProbeAgent.Model}' of '{ProbeAgent.ModelProvider}', and the call's options "
+            + $"were resolved for '{ProbeAgent.Model}' of '{Data.Agent.Provider}': create a client from these "
+            + "options with CreateChatClientAsync.");
+    }
+
+    [Fact]
+    public async Task Given_Options_Resolved_For_Another_Model_The_Raw_Client_Refuses_Them()
+    {
+        // Arrange
+        var host = Host<ProbeAgent>();
+        var options = await host.ResolveOptionsAsync(ct: Ct);
+        var other = await host.ResolveOptionsAsync(settings: new() { Model = Data.Agent.Model }, ct: Ct);
+        using var client = await host.CreateChatClientAsync(options, Ct);
+
+        // Act
+        var call = () => client.GetResponseAsync(Data.Tool.Question, other, Ct);
+
+        // Assert
+        await call.Should().ThrowAsync<InvalidOperationException>().WithMessage(
+            $"This chat client serves '{ProbeAgent.Model}' of '{ProbeAgent.ModelProvider}', and the call's options "
+            + $"were resolved for '{Data.Agent.Model}' of '{ProbeAgent.ModelProvider}': create a client from these "
+            + "options with CreateChatClientAsync.");
+    }
+
+    [Fact]
+    public async Task Given_The_Raw_Client_Called_With_A_Response_Format_Of_The_Callers_Own_The_Model_Receives_It()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        var host = Host<ProbeAgent>();
+        var options = await host.ResolveOptionsAsync(ct: Ct);
+        var format = new ChatOptions { ResponseFormat = ChatResponseFormat.Json };
+        using var client = await host.CreateChatClientAsync(options, Ct);
+
+        // Act
+        await client.GetResponseAsync(Data.Tool.Question, format, Ct);
+
+        // Assert
+        ChatClient.Assert.Request(0).Options!.ResponseFormat.Should().BeSameAs(ChatResponseFormat.Json);
+    }
+
+    [Fact]
+    public async Task Given_The_Raw_Client_Called_With_A_Tool_Of_The_Callers_Own_The_Model_Is_Offered_It_Too()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        var host = Host<ProbeAgent>();
+        var options = await host.ResolveOptionsAsync(ct: Ct);
+        var added = new ChatOptions { Tools = [AIFunctionFactory.Create(() => Data.Tool.Answer, "lookup")] };
+        using var client = await host.CreateChatClientAsync(options, Ct);
+
+        // Act
+        await client.GetResponseAsync(Data.Tool.Question, added, Ct);
+
+        // Assert
+        ChatClient.Assert.Request(0).Tools.Should().Contain(["probe", "lookup"]);
+    }
+
+    [Fact]
+    public async Task Given_Options_Resolved_With_Another_Error_Limit_The_Created_Client_Runs_With_It()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "crash", ("message", Data.Agent.Reason)))
+            .Reply(Call(Data.Tool.SecondCallId, "crash", ("message", Data.Agent.Reason)))
+            .Reply(Text(Data.Tool.Answer));
+
+        var host = Host<FailingAgent>();
+        var options = await host.ResolveOptionsAsync(ct: Ct);
+        var lenient = await host.ResolveOptionsAsync(settings: new() { MaxConsecutiveToolErrors = 2 }, ct: Ct);
+        using var client = await host.CreateChatClientAsync(options, Ct);
+
+        // Act
+        var response = await client.GetResponseAsync(Data.Tool.Question, lenient, Ct);
+
+        // Assert
+        response.Text.Should().Be(Data.Tool.Answer);
+    }
+
+    [Fact]
+    public async Task Given_The_Tool_Loop_Taken_Out_Of_The_Created_Client_A_Call_On_It_Fails_Naming_The_Created_Client()
+    {
+        // Arrange
+        var host = Host<ProbeAgent>();
+        var options = await host.ResolveOptionsAsync(ct: Ct);
+        using var client = await host.CreateChatClientAsync(options, Ct);
+        var loop = client.GetService<FunctionInvokingChatClient>()!;
+
+        // Act
+        var call = () => loop.GetResponseAsync([new(ChatRole.User, Data.Tool.Question)], new(), Ct);
+
+        // Assert
+        await call.Should().ThrowAsync<InvalidOperationException>().WithMessage("*call the created client*");
+        ChatClient.Requests.Should().BeEmpty();
     }
 
     [Fact]
@@ -472,8 +997,7 @@ public class AgentRunTests : AgentTestBase
         ChatClient
             .Reply(first, Call(Data.Tool.CallId, "probe", ("query", Data.Tool.Query)))
             .Reply(second, Text(Data.Tool.Answer))
-            .Reply(Call(Data.Tool.SecondCallId, "probe", ("query", Data.Tool.Query)))
-            .Reply(Text(Data.Tool.Answer));
+            .Reply(Call(Data.Tool.SecondCallId, "probe", ("query", Data.Tool.Query)));
 
         var host = Host<ProbeAgent>();
         var unlimited = await host.ResolveOptionsAsync(ct: Ct);
@@ -494,4 +1018,16 @@ public class AgentRunTests : AgentTestBase
         // Assert
         ChatClient.Requests.Should().HaveCount(3);
     }
+
+    // Code generic over the agent, as an endpoint or a test helper for every agent is
+    private static async Task<string> AskAsync<TAgent>(AgentHost<TAgent> host, string input, CancellationToken ct)
+        where TAgent : Agent =>
+        (await host.RunAsync(input, ct)).Text;
+
+    private static async Task<TResult> ResumeAsync<TAgent, TResult>(AgentHost<TAgent> host, CancellationToken ct)
+        where TAgent : Agent =>
+        (await host.ResumeAsync<TResult>(ct)).Result;
+
+    // A call of the meeting tool, which returns once a second call arrived, with its id as the caller
+    private ChatResponseUpdate Meet(string callId) => Call(callId, "meet", ("caller", callId));
 }

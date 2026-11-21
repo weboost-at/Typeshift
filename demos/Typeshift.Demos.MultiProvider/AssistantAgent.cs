@@ -6,6 +6,10 @@ internal partial class AssistantAgent : Agent
     {
         WithDescription("Answers questions, telling the time where it helps.");
 
+        WithInstructions(
+            "You are a concise assistant. Use get_time when the user asks about the time, "
+            + "then answer in one sentence.");
+
         // No model in code: the user's choice comes through the configurable ModelId, stored per user
         WithChatOptions()
             .WithTemperature(0.3f)
@@ -17,7 +21,4 @@ internal partial class AssistantAgent : Agent
         ConfigureGetTime()
             .WithFormat("HH:mm");
     }
-
-    protected override string GetInstructions() =>
-        "You are a concise assistant. Use get_time when the user asks about the time, then answer in one sentence.";
 }

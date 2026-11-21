@@ -5,43 +5,24 @@ namespace Typeshift.Samples.Web;
 // begin-snippet: chat-contracts
 internal sealed record ChatInput(string Text);
 
-internal sealed record ChatReply(string Text, IReadOnlyList<PendingApproval> Approvals)
+// A decision writes its own JSON: its kind, its id, and what the UI shows to ask
+internal sealed record ChatReply(string Text, IReadOnlyList<Decision> Decisions)
 {
-    public static ChatReply From(ChatResponse answer) =>
-        new(answer.Text, [.. answer.ApprovalRequests.Select(PendingApproval.From).OfType<PendingApproval>()]);
-}
-
-// What the UI shows to ask, and sends back with the user's answer
-internal sealed record PendingApproval(
-    string RequestId,
-    string CallId,
-    string Tool,
-    IDictionary<string, object?>? Arguments)
-{
-    public static PendingApproval? From(ToolApprovalRequestContent request) =>
-        request.ToolCall is FunctionCallContent call
-            ? new(request.RequestId, call.CallId, call.Name, call.Arguments)
-            : null;
+    public static ChatReply From(ChatResponse answer) => new(answer.Text, answer.Decisions);
 }
 // end-snippet
 
-// begin-snippet: approval-answer
-internal sealed record ApprovalAnswer(
-    string RequestId,
-    string CallId,
-    string Tool,
-    bool Approved,
-    bool ForConversation = false,
-    string? Reason = null)
+// begin-snippet: chat-line
+// A line of the chat as its user reads it: the user's messages and the agents' answers, each once
+internal sealed record ChatLine(string Role, string Text)
 {
-    // The call only fills in the request: Typeshift runs the call it stored under RequestId
-    public ToolApprovalResponseContent ToResponse()
-    {
-        var request = new ToolApprovalRequestContent(RequestId, new FunctionCallContent(CallId, Tool));
-
-        return Approved && ForConversation
-            ? request.ApproveForConversation()
-            : request.CreateResponse(Approved, Reason);
-    }
+    public static IEnumerable<ChatLine> From(IReadOnlyList<ConversationEntry> entries) =>
+        entries
+            .Where(entry => !entry.IsSummary)
+            .SelectMany(entry => entry.Messages)
+            .Where(message => message.Role == ChatRole.User || message.Role == ChatRole.Assistant)
+            .Where(message => !message.IsBackgroundAnswer)
+            .Where(message => message.Text.Length > 0)
+            .Select(message => new ChatLine(message.Role.Value, message.Text));
 }
 // end-snippet

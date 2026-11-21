@@ -10,12 +10,11 @@ asked you to fix; otherwise report.
 
 ## 1. Mechanical checks
 
-mdsnippets rewrites every Markdown file, so check `git status` first and set aside any `.md` change you did not make.
-
 ```bash
-dotnet mdsnippets && git diff --exit-code
 npm run docs:check
 ```
+
+It starts with `docs:snippets:check`, which compares every snippet with its source and changes no file.
 
 Anything failing is the first finding.
 

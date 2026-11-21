@@ -7,18 +7,21 @@ public static class DiagnosticSources
         """
         using Typeshift;
 
+        // begin-snippet: tsh001
         internal class EchoToolset : Toolset
         {
             public EchoToolset() => AddTool(Echo).WithDescription("Echoes.");
 
             public static string Echo(string text) => text;
         }
+        // end-snippet
         """;
 
     public const string NotConstant =
         """
         using Typeshift;
 
+        // begin-snippet: tsh002
         internal partial class EchoToolset : Toolset
         {
             private static readonly string Prefix = "say_";
@@ -27,6 +30,7 @@ public static class DiagnosticSources
 
             public static string Echo(string text) => text;
         }
+        // end-snippet
         """;
 
     public const string Lambda =
@@ -34,21 +38,109 @@ public static class DiagnosticSources
         using System;
         using Typeshift;
 
+        // begin-snippet: tsh003
         internal partial class EchoToolset : Toolset
         {
             public EchoToolset() => AddTool((Func<string, string>)(text => text)).WithDescription("Echoes.");
         }
+        // end-snippet
         """;
 
     public const string RefParameter =
         """
         using Typeshift;
 
+        // begin-snippet: tsh004
         internal partial class CounterToolset : Toolset
         {
             public CounterToolset() => AddTool(Bump).WithDescription("Bumps.");
 
             public static void Bump(ref int value) => value++;
+        }
+        // end-snippet
+        """;
+
+    // What a developer used to minimal APIs writes: a service as a parameter, which nothing injects
+    public const string ServiceParameter =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        // begin-snippet: tsh038
+        internal interface ITicketRepository
+        {
+            string Find(string query);
+        }
+
+        internal partial class TicketToolset : Toolset
+        {
+            public TicketToolset() => AddTool(Search).WithDescription("Searches tickets.");
+
+            public static string Search(string query, ITicketRepository repository) => repository.Find(query);
+        }
+        // end-snippet
+        """;
+
+    public const string AbstractClassAndDelegateParameters =
+        """
+        using System;
+        using System.IO;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class FileToolset : Toolset
+        {
+            public FileToolset() => AddTool(Read).WithDescription("Reads a file.");
+
+            public static string Read(Stream file, Func<string, string> render) => "";
+        }
+        """;
+
+    // The chain was cut to AddTool(Find) and the method kept its settings parameter
+    public const string SettingsParameterWithoutWithSettings =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal record FindSettings
+        {
+            public int Limit { get; init; } = 5;
+        }
+
+        internal partial class CompanyToolset : Toolset
+        {
+            public CompanyToolset() => AddTool(Find).WithDescription("Finds companies.");
+
+            public static string Find(string city, FindSettings settings) => city;
+        }
+        """;
+
+    // One tool names the record as its settings, the other takes it under another name and names nothing
+    public const string ParameterOfAnotherToolsSettingsType =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal record FindSettings
+        {
+            public int Limit { get; init; } = 5;
+        }
+
+        internal partial class CompanyToolset : Toolset
+        {
+            public CompanyToolset()
+            {
+                AddTool(Find).WithDescription("Finds companies.").WithSettings<FindSettings>();
+                AddTool(Count).WithDescription("Counts companies.");
+            }
+
+            public static string Find(string city, FindSettings settings) => city;
+
+            public static int Count(string city, FindSettings? limits = null) => 0;
         }
         """;
 
@@ -56,6 +148,7 @@ public static class DiagnosticSources
         """
         using Typeshift;
 
+        // begin-snippet: tsh005
         internal class EchoSettings
         {
             public int Repeat { get; init; }
@@ -67,12 +160,54 @@ public static class DiagnosticSources
 
             public static string Echo(string text, EchoSettings settings) => text;
         }
+        // end-snippet
+        """;
+
+    // A positional record has a constructor of its parameters, with defaults or without, and none without parameters
+    public const string PositionalSettings =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal record FindSettings(int Limit = 5, bool IncludeInactive = false);
+
+        internal partial class CompanyToolset : Toolset
+        {
+            public CompanyToolset() =>
+                AddTool(Find)
+                    .WithDescription("Finds companies.")
+                    .WithSettings<FindSettings>()
+                    .Configurable(s => s.Limit);
+
+            public static string Find(string city, FindSettings settings) => city;
+        }
+        """;
+
+    public const string AbstractSettings =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal abstract record FindSettings
+        {
+            public int Limit { get; init; } = 5;
+        }
+
+        internal partial class CompanyToolset : Toolset
+        {
+            public CompanyToolset() => AddTool(Find).WithDescription("Finds companies.").WithSettings<FindSettings>();
+
+            public static string Find(string city, FindSettings settings) => city;
+        }
         """;
 
     public const string SettingsLessAccessible =
         """
         using Typeshift;
 
+        // begin-snippet: tsh006
         internal record EchoSettings
         {
             public int Repeat { get; init; }
@@ -86,6 +221,7 @@ public static class DiagnosticSources
 
             internal static string Echo(string text, EchoSettings settings) => text;
         }
+        // end-snippet
         """;
 
     public const string DuplicateName =
@@ -110,6 +246,7 @@ public static class DiagnosticSources
         """
         using Typeshift;
 
+        // begin-snippet: tsh007
         internal partial class FirstToolset : Toolset
         {
             public FirstToolset() => AddTool(Find).WithDescription("Finds.");
@@ -123,36 +260,77 @@ public static class DiagnosticSources
 
             public static string Find(string query) => query;
         }
+        // end-snippet
+        """;
+
+    // The first declaration in the file keeps the name, whatever order the analyzer reads the classes in, which
+    // differs from run to run
+    public const string ToolsOfOneNameInFourToolsets =
+        """
+        using Typeshift;
+
+        internal partial class FirstToolset : Toolset
+        {
+            public FirstToolset() => AddTool(Find).WithDescription("Finds.");
+
+            public static string Find(string query) => query;
+        }
+
+        internal partial class SecondToolset : Toolset
+        {
+            public SecondToolset() => AddTool(FindSecond).WithName("find").WithDescription("Finds.");
+
+            public static string FindSecond(string query) => query;
+        }
+
+        internal partial class ThirdToolset : Toolset
+        {
+            public ThirdToolset() => AddTool(FindThird).WithName("find").WithDescription("Finds.");
+
+            public static string FindThird(string query) => query;
+        }
+
+        internal partial class FourthToolset : Toolset
+        {
+            public FourthToolset() => AddTool(FindFourth).WithName("find").WithDescription("Finds.");
+
+            public static string FindFourth(string query) => query;
+        }
         """;
 
     public const string NotLowerSnakeCase =
         """
         using Typeshift;
 
+        // begin-snippet: tsh008
         internal partial class EchoToolset : Toolset
         {
             public EchoToolset() => AddTool(Echo).WithName("Echo").WithDescription("Echoes.");
 
             public static string Echo(string text) => text;
         }
+        // end-snippet
         """;
 
     public const string MissingDescription =
         """
         using Typeshift;
 
+        // begin-snippet: tsh009
         internal partial class EchoToolset : Toolset
         {
             public EchoToolset() => AddTool(Echo);
 
             public static string Echo(string text) => text;
         }
+        // end-snippet
         """;
 
     public const string UnreadSettings =
         """
         using Typeshift;
 
+        // begin-snippet: tsh010
         internal record EchoSettings
         {
             public int Repeat { get; init; }
@@ -164,6 +342,7 @@ public static class DiagnosticSources
 
             public static string Echo(string text) => text;
         }
+        // end-snippet
         """;
 
     public const string SummaryOnly =
@@ -185,6 +364,7 @@ public static class DiagnosticSources
         """
         using Typeshift;
 
+        // begin-snippet: tsh013
         internal record EchoSettings
         {
             public int Repeat { get; init; } = 1;
@@ -204,12 +384,14 @@ public static class DiagnosticSources
 
             public static string Echo(string text, EchoSettings settings) => text;
         }
+        // end-snippet
         """;
 
     public const string OutsideConstructor =
         """
         using Typeshift;
 
+        // begin-snippet: tsh014
         internal partial class EchoToolset : Toolset
         {
             public EchoToolset() => Declare();
@@ -218,6 +400,7 @@ public static class DiagnosticSources
 
             private void Declare() => AddTool(Echo).WithDescription("Echoes.");
         }
+        // end-snippet
         """;
 
     public const string ConditionalTool =
@@ -226,9 +409,68 @@ public static class DiagnosticSources
 
         internal partial class EchoToolset : Toolset
         {
-            public EchoToolset(bool loud)
+            private static readonly bool Loud = true;
+
+            public EchoToolset()
             {
-                if (loud) AddTool(Echo).WithDescription("Echoes.");
+                if (Loud) AddTool(Echo).WithDescription("Echoes.");
+            }
+
+            public static string Echo(string text) => text;
+        }
+        """;
+
+    // The braces make the declaration a statement of a block, as one at the top of the constructor is
+    public const string ToolUnderABracedCondition =
+        """
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            private static readonly bool Loud = true;
+
+            public EchoToolset()
+            {
+                if (Loud)
+                {
+                    AddTool(Echo).WithDescription("Echoes.");
+                }
+            }
+
+            public static string Echo(string text) => text;
+        }
+        """;
+
+    public const string ToolInALoop =
+        """
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset()
+            {
+                foreach (var _ in new[] { 1, 2 })
+                {
+                    AddTool(Echo).WithDescription("Echoes.");
+                }
+            }
+
+            public static string Echo(string text) => text;
+        }
+        """;
+
+    // The lambda returns the chain, so inside it the chain ends in no statement
+    public const string ToolInALambda =
+        """
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset()
+            {
+                var declare = () => AddTool(Echo).WithDescription("Echoes.");
+
+                declare();
             }
 
             public static string Echo(string text) => text;
@@ -252,6 +494,7 @@ public static class DiagnosticSources
         """
         using Typeshift;
 
+        // begin-snippet: tsh015
         internal partial class EchoToolset : Toolset
         {
             public EchoToolset()
@@ -263,6 +506,7 @@ public static class DiagnosticSources
             /// <summary>Echoes.</summary>
             public static string Echo(string text) => text;
         }
+        // end-snippet
         """;
 
     public const string StoredChain =
@@ -278,6 +522,68 @@ public static class DiagnosticSources
 
             /// <summary>Echoes.</summary>
             public static string Echo(string text) => text;
+        }
+        """;
+
+    // The chain goes on in a helper, on a parameter that holds no declaration of its own
+    public const string ChainContinuedOnAParameter =
+        """
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset()
+            {
+                Describe(AddTool(Echo));
+            }
+
+            /// <summary>Echoes.</summary>
+            public static string Echo(string text) => text;
+
+            private static void Describe(ToolBuilder tool) => tool.WithDescription("Echoes.");
+        }
+        """;
+
+    public const string LocalFunctionAsTool =
+        """
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset()
+            {
+                AddTool(Echo).WithDescription("Echoes.");
+
+                static string Echo(string text) => text;
+            }
+        }
+        """;
+
+    public const string DelegateFieldAsTool =
+        """
+        using System;
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            private static readonly Func<string, string> Handler = text => text;
+
+            public EchoToolset() => AddTool(Handler).WithDescription("Echoes.");
+        }
+        """;
+
+    // Two methods of one name: the method group names both, and the compiler binds AddTool to neither (CS1503)
+    public const string OverloadedToolMethod =
+        """
+        using Typeshift;
+
+        internal partial class FindToolset : Toolset
+        {
+            public FindToolset() => AddTool(Find).WithDescription("Finds.");
+
+            public static string Find(string text) => text;
+
+            public static string Find(int number) => "";
         }
         """;
 
@@ -323,6 +629,7 @@ public static class DiagnosticSources
         """
         using Typeshift;
 
+        // begin-snippet: tsh017
         internal partial class EchoToolset : Toolset
         {
             public EchoToolset() => AddTool(Echo).WithDescription("Echoes.");
@@ -333,6 +640,7 @@ public static class DiagnosticSources
         internal partial class LoudToolset : EchoToolset
         {
         }
+        // end-snippet
         """;
 
     public const string Generic =
@@ -351,6 +659,7 @@ public static class DiagnosticSources
         """
         using Typeshift;
 
+        // begin-snippet: tsh018
         internal partial class EchoToolset : Toolset
         {
             public EchoToolset() => AddTool(Echo).WithDescription("Echoes.");
@@ -360,6 +669,28 @@ public static class DiagnosticSources
             public static void CreateEcho()
             {
             }
+        }
+        // end-snippet
+        """;
+
+    // A configurable setting gives the tool an EchoOverrides record in the toolset
+    public const string MemberNamedLikeTheOverrides =
+        """
+        using Typeshift;
+
+        internal record EchoSettings
+        {
+            public int Repeat { get; init; } = 1;
+        }
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() =>
+                AddTool(Echo).WithDescription("Echoes.").WithSettings<EchoSettings>().Configurable(s => s.Repeat);
+
+            public static int EchoOverrides => 1;
+
+            public static string Echo(string text, EchoSettings settings) => text;
         }
         """;
 
@@ -396,6 +727,86 @@ public static class DiagnosticSources
             private static readonly string Prefix = "echo";
 
             public EchoAgent() => WithName(Prefix + "_agent");
+        }
+        """;
+
+    // D40: the version of the stored Settings is read as a constant, as their kind is
+    public const string ComputedSchemaVersion =
+        """
+        using Typeshift;
+
+        internal partial class EchoAgent : Agent
+        {
+            private static readonly int Version = 3;
+
+            public EchoAgent() => WithSchemaVersion(Version);
+        }
+        """;
+
+    // A document saved under version 0 is read back as version 1, which this code would refuse as newer
+    public const string SchemaVersionOfZero =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        // begin-snippet: tsh039
+        internal partial class VersionedAgent : Agent
+        {
+            public VersionedAgent()
+            {
+                WithDescription("Has a version.");
+                WithSchemaVersion(0);
+            }
+        }
+        // end-snippet
+        """;
+
+    public const string NegativeSchemaVersion =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class VersionedAgent : Agent
+        {
+            public VersionedAgent()
+            {
+                WithDescription("Has a version.");
+                WithSchemaVersion(-2);
+            }
+        }
+        """;
+
+    public const string EmptyStorageKind =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class StoredAgent : Agent
+        {
+            public StoredAgent()
+            {
+                WithDescription("Stores.");
+                WithStorageKind("");
+            }
+        }
+        """;
+
+    public const string BlankStorageKind =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class StoredAgent : Agent
+        {
+            public StoredAgent()
+            {
+                WithDescription("Stores.");
+                WithStorageKind("  ");
+            }
         }
         """;
 
@@ -511,9 +922,59 @@ public static class DiagnosticSources
             public static string Echo(string text) => text;
         }
 
+        // begin-snippet: tsh016
         internal partial class EchoAgent : Agent
         {
             public EchoAgent(string model) => WithChatOptions().WithModel("openai", model);
+        }
+        // end-snippet
+        """;
+
+    // The agent's use compiles, and only the toolset is reported
+    public const string ToolsetWithoutParameterlessConstructorUsedByAnAgent =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset(string prefix) => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+        }
+
+        internal partial class EchoAgent : Agent
+        {
+            public EchoAgent()
+            {
+                WithDescription("Echoes.");
+                UseToolset<EchoToolset>();
+            }
+        }
+        """;
+
+    // No class may derive from a toolset (TSH017), so an abstract one never has tools
+    public const string AbstractToolsetUsedByAnAgent =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal abstract partial class BaseTools : Toolset
+        {
+            protected BaseTools() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+        }
+
+        internal partial class EchoAgent : Agent
+        {
+            public EchoAgent()
+            {
+                WithDescription("Echoes.");
+                UseToolset<BaseTools>();
+            }
         }
         """;
 
@@ -566,6 +1027,7 @@ public static class DiagnosticSources
             public static string Echo(string text) => text;
         }
 
+        // begin-snippet: tsh025
         internal partial class EchoAgent : Agent
         {
             public EchoAgent()
@@ -573,6 +1035,160 @@ public static class DiagnosticSources
                 UseToolset<EchoToolset>();
 
                 UseToolset<EchoToolset>();
+            }
+        }
+        // end-snippet
+        """;
+
+    public const string PickNamedTwice =
+        """
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+        }
+
+        internal partial class EchoAgent : Agent
+        {
+            public EchoAgent() => UseToolset<EchoToolset>().Include(t => t.Echo).Include(tools => tools.Echo);
+        }
+        """;
+
+    public const string SubAgentUsedTwice =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class HelpAgent : Agent
+        {
+            public HelpAgent() => WithDescription("Helps.");
+        }
+
+        internal partial class LeadAgent : Agent
+        {
+            public LeadAgent()
+            {
+                UseAgent<HelpAgent>();
+
+                UseAgent<Demo.HelpAgent>();
+            }
+        }
+        """;
+
+    public const string HandoffTargetUsedTwice =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class HelpAgent : Agent
+        {
+            public HelpAgent() => WithDescription("Helps.");
+        }
+
+        internal partial class LeadAgent : Agent
+        {
+            public LeadAgent()
+            {
+                UseHandoff<HelpAgent>();
+
+                UseHandoff<Demo.HelpAgent>();
+            }
+        }
+        """;
+
+    // D57: the agent's own tool comes after the toolset's, whose name it repeats
+    public const string OwnToolNamedLikeAUsedToolsets =
+        """
+        using Typeshift;
+
+        internal partial class DeskToolset : Toolset
+        {
+            public DeskToolset() => AddTool(Find).WithDescription("Finds a desk.");
+
+            public static string Find(string query) => query;
+        }
+
+        internal partial class DeskAgent : Agent
+        {
+            public DeskAgent()
+            {
+                UseToolset<DeskToolset>();
+
+                AddTool(Find).WithDescription("Finds a seat.");
+            }
+
+            private static string Find(string query) => query;
+        }
+        """;
+
+    // D13: both tools are find, which TSH007 reports for the project; the agent that uses both offers the name twice
+    public const string UsedToolsetsSharingAToolName =
+        """
+        using Typeshift;
+
+        internal partial class DeskToolset : Toolset
+        {
+            public DeskToolset() => AddTool(Find).WithDescription("Finds a desk.");
+
+            public static string Find(string query) => query;
+        }
+
+        internal partial class SeatToolset : Toolset
+        {
+            public SeatToolset() => AddTool(FindSeat).WithName("find").WithDescription("Finds a seat.");
+
+            public static string FindSeat(string query) => query;
+        }
+
+        internal partial class DeskAgent : Agent
+        {
+            public DeskAgent()
+            {
+                UseToolset<DeskToolset>();
+
+                UseToolset<SeatToolset>();
+            }
+        }
+        """;
+
+    // D13: the agent leaves one of the two tools out, and the name is still taken twice in the project
+    public const string SameNamedToolExcluded =
+        """
+        using Typeshift;
+
+        internal partial class DeskToolset : Toolset
+        {
+            public DeskToolset() => AddTool(Find).WithDescription("Finds a desk.");
+
+            public static string Find(string query) => query;
+        }
+
+        internal partial class SeatToolset : Toolset
+        {
+            public SeatToolset()
+            {
+                AddTool(FindSeat).WithName("find").WithDescription("Finds a seat.");
+
+                AddTool(Count).WithDescription("Counts the seats.");
+            }
+
+            public static string FindSeat(string query) => query;
+
+            public static int Count() => 0;
+        }
+
+        internal partial class DeskAgent : Agent
+        {
+            public DeskAgent()
+            {
+                UseToolset<DeskToolset>();
+
+                UseToolset<SeatToolset>().Exclude(t => t.Find);
             }
         }
         """;
@@ -629,6 +1245,7 @@ public static class DiagnosticSources
         using System;
         using Typeshift;
 
+        // begin-snippet: tsh012
         internal record EchoSettings
         {
             public Func<int> Pick { get; init; } = () => 1;
@@ -641,6 +1258,7 @@ public static class DiagnosticSources
 
             public static string Echo(string text, EchoSettings settings) => text;
         }
+        // end-snippet
         """;
 
     public const string UnstorableDenyList =
@@ -670,6 +1288,7 @@ public static class DiagnosticSources
         """
         using Typeshift;
 
+        // begin-snippet: tsh022
         namespace Support
         {
             internal partial class HelpAgent : Agent
@@ -685,15 +1304,77 @@ public static class DiagnosticSources
                 public HelpAgent() => WithChatOptions().WithModel("openai", "fast-model");
             }
         }
+        // end-snippet
+        """;
+
+    // No class may derive from an agent (TSH017), so an abstract one is never generated
+    public const string AbstractAgentUsedAsASubAgent =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal abstract partial class BaseAgent : Agent
+        {
+            protected BaseAgent() => WithDescription("Is the base of nothing.");
+        }
+
+        internal partial class LeadAgent : Agent
+        {
+            public LeadAgent()
+            {
+                WithDescription("Leads.");
+                UseAgent<BaseAgent>();
+            }
+        }
         """;
 
     public const string SubAgentWithoutDescription =
         """
         using Typeshift;
 
+        // begin-snippet: tsh023
         internal partial class HelpAgent : Agent
         {
             public HelpAgent() => WithChatOptions().WithModel("openai", "fast-model");
+        }
+
+        internal partial class LeadAgent : Agent
+        {
+            public LeadAgent() => UseAgent<HelpAgent>();
+        }
+        // end-snippet
+        """;
+
+    // An empty summary describes nothing
+    public const string SubAgentWithAnEmptySummary =
+        """
+        using Typeshift;
+
+        /// <summary></summary>
+        internal partial class HelpAgent : Agent
+        {
+            public HelpAgent() => WithChatOptions().WithModel("openai", "fast-model");
+        }
+
+        internal partial class LeadAgent : Agent
+        {
+            public LeadAgent() => UseAgent<HelpAgent>();
+        }
+        """;
+
+    // The model calls a sub-agent as a tool, by the agent's name
+    public const string SubAgentWithANameOfTwoWords =
+        """
+        using Typeshift;
+
+        internal partial class HelpAgent : Agent
+        {
+            public HelpAgent()
+            {
+                WithName("Help Desk");
+                WithDescription("Helps.");
+            }
         }
 
         internal partial class LeadAgent : Agent
@@ -762,6 +1443,7 @@ public static class DiagnosticSources
         """
         using Typeshift;
 
+        // begin-snippet: tsh024
         internal partial class HelpAgent : Agent
         {
             public HelpAgent()
@@ -779,6 +1461,346 @@ public static class DiagnosticSources
         internal partial class LeadAgent : Agent
         {
             public LeadAgent() => UseAgent<HelpAgent>();
+        }
+        // end-snippet
+        """;
+
+    public const string SubAgentThatAsksTheUser =
+        """
+        using Typeshift;
+
+        // begin-snippet: tsh034
+        internal partial class HelpAgent : Agent
+        {
+            public HelpAgent()
+            {
+                WithDescription("Helps.");
+
+                UseQuestions();
+            }
+        }
+
+        internal partial class LeadAgent : Agent
+        {
+            public LeadAgent() => UseAgent<HelpAgent>();
+        }
+        // end-snippet
+        """;
+
+    public const string QuestionsDeclaredTwice =
+        """
+        using Typeshift;
+
+        internal partial class HelpAgent : Agent
+        {
+            public HelpAgent()
+            {
+                UseQuestions();
+                UseQuestions();
+            }
+        }
+        """;
+
+    public const string QuestionsDeclaredUnderACondition =
+        """
+        using Typeshift;
+
+        internal partial class HelpAgent : Agent
+        {
+            private static readonly bool Asks = true;
+
+            public HelpAgent()
+            {
+                if (Asks) UseQuestions();
+            }
+        }
+        """;
+
+    public const string ToolNamedLikeTheQuestionTool =
+        """
+        using Typeshift;
+
+        // begin-snippet: tsh035
+        internal partial class DeskToolset : Toolset
+        {
+            public DeskToolset() => AddTool(AskUser).WithDescription("Asks the user.");
+
+            public static string AskUser(string question) => question;
+        }
+        // end-snippet
+        """;
+
+    public const string ToolNamedExitPlanMode =
+        """
+        using Typeshift;
+
+        internal partial class DeskToolset : Toolset
+        {
+            public DeskToolset() => AddTool(Leave).WithName("exit_plan_mode").WithDescription("Leaves.");
+
+            public static string Leave() => "";
+        }
+        """;
+
+    public const string AgentToolNamedLikeAHandoff =
+        """
+        using Typeshift;
+
+        internal partial class DeskAgent : Agent
+        {
+            public DeskAgent() => AddTool(HandoffToBilling).WithDescription("Hands off.");
+
+            private static string HandoffToBilling() => "";
+        }
+        """;
+
+    public const string ToolNamedLikeASubAgent =
+        """
+        using Typeshift;
+
+        internal partial class BillingAgent : Agent
+        {
+            public BillingAgent() => WithDescription("Answers billing questions.");
+        }
+
+        internal partial class DeskToolset : Toolset
+        {
+            public DeskToolset() => AddTool(FindAgent).WithName("billing_agent").WithDescription("Finds an agent.");
+
+            public static string FindAgent() => "";
+        }
+
+        internal partial class DeskAgent : Agent
+        {
+            public DeskAgent()
+            {
+                UseToolset<DeskToolset>();
+                UseAgent<BillingAgent>();
+            }
+        }
+        """;
+
+    // Two agents of one name; each source below adds the agent that uses both
+    private const string TwoAgentsOfOneName =
+        """
+        using Typeshift;
+
+        internal partial class HelperOne : Agent
+        {
+            public HelperOne()
+            {
+                WithName("helper");
+                WithDescription("Helps.");
+            }
+        }
+
+        internal partial class HelperTwo : Agent
+        {
+            public HelperTwo()
+            {
+                WithName("helper");
+                WithDescription("Helps too.");
+            }
+        }
+
+        """;
+
+    public const string TwoSubAgentsOfOneName = TwoAgentsOfOneName +
+        """
+        internal partial class DeskAgent : Agent
+        {
+            public DeskAgent()
+            {
+                UseAgent<HelperOne>();
+                UseAgent<HelperTwo>();
+            }
+        }
+        """;
+
+    public const string TwoHandoffTargetsOfOneName = TwoAgentsOfOneName +
+        """
+        internal partial class DeskAgent : Agent
+        {
+            public DeskAgent()
+            {
+                UseHandoff<HelperOne>();
+                UseHandoff<HelperTwo>();
+            }
+        }
+        """;
+
+    public const string SubAgentNamedLikeTheQuestionTool =
+        """
+        using Typeshift;
+
+        internal partial class HelpAgent : Agent
+        {
+            public HelpAgent()
+            {
+                WithName("ask_user");
+                WithDescription("Asks the user.");
+            }
+        }
+
+        internal partial class LeadAgent : Agent
+        {
+            public LeadAgent() => UseAgent<HelpAgent>();
+        }
+        """;
+
+    // A store of conversations alone and the chain that registers it; each source below adds an agent that can ask
+    private const string ChatStoreAlone =
+        """
+        using System;
+        using System.Collections.Generic;
+        using System.Threading;
+        using System.Threading.Tasks;
+        using Typeshift;
+        using Microsoft.Extensions.DependencyInjection;
+
+        internal sealed class ChatStore : IConversationStore<int>
+        {
+            public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(
+                int conversation,
+                CancellationToken ct) =>
+                throw new NotSupportedException();
+
+            public Task<IReadOnlyList<ConversationEntry>> LoadConversationSinceCompactionAsync(
+                int conversation,
+                CancellationToken ct) =>
+                throw new NotSupportedException();
+
+            public Task AppendConversationAsync(int conversation, ConversationEntry entry, CancellationToken ct) =>
+                throw new NotSupportedException();
+        }
+
+        internal static class Startup
+        {
+            public static void Register(IServiceCollection services) =>
+                services.AddTypeshift().WithStore<ChatStore>();
+        }
+
+        """;
+
+    public const string ConversationStoreWithoutDecisions = ChatStoreAlone +
+        """
+        internal partial class TicketToolset : Toolset
+        {
+            public TicketToolset() => AddTool(Close).WithDescription("Closes a ticket.").RequiresApproval();
+
+            public static void Close(int number)
+            {
+            }
+        }
+
+        internal partial class DeskAgent : Agent
+        {
+            public DeskAgent() => UseToolset<TicketToolset>();
+        }
+        """;
+
+    public const string ConversationStoreWithoutDecisionsForQuestions = ChatStoreAlone +
+        """
+        internal partial class DeskAgent : Agent
+        {
+            public DeskAgent() => UseQuestions();
+        }
+        """;
+
+    public const string ConversationStoreWithoutDecisionsForAServer = ChatStoreAlone +
+        """
+        internal partial class DeskAgent : Agent
+        {
+            public DeskAgent() => UseMcpServer("deploy").RequiresApproval();
+        }
+        """;
+
+    public const string ConversationStoreWithoutDecisionsForPlanMode = ChatStoreAlone +
+        """
+        internal partial class DeskAgent : Agent
+        {
+            public DeskAgent() => WithRunOptions().WithMode(AgentMode.Plan);
+        }
+        """;
+
+    public const string ConversationStoreWithoutDecisionsForAConfigurableMode = ChatStoreAlone +
+        """
+        internal partial class DeskAgent : Agent
+        {
+            public DeskAgent() => WithRunOptions().Configurable(r => r.Mode);
+        }
+        """;
+
+    public const string ConversationStoreWithoutDecisionsUsedByReference =
+        """
+        using System;
+        using System.Collections.Generic;
+        using System.Threading;
+        using System.Threading.Tasks;
+        using Typeshift;
+        using Microsoft.Extensions.DependencyInjection;
+
+        internal sealed class ChatStore : IConversationStore<int>
+        {
+            public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(
+                int conversation,
+                CancellationToken ct) =>
+                throw new NotSupportedException();
+
+            public Task<IReadOnlyList<ConversationEntry>> LoadConversationSinceCompactionAsync(
+                int conversation,
+                CancellationToken ct) =>
+                throw new NotSupportedException();
+
+            public Task AppendConversationAsync(int conversation, ConversationEntry entry, CancellationToken ct) =>
+                throw new NotSupportedException();
+        }
+
+        internal static class Startup
+        {
+            public static void Register(IServiceCollection services) =>
+                services.AddTypeshift().WithStore<ChatStore>();
+        }
+        """;
+
+    public const string ConfigurableModeBesideAToolThatNeedsApproval =
+        """
+        using Typeshift;
+
+        // begin-snippet: tsh037
+        internal partial class TicketToolset : Toolset
+        {
+            public TicketToolset() => AddTool(Close).WithDescription("Closes a ticket.").RequiresApproval();
+
+            public static void Close(int number)
+            {
+            }
+        }
+
+        internal partial class DeskAgent : Agent
+        {
+            public DeskAgent()
+            {
+                UseToolset<TicketToolset>();
+
+                WithRunOptions().Configurable(r => r.Mode);
+            }
+        }
+        // end-snippet
+        """;
+
+    public const string ConfigurableModeBesideAServerThatNeedsApproval =
+        """
+        using Typeshift;
+
+        internal partial class DeskAgent : Agent
+        {
+            public DeskAgent()
+            {
+                UseMcpServer("deploy").RequiresApproval();
+
+                WithRunOptions().Configurable(r => r.Mode);
+            }
         }
         """;
 
@@ -1005,6 +2027,7 @@ public static class DiagnosticSources
         """
         using Typeshift;
 
+        // begin-snippet: tsh026
         internal partial class AskAgent : Agent
         {
             public AskAgent()
@@ -1024,6 +2047,7 @@ public static class DiagnosticSources
                 UseAgent<AskAgent>();
             }
         }
+        // end-snippet
         """;
 
     public const string StreamWithoutJsonMetadata =
@@ -1092,6 +2116,75 @@ public static class DiagnosticSources
         }
         """;
 
+    public const string EnumToolTypeAsNumber =
+        """
+        using System.Text.Json.Serialization;
+        using Typeshift;
+
+        internal enum Mode
+        {
+            Fast,
+            Thorough
+        }
+
+        internal partial class PickToolset : Toolset
+        {
+            public PickToolset()
+            {
+                AddTool(Pick).WithDescription("Picks how to search.");
+            }
+
+            public static string Pick(Mode mode) => mode.ToString();
+        }
+
+        // The System.Text.Json generator does not run here; what it would write is stubbed
+        [JsonSerializable(typeof(Mode))]
+        internal partial class PickJson() : JsonSerializerContext(null)
+        {
+            public static PickJson Default { get; } = new();
+
+            protected override System.Text.Json.JsonSerializerOptions? GeneratedSerializerOptions => null;
+
+            public override System.Text.Json.Serialization.Metadata.JsonTypeInfo? GetTypeInfo(System.Type type) => null;
+        }
+        """;
+
+    public const string ToolTypeHoldingAnEnumAsNumber =
+        """
+        using System.Collections.Generic;
+        using System.Text.Json.Serialization;
+        using Typeshift;
+
+        internal enum Mode
+        {
+            Fast,
+            Thorough
+        }
+
+        internal sealed record Filter(Mode Mode, string Text);
+
+        internal partial class PickToolset : Toolset
+        {
+            public PickToolset()
+            {
+                AddTool(ListFilters).WithDescription("Lists the filters of a search.");
+            }
+
+            public static IReadOnlyList<Filter> ListFilters(string text) => [new(Mode.Fast, text)];
+        }
+
+        // The System.Text.Json generator does not run here; what it would write is stubbed
+        [JsonSerializable(typeof(IReadOnlyList<Filter>))]
+        internal partial class PickJson() : JsonSerializerContext(null)
+        {
+            public static PickJson Default { get; } = new();
+
+            protected override System.Text.Json.JsonSerializerOptions? GeneratedSerializerOptions => null;
+
+            public override System.Text.Json.Serialization.Metadata.JsonTypeInfo? GetTypeInfo(System.Type type) => null;
+        }
+        """;
+
     public const string RequiredStoredMember =
         """
         using Typeshift;
@@ -1112,6 +2205,190 @@ public static class DiagnosticSources
                 AddTool(Echo).WithDescription("Echoes.").WithSettings<EchoSettings>().Configurable(s => s.Primary);
 
             public static string Echo(string text, EchoSettings settings) => text;
+        }
+        """;
+
+    public const string ObjectPick =
+        """
+        using Typeshift;
+
+        internal record EchoSettings
+        {
+            public object? Payload { get; init; }
+        }
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() =>
+                AddTool(Echo).WithDescription("Echoes.").WithSettings<EchoSettings>().Configurable(s => s.Payload);
+
+            public static string Echo(string text, EchoSettings settings) => text;
+        }
+        """;
+
+    public const string MemberlessClassPick =
+        """
+        using Typeshift;
+
+        internal sealed class Marker
+        {
+            public string Name => "marker";
+        }
+
+        internal record EchoSettings
+        {
+            public Marker? Marker { get; init; }
+        }
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() =>
+                AddTool(Echo).WithDescription("Echoes.").WithSettings<EchoSettings>().Configurable(s => s.Marker);
+
+            public static string Echo(string text, EchoSettings settings) => text;
+        }
+        """;
+
+    public const string ObjectListUnderADenyList =
+        """
+        using System.Collections.Generic;
+        using Typeshift;
+
+        internal record EchoSettings
+        {
+            public List<object>? Payloads { get; init; }
+
+            public int Limit { get; init; } = 5;
+        }
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() =>
+                AddTool(Echo).WithDescription("Echoes.").WithConfigurableSettings<EchoSettings>();
+
+            public static string Echo(string text, EchoSettings settings) => text;
+        }
+        """;
+
+    public const string ObjectDictionaryUnderADenyList =
+        """
+        using System.Collections.Generic;
+        using Typeshift;
+
+        internal record EchoSettings
+        {
+            public Dictionary<string, object>? Metadata { get; init; }
+
+            public int Limit { get; init; } = 5;
+        }
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() =>
+                AddTool(Echo).WithDescription("Echoes.").WithConfigurableSettings<EchoSettings>();
+
+            public static string Echo(string text, EchoSettings settings) => text;
+        }
+        """;
+
+    public const string NullableStringItemsPick =
+        """
+        using System.Collections.Generic;
+        using Typeshift;
+
+        internal record EchoSettings
+        {
+            public List<string?> Tags { get; init; } = [];
+        }
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() =>
+                AddTool(Echo).WithDescription("Echoes.").WithSettings<EchoSettings>().Configurable(s => s.Tags);
+
+            public static string Echo(string text, EchoSettings settings) => text;
+        }
+        """;
+
+    public const string NullableRecordValuesPick =
+        """
+        using System.Collections.Generic;
+        using Typeshift;
+
+        internal record Place
+        {
+            public string City { get; init; } = "";
+        }
+
+        internal record EchoSettings
+        {
+            public Dictionary<string, Place?> Places { get; init; } = [];
+        }
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() =>
+                AddTool(Echo).WithDescription("Echoes.").WithSettings<EchoSettings>().Configurable(s => s.Places);
+
+            public static string Echo(string text, EchoSettings settings) => text;
+        }
+        """;
+
+    // What an editor writes for ///, before anyone fills it in
+    public const string EmptySummary =
+        """
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo);
+
+            /// <summary></summary>
+            /// <param name="text"></param>
+            public static string Echo(string text) => text;
+        }
+        """;
+
+    public const string EmptyDescription =
+        """
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithDescription("");
+
+            public static string Echo(string text) => text;
+        }
+        """;
+
+    public const string BlankDescription =
+        """
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithDescription("   ");
+
+            public static string Echo(string text) => text;
+        }
+        """;
+
+    public const string SubAgentWithAnEmptyDescription =
+        """
+        using Typeshift;
+
+        internal partial class HelpAgent : Agent
+        {
+            public HelpAgent() => WithDescription("");
+        }
+
+        internal partial class DeskAgent : Agent
+        {
+            public DeskAgent()
+            {
+                WithDescription("Answers at the desk.");
+                UseAgent<HelpAgent>();
+            }
         }
         """;
 
@@ -1162,6 +2439,30 @@ public static class DiagnosticSources
         }
         """;
 
+    // System.Text.Json's generator writes a Default only for a partial context, so the module registers none here
+    public const string JsonContextThatIsNotPartial =
+        """
+        using System.Text.Json.Serialization;
+        using Typeshift;
+
+        internal sealed record Company(string Name);
+
+        internal partial class CompanyToolset : Toolset
+        {
+            public CompanyToolset() => AddTool(Find).WithDescription("Finds a company.");
+
+            public static Company Find(string name) => new(name);
+        }
+
+        [JsonSerializable(typeof(Company))]
+        internal class CompanyJson() : JsonSerializerContext(null)
+        {
+            protected override System.Text.Json.JsonSerializerOptions? GeneratedSerializerOptions => null;
+
+            public override System.Text.Json.Serialization.Metadata.JsonTypeInfo? GetTypeInfo(System.Type type) => null;
+        }
+        """;
+
     public const string PickBeingTyped =
         """
         using Typeshift;
@@ -1179,11 +2480,186 @@ public static class DiagnosticSources
         }
         """;
 
+    public const string ToolsetUseBeingTyped =
+        """
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+        }
+
+        internal partial class EchoAgent : Agent
+        {
+            public EchoAgent() => UseToolset<>();
+        }
+        """;
+
+    public const string ToolsetUseUnresolvedGlobal =
+        """
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+        }
+
+        internal partial class EchoAgent : Agent
+        {
+            public EchoAgent() => UseToolset<global::Missing>();
+        }
+        """;
+
+    // A namespace several assemblies share places the missing type in none of them
+    public const string ToolsetUseUnresolvedShared =
+        """
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+        }
+
+        internal partial class EchoAgent : Agent
+        {
+            public EchoAgent() => UseToolset<System.Missing>();
+        }
+        """;
+
+    public const string AgentUsesBeingTyped =
+        """
+        using Typeshift;
+
+        internal partial class EchoAgent : Agent
+        {
+            public EchoAgent()
+            {
+                UseAgent<>();
+                UseAgent<>();
+            }
+        }
+        """;
+
+    public const string SettingsBeingTyped =
+        """
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithDescription("Echoes.").WithSettings<>();
+
+            public static string Echo(string text) => text;
+        }
+        """;
+
+    // The settings call is written before its type and before the tool's description (CS0411)
+    public const string SettingsCallBeingTyped =
+        """
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithSettings();
+
+            public static string Echo(string text) => text;
+        }
+        """;
+
+    // A generic type named without its type arguments, as while they are typed (CS7003, CS0452)
+    public const string SettingsOfAnUnboundGeneric =
+        """
+        using System.Collections.Generic;
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithConfigurableSettings<KeyValuePair<,>>();
+
+            public static string Echo(string text) => text;
+        }
+        """;
+
+    // The pick is written before its record is
+    public const string SettingsPickOfAnUnresolvedType =
+        """
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() =>
+                AddTool(Echo).WithDescription("Echoes.").WithSettings<EchoSettings>().Configurable(s => s.Limit);
+
+            public static string Echo(string text, EchoSettings settings) => text;
+        }
+        """;
+
+    public const string SettingOfAnUnresolvedType =
+        """
+        using Typeshift;
+
+        internal record EchoSettings
+        {
+            public Missing Home { get; init; }
+        }
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() =>
+                AddTool(Echo).WithDescription("Echoes.").WithSettings<EchoSettings>().Configurable(s => s.Home);
+
+            public static string Echo(string text, EchoSettings settings) => text;
+        }
+        """;
+
+    public const string UnresolvedSignature =
+        """
+        using System.Collections.Generic;
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static Unknown1 Echo(Unknown2 text, List<Unknown3> more) => default;
+        }
+        """;
+
+    public const string StoreBeingTyped =
+        """
+        using Typeshift;
+        using Microsoft.Extensions.DependencyInjection;
+
+        internal static class Startup
+        {
+            public static void Register(IServiceCollection services) =>
+                services.AddTypeshift().WithStore<>();
+        }
+        """;
+
+    public const string ChatClientProviderBeingTyped =
+        """
+        using Typeshift;
+        using Microsoft.Extensions.DependencyInjection;
+
+        internal static class Startup
+        {
+            public static void Register(IServiceCollection services) =>
+                services.AddTypeshift().WithChatClientProvider<>();
+        }
+        """;
+
     public const string NoStore =
         """
         using Typeshift;
         using Microsoft.Extensions.DependencyInjection;
 
+        // begin-snippet: tsh028
         internal sealed class Clock;
 
         internal static class Startup
@@ -1191,6 +2667,7 @@ public static class DiagnosticSources
             public static void Register(IServiceCollection services) =>
                 services.AddTypeshift().WithStore<Clock>();
         }
+        // end-snippet
         """;
 
     public const string OtherStoreIdType =
@@ -1221,6 +2698,11 @@ public static class DiagnosticSources
                 CancellationToken ct) =>
                 throw new NotSupportedException();
 
+            public Task<IReadOnlyList<ConversationEntry>> LoadConversationSinceCompactionAsync(
+                int conversation,
+                CancellationToken ct) =>
+                throw new NotSupportedException();
+
             public Task AppendConversationAsync(int conversation, ConversationEntry entry, CancellationToken ct) =>
                 throw new NotSupportedException();
         }
@@ -1229,6 +2711,34 @@ public static class DiagnosticSources
         {
             public static void Register(IServiceCollection services) =>
                 services.AddTypeshift().WithStore<EntryStore>();
+        }
+        """;
+
+    public const string DecisionStoreAlone =
+        """
+        using System;
+        using System.Threading;
+        using System.Threading.Tasks;
+        using Typeshift;
+        using Microsoft.Extensions.DependencyInjection;
+
+        internal sealed class WaitingStore : IDecisionStore<int>
+        {
+            public Task<StoredDocument?> LoadDecisionsAsync(int conversation, CancellationToken ct) =>
+                throw new NotSupportedException();
+
+            public Task<long> SaveDecisionsAsync(
+                int conversation,
+                string json,
+                long loadedVersion,
+                CancellationToken ct) =>
+                throw new NotSupportedException();
+        }
+
+        internal static class Startup
+        {
+            public static void Register(IServiceCollection services) =>
+                services.AddTypeshift().WithStore<WaitingStore>();
         }
         """;
 
@@ -1419,6 +2929,7 @@ public static class DiagnosticSources
         """
         using Typeshift;
 
+        // begin-snippet: tsh029
         public sealed record ProviderKey(string Name);
 
         public partial class HelpAgent : Agent
@@ -1426,6 +2937,7 @@ public static class DiagnosticSources
             public HelpAgent() =>
                 WithChatOptions().WithModel(new ProviderKey("openai"), "fast-model").Configurable(o => o.ModelId);
         }
+        // end-snippet
         """;
 
     // Settings store no provider, so a record serves
@@ -1447,6 +2959,7 @@ public static class DiagnosticSources
         using Typeshift;
         using Microsoft.Extensions.DependencyInjection;
 
+        // begin-snippet: tsh030
         public sealed class Clients;
 
         internal static class Startup
@@ -1454,6 +2967,7 @@ public static class DiagnosticSources
             public static void Register(IServiceCollection services) =>
                 services.AddTypeshift().WithChatClientProvider<Clients>();
         }
+        // end-snippet
         """;
 
     // D77: an agent's providers may be ints, and a provider of them serves those agents
@@ -1482,6 +2996,1018 @@ public static class DiagnosticSources
         {
             public static void Register(IServiceCollection services) =>
                 services.AddTypeshift().WithChatClientProvider<NumberedClients>();
+        }
+        """;
+
+    // Only its own file can name a file-local type, and the generated code is in others
+    public const string FileLocalToolset =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        file partial class ScratchTools : Toolset
+        {
+            public ScratchTools() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+        }
+        """;
+
+    public const string FileLocalAgent =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        file partial class ScratchTools : Toolset
+        {
+            public ScratchTools() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+        }
+
+        file partial class ScratchAgent : Agent
+        {
+            public ScratchAgent()
+            {
+                WithDescription("Scratch.");
+                UseToolset<ScratchTools>();
+            }
+        }
+        """;
+
+    public const string ToolsetNestedInAFileLocalClass =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        file static partial class Scratch
+        {
+            internal partial class EchoTools : Toolset
+            {
+                public EchoTools() => AddTool(Echo).WithDescription("Echoes.");
+
+                public static string Echo(string text) => text;
+            }
+        }
+        """;
+
+    public const string FileLocalToolMethod =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class DictionaryTools : Toolset
+        {
+            public DictionaryTools() => AddTool(Lookups.LookUp).WithDescription("Looks a word up.");
+        }
+
+        file static class Lookups
+        {
+            public static string LookUp(string word) => word;
+        }
+        """;
+
+    // The compiler reports the settings in the method's signature too, as CS9051
+    public const string FileLocalSettings =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        file record ScratchSettings
+        {
+            public int Limit { get; init; } = 3;
+        }
+
+        internal partial class ScratchTools : Toolset
+        {
+            public ScratchTools() => AddTool(Echo).WithDescription("Echoes.").WithSettings<ScratchSettings>();
+
+            public static string Echo(string text, ScratchSettings settings) => text;
+        }
+        """;
+
+    public const string SettingsOfAFileLocalTypeArgument =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal record Paged<T>
+        {
+            public int Size { get; init; } = 20;
+        }
+
+        file record Scratch;
+
+        internal partial class PageTools : Toolset
+        {
+            public PageTools() => AddTool(Page).WithDescription("Pages.").WithSettings<Paged<Scratch>>();
+
+            public static string Page(string query) => query;
+        }
+        """;
+
+    // The compiler reports the type in the method's signature, as CS9051; the analyzer adds nothing
+    public const string FileLocalParameterType =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        file record Scratch(string Text);
+
+        internal partial class ScratchTools : Toolset
+        {
+            public ScratchTools() => AddTool(Take).WithDescription("Takes.");
+
+            public static string Take(Scratch scratch) => scratch.Text;
+        }
+        """;
+
+    public const string DynamicParameter =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class InspectTools : Toolset
+        {
+            public InspectTools() => AddTool(Inspect).WithDescription("Inspects.");
+
+            public static string Inspect(dynamic value) => "";
+        }
+        """;
+
+    // Compiled with unsafe code allowed
+    public const string PointerArrayParameter =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal unsafe partial class SumTools : Toolset
+        {
+            public SumTools() => AddTool(Sum).WithDescription("Sums.");
+
+            public static string Sum(int*[] values) => "";
+        }
+        """;
+
+    public const string RefStructResult =
+        """
+        using System;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class CharTools : Toolset
+        {
+            public CharTools() => AddTool(Chars).WithDescription("Reads.");
+
+            public static ReadOnlySpan<char> Chars(string value) => value;
+        }
+        """;
+
+    // Compiled with unsafe code allowed
+    public const string PointerResult =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal unsafe partial class AddressTools : Toolset
+        {
+            public AddressTools() => AddTool(Address).WithDescription("Points.");
+
+            public static int* Address(string value) => null;
+        }
+        """;
+
+    public const string DynamicResult =
+        """
+        using System.Threading.Tasks;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class AnyTools : Toolset
+        {
+            public AnyTools() => AddTool(AnyAsync).WithDescription("Returns anything.");
+
+            public static Task<dynamic> AnyAsync(string value) => Task.FromResult<dynamic>(value);
+        }
+        """;
+
+    public const string NullableTaskResult =
+        """
+        using System.Threading.Tasks;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class MaybeTools : Toolset
+        {
+            public MaybeTools() => AddTool(MaybeAsync).WithDescription("Maybe.");
+
+            public static Task<string>? MaybeAsync(string value) => null;
+        }
+        """;
+
+    public const string NullableValueTaskResult =
+        """
+        using System.Threading.Tasks;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class MaybeTools : Toolset
+        {
+            public MaybeTools() => AddTool(MaybeAsync).WithDescription("Maybe.");
+
+            public static ValueTask<string>? MaybeAsync(string value) => null;
+        }
+        """;
+
+    public const string NullableStreamResult =
+        """
+        using System.Collections.Generic;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class MaybeTools : Toolset
+        {
+            public MaybeTools() => AddTool(Maybe).WithDescription("Maybe.");
+
+            public static IAsyncEnumerable<string>? Maybe(string value) => null;
+        }
+        """;
+
+    // The compiler reports the member where AddTool names it, as CS8926; the analyzer adds nothing
+    public const string StaticVirtualInterfaceMember =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal interface IShout
+        {
+            static virtual string Shout(string text) => text.ToUpperInvariant();
+        }
+
+        internal partial class ShoutTools : Toolset
+        {
+            public ShoutTools() => AddTool(IShout.Shout).WithDescription("Shouts.");
+        }
+        """;
+
+    public const string MemberOfAGenericExtensionBlock =
+        """
+        using System.Collections.Generic;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal static class ListExtensions
+        {
+            extension<T>(List<T>)
+            {
+                public static int Grow(int count) => count * 2;
+            }
+        }
+
+        internal partial class ListTools : Toolset
+        {
+            public ListTools() => AddTool(List<int>.Grow).WithDescription("Sizes a list.");
+        }
+        """;
+
+    public const string NameEndingInALineBreak =
+        """
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithName("echo\n").WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+        }
+        """;
+
+    // create_report's function class and report_function's factory are both CreateReportFunction
+    public const string ToolsSharingAGeneratedMember =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class ReportToolset : Toolset
+        {
+            public ReportToolset()
+            {
+                AddTool(CreateReport).WithDescription("Creates.");
+                AddTool(ReportFunction).WithDescription("Reports.");
+            }
+
+            public static string CreateReport(string text) => text;
+
+            public static string ReportFunction(string text) => text;
+        }
+        """;
+
+    // Both are EqualsTool on the tool list: the first gets the suffix, since the list has an Equals from object
+    public const string ToolsSharingAToolListProperty =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class CompareToolset : Toolset
+        {
+            public CompareToolset()
+            {
+                AddTool(Compare).WithName("equals").WithDescription("Compares.");
+                AddTool(Check).WithName("equals_tool").WithDescription("Checks.");
+            }
+
+            public static bool Compare(string left, string right) => left == right;
+
+            public static bool Check(string left, string right) => left == right;
+        }
+        """;
+
+    // A class cannot hold a member of its own name
+    public const string AgentNamedLikeAGeneratedMember =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class Settings : Agent
+        {
+            public Settings() => WithDescription("Settings.");
+        }
+        """;
+
+    public const string ToolsetNamedLikeAToolsFunction =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class EchoFunction : Toolset
+        {
+            public EchoFunction() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+        }
+        """;
+
+    public const string ToolsetNamedLikeAToolsFactory =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class CreateTicket : Toolset
+        {
+            public CreateTicket() => AddTool(Ticket).WithDescription("Creates.");
+
+            public static string Ticket(string text) => text;
+        }
+        """;
+
+    // A generic class named without its type argument, as while the argument is typed: the method's class is
+    // Finder<T>, with the type parameter where an argument belongs
+    public const string ToolOfAGenericClassWithoutItsTypeArgument =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal static class Finder<T>
+        {
+            public static string Find(string text) => text;
+        }
+
+        internal partial class FindToolset : Toolset
+        {
+            public FindToolset() => AddTool(Finder<>.Find);
+        }
+        """;
+
+    // An instance property where a static method belongs, which the compiler rejects (CS0120)
+    public const string ToolArgumentThatDoesNotBind =
+        """
+        using System.Collections.Generic;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class CountToolset : Toolset
+        {
+            public CountToolset() => AddTool(List<int>.Capacity).WithDescription("Counts.");
+        }
+        """;
+
+    public const string ToolArgumentThatDoesNotExist =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class CountToolset : Toolset
+        {
+            public CountToolset() => AddTool(Missing).WithName("count").WithDescription("Counts.");
+        }
+        """;
+
+    // The generator finds a class by the name in its base list (D3), which an alias hides
+    public const string AliasedToolsetBase =
+        """
+        using Typeshift;
+        using ToolBase = Typeshift.Toolset;
+
+        namespace Demo;
+
+        internal partial class EchoToolset : ToolBase
+        {
+            public EchoToolset() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+        }
+        """;
+
+    // An app with an Agent class of its own names Typeshift's through an alias, here one for the whole project
+    public const string AliasedAgentBase =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class DeskAgent : AgentBase
+        {
+            public DeskAgent() => WithDescription("Answers at the desk.");
+        }
+        """;
+
+    public const string GlobalAgentAlias =
+        """
+        global using AgentBase = Typeshift.Agent;
+        """;
+
+    public const string AliasedBaseBesideAnInterface =
+        """
+        using System;
+        using Typeshift;
+        using ToolBase = Typeshift.Toolset;
+
+        namespace Demo;
+
+        internal partial class EchoToolset : IDisposable
+        {
+            public void Dispose()
+            {
+            }
+        }
+
+        internal partial class EchoToolset : ToolBase
+        {
+            public EchoToolset() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+        }
+        """;
+
+    // The generator finds a context by the name in its base list too, so the module registers none here
+    public const string JsonContextNamedThroughAnAlias =
+        """
+        using System.Text.Json.Serialization;
+        using Typeshift;
+        using ContextBase = System.Text.Json.Serialization.JsonSerializerContext;
+
+        internal sealed record Company(string Name);
+
+        internal partial class CompanyToolset : Toolset
+        {
+            public CompanyToolset() => AddTool(Find).WithDescription("Finds a company.");
+
+            public static Company Find(string name) => new(name);
+        }
+
+        // The System.Text.Json generator does not run here; what it would write is stubbed
+        [JsonSerializable(typeof(Company))]
+        internal partial class CompanyJson() : ContextBase(null)
+        {
+            public static CompanyJson Default { get; } = new();
+
+            protected override System.Text.Json.JsonSerializerOptions? GeneratedSerializerOptions => null;
+
+            public override System.Text.Json.Serialization.Metadata.JsonTypeInfo? GetTypeInfo(System.Type type) => null;
+        }
+        """;
+
+    // Declarations that name what another source generator of the project writes, OtherGeneratorsOutput here.
+    // Typeshift's generator does not see that file, so it reads none of them, while the analyzer and the compiler do
+    public const string DeclarationsOfAnotherGeneratorsOutput =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class OrderToolset : Toolset
+        {
+            public OrderToolset()
+            {
+                AddTool(Generated.Find).WithDescription("Finds an order.");
+                AddTool(Echo).WithName(Generated.EchoName).WithDescription("Echoes.");
+            }
+
+            public static string Echo(string text) => text;
+        }
+
+        internal partial class OrderAgent : Agent
+        {
+            public OrderAgent()
+            {
+                WithName(Generated.AgentName);
+                WithStorageKind(Generated.Kind);
+                WithDescription("Handles orders.");
+                UseToolset<OrderToolset>();
+            }
+        }
+        """;
+
+    public const string OtherGeneratorsOutput =
+        """
+        namespace Demo;
+
+        internal static class Generated
+        {
+            public const string AgentName = "order_desk";
+
+            public const string Kind = "orders-v1";
+
+            public const string EchoName = "echo_back";
+
+            public static string Find(int number) => "order";
+        }
+        """;
+
+    // The agent's Settings are the generator's own output, which it does not see while it reads the tool
+    public const string ToolThatTakesAGeneratedType =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class HelpAgent : Agent
+        {
+            public HelpAgent() => WithDescription("Helps.");
+        }
+
+        internal partial class NoteToolset : Toolset
+        {
+            public NoteToolset() => AddTool(Describe).WithDescription("Describes the agent's settings.");
+
+            public static string Describe(HelpAgent.Settings stored) => stored.ToString();
+        }
+        """;
+
+    // A file a script, a template or another tool wrote: the compiler treats it as generated code by its first line,
+    // and the generator reads it like any other
+    public const string NotPartialInAFileMarkedAutoGenerated =
+        """
+        // <auto-generated/>
+        using Typeshift;
+
+        namespace Demo;
+
+        internal class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+        }
+        """;
+
+    // A toolset another source generator of the project writes as a whole class, StockToolsetOfAnotherGenerator
+    // here: Typeshift's generator does not see the class, so the agent is generated without its tools
+    public const string AgentOfAnotherGeneratorsToolset =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class DeskAgent : Agent
+        {
+            public DeskAgent()
+            {
+                WithDescription("Answers at the desk.");
+                UseToolset<StockToolset>();
+            }
+        }
+        """;
+
+    public const string StockToolsetOfAnotherGenerator =
+        """
+        // <auto-generated/>
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class StockToolset : Toolset
+        {
+            public StockToolset() => AddTool(Count).WithDescription("Counts the stock.");
+
+            public static int Count(string item) => 0;
+        }
+        """;
+
+    // D1, D75: the ways to reach AddTypeshift() and TypeshiftRuntime.Create() that no interceptor rewrites, so the
+    // library's own body would run and throw
+    public const string RuntimeCreatedThroughUsingStatic =
+        """
+        using System;
+        using Microsoft.Extensions.AI;
+        using Microsoft.Extensions.DependencyInjection;
+        using Typeshift;
+        // begin-snippet: tsh040
+        using static Typeshift.TypeshiftRuntime;
+
+        namespace Demo;
+
+        internal static class Startup
+        {
+            public static object? Start(IServiceCollection services, IChatClient client) =>
+                Create(client);
+        }
+        // end-snippet
+        """;
+
+    public const string RuntimeCreatedThroughAnAlias =
+        """
+        using System;
+        using Microsoft.Extensions.AI;
+        using Microsoft.Extensions.DependencyInjection;
+        using Typeshift;
+        using Runtime = Typeshift.TypeshiftRuntime;
+
+        namespace Demo;
+
+        internal static class Startup
+        {
+            public static object? Start(IServiceCollection services, IChatClient client) =>
+                Runtime.Create(client);
+        }
+        """;
+
+    public const string RuntimeCreateAsAMethodGroup =
+        """
+        using System;
+        using Microsoft.Extensions.AI;
+        using Microsoft.Extensions.DependencyInjection;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal static class Startup
+        {
+            public static object? Start(IServiceCollection services, IChatClient client) =>
+                (Func<IChatClient, Action<TypeshiftBuilder>?, TypeshiftRuntime>)TypeshiftRuntime.Create;
+        }
+        """;
+
+    public const string RuntimeCreatedWithADynamicArgument =
+        """
+        using System;
+        using Microsoft.Extensions.AI;
+        using Microsoft.Extensions.DependencyInjection;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal static class Startup
+        {
+            public static object? Start(IServiceCollection services, dynamic client) =>
+                TypeshiftRuntime.Create(client);
+        }
+        """;
+
+    public const string AddTypeshiftAsAMethodGroup =
+        """
+        using System;
+        using Microsoft.Extensions.AI;
+        using Microsoft.Extensions.DependencyInjection;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal static class Startup
+        {
+            public static object? Start(IServiceCollection services, IChatClient client) =>
+                (Func<IServiceCollection, TypeshiftBuilder>)TypeshiftServiceCollectionExtensions.AddTypeshift;
+        }
+        """;
+
+    // D72: the copy carries the id, and the host it is called on stays as it was
+    public const string DroppedHostCopy =
+        """
+        using System.Threading.Tasks;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class SupportAgent : Agent
+        {
+            public SupportAgent() => WithInstructions("Answer questions about refunds.");
+        }
+
+        // begin-snippet: tsh041
+        internal sealed class RefundDesk(AgentHost<SupportAgent> support)
+        {
+            public async Task<string> AnswerAsync(string question, int customer)
+            {
+                support.WithSettingsId(customer);
+
+                var answer = await support.RunAsync(question);
+                return answer.Text;
+            }
+        }
+        // end-snippet
+        """;
+
+    public const string DroppedHostCopyOfTwoIds =
+        """
+        using System;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class SupportAgent : Agent
+        {
+            public SupportAgent() => WithInstructions("Answer questions about refunds.");
+        }
+
+        internal static class Desk
+        {
+            public static void Open(AgentHost<SupportAgent> support, int customer, Guid chat) =>
+                support.WithSettingsId(customer).WithConversationId(chat);
+        }
+        """;
+
+    // D76: the copy disposes the scope of the host from the runtime, which the loop's next round runs in
+    public const string DisposedCopyInALoop =
+        """
+        using System.Collections.Generic;
+        using System.Threading.Tasks;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class SupportAgent : Agent
+        {
+            public SupportAgent() => WithInstructions("Answer questions about refunds.");
+        }
+
+        // begin-snippet: tsh042
+        internal sealed class TicketFollowUp(TypeshiftRuntime runtime)
+        {
+            public async Task FollowUpAsync(IEnumerable<string> tickets)
+            {
+                await using var support = runtime.CreateHost<SupportAgent>();
+
+                foreach (var ticket in tickets)
+                {
+                    await using var chat = support.WithConversationId(ticket);
+                    await chat.RunAsync("Is the ticket solved?");
+                }
+            }
+        }
+        // end-snippet
+        """;
+
+    public const string DisposedCopyOfAField =
+        """
+        using System.Threading.Tasks;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class SupportAgent : Agent
+        {
+            public SupportAgent() => WithInstructions("Answer questions about refunds.");
+        }
+
+        internal sealed class Desk(TypeshiftRuntime runtime)
+        {
+            private readonly AgentHost<SupportAgent> _support = runtime.CreateHost<SupportAgent>();
+
+            public async Task AnswerAsync(string ticket)
+            {
+                using (var chat = _support.WithSettingsId(7).WithConversationId(ticket))
+                {
+                    await chat.RunAsync("Is the ticket solved?");
+                }
+            }
+        }
+        """;
+
+    public const string DisposedCopyOfAParameter =
+        """
+        using System.Threading.Tasks;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class SupportAgent : Agent
+        {
+            public SupportAgent() => WithInstructions("Answer questions about refunds.");
+        }
+
+        internal static class Desk
+        {
+            public static async Task AnswerAsync(AgentHost<SupportAgent> support, string ticket)
+            {
+                await using var chat = support.WithConversationId(ticket);
+                await chat.RunAsync("Is the ticket solved?");
+            }
+        }
+        """;
+
+    // No toolset, no agent and no AddTypeshift(): nothing the generator writes code for
+    public const string NothingOfTypeshift =
+        """
+        namespace Demo;
+
+        internal record Address(string Street, string City);
+        """;
+
+    // D6: the class of constants that name a toolset's tools
+    public const string MemberNamedLikeTheToolNames =
+        """
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string[] ToolNames => ["echo"];
+
+            public static string Echo(string text) => text;
+        }
+        """;
+
+    // D6: an agent with tools of its own gets the class too
+    public const string AgentClassNamedLikeTheToolNames =
+        """
+        using Typeshift;
+
+        internal partial class EchoAgent : Agent
+        {
+            public EchoAgent() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+
+            public static class ToolNames
+            {
+                public const string Echo = "echo";
+            }
+        }
+        """;
+
+    // D55, D68: the docs of a type a tool takes describe its schema only through the docs the compiler writes
+    public const string DescribedParameterType =
+        """
+        using Typeshift;
+
+        /// <summary>
+        /// An order to place.
+        /// </summary>
+        /// <param name="Sku">The article's number, like A-123.</param>
+        internal record Order(string Sku);
+
+        internal partial class OrderToolset : Toolset
+        {
+            public OrderToolset() => AddTool(Place);
+
+            /// <summary>
+            /// Places an order.
+            /// </summary>
+            /// <param name="order">The order to place.</param>
+            public static string Place(Order order) => order.Sku;
+        }
+        """;
+
+    public const string MarkOnAnExcludedTool =
+        """
+        using Typeshift;
+
+        internal partial class TicketToolset : Toolset
+        {
+            public TicketToolset()
+            {
+                AddTool(Find).WithDescription("Finds a ticket.");
+                AddTool(Close).WithDescription("Closes a ticket.");
+            }
+
+            public static string Find(string query) => query;
+
+            public static void Close(int number)
+            {
+            }
+        }
+
+        // begin-snippet: tsh043
+        internal partial class DeskAgent : Agent
+        {
+            public DeskAgent()
+            {
+                UseToolset<TicketToolset>()
+                    .Exclude(t => t.Close)
+                    .RequiresApproval(t => t.Close);
+            }
+        }
+        // end-snippet
+        """;
+
+    public const string SwitchOfAToolNotIncluded =
+        """
+        using Typeshift;
+
+        internal partial class TicketToolset : Toolset
+        {
+            public TicketToolset()
+            {
+                AddTool(Find).WithDescription("Finds a ticket.");
+                AddTool(Close).WithDescription("Closes a ticket.");
+            }
+
+            public static string Find(string query) => query;
+
+            public static void Close(int number)
+            {
+            }
+        }
+
+        internal partial class DeskAgent : Agent
+        {
+            public DeskAgent() => UseToolset<TicketToolset>().Include(t => t.Find).Configurable(t => t.Close);
+        }
+        """;
+
+    public const string MarkThatIsNoPick =
+        """
+        using System;
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+        }
+
+        internal partial class EchoAgent : Agent
+        {
+            public EchoAgent() => UseToolset<EchoToolset>().RequiresApproval(Pick);
+
+            private static ToolName Pick(ToolList<EchoToolset> tools) => tools.Echo;
+        }
+        """;
+
+    // D84: a use that requires approval makes the sub-agent one that asks
+    public const string SubAgentWhoseUseRequiresApproval =
+        """
+        using Typeshift;
+
+        internal partial class TicketToolset : Toolset
+        {
+            public TicketToolset() => AddTool(Close).WithDescription("Closes a ticket.");
+
+            public static void Close(int number)
+            {
+            }
+        }
+
+        internal partial class HelpAgent : Agent
+        {
+            public HelpAgent()
+            {
+                WithDescription("Helps.");
+
+                UseToolset<TicketToolset>().RequiresApproval(t => t.Close);
+            }
+        }
+
+        internal partial class LeadAgent : Agent
+        {
+            public LeadAgent() => UseAgent<HelpAgent>();
         }
         """;
 }

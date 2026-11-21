@@ -16,6 +16,20 @@ public sealed class TypeshiftOptions
     public bool PersistAllConversations { get; set; }
 
     /// <summary>
+    /// What a run does when the store fails to append a step of its conversation. By default it fails, with a
+    /// <see cref="ConversationStoreException"/> that holds its answer; <see cref="StoreFailure.ContinueRun"/> has it
+    /// return the answer, which <c>response.ConversationIncomplete</c> then marks.
+    /// </summary>
+    public StoreFailure StoreFailure { get; set; }
+
+    // D74: on from the start, so these only tune them
+    /// <summary>
+    /// How runs publish their live updates: how often merged text goes out, and how far a watcher may fall behind,
+    /// as in <c>WithOptions(options =&gt; options.LiveUpdates.MaxPendingUpdates = 1024)</c>.
+    /// </summary>
+    public LiveUpdateOptions LiveUpdates { get; } = new();
+
+    /// <summary>
     /// Gives new conversations ids of your conversation store's type. Without it, they get a <see cref="Guid"/> of
     /// version 7, ordered by the time, and need an <c>IConversationStore&lt;Guid&gt;</c>. A raw-path call names its
     /// conversation in <c>ChatOptions.ConversationId</c>, a string, so a conversation it starts gets this id only when
@@ -24,6 +38,7 @@ public sealed class TypeshiftOptions
     /// </summary>
     /// <param name="create">Returns a new id, one no conversation has, each time it is called.</param>
     /// <typeparam name="TId">The id type of your conversation store.</typeparam>
+    /// <exception cref="ArgumentNullException"><paramref name="create"/> is null.</exception>
     public void NewConversationIds<TId>(Func<TId> create) where TId : notnull
     {
         ArgumentNullException.ThrowIfNull(create);

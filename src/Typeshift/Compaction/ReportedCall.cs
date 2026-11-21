@@ -1,6 +1,8 @@
-using Microsoft.Extensions.AI;
-
 namespace Typeshift;
 
-// D32: a model call's messages and what its provider reported for it, which calibrates compaction's estimate
-internal sealed record ReportedCall(IReadOnlyList<ChatMessage> Call, UsageDetails Usage);
+// D32: compaction's estimate of a model call as it was sent and the input tokens its provider reported for it; how far
+// the two lie apart corrects the later estimates
+internal sealed record ReportedCall(long Estimated, long Reported)
+{
+    public double Calibration => Math.Clamp(Reported / (double)Estimated, 0.25, 4);
+}

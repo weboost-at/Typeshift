@@ -1,5 +1,6 @@
 using System.Threading;
 using Typeshift.Generators.Models;
+using Typeshift.Generators.Naming;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -10,14 +11,25 @@ namespace Typeshift.Generators.Parsing;
 // generator intercepts
 internal static class InterceptParser
 {
+    // services.AddTypeshift(), services?.AddTypeshift() and TypeshiftRuntime.Create(...), by their spelling
     public static bool IsCandidate(SyntaxNode node, CancellationToken ct) =>
-        node is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax access }
-        && access.Name.Identifier.ValueText switch
+        node is InvocationExpressionSyntax invocation
+        && invocation.Expression switch
         {
-            KnownTypes.RegistrationMethod => true,
-            KnownTypes.RuntimeMethod => NamesRuntime(access.Expression),
+            MemberAccessExpressionSyntax access => access.Name.Identifier.ValueText switch
+            {
+                KnownTypes.RegistrationMethod => true,
+                KnownTypes.RuntimeMethod => NamesRuntime(access.Expression),
+                _ => false
+            },
+            MemberBindingExpressionSyntax binding => binding.Name.Identifier.ValueText == KnownTypes.RegistrationMethod,
             _ => false
         };
+
+    // Whether Parse intercepts a call that binds to one of the library's two methods; the analyzer reports one it
+    // does not (TSH040), which would throw when it runs
+    public static bool CanIntercept(SyntaxNode call, SemanticModel model, CancellationToken ct) =>
+        IsCandidate(call, ct) && model.GetInterceptableLocation((InvocationExpressionSyntax)call, ct) is not null;
 
     public static InterceptModel? Parse(GeneratorSyntaxContext context, CancellationToken ct)
     {
@@ -33,8 +45,7 @@ internal static class InterceptParser
         var symbol = info.Symbol ?? (info.CandidateSymbols.Length == 1 ? info.CandidateSymbols[0] : null);
         if (symbol is not IMethodSymbol method) return null;
 
-        var isRuntime = method is { Name: KnownTypes.RuntimeMethod, IsStatic: true }
-            && method.ContainingType.Is(KnownTypes.Runtime);
+        var isRuntime = IsRuntimeMethod(method);
         if (!isRuntime && !IsLibraryMethod(method)) return null;
 
         return context.SemanticModel.GetInterceptableLocation(invocation, ct) is { } location
@@ -46,6 +57,12 @@ internal static class InterceptParser
     private static bool NamesRuntime(ExpressionSyntax receiver) =>
         receiver is IdentifierNameSyntax { Identifier.ValueText: KnownTypes.RuntimeName }
             or MemberAccessExpressionSyntax { Name.Identifier.ValueText: KnownTypes.RuntimeName };
+
+    // The calls the generator writes a replacement for
+    public static bool IsIntercepted(IMethodSymbol method) => IsRuntimeMethod(method) || IsLibraryMethod(method);
+
+    private static bool IsRuntimeMethod(IMethodSymbol method) =>
+        method is { Name: KnownTypes.RuntimeMethod, IsStatic: true } && method.ContainingType.Is(KnownTypes.Runtime);
 
     // A call of a C# 14 extension member binds to a method of the extension block nested in the declaring class
     private static bool IsLibraryMethod(IMethodSymbol method)

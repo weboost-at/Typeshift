@@ -27,7 +27,7 @@ internal partial class ClockToolset : Toolset
     /// <param name="timeZone">An IANA time zone id, such as Europe/Vienna.</param>
     public static string GetTime(string timeZone, ClockSettings settings, IServiceProvider services)
     {
-        var time = services.GetService<TimeProvider>() ?? TimeProvider.System;
+        var time = services.GetRequiredService<TimeProvider>();
         var zone = TimeZoneInfo.FindSystemTimeZoneById(timeZone);
         var now = TimeZoneInfo.ConvertTime(time.GetUtcNow(), zone);
 

@@ -1,6 +1,40 @@
-/* The snippets are C# at up to 120 columns; give them room on wide screens */
+/* The snippets are C# at up to 120 columns, which take a column of 1060px. From 1440px on the layout grows with the
+   window instead of stopping there, up to the width that leaves the column its 1060px beside the sidebar and the
+   outline. Below the window's width the sidebar would lose what the column gains. */
+:root {
+  --vp-layout-max-width: clamp(1440px, 100vw, 1716px);
+}
+
+/* VitePress scopes its own rule (.content-container[data-v-...]), so the class is doubled to outrank it */
 @media (min-width: 1440px) {
-  .VPDoc.has-aside .content-container {
-    max-width: 860px;
+  .VPDoc.has-aside .content-container.content-container {
+    max-width: 1060px;
   }
+}
+
+/* The newest package's version beside the site's name (config.mts) */
+.VPNavBarTitle .version {
+  margin-left: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--vp-c-text-2);
+}
+
+/* A wide diagram scaled to a phone's width has labels 5px tall. There it gets two and a half screens, or its own
+   width when that is less, and scrolls sideways. */
+.mermaid {
+  overflow-x: auto;
+}
+
+@media (max-width: 767px) {
+  .mermaid svg {
+    width: 250%;
+  }
+}
+
+/* Code and tables use the wide column; a line of prose stays as long as it was */
+.vp-doc > div > p,
+.vp-doc > div > ul,
+.vp-doc > div > ol {
+  max-width: 688px;
 }

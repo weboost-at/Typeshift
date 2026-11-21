@@ -17,7 +17,7 @@ public class IdScopeTests : AgentTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         var host = Host<ProbeAgent>().WithSettingsId(Data.Persistence.NumberId);
-        await host.ConfigureAsync(settings => settings with { Temperature = Data.Agent.Temperature }, Ct);
+        await host.UpdateSettingsAsync(settings => settings with { Temperature = Data.Agent.Temperature }, Ct);
 
         // Act
         await host.RunAsync(Data.Tool.Question, ct: Ct);
@@ -33,7 +33,7 @@ public class IdScopeTests : AgentTestBase
         var host = Host<ProbeAgent>().WithSettingsId(Data.Persistence.NumberId);
 
         // Act
-        await host.ConfigureAsync(settings => settings with { Temperature = Data.Agent.Temperature }, Ct);
+        await host.UpdateSettingsAsync(settings => settings with { Temperature = Data.Agent.Temperature }, Ct);
 
         // Assert
         var stored = await Services.GetRequiredService<ISettingsStore<int>>()
@@ -47,7 +47,7 @@ public class IdScopeTests : AgentTestBase
     {
         // Arrange
         var host = Host<ProbeAgent>();
-        await host.WithSettingsId(Data.Persistence.NumberId).ConfigureAsync(
+        await host.WithSettingsId(Data.Persistence.NumberId).UpdateSettingsAsync(
             settings => settings with { Temperature = Data.Agent.Temperature },
             Ct);
 
@@ -227,6 +227,92 @@ public class IdScopeTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Raw_Call_With_Options_Of_Its_Own_Its_Conversation_Id_Applies_Over_The_Agents()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        var host = Host<ProbeAgent>();
+        var options = await host.ResolveOptionsAsync(ct: Ct);
+        using var client = await host.CreateChatClientAsync(options, Ct);
+
+        var own = new ChatOptions
+        {
+            ConversationId = Data.Persistence.ChatName
+        };
+
+        // Act
+        await client.GetResponseAsync(Data.Tool.Question, own, Ct);
+
+        // Assert
+        var entries = await Services.GetRequiredService<IConversationStore<string>>()
+            .LoadConversationAsync(Data.Persistence.ChatName, Ct);
+
+        entries.Should().NotBeEmpty();
+        ChatClient.Options[0]!.Instructions.Should().Be(ProbeAgent.Prompt);
+    }
+
+    [Fact]
+    public async Task Given_A_Host_With_A_Conversation_A_Raw_Call_With_Options_Of_Its_Own_Stores_The_Run_In_It()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        var host = Host<ProbeAgent>().WithConversationId(Data.Persistence.NumberId);
+        var options = await host.ResolveOptionsAsync(ct: Ct);
+        using var client = await host.CreateChatClientAsync(options, Ct);
+
+        // Act
+        await client.GetResponseAsync(Data.Tool.Question, new ChatOptions { Temperature = Data.Agent.Temperature }, Ct);
+
+        // Assert
+        var entries = await Services.GetRequiredService<IConversationStore<int>>()
+            .LoadConversationAsync(Data.Persistence.NumberId, Ct);
+
+        entries.Should().NotBeEmpty();
+    }
+
+    [Fact]
+    public async Task Given_A_Host_With_A_Conversation_A_Raw_Call_Naming_The_Id_Its_Response_Gave_Continues_It()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer)).Reply(Text(Data.Tool.Answer));
+
+        var host = Host<ProbeAgent>().WithConversationId(Data.Persistence.NumberId);
+        var options = await host.ResolveOptionsAsync(ct: Ct);
+        using var client = await host.CreateChatClientAsync(options, Ct);
+
+        var first = await client.GetResponseAsync(Data.Tool.Question, options, Ct);
+        var own = new ChatOptions { ConversationId = first.ConversationId };
+
+        // Act
+        await client.GetResponseAsync(Data.Agent.FollowUp, own, Ct);
+
+        // Assert
+        ChatClient.Requests[1].Select(message => message.Text)
+            .Should().Equal(Data.Tool.Question, Data.Tool.Answer, Data.Agent.FollowUp);
+    }
+
+    [Fact]
+    public async Task Given_A_Host_With_A_Conversation_A_Raw_Call_Naming_Another_Fails_Naming_Both()
+    {
+        // Arrange
+        var host = Host<ProbeAgent>().WithConversationId(Data.Persistence.NumberId);
+        var options = await host.ResolveOptionsAsync(ct: Ct);
+        using var client = await host.CreateChatClientAsync(options, Ct);
+
+        var own = new ChatOptions { ConversationId = Data.Persistence.ChatName };
+
+        // Act
+        var call = () => client.GetResponseAsync(Data.Tool.Question, own, Ct);
+
+        // Assert
+        await call.Should().ThrowAsync<ArgumentException>().WithMessage(
+            $"This chat client continues the conversation '{Data.Persistence.NumberId}' of the host it was created "
+            + $"on, and the call's options name the conversation '{Data.Persistence.ChatName}'*");
+    }
+
+    [Fact]
     public async Task Given_An_Interrupted_Run_Of_The_Hosts_Conversation_Resuming_Continues_It()
     {
         // Arrange
@@ -279,6 +365,92 @@ public class IdScopeTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Nullable_Conversation_Id_With_A_Value_The_Run_Is_Stored_Under_The_Value()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+        Guid? conversation = Data.Agent.ConversationId;
+
+        // Act
+        await Host<ProbeAgent>().WithConversationId(conversation).RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        (await EntriesAsync(Data.Agent.ConversationId)).Should().NotBeEmpty();
+    }
+
+    [Fact]
+    public async Task Given_Settings_Under_A_Nullable_Id_With_A_Value_A_Run_With_The_Value_Applies_Them()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+        int? settingsId = Data.Persistence.NumberId;
+
+        await Host<ProbeAgent>().WithSettingsId(settingsId).UpdateSettingsAsync(
+            settings => settings with { Temperature = Data.Agent.Temperature },
+            Ct);
+
+        // Act
+        await Host<ProbeAgent>().WithSettingsId(Data.Persistence.NumberId).RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        ChatClient.Options[0]!.Temperature.Should().Be(Data.Agent.Temperature);
+    }
+
+    [Fact]
+    public void Given_A_Nullable_Conversation_Id_Without_A_Value_Taking_The_Copy_Throws()
+    {
+        // Arrange
+        Guid? conversation = null;
+
+        // Act
+        var copy = () => Host<ProbeAgent>().WithConversationId(conversation);
+
+        // Assert
+        copy.Should().Throw<ArgumentNullException>();
+    }
+
+    [Fact]
+    public void Given_A_Nullable_Settings_Id_Without_A_Value_Taking_The_Copy_Throws()
+    {
+        // Arrange
+        int? settingsId = null;
+
+        // Act
+        var copy = () => Host<ProbeAgent>().WithSettingsId(settingsId);
+
+        // Assert
+        copy.Should().Throw<ArgumentNullException>();
+    }
+
+    [Fact]
+    public void Given_A_Tracker_Of_An_Id_Type_No_Store_Serves_Its_First_Call_Throws()
+    {
+        // Arrange
+        var tracker = Services.GetRequiredService<ConversationTracker<long>>();
+
+        // Act
+        var steer = () => tracker.TrySteer(Data.Persistence.NumberId, Data.Agent.FollowUp);
+
+        // Assert
+        steer.Should().Throw<InvalidOperationException>().WithMessage("No IConversationStore<long> is registered*");
+    }
+
+    [Fact]
+    public void Given_A_Tracker_Of_A_Nullable_Id_Type_No_Store_Serves_Its_Message_Names_The_Type_As_CSharp_Does()
+    {
+        // Arrange
+#pragma warning disable CS8714 // a tracker of a nullable id type, which the constraint only warns about
+        var tracker = Services.GetRequiredService<ConversationTracker<Guid?>>();
+#pragma warning restore CS8714
+
+        // Act
+        var runs = () => tracker.Runs;
+
+        // Assert
+        runs.Should().Throw<InvalidOperationException>().WithMessage("No IConversationStore<Guid?> is registered*");
+    }
+
+    [Fact]
     public async Task Given_A_Store_Your_App_Created_Runs_With_Ids_Of_Its_Type_Use_It()
     {
         // Arrange
@@ -294,7 +466,7 @@ public class IdScopeTests : AgentTestBase
             .WithSettingsId(Data.Persistence.NumberId);
 
         // Act
-        await host.ConfigureAsync(settings => settings with { Temperature = Data.Agent.Temperature }, Ct);
+        await host.UpdateSettingsAsync(settings => settings with { Temperature = Data.Agent.Temperature }, Ct);
 
         // Assert
         (await store.LoadAsync(Data.Persistence.NumberId, "ProbeAgent", Ct)).Should().NotBeNull();
@@ -317,7 +489,7 @@ public class IdScopeTests : AgentTestBase
             .WithSettingsId(Data.Persistence.NumberId);
 
         // Act
-        await host.ConfigureAsync(settings => settings with { Temperature = Data.Agent.Temperature }, Ct);
+        await host.UpdateSettingsAsync(settings => settings with { Temperature = Data.Agent.Temperature }, Ct);
 
         // Assert
         logs.Warnings.Should().BeEmpty();
@@ -339,13 +511,65 @@ public class IdScopeTests : AgentTestBase
             .WithSettingsId(Data.Persistence.SettingsId);
 
         // Act
-        var configure = () => host.ConfigureAsync(
+        var update = () => host.UpdateSettingsAsync(
             settings => settings with { Temperature = Data.Agent.Temperature },
             Ct);
 
         // Assert
-        await configure.Should().ThrowAsync<InvalidOperationException>()
+        await update.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("No ISettingsStore<Guid> is registered*");
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Given_A_Store_Registered_As_Scoped_The_First_Run_Fails_Naming_The_Rule(bool validateScopes)
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddTypeshift().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddScoped<IConversationStore<Guid>, InMemoryTypeshiftStore<Guid>>();
+        services.AddSingleton(ChatClient).AddSingleton(Models);
+
+        await using var provider = services.BuildServiceProvider(validateScopes);
+        await using var scope = provider.CreateAsyncScope();
+
+        var host = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
+            .WithConversationId(Data.Agent.ConversationId);
+
+        // Act
+        var run = () => host.RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        await run.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("IConversationStore<Guid> is registered as scoped, but a store is one*WithStore<T>()*");
+    }
+
+    [Fact]
+    public async Task Given_A_Store_Of_Agent_Settings_Whose_Creation_Failed_Once_The_Next_Run_Resolves_It_Again()
+    {
+        // Arrange
+        var creations = 0;
+        var services = new ServiceCollection();
+        services.AddTypeshift().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddSingleton(ChatClient).AddSingleton(Models);
+
+        services.AddSingleton<IAgentSettingsStore>(_ => Interlocked.Increment(ref creations) == 1
+            ? throw new TimeoutException(Data.Agent.Reason)
+            : new InMemoryTypeshiftStore<Guid>());
+
+        await using var provider = services.BuildServiceProvider(validateScopes: true);
+        await using var scope = provider.CreateAsyncScope();
+        var host = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>();
+
+        ChatClient.Reply(Text(Data.Tool.Answer));
+        await Record.ExceptionAsync(() => host.RunAsync(Data.Tool.Question, ct: Ct));
+
+        // Act
+        var response = await host.RunAsync(Data.Agent.FollowUp, ct: Ct);
+
+        // Assert
+        response.Text.Should().Be(Data.Tool.Answer);
     }
 
     protected override void ConfigureServices(IServiceCollection services)

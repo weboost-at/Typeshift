@@ -8,12 +8,12 @@ internal static class TypeEmitter
 {
     public static string EmitPartial(
         TypeModel type,
+        IEnumerable<string> experimentalIds,
         IEnumerable<string> attributes,
-        Action<SourceWriter> writeMembers,
-        Action<SourceWriter>? writeAfter = null)
+        Action<SourceWriter> writeMembers)
     {
         var writer = new SourceWriter();
-        writer.Line(SourceWriter.Header);
+        writer.Line(SourceWriter.GetHeader(experimentalIds));
 
         if (type.Namespace is not null) writer.Line($"namespace {type.Namespace};").Line();
 
@@ -39,7 +39,6 @@ internal static class TypeEmitter
             blocks.Pop().Dispose();
         }
 
-        writeAfter?.Invoke(writer);
         return writer.ToString();
     }
 }

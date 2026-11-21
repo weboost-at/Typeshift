@@ -8,7 +8,7 @@ Rule ID | Category | Severity | Notes
 TSH001 | Typeshift | Error | Toolset or agent is not partial
 TSH002 | Typeshift | Error | Declared value is not a constant
 TSH003 | Typeshift | Error | Tool is not a static method group
-TSH004 | Typeshift | Error | Tool parameter cannot be bound
+TSH004 | Typeshift | Error | Tool parameter or result cannot be bound
 TSH005 | Typeshift | Error | Settings type is not a record with a parameterless constructor
 TSH006 | Typeshift | Error | Settings are less accessible than what exposes them
 TSH007 | Typeshift | Error | Tool name is not unique
@@ -21,16 +21,29 @@ TSH013 | Typeshift | Error | Configurable member cannot be set
 TSH014 | Typeshift | Error | Declaration outside the constructor
 TSH015 | Typeshift | Error | Chain the generator cannot read
 TSH016 | Typeshift | Error | Toolset or agent is out of the generated code's reach
-TSH017 | Typeshift | Error | Toolset or agent is generic or derives from another
+TSH017 | Typeshift | Error | Toolset or agent does not derive from its base directly
 TSH018 | Typeshift | Error | Member clashes with a generated member
-TSH019 | Typeshift | Error | Toolset was not compiled with the generator
-TSH020 | Typeshift | Warning | Referenced assembly was not compiled with the generator
+TSH019 | Typeshift | Error | Toolset of a referenced assembly cannot be used
+TSH020 | Typeshift | Warning | Toolsets and agents of a referenced assembly cannot be registered
 TSH022 | Typeshift | Error | Two agents share a settings kind
 TSH023 | Typeshift | Error | Agent cannot be a tool or a handoff target
 TSH024 | Typeshift | Warning | Sub-agent offers tools that need approval
 TSH025 | Typeshift | Error | Tool is offered twice
 TSH026 | Typeshift | Error | Agents call each other in a circle
-TSH027 | Typeshift | Error | Tool type has no JSON metadata under Native AOT
+TSH027 | Typeshift | Error | Tool type has no JSON metadata for Native AOT or a trimmed app
 TSH028 | Typeshift | Error | Type is no store
 TSH029 | Typeshift | Error | Provider id type cannot be used
 TSH030 | Typeshift | Error | Type is no chat client provider
+TSH031 | Typeshift | Error | C# language version is below 14
+TSH032 | Typeshift | Warning | Generator read the declaration differently
+TSH033 | Typeshift | Warning | Enum of a tool is a number for Native AOT or a trimmed app
+TSH034 | Typeshift | Warning | Sub-agent cannot ask the user
+TSH035 | Typeshift | Error | Tool name is reserved
+TSH036 | Typeshift | Warning | Conversation store keeps no decisions
+TSH037 | Typeshift | Warning | Configurable mode can turn approval off
+TSH038 | Typeshift | Warning | Model fills a settings or service parameter
+TSH039 | Typeshift | Error | Declared value cannot be used
+TSH040 | Typeshift | Error | Call the generator cannot intercept
+TSH041 | Typeshift | Error | Copy of a host is dropped
+TSH042 | Typeshift | Warning | Copy of a host that lives on is disposed
+TSH043 | Typeshift | Error | Use marks a tool it does not offer

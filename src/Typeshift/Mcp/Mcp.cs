@@ -3,9 +3,12 @@ using Microsoft.Extensions.AI;
 namespace Typeshift;
 
 /// <summary>
-/// Connects the MCP servers agents name in <c>UseMcpServer</c>, with the MCP client of the host's choice. Registered
+/// Connects the MCP servers agents name in <c>UseMcpServer</c>, with the MCP client your app chooses. Registered
 /// with <c>WithMcpToolProvider&lt;T&gt;()</c>, resolved from the run's services, so it may connect each customer with
 /// their own credentials.
+/// More in the guide:
+/// <see href="https://weboost-at.github.io/Typeshift/guide/mcp#registering-the-provider">Registering the
+/// provider</see>.
 /// </summary>
 public interface IMcpToolProvider
 {
@@ -32,7 +35,7 @@ public sealed class McpServerUse
     internal bool OnlyReads { get; private set; }
 
     /// <summary>
-    /// Pauses a run that calls any of the server's tools until the host approves or rejects the call.
+    /// Pauses a run that calls any of the server's tools until your app approves or rejects the call.
     /// </summary>
     /// <returns>The same use.</returns>
     public McpServerUse RequiresApproval()
@@ -53,13 +56,21 @@ public sealed class McpServerUse
 
     private AIFunction Reading(AIFunction function) => OnlyReads ? new ReadOnlyFunction(function) : function;
 
-    // D35: the server's tools as this use offers them
+    // D35: the server's tools as this use offers them. Each knows its server, which a clash of names reports, and
+    // which the decision and the standing approval of a tool that requires approval name (D80)
     internal AITool Offer(AITool tool) =>
         tool switch
         {
-            AIFunction function => AsksFirst ? new ApprovalRequiredAIFunction(Reading(function)) : Reading(function),
+            AIFunction function when AsksFirst =>
+                new ApprovalRequiredAIFunction(new McpServerFunction(Reading(function), Server)),
+            AIFunction function => new McpServerFunction(Reading(function), Server),
             _ => tool
         };
+}
+
+internal sealed class McpServerFunction(AIFunction inner, string server) : DelegatingAIFunction(inner)
+{
+    public string Server => server;
 }
 
 // D52: a tool plan mode offers, though no toolset declares it

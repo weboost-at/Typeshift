@@ -7,7 +7,8 @@ namespace Typeshift;
 
 // D30: below the conversation, around each pass of a run: the run middleware the run's services resolve, the first
 // registered outermost. A response middleware sets without calling next answers in place of the model, and the
-// conversation stores it
+// conversation stores it. Once a middleware called next, the answer is made, stored and on its way to the caller,
+// and the response can only be read
 internal sealed class RunMiddlewareChatClient(IChatClient inner) : DelegatingChatClient(inner)
 {
     public override async Task<ChatResponse> GetResponseAsync(
@@ -17,38 +18,39 @@ internal sealed class RunMiddlewareChatClient(IChatClient inner) : DelegatingCha
     {
         if (options is not ResolvedChatOptions { AgentRun: { } run } resolved
             || run.Services.GetServices<IRunMiddleware>().ToList() is not { Count: > 0 } middleware)
-            return await base.GetResponseAsync(messages, options, cancellationToken);
+            return await base.GetResponseAsync(messages, options, cancellationToken).ConfigureAwait(false);
 
-        Begin(run, messages);
+        var received = Begin(run, messages);
         var called = false;
 
         await InvokeAsync(middleware, 0, run, async () =>
         {
             called = true;
-            Keep(run, resolved);
-            run.Response = await InnerClient.GetResponseAsync(run.Messages, resolved, cancellationToken);
-        }, cancellationToken);
+            Keep(run, resolved, received);
+            run.Answered(
+                await InnerClient.GetResponseAsync(run.Messages, resolved, cancellationToken).ConfigureAwait(false));
+        }, cancellationToken).ConfigureAwait(false);
 
-        return await AnsweredAsync(run, resolved, called);
+        return await AnsweredAsync(run, resolved, called).ConfigureAwait(false);
     }
 
-    public override async IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
+    public override IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
         IEnumerable<ChatMessage> messages,
         ChatOptions? options = null,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default) =>
+        options is ResolvedChatOptions { AgentRun: { } run } resolved
+        && run.Services.GetServices<IRunMiddleware>().ToList() is { Count: > 0 } middleware
+            ? StreamAsync(middleware, run, resolved, messages, cancellationToken)
+            : base.GetStreamingResponseAsync(messages, options, cancellationToken);
+
+    private async IAsyncEnumerable<ChatResponseUpdate> StreamAsync(
+        List<IRunMiddleware> middleware,
+        AgentRun run,
+        ResolvedChatOptions resolved,
+        IEnumerable<ChatMessage> messages,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        if (options is not ResolvedChatOptions { AgentRun: { } run } resolved
-            || run.Services.GetServices<IRunMiddleware>().ToList() is not { Count: > 0 } middleware)
-        {
-            await foreach (var update in base.GetStreamingResponseAsync(messages, options, cancellationToken))
-            {
-                yield return update;
-            }
-
-            yield break;
-        }
-
-        Begin(run, messages);
+        var received = Begin(run, messages);
 
         // The middleware awaits next while the updates stream on to the caller
         var updates = Channel.CreateUnbounded<ChatResponseUpdate>();
@@ -58,30 +60,33 @@ internal sealed class RunMiddlewareChatClient(IChatClient inner) : DelegatingCha
         var chain = RunChainAsync(middleware, run, updates.Writer, async () =>
         {
             called = true;
-            Keep(run, resolved);
+            Keep(run, resolved, received);
             var arrived = new List<ChatResponseUpdate>();
+            var answer = InnerClient.GetStreamingResponseAsync(run.Messages, resolved, stop.Token);
 
-            await foreach (var update in InnerClient.GetStreamingResponseAsync(run.Messages, resolved, stop.Token))
+            await foreach (var update in answer.ConfigureAwait(false))
             {
                 arrived.Add(update);
-                await updates.Writer.WriteAsync(update, stop.Token);
+                await updates.Writer.WriteAsync(update, stop.Token).ConfigureAwait(false);
             }
 
-            run.Response = arrived.ToChatResponse();
+            run.Answered(arrived.ToChatResponse());
         }, stop.Token);
 
         try
         {
-            await foreach (var update in updates.Reader.ReadAllAsync(CancellationToken.None))
+            await foreach (var update in updates.Reader.ReadAllAsync(CancellationToken.None).ConfigureAwait(false))
             {
                 yield return update;
             }
 
-            await chain;
+            await chain.ConfigureAwait(false);
 
             if (!called)
             {
-                foreach (var update in (await AnsweredAsync(run, resolved, called)).ToChatResponseUpdates())
+                var response = await AnsweredAsync(run, resolved, called).ConfigureAwait(false);
+
+                foreach (var update in response.ToChatResponseUpdates())
                 {
                     yield return update;
                 }
@@ -92,21 +97,32 @@ internal sealed class RunMiddlewareChatClient(IChatClient inner) : DelegatingCha
             // A caller that left early stops the run, and no longer hears how it ended
             if (!chain.IsCompleted)
             {
-                await stop.CancelAsync();
+                await stop.CancelAsync().ConfigureAwait(false);
                 await chain.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
             }
         }
     }
 
-    private static void Begin(AgentRun run, IEnumerable<ChatMessage> messages)
+    private static List<ChatMessage> Begin(AgentRun run, IEnumerable<ChatMessage> messages)
     {
-        run.Messages = [.. messages];
-        run.Response = null;
+        List<ChatMessage> received = [.. messages];
+
+        run.Messages = [.. received];
+        run.Answered(null);
+        return received;
     }
 
-    // What middleware changed in the messages holds for this pass only: the conversation keeps what the host sent
-    private static void Keep(AgentRun run, ResolvedChatOptions options) =>
-        options.ConversationRun?.MarkTransient(run.Messages);
+    // What middleware changed in the messages holds for this pass only: the conversation keeps what the host sent.
+    // D32: a message it added to those it received stands for none of them, unlike one it put in place of another
+    private static void Keep(AgentRun run, ResolvedChatOptions options, List<ChatMessage> received)
+    {
+        if (options.ConversationRun is not { } conversation) return;
+
+        var passed = run.Messages.ToHashSet();
+
+        conversation.MarkTransient(passed);
+        if (received.All(passed.Contains)) conversation.MarkTransient(passed.Except(received), added: true);
+    }
 
     private static async Task RunChainAsync(
         List<IRunMiddleware> middleware,
@@ -117,7 +133,7 @@ internal sealed class RunMiddlewareChatClient(IChatClient inner) : DelegatingCha
     {
         try
         {
-            await InvokeAsync(middleware, 0, run, model, ct);
+            await InvokeAsync(middleware, 0, run, model, ct).ConfigureAwait(false);
         }
         finally
         {
@@ -125,15 +141,38 @@ internal sealed class RunMiddlewareChatClient(IChatClient inner) : DelegatingCha
         }
     }
 
-    private static Task InvokeAsync(
+    // A middleware may answer until it calls next: from then on the answer is the model's, or that of a middleware
+    // nearer the model, and it is read-only when next returns
+    private static async Task InvokeAsync(
         List<IRunMiddleware> middleware,
         int index,
         AgentRun run,
         Func<Task> model,
-        CancellationToken ct) =>
-        index == middleware.Count
-            ? model()
-            : middleware[index].InvokeAsync(run, () => InvokeAsync(middleware, index + 1, run, model, ct), ct);
+        CancellationToken ct)
+    {
+        if (index == middleware.Count)
+        {
+            await model().ConfigureAwait(false);
+            return;
+        }
+
+        run.Answerable = true;
+
+        try
+        {
+            await middleware[index].InvokeAsync(run, NextAsync, ct).ConfigureAwait(false);
+        }
+        finally
+        {
+            run.Answerable = false;
+        }
+
+        async Task NextAsync()
+        {
+            run.Answerable = false;
+            await InvokeAsync(middleware, index + 1, run, model, ct).ConfigureAwait(false);
+        }
+    }
 
     private static async Task<ChatResponse> AnsweredAsync(AgentRun run, ResolvedChatOptions options, bool called)
     {
@@ -148,7 +187,9 @@ internal sealed class RunMiddlewareChatClient(IChatClient inner) : DelegatingCha
             message.AuthorName ??= run.Agent.Name;
         }
 
-        if (options.ConversationRun is { } conversation) await conversation.AppendAsync([.. response.Messages]);
+        if (options.ConversationRun is { } conversation)
+            await conversation.AppendAsync([.. response.Messages]).ConfigureAwait(false);
+
         return response;
     }
 }

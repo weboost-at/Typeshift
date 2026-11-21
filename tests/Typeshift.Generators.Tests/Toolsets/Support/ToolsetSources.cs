@@ -130,6 +130,7 @@ public static class ToolsetSources
     public const string Defaults =
         """
         using System;
+        using System.Collections.Generic;
         using Typeshift;
 
         namespace Demo;
@@ -142,24 +143,45 @@ public static class ToolsetSources
 
         internal partial class GreetingToolset : Toolset
         {
-            public GreetingToolset() => AddTool(Greet).WithDescription("Greets.");
+            public GreetingToolset()
+            {
+                AddTool(Greet).WithDescription("Greets.");
+                AddTool(Sign).WithDescription("Signs.");
+            }
 
             public static string Greet(
                 string greeting = "say \"hi\"",
                 bool loud = true,
                 char mark = '!',
                 byte times = 2,
+                sbyte offset = -5,
                 short pause = -1,
+                ushort port = 6,
+                uint count = 3,
                 long budget = 9_000_000_000,
+                ulong total = 4,
                 float ratio = 0.5f,
+                float endless = float.PositiveInfinity,
+                float bottomless = float.NegativeInfinity,
+                float unknown = float.NaN,
                 double nan = double.NaN,
+                double rate = 0.25,
+                double big = 1e300,
+                double never = double.NegativeInfinity,
+                double always = double.PositiveInfinity,
                 decimal price = 1.25m,
                 Level level = Level.High,
                 Level unnamed = (Level)7,
                 DateTime when = default,
                 int? optional = null,
-                string? missing = null) =>
+                string? missing = null,
+                string forgiven = null!,
+                Uri link = default!) =>
                 greeting;
+
+        #nullable disable
+            public static string Sign(string name = null, List<string> titles = null) => name;
+        #nullable enable
         }
         """;
 
@@ -309,6 +331,38 @@ public static class ToolsetSources
         }
         """;
 
+    public const string AdjacentDocElements =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class DocToolset : Toolset
+        {
+            public DocToolset()
+            {
+                AddTool(Convert);
+                AddTool(Search);
+                AddTool(Read);
+            }
+
+            /// <summary>Converts <paramref name="amount"/> <paramref name="from"/> into <c>EUR</c>
+            /// <see cref="DocToolset"/> units.</summary>
+            /// <param name="amount">The <c>decimal</c> <see cref="string"/> amount.</param>
+            /// <param name="from">The currency.</param>
+            public static string Convert(string amount, string from) => amount;
+
+            /// <summary><para>Searches tickets.</para><para>Returns at most ten.</para></summary>
+            /// <param name="mode">One of <list type="bullet"><item>fast</item><item>slow</item></list></param>
+            public static string Search(string mode) => mode;
+
+            /// <summary>Reads a page, see <see href="https://example.com/pages"/>.<br/>Or a
+            /// <see href="https://example.com/files">file</see>.</summary>
+            /// <param name="page">The page.</param>
+            public static string Read(string page) => page;
+        }
+        """;
+
     public const string DocumentedTwice =
         """
         using Typeshift;
@@ -336,6 +390,27 @@ public static class ToolsetSources
             public SecretToolset() => AddTool(Reveal).WithDescription("Reveals.");
 
             private static string Reveal(string name) => name;
+        }
+        """;
+
+    // No tool: a static method of a class that is no toolset, whose docs leave its token out
+    public const string MethodOutsideAToolset =
+        """
+        using System.Threading;
+
+        namespace Demo;
+
+        /// <summary>
+        /// Looks things up.
+        /// </summary>
+        public static class Lookups
+        {
+            /// <summary>
+            /// Finds a text.
+            /// </summary>
+            /// <param name="query">What to find.</param>
+            /// <returns>What it found.</returns>
+            public static string Find(string query, CancellationToken ct) => query;
         }
         """;
 
