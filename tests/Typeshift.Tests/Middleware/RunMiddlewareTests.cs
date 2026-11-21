@@ -646,6 +646,33 @@ public class RunMiddlewareTests : MiddlewareTestBase
         await run.Should().ThrowAsync<InvalidOperationException>().WithMessage("*next*");
     }
 
+    [Fact]
+    public async Task Given_A_Handoff_Answered_Next_To_A_Call_That_Waits_Run_Middleware_Sees_Its_Result_Named()
+    {
+        // Arrange
+        var authors = new List<string?>();
+
+        Script.Runs[0] = async (run, next) =>
+        {
+            await next();
+            authors.AddRange(run.Response!.Messages.Select(message => message.AuthorName));
+        };
+
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "handoff_to_guarded_back_agent"))
+            .Reply(Calls(
+                Call(Data.Tool.SecondCallId, "close_ticket", ("number", Data.Agent.Ticket.Default)),
+                Call($"{Data.Tool.SecondCallId}_back", "handoff_to_guarded_front_agent")));
+
+        // Act
+        await Host<GuardedFrontAgent>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        authors.Should().Equal("guarded_front_agent", "guarded_back_agent", "guarded_back_agent");
+    }
+
     // Answers in place of the model, as a guardrail does
     private Task Refuse(AgentRun run)
     {

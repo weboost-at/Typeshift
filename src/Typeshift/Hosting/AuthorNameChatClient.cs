@@ -13,6 +13,8 @@ internal sealed class AuthorNameChatClient(IChatClient inner, string name) : Del
     {
         var response = await base.GetResponseAsync(messages, options, cancellationToken).ConfigureAwait(false);
 
+        // The checkpoints name what they store, but the gate's answer to a call it could not run, a handoff next to
+        // one that waits, is stored only after run middleware read the response
         foreach (var message in response.Messages)
         {
             message.AuthorName ??= name;
