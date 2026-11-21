@@ -9,9 +9,8 @@ All notable changes to this project are documented here. The format follows
 
 The last alpha: from here on every release only adds, as
 [Compatibility from the first beta](https://weboost-at.github.io/Typeshift/contributing/releasing#compatibility-from-the-first-beta)
-says. The tag `v0.1.0-alpha.7` was pushed but never published, so this section holds every change since
-0.1.0-alpha.6. Module stamps are at version 25, so a referenced project built with an earlier Typeshift is TSH020
-until it is rebuilt with this one.
+says. Module stamps are at version 25, so a referenced project built with an earlier Typeshift is TSH020 until it is
+rebuilt with this one.
 
 ### Added
 
@@ -47,6 +46,98 @@ until it is rebuilt with this one.
   tells them for .NET's own exceptions, `TypeshiftOptions.ClassifyModelFailure` for a client library's, with
   `ModelFailure.FromStatus(status)` for one that holds an HTTP status, and the warning `UnknownModelFailure` names a
   type nothing classified.
+
+### Changed
+
+- **Breaking:** every conversation store refuses an entry whose `Sequence` its conversation holds already, with a
+  `StoreConflictException` and nothing stored, so two instances of your app never interleave one conversation.
+  `IConversationStore<TId>.RefusesTakenSequences` is gone: delete `public bool RefusesTakenSequences => true;` from
+  your store, and give a store that stored such an entry a unique key on the conversation and the number, as "Refuse
+  a second run" in the guide's store page shows. `VerifyAsync` fails a store that stores the entry, where it passed a
+  store without the flag.
+- **Breaking:** a run that asks your app a decision throws a `ConversationStoreException` at once, whatever
+  `StoreFailure` says, when the store fails to save the decisions document or the model's response that asks. It
+  threw the store's exception, which is now the inner exception, and `Response` holds the model's response that
+  asked. Catch `ConversationStoreException` where you caught your store's own exception. A run that asks while a run
+  in another container asked meanwhile throws a `ConversationBusyException`, which derives from the
+  `InvalidOperationException` it threw before.
+- The package depends on Microsoft.Extensions.AI 10.11.1, up from 10.10.0, and on
+  Microsoft.Extensions.DependencyInjection 10.0.15, up from 10.0.12.
+- **Breaking:** a tool's hidden factory, `Create{Tool}`, and its function class, `{Tool}Function`, live in a hidden
+  class nested in the toolset, `TypeshiftGenerated`, so they take no name of your class: a method `CreateReport`
+  beside `AddTool(Report)`, or a toolset named `CreateTicket` with a tool `ticket`, compiles, where both were TSH018.
+  Code that creates a tool through its factory, such as a test, writes
+  `TicketToolset.TypeshiftGenerated.CreateSearchTickets(json)` for `TicketToolset.CreateSearchTickets(json)`. A
+  member of yours named `TypeshiftGenerated` in a toolset with tools is TSH018 now. A tool of an agent's own has its
+  factory and function in the agent's private `TypeshiftGenerated` class.
+- **Breaking:** TSH033, a `JsonSerializerContext` that lists a tool type with an enum and has no
+  `UseStringEnumConverter = true` in an app published with Native AOT or trimmed, is an error. It was a warning, so
+  the build passed and the model's calls failed once it sent an enum's name. Add
+  `[JsonSourceGenerationOptions(UseStringEnumConverter = true)]` to the context, or give the enum a
+  `[JsonConverter(typeof(JsonStringEnumConverter<TEnum>))]` of its own.
+- **Breaking:** a configurable settings member of a class of .NET or another Microsoft library that settings do not
+  list, any referenced type under the `System` or `Microsoft` namespaces such as `StringBuilder`, is TSH012, also
+  inside a record of yours. It compiled and stored what the class's setters reach, a `StringBuilder` its capacity and its length.
+  Give the member a record of your own, or keep it in code with `NotConfigurable(...)`.
+- **Breaking:** the runtime is the interface `ITypeshiftRuntime`. `TypeshiftRuntime.Create(client)` returns one, and
+  `services.AddTypeshift()` registers it as one, over a class of the library's. `TypeshiftRuntime` is a static class
+  that holds only `Create`. Inject `ITypeshiftRuntime` where you injected `TypeshiftRuntime`, as in
+  `TicketDigest(ITypeshiftRuntime runtime)`, and resolve it as `GetRequiredService<ITypeshiftRuntime>()`.
+- **Breaking:** `AgentInfo`, `ToolsetInfo`, `ToolInfo`, `LiveRun<TId>`, `StandingApproval`, `ConversationDecisions`,
+  `Question`, `QuestionOption`, `DecisionAnswer` and `ConversationEntry` have init-only properties and no positional
+  constructor or `Deconstruct`, so a member one of them gains later breaks no call. Write
+  `new ConversationEntry { Agent = "support_agent", Messages = [question], At = now }` for
+  `new ConversationEntry("support_agent", [question], now)`, and
+  `new DecisionAnswer { DecisionId = id, Approved = true }` for `new DecisionAnswer(id) { Approved = true }`. A value
+  without a sensible default, such as an entry's `Agent` and `At` or an answer's `DecisionId`, is `required`. Their
+  JSON reads and writes as before, stored entries included, except that System.Text.Json refuses a `DecisionAnswer`
+  without its `decisionId`, which bound as null before, so an endpoint that binds one answers 400 Bad Request.
+  `FileStoreOptions` is a sealed class, as `LiveUpdateOptions` is, and no longer a record.
+- **Breaking:** the extension members of `ChatResponseExtensions` and `FunctionInvocationContextExtensions`, class
+  names that Microsoft.Extensions.AI and Agent Framework use too, are in one static class, `TypeshiftExtensions`,
+  beside `ModelFailure.FromStatus`. `response.Decisions`, `update.EndsRun` and `call.Run` read as before, so only code
+  that names the class changes: write `TypeshiftExtensions.GetConversationId<Guid>(response)` for
+  `ChatResponseExtensions.GetConversationId<Guid>(response)`, and a `using static` of either class names
+  `TypeshiftExtensions`.
+- **Breaking:** `LiveRun<TId>` and `response.GetConversationId<TId>()` take a non-nullable id type, as
+  `ConversationTracker<TId>` and the stores do, so `GetConversationId<string?>()` warns CS8714 under nullable
+  annotations: write `GetConversationId<string>()`.
+- **Breaking:** the constructors of `ConversationBusyException`, `ConversationStoreException` and
+  `StoreConflictException` name their inner exception `innerException`, as .NET's exceptions and `ToolException` do.
+  Only a named argument changes: write `new StoreConflictException(message, innerException: conflict)` for
+  `new StoreConflictException(message, inner: conflict)`.
+- **Breaking:** every public and protected member of the library, every member of its public interfaces and every
+  member the generator writes takes its token as `cancellationToken`, as .NET's and Microsoft.Extensions.AI's APIs do,
+  where it took `ct`. A call that passes the token by position is unchanged; one that names it changes: write
+  `support.RunAsync(question, settings: run, cancellationToken: ct)` for
+  `support.RunAsync(question, settings: run, ct: ct)`. Your implementations of `IConversationStore<TId>`,
+  `IRunMiddleware` and the other interfaces compile as they are, and their parameters may follow the new name.
+- **Breaking:** a run that names no model, on a client that reports no model of its own in its `ChatClientMetadata`,
+  throws an `InvalidOperationException` before it stores anything, naming the ways to name one. It sent the provider
+  no model, which rejected the call. Name a model, or build the client with one, as `GetChatClient("gpt-5-mini")`
+  does; the model a client was built with answers a run that names none, as before.
+- **Breaking:** a run whose sub-agents, or the agents it may hand off to, name a provider no client serves fails when
+  it starts, before it stores anything, as a run whose own provider nothing serves does. Each call of such a sub-agent
+  failed while the run went on, and a handoff to such an agent failed the run when it happened. Register a client
+  for the provider, or name the run's provider with `host.WithProvider(key)`, which serves its sub-agents too.
+- **Breaking:** an agent names its provider apart from its model. `WithModel(provider, model)` is gone: write
+  `WithChatOptions().WithProvider("openai").WithModel("gpt-5-mini")` for `WithModel("openai", "gpt-5-mini")`, or
+  `WithModel("gpt-5-mini")` alone for an agent that runs on the default client. The agent's provider id type is the
+  type of the key `WithProvider` takes, and TSH029 reports a key its `Settings` cannot store on that argument.
+
+### Removed
+
+- **Breaking:** `IChatClientProvider<TProviderId>` and `AddTypeshift().WithChatClientProvider<T>()` are gone, and so
+  is TSH030, which reported a class that implements no such interface. A provider's key is served by the client
+  registered under it, `services.AddKeyedChatClient(key, client)`. A key per customer becomes a `ChatProvider`
+  document your app loads and hands to the run, `support.WithProvider(document).RunAsync(...)`, with an
+  `IChatProviderConnector` registered by `WithProviderConnector<T>()` in place of the provider class; its
+  `ConnectAsync(document, ct)` builds the client, which Typeshift keeps and disposes.
+
+## [0.1.0-alpha.7] - 2026-11-21
+
+### Added
+
 - `host.CreateChatClientAsync()`, and the agent's generated `CreateChatClientAsync(settings)`, create the client of the
   raw path in one call: they resolve the run's options as `ResolveOptionsAsync` does, and the client keeps them, so
   `using var client = await support.CreateChatClientAsync();` is all a library that takes an `IChatClient` needs.
@@ -98,12 +189,11 @@ until it is rebuilt with this one.
   `WithStorageKind(Generated.Kind)` or a tool that takes another agent's generated `Settings`. The generator cannot
   see such code and left the declaration out without a word: the tool was missing, or the agent's settings were
   stored under the kind of its class. The message names the first difference.
-- TSH033, an error, reports a `JsonSerializerContext` that lists a tool type with an enum and has no
+- TSH033 warns about a `JsonSerializerContext` that lists a tool type with an enum and has no
   `UseStringEnumConverter = true`, in an app published with Native AOT or trimmed. There the context decides how an
   enum travels, and without the option the model reads `integer` in the tool's schema, gets numbers back, and fails
   the call when it sends the enum's name, as it does in an app that keeps JSON reflection. Add
-  `[JsonSourceGenerationOptions(UseStringEnumConverter = true)]` to the context, or give the enum a
-  `[JsonConverter(typeof(JsonStringEnumConverter<TEnum>))]` of its own.
+  `[JsonSourceGenerationOptions(UseStringEnumConverter = true)]` to the context.
 - `TypeshiftBuilder.Services` is the service collection the chain registers into. An app on
   `TypeshiftRuntime.Create` registers its logging and the services its tools resolve there, as in
   `TypeshiftRuntime.Create(client, typeshift => typeshift.Services.AddLogging(logging => logging.AddConsole()))`.
@@ -188,9 +278,11 @@ until it is rebuilt with this one.
   conversation lacks a step.
 - Each conversation entry carries a number, `ConversationEntry.Sequence`, so two instances of your app no longer
   interleave one conversation's entries: a store with a unique key on the conversation and the number refuses the
-  entry of the run that appends second, which stops with a `ConversationBusyException`. Entries stored before load
-  with none, the next run numbering on from their count. "Refuse a second run" in the guide's store page shows the
-  key and the insert.
+  entry of the run that appends second, which stops with a `ConversationBusyException`. A store says that it does
+  with `RefusesTakenSequences => true`, and `VerifyAsync` then checks it. `InMemoryTypeshiftStore<TId>` refuses such
+  entries. A store that never looks at the number works as before, and entries stored before load with none, the
+  next run numbering on from their count. "Refuse a second run" in the guide's store page shows the key and the
+  insert.
 - `AgentHost<TAgent>` runs, answers, resumes and resolves options itself, without the agent's `Settings`: a method
   generic over the agent, such as `AskAsync<TAgent>(AgentHost<TAgent> host, string question)`, calls
   `host.RunAsync(question, ct)` and runs any agent. It was CS1929, since only each agent's generated members could
@@ -269,74 +361,6 @@ until it is rebuilt with this one.
 
 ### Changed
 
-- **Breaking:** every conversation store refuses an entry whose `Sequence` its conversation holds already, with a
-  `StoreConflictException` and nothing stored, so two instances of your app never interleave one conversation. Give
-  your store a unique key on the conversation and the number, as "Refuse a second run" in the guide's store page
-  shows; `VerifyAsync` fails a store that stores such an entry. `InMemoryTypeshiftStore<TId>` refuses them.
-- **Breaking:** a run that asks your app a decision throws a `ConversationStoreException` at once, whatever
-  `StoreFailure` says, when the store fails to save the decisions document or the model's response that asks. It
-  threw the store's exception, which is now the inner exception, and `Response` holds the model's response that
-  asked. Catch `ConversationStoreException` where you caught your store's own exception. A run that asks while a run
-  in another container asked meanwhile throws a `ConversationBusyException`, which derives from the
-  `InvalidOperationException` it threw before.
-- The package depends on Microsoft.Extensions.AI 10.11.1, up from 10.10.0, and on
-  Microsoft.Extensions.DependencyInjection 10.0.15, up from 10.0.12.
-- **Breaking:** a tool's hidden factory, `Create{Tool}`, and its function class, `{Tool}Function`, live in a hidden
-  class nested in the toolset, `TypeshiftGenerated`, so they take no name of your class: a method `CreateReport`
-  beside `AddTool(Report)`, or a toolset named `CreateTicket` with a tool `ticket`, compiles, where both were TSH018.
-  Code that creates a tool through its factory, such as a test, writes
-  `TicketToolset.TypeshiftGenerated.CreateSearchTickets(json)` for `TicketToolset.CreateSearchTickets(json)`. A
-  member of yours named `TypeshiftGenerated` in a toolset with tools is TSH018 now. A tool of an agent's own has its
-  factory and function in the agent's private `TypeshiftGenerated` class.
-- **Breaking:** a configurable settings member of a class of .NET or another Microsoft library that settings do not
-  list, any referenced type under the `System` or `Microsoft` namespaces such as `StringBuilder`, is TSH012, also
-  inside a record of yours. It compiled and stored what the class's setters reach, a `StringBuilder` its capacity and its length.
-  Give the member a record of your own, or keep it in code with `NotConfigurable(...)`.
-- **Breaking:** the runtime is the interface `ITypeshiftRuntime`. `TypeshiftRuntime.Create(client)` returns one, and
-  `services.AddTypeshift()` registers it as one, over a class of the library's. `TypeshiftRuntime` is a static class
-  that holds only `Create`. Inject `ITypeshiftRuntime` where you injected `TypeshiftRuntime`, as in
-  `TicketDigest(ITypeshiftRuntime runtime)`, and resolve it as `GetRequiredService<ITypeshiftRuntime>()`.
-- **Breaking:** `AgentInfo`, `ToolsetInfo`, `ToolInfo`, `LiveRun<TId>`, `StandingApproval`, `ConversationDecisions`,
-  `Question`, `QuestionOption`, `DecisionAnswer` and `ConversationEntry` have init-only properties and no positional
-  constructor or `Deconstruct`, so a member one of them gains later breaks no call. Write
-  `new ConversationEntry { Agent = "support_agent", Messages = [question], At = now }` for
-  `new ConversationEntry("support_agent", [question], now)`, and
-  `new DecisionAnswer { DecisionId = id, Approved = true }` for `new DecisionAnswer(id) { Approved = true }`. A value
-  without a sensible default, such as an entry's `Agent` and `At` or an answer's `DecisionId`, is `required`. Their
-  JSON reads and writes as before, stored entries included, except that System.Text.Json refuses a `DecisionAnswer`
-  without its `decisionId`, which bound as null before, so an endpoint that binds one answers 400 Bad Request.
-  `FileStoreOptions` is a sealed class, as `LiveUpdateOptions` is, and no longer a record.
-- **Breaking:** the extension members of `ChatResponseExtensions` and `FunctionInvocationContextExtensions`, class
-  names that Microsoft.Extensions.AI and Agent Framework use too, are in one static class, `TypeshiftExtensions`,
-  beside `ModelFailure.FromStatus`. `response.Decisions`, `update.EndsRun` and `call.Run` read as before, so only code
-  that names the class changes: write `TypeshiftExtensions.GetConversationId<Guid>(response)` for
-  `ChatResponseExtensions.GetConversationId<Guid>(response)`, and a `using static` of either class names
-  `TypeshiftExtensions`.
-- **Breaking:** `LiveRun<TId>` and `response.GetConversationId<TId>()` take a non-nullable id type, as
-  `ConversationTracker<TId>` and the stores do, so `GetConversationId<string?>()` warns CS8714 under nullable
-  annotations: write `GetConversationId<string>()`.
-- **Breaking:** the constructors of `ConversationBusyException`, `ConversationStoreException` and
-  `StoreConflictException` name their inner exception `innerException`, as .NET's exceptions and `ToolException` do.
-  Only a named argument changes: write `new StoreConflictException(message, innerException: conflict)` for
-  `new StoreConflictException(message, inner: conflict)`.
-- **Breaking:** every public and protected member of the library, every member of its public interfaces and every
-  member the generator writes takes its token as `cancellationToken`, as .NET's and Microsoft.Extensions.AI's APIs do,
-  where it took `ct`. A call that passes the token by position is unchanged; one that names it changes: write
-  `support.RunAsync(question, settings: run, cancellationToken: ct)` for
-  `support.RunAsync(question, settings: run, ct: ct)`. Your implementations of `IConversationStore<TId>`,
-  `IRunMiddleware` and the other interfaces compile as they are, and their parameters may follow the new name.
-- **Breaking:** a run that names no model, on a client that reports no model of its own in its `ChatClientMetadata`,
-  throws an `InvalidOperationException` before it stores anything, naming the ways to name one. It sent the provider
-  no model, which rejected the call. Name a model, or build the client with one, as `GetChatClient("gpt-5-mini")`
-  does; the model a client was built with answers a run that names none, as before.
-- **Breaking:** a run whose sub-agents, or the agents it may hand off to, name a provider no client serves fails when
-  it starts, before it stores anything, as a run whose own provider nothing serves does. Each call of such a sub-agent
-  failed while the run went on, and a handoff to such an agent failed the run when it happened. Register a client
-  for the provider, or name the run's provider with `host.WithProvider(key)`, which serves its sub-agents too.
-- **Breaking:** an agent names its provider apart from its model. `WithModel(provider, model)` is gone: write
-  `WithChatOptions().WithProvider("openai").WithModel("gpt-5-mini")` for `WithModel("openai", "gpt-5-mini")`, or
-  `WithModel("gpt-5-mini")` alone for an agent that runs on the default client. The agent's provider id type is the
-  type of the key `WithProvider` takes, and TSH029 reports a key its `Settings` cannot store on that argument.
 - **Breaking:** `host.CreateChatClientAsync(options)` takes only options that `ResolveOptionsAsync` returned, and
   throws an `ArgumentException` for `ChatOptions` your code made, such as `new ChatOptions()`. Create the client from
   `await host.ResolveOptionsAsync()` instead. The client keeps those options: a call without options runs with them,
@@ -449,6 +473,8 @@ until it is rebuilt with this one.
   every record has from `object`, which is CS0108. Settings stored under the tool's name are not affected.
 - The module of an assembly whose name holds other characters than letters, digits and dots carries a hash of the
   name, as `Acme_Tools_1a2b3c4dModule` for `Acme-Tools`. The generated registration names it for you.
+- Module stamps are at version 16, so a referenced project built with an earlier Typeshift is TSH020 until it is
+  rebuilt.
 - The class that holds a toolset's picks for `Include` and `Exclude` lives in the global namespace, as the classes
   of the host members do. It was `{Toolset}ToolList` in the toolset's namespace and is `TypeshiftTools_` followed by
   the toolset's full name, each part after its length, hidden from code completion. Picks are written as before.
@@ -744,15 +770,6 @@ until it is rebuilt with this one.
   nearly every step of a run went back to the UI thread, a streamed run posted to it several times per update, the
   store appended there, and blocking on a run there deadlocked. Your code that started the run still comes back to
   its own context.
-
-### Removed
-
-- **Breaking:** `IChatClientProvider<TProviderId>` and `AddTypeshift().WithChatClientProvider<T>()` are gone, and so
-  is TSH030, which reported a class that implements no such interface. A provider's key is served by the client
-  registered under it, `services.AddKeyedChatClient(key, client)`. A key per customer becomes a `ChatProvider`
-  document your app loads and hands to the run, `support.WithProvider(document).RunAsync(...)`, with an
-  `IChatProviderConnector` registered by `WithProviderConnector<T>()` in place of the provider class; its
-  `ConnectAsync(document, ct)` builds the client, which Typeshift keeps and disposes.
 
 ### Fixed
 
