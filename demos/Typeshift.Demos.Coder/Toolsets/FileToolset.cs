@@ -13,7 +13,8 @@ internal partial class FileToolset : Toolset
     // A pattern linear matching cannot run gets this long per line, and the search stops at its first timeout
     private static readonly TimeSpan PatternTimeout = TimeSpan.FromSeconds(1);
 
-    // The three that read are read-only, so plan mode and the explorer may use them; delete_file asks first
+    // The three that read are read-only, so plan mode and the explorer may use them. The three that write ask first,
+    // in the default mode: a file the model wrote, such as .git/config or a test script, runs once a command does
     public FileToolset()
     {
         AddTool(ReadFileAsync)
@@ -28,9 +29,11 @@ internal partial class FileToolset : Toolset
             .ReadOnly()
             .WithSettings<FileSettings>();
 
-        AddTool(WriteFileAsync);
+        AddTool(WriteFileAsync)
+            .RequiresApproval();
 
-        AddTool(EditFileAsync);
+        AddTool(EditFileAsync)
+            .RequiresApproval();
 
         AddTool(DeleteFile)
             .RequiresApproval();

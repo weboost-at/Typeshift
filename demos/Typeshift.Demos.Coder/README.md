@@ -32,10 +32,11 @@ your feedback.
 
 The shell guard, `ShellGuard`, approves only `pwd` and `ls` of a folder in the workspace, which run nothing the
 workspace holds; git is not among them, since a repository's config, which the file tools may write, names commands
-git runs. In the default mode every other command asks at the console. In auto mode nobody is asked, so the guard
-rejects every command but those and the sample workspace's `sh test.sh`, and the model reads why. The model can
-still change `test.sh` before it runs it: approve a plan into auto mode only for a workspace you would let it run
-code in.
+git runs. In the default mode every other command asks at the console, and so does every call of `write_file`,
+`edit_file` and `delete_file`, so the model cannot rewrite `.git/config` or a script unseen before a command runs
+it. In auto mode nobody is asked, so the guard rejects every command but those and the sample workspace's
+`sh test.sh`, and the model reads why. There the file tools write unasked, and the model can change `test.sh`
+before it runs it: approve a plan into auto mode only for a workspace you would let it run code in.
 
 `CoderAgent` declares `UseQuestions()`, so a real model may ask which way to go before it plans or edits. Answer
 with the number of an option, several numbers where the question takes them, or your own words. The canned models
