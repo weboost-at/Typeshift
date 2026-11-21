@@ -45,7 +45,7 @@ public class AddTypeshiftTests : AgentTestBase
     public void Given_Xml_Docs_On_A_Parameters_Type_Its_Schema_Describes_Its_Properties()
     {
         // Act
-        var search = SchemaToolset.CreateSearchCompanies(Services.GetRequiredService<ToolJson>());
+        var search = SchemaToolset.TypeshiftGenerated.CreateSearchCompanies(Services.GetRequiredService<ToolJson>());
 
         // Assert
         search.JsonSchema.Assert.ItemPropertyDescription("known", "country", "Two-letter ISO country code.");

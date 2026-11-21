@@ -88,12 +88,23 @@ internal static class Names
 
     public static string FunctionName(string tool) => $"{ToPascalCase(tool)}Function";
 
-    // The members the generator adds for one tool to the toolset or the agent that declares it, which no member of the
-    // user's may share
+    // D6: the nested class of what only generated code calls: a toolset's factories and functions, an agent's
+    // declaration. Its own tools' factories and functions live in a class of their own inside it, apart from the
+    // builders of Configure{Tool}(), whose names theirs could take
+    public const string GeneratedClass = "TypeshiftGenerated";
+
+    public const string OwnToolsClass = "Tools";
+
+    // D7: a tool's factory as an agent calls it, from the toolset that declares it, which the tool's stamp carries
+    public static string ToolsetFactory(string tool) => $"{GeneratedClass}.{FactoryName(tool)}";
+
+    // D57: a tool of the agent's own, from the agent
+    public static string OwnToolFactory(string tool) => $"{GeneratedClass}.{OwnToolsClass}.{FactoryName(tool)}";
+
+    // The member the generator adds for one tool to the toolset or the agent that declares it, which no member of the
+    // user's may share; its factory and its function live in the nested class
     public static IEnumerable<string> ToolsetMembers(string tool, bool hasOverrides) =>
-        hasOverrides
-            ? [OverridesName(tool), FactoryName(tool), FunctionName(tool)]
-            : [FactoryName(tool), FunctionName(tool)];
+        hasOverrides ? [OverridesName(tool)] : [];
 
     // Two tools an agent offers clash when their names read the same in PascalCase, as get_v2 and get_v_2 do: the
     // agent would write one Configure{Tool}() and one member of its Settings for both
@@ -101,14 +112,13 @@ internal static class Names
 
     // The name two tools of one toolset or agent would both generate, null when they share none: an equal name in
     // PascalCase, as get_v2 and get_v_2 have, a property of the tool list, as equals and equals_tool are with the
-    // suffix, or a member of the class, as create_report's function and report_function's factory are
+    // suffix, or a member of the nested class, as create_report's function and report_function's factory are
     public static string? SharedMember(string tool, string other) =>
         Clashes(tool, other) ? ToPascalCase(tool)
         : ToolProperty(tool) == ToolProperty(other) ? ToolProperty(tool)
-        : ClassMembers(tool).Intersect(ClassMembers(other)).FirstOrDefault();
+        : NestedMembers(tool).Intersect(NestedMembers(other)).FirstOrDefault();
 
-    // With its overrides, which a tool has as soon as a setting of it becomes configurable
-    private static IEnumerable<string> ClassMembers(string tool) => ToolsetMembers(tool, hasOverrides: true);
+    private static IEnumerable<string> NestedMembers(string tool) => [FactoryName(tool), FunctionName(tool)];
 
     public static string Unreserved(string name, string suffix, ICollection<string> reserved) =>
         reserved.Contains(name) ? name + suffix : name;

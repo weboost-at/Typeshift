@@ -12,7 +12,9 @@ internal static class Catalog
         new(
             toolset.Type.FullName,
             toolset.Type.Accessibility == "public",
-            toolset.Tools.Select(tool => Summarize(toolset.Type, tool)).ToEquatableArray());
+            toolset.Tools
+                .Select(tool => Summarize(toolset.Type, tool, Names.ToolsetFactory(tool.Name)))
+                .ToEquatableArray());
 
     // D33, D34: the agent as its module stamps it, for the agents that use it
     public static ModuleAgent Summarize(AgentOutput output)
@@ -68,7 +70,7 @@ internal static class Catalog
         }
 
         // D57: the agent's own tools come after its toolsets'
-        foreach (var tool in agent.Tools.Select(own => Summarize(agent.Type, own)))
+        foreach (var tool in agent.Tools.Select(own => Summarize(agent.Type, own, Names.OwnToolFactory(own.Name))))
         {
             if (offered.Any(other => Names.Clashes(other.Tool.Name, tool.Name))) continue;
 
@@ -85,12 +87,13 @@ internal static class Catalog
             : use.Picks.Select(pick => toolset.Tools.FirstOrDefault(tool => tool.Property == pick))
                 .OfType<ToolSummary>();
 
-    // The generated members of a tool live in the toolset or the agent that declares it
-    private static ToolSummary Summarize(TypeModel owner, ToolModel tool) =>
+    // The generated members of a tool live in the toolset or the agent that declares it, its factory in a class
+    // nested there
+    private static ToolSummary Summarize(TypeModel owner, ToolModel tool, string factory) =>
         new(
             Name: tool.Name,
             Property: Names.ToolProperty(tool.Name),
-            Factory: Names.FactoryName(tool.Name),
+            Factory: factory,
             Settings: tool.Settings?.Type,
             Overrides: tool.Settings?.HasConfigurable is true
                 ? $"{owner.FullName}.{Names.OverridesName(tool.Name)}"

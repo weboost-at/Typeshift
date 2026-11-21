@@ -19,7 +19,10 @@ public class ToolInvocationTests : HostTestBase
             .Reply(Call(Data.Tool.CallId, "probe", ("query", Data.Tool.Query)))
             .Reply(Text(Data.Tool.Answer));
 
-        var options = new ChatOptions { Tools = [ProbeToolset.CreateProbe(new ProbeSettings(), Json)] };
+        var options = new ChatOptions
+        {
+            Tools = [ProbeToolset.TypeshiftGenerated.CreateProbe(new ProbeSettings(), Json)]
+        };
 
         // Act
         var response = await FunctionLoop().GetResponseAsync(Data.Tool.Question, options, Ct);
@@ -38,7 +41,10 @@ public class ToolInvocationTests : HostTestBase
                 Call(Data.Tool.SecondCallId, "probe", ("query", Data.Tool.Query))))
             .Reply(Text(Data.Tool.Answer));
 
-        var options = new ChatOptions { Tools = [ProbeToolset.CreateProbe(new ProbeSettings(), Json)] };
+        var options = new ChatOptions
+        {
+            Tools = [ProbeToolset.TypeshiftGenerated.CreateProbe(new ProbeSettings(), Json)]
+        };
 
         // Act
         var response = await FunctionLoop().GetResponseAsync(Data.Tool.Question, options, Ct);
@@ -54,7 +60,7 @@ public class ToolInvocationTests : HostTestBase
     public async Task Given_A_Call_The_Tool_Receives_The_Services_Its_Arguments_Carry()
     {
         // Arrange
-        var probe = ProbeToolset.CreateProbe(new ProbeSettings(), Json);
+        var probe = ProbeToolset.TypeshiftGenerated.CreateProbe(new ProbeSettings(), Json);
 
         // Act
         var result = ReadResult<ProbeResult>(await probe.InvokeAsync(Arguments(("query", Data.Tool.Query)), Ct));
@@ -67,7 +73,7 @@ public class ToolInvocationTests : HostTestBase
     public async Task Given_A_Call_The_Tool_Receives_The_Calls_Token()
     {
         // Arrange
-        var probe = ProbeToolset.CreateProbe(new ProbeSettings(), Json);
+        var probe = ProbeToolset.TypeshiftGenerated.CreateProbe(new ProbeSettings(), Json);
 
         // Act
         var result = ReadResult<ProbeResult>(await probe.InvokeAsync(Arguments(("query", Data.Tool.Query)), Ct));
@@ -81,7 +87,7 @@ public class ToolInvocationTests : HostTestBase
     {
         // Arrange
         var settings = new ProbeSettings { Limit = Data.Tool.Limit };
-        var probe = ProbeToolset.CreateProbe(settings, Json);
+        var probe = ProbeToolset.TypeshiftGenerated.CreateProbe(settings, Json);
 
         // Act
         var result = ReadResult<ProbeResult>(await probe.InvokeAsync(Arguments(("query", Data.Tool.Query)), Ct));
@@ -98,7 +104,10 @@ public class ToolInvocationTests : HostTestBase
             .Reply(Call(Data.Tool.CallId, "probe", ("query", Data.Tool.Query)))
             .Reply(Text(Data.Tool.Answer));
 
-        var options = new ChatOptions { Tools = [ProbeToolset.CreateProbe(new ProbeSettings(), Json)] };
+        var options = new ChatOptions
+        {
+            Tools = [ProbeToolset.TypeshiftGenerated.CreateProbe(new ProbeSettings(), Json)]
+        };
 
         // Act
         await FunctionLoop().GetResponseAsync(Data.Tool.Question, options, Ct);
@@ -120,7 +129,7 @@ public class ToolInvocationTests : HostTestBase
             .Reply(Call(Data.Tool.CallId, ContentToolset.ToolNames.Picture, ("caption", Data.Tool.Query)))
             .Reply(Text(Data.Tool.Answer));
 
-        var options = new ChatOptions { Tools = [ContentToolset.CreatePicture(Json)] };
+        var options = new ChatOptions { Tools = [ContentToolset.TypeshiftGenerated.CreatePicture(Json)] };
 
         // Act
         await FunctionLoop().GetResponseAsync(Data.Tool.Question, options, Ct);
@@ -133,7 +142,7 @@ public class ToolInvocationTests : HostTestBase
     public async Task Given_A_Tool_That_Awaits_Its_Content_The_Model_Receives_The_Content()
     {
         // Arrange
-        var scan = ContentToolset.CreateScan(Json);
+        var scan = ContentToolset.TypeshiftGenerated.CreateScan(Json);
 
         // Act
         var result = await scan.InvokeAsync(Arguments(("caption", Data.Tool.Query)), Ct);
@@ -150,7 +159,7 @@ public class ToolInvocationTests : HostTestBase
             .Reply(Call(Data.Tool.CallId, ContentToolset.ToolNames.Annotate, ("caption", Data.Tool.Query)))
             .Reply(Text(Data.Tool.Answer));
 
-        var options = new ChatOptions { Tools = [ContentToolset.CreateAnnotate(Json)] };
+        var options = new ChatOptions { Tools = [ContentToolset.TypeshiftGenerated.CreateAnnotate(Json)] };
 
         // Act
         await FunctionLoop().GetResponseAsync(Data.Tool.Question, options, Ct);
@@ -163,7 +172,7 @@ public class ToolInvocationTests : HostTestBase
     public async Task Given_No_Services_The_Call_Fails_Saying_How_To_Run_It()
     {
         // Arrange
-        var probe = ProbeToolset.CreateProbe(new ProbeSettings(), Json);
+        var probe = ProbeToolset.TypeshiftGenerated.CreateProbe(new ProbeSettings(), Json);
         var arguments = new AIFunctionArguments(new Dictionary<string, object?> { ["query"] = Data.Tool.Query });
 
         // Act
@@ -177,7 +186,7 @@ public class ToolInvocationTests : HostTestBase
     public async Task Given_A_Tool_That_Streams_Its_Results_The_Model_Receives_Them_As_One_Array()
     {
         // Arrange
-        var split = StreamingToolset.CreateSplitWords(Json);
+        var split = StreamingToolset.TypeshiftGenerated.CreateSplitWords(Json);
 
         // Act
         var result = ReadResult<string[]>(await split.InvokeAsync(Arguments(("text", "one two three")), Ct));
@@ -190,7 +199,7 @@ public class ToolInvocationTests : HostTestBase
     public async Task Given_A_Stream_Tool_Without_A_Token_A_Cancelled_Call_Stops_Reading()
     {
         // Arrange
-        var count = StreamingToolset.CreateCountSlowly(Json);
+        var count = StreamingToolset.TypeshiftGenerated.CreateCountSlowly(Json);
         var gate = Scope.GetRequiredService<StreamGate>();
         using var cancelling = CancellationTokenSource.CreateLinkedTokenSource(Ct);
 
@@ -209,7 +218,7 @@ public class ToolInvocationTests : HostTestBase
     public async Task Given_A_Missing_Required_Argument_The_Call_Fails_With_A_ToolException_Naming_It()
     {
         // Arrange
-        var count = SchemaToolset.CreateCountWords(Json);
+        var count = SchemaToolset.TypeshiftGenerated.CreateCountWords(Json);
 
         // Act
         var invoke = async () => await count.InvokeAsync(Arguments(), Ct);
@@ -228,7 +237,7 @@ public class ToolInvocationTests : HostTestBase
     public async Task Given_A_Null_For_A_Required_Argument_The_Call_Fails_Naming_It(string argument, bool asJson)
     {
         // Arrange
-        var refund = BindingToolset.CreateRefund(Json);
+        var refund = BindingToolset.TypeshiftGenerated.CreateRefund(Json);
         var arguments = Arguments(("number", Data.Tool.Lives), ("reason", Data.Tool.Query));
         arguments[argument] = asJson ? JsonElement.Parse("null") : null;
 
@@ -247,7 +256,7 @@ public class ToolInvocationTests : HostTestBase
     public async Task Given_A_Null_For_A_Nullable_Required_Argument_The_Tool_Receives_Null(bool asJson)
     {
         // Arrange
-        var remind = BindingToolset.CreateRemind(Json);
+        var remind = BindingToolset.TypeshiftGenerated.CreateRemind(Json);
         object? nothing = asJson ? JsonElement.Parse("null") : null;
 
         // Act
@@ -261,7 +270,7 @@ public class ToolInvocationTests : HostTestBase
     public async Task Given_A_Json_Null_For_An_Argument_That_Takes_Any_Json_The_Tool_Receives_It()
     {
         // Arrange
-        var echo = SchemaToolset.CreateEchoJson(Json);
+        var echo = SchemaToolset.TypeshiftGenerated.CreateEchoJson(Json);
 
         // Act
         var result = await echo.InvokeAsync(Arguments(("value", JsonElement.Parse("null"))), Ct);
@@ -274,7 +283,7 @@ public class ToolInvocationTests : HostTestBase
     public async Task Given_An_Argument_Of_The_Wrong_Type_The_Failure_Names_The_Argument_And_The_Tool()
     {
         // Arrange
-        var refund = BindingToolset.CreateRefund(Json);
+        var refund = BindingToolset.TypeshiftGenerated.CreateRefund(Json);
         var arguments = Arguments(("number", JsonElement.Parse("\"abc\"")), ("reason", Data.Tool.Query));
 
         // Act
@@ -292,7 +301,7 @@ public class ToolInvocationTests : HostTestBase
             .Reply(Call(Data.Tool.CallId, "refund", ("number", Data.Tool.Lives), ("reason", Data.Tool.Lives)))
             .Reply(Text(Data.Tool.Answer));
 
-        var options = new ChatOptions { Tools = [BindingToolset.CreateRefund(Json)] };
+        var options = new ChatOptions { Tools = [BindingToolset.TypeshiftGenerated.CreateRefund(Json)] };
         var loop = new FunctionInvokingChatClient(ChatClient, null, Scope) { IncludeDetailedErrors = true };
 
         // Act
@@ -307,7 +316,7 @@ public class ToolInvocationTests : HostTestBase
     public async Task Given_An_Object_Argument_Without_A_Required_Member_The_Failure_Names_The_Member()
     {
         // Arrange
-        var ship = BindingToolset.CreateShip(Json);
+        var ship = BindingToolset.TypeshiftGenerated.CreateShip(Json);
         var parcel = JsonElement.Parse("""{"id":"p1"}""");
 
         // Act
@@ -321,7 +330,7 @@ public class ToolInvocationTests : HostTestBase
     public async Task Given_An_Object_Argument_With_A_Null_For_A_Member_That_Takes_None_The_Failure_Names_The_Member()
     {
         // Arrange
-        var ship = BindingToolset.CreateShip(Json);
+        var ship = BindingToolset.TypeshiftGenerated.CreateShip(Json);
         var parcel = JsonElement.Parse("""{"id":"p1","destination":null}""");
 
         // Act
@@ -335,7 +344,7 @@ public class ToolInvocationTests : HostTestBase
     public async Task Given_An_Absent_Optional_Argument_The_Tool_Takes_Its_Default()
     {
         // Arrange
-        var search = SchemaToolset.CreateSearchCompanies(Json);
+        var search = SchemaToolset.TypeshiftGenerated.CreateSearchCompanies(Json);
 
         var arguments = Arguments(
             ("query", Data.Tool.Query),
@@ -353,7 +362,7 @@ public class ToolInvocationTests : HostTestBase
     public async Task Given_A_Json_Null_For_An_Optional_Argument_The_Tool_Takes_Its_Default()
     {
         // Arrange
-        var search = SchemaToolset.CreateSearchCompanies(Json);
+        var search = SchemaToolset.TypeshiftGenerated.CreateSearchCompanies(Json);
 
         var arguments = Arguments(
             ("query", Data.Tool.Query),
@@ -372,7 +381,7 @@ public class ToolInvocationTests : HostTestBase
     public async Task Given_A_Number_Of_Another_Type_The_Tool_Receives_It_As_Its_Parameter_Type()
     {
         // Arrange
-        var search = SchemaToolset.CreateSearchCompanies(Json);
+        var search = SchemaToolset.TypeshiftGenerated.CreateSearchCompanies(Json);
 
         var arguments = Arguments(
             ("query", Data.Tool.Query),
@@ -393,7 +402,7 @@ public class ToolInvocationTests : HostTestBase
     public async Task Given_An_Object_Argument_As_Json_Text_The_Tool_Receives_The_Object(bool asJson)
     {
         // Arrange
-        var locate = SchemaToolset.CreateLocate(Json);
+        var locate = SchemaToolset.TypeshiftGenerated.CreateLocate(Json);
         var text = JsonSerializer.Serialize(Data.Tool.Point, Json.SerializerOptions);
         object point = asJson ? JsonSerializer.SerializeToElement(text) : text;
 
@@ -408,7 +417,7 @@ public class ToolInvocationTests : HostTestBase
     public async Task Given_A_Struct_Parameter_Defaulting_To_Default_The_Tool_Runs_Without_It()
     {
         // Arrange
-        var locate = SchemaToolset.CreateLocate(Json);
+        var locate = SchemaToolset.TypeshiftGenerated.CreateLocate(Json);
 
         // Act
         var result = await locate.InvokeAsync(Arguments(), Ct);

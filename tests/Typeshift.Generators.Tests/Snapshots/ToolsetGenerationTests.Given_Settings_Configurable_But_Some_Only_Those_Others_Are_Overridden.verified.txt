@@ -30,7 +30,7 @@ namespace Demo;
 [global::Typeshift.Generated.GeneratedTool(
     "search_articles",
     "SearchArticles",
-    "CreateSearchArticles",
+    "TypeshiftGenerated.CreateSearchArticles",
     Settings = typeof(global::Demo.SearchArticlesSettings),
     Overrides = typeof(global::Demo.KnowledgeToolset.SearchArticlesOverrides))]
 partial class KnowledgeToolset
@@ -128,48 +128,57 @@ partial class KnowledgeToolset
     }
 
     /// <summary>
-    /// Creates the <c>search_articles</c> tool; generated agents call it.
+    /// The factories of the tools declared here, which generated agents call.
     /// </summary>
-    /// <param name="settings">The settings the tool runs with.</param>
-    /// <param name="json">How the tool binds its arguments and serializes its result.</param>
-    /// <returns>The tool.</returns>
     [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
     [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
     [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-    [global::System.Diagnostics.DebuggerStepThrough]
-    public static global::Microsoft.Extensions.AI.AIFunction CreateSearchArticles(
-        global::Demo.SearchArticlesSettings settings,
-        global::Typeshift.Generated.ToolJson json) =>
-        new SearchArticlesFunction(settings, json);
-
-    [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
-    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-    private sealed class SearchArticlesFunction(
-        global::Demo.SearchArticlesSettings settings,
-        global::Typeshift.Generated.ToolJson json)
-        : global::Typeshift.Generated.GeneratedToolFunction(json)
+    public static class TypeshiftGenerated
     {
-        private static readonly global::System.Collections.Generic.IReadOnlyList<global::Typeshift.Generated.ToolParameter> ModelParameters =
-        [
-            new("query", typeof(string))
-            {
-                Description = "What to search for."
-            }
-        ];
+        /// <summary>
+        /// Creates the <c>search_articles</c> tool; generated agents call it.
+        /// </summary>
+        /// <param name="settings">The settings the tool runs with.</param>
+        /// <param name="json">How the tool binds its arguments and serializes its result.</param>
+        /// <returns>The tool.</returns>
+        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+        [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+        [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+        [global::System.Diagnostics.DebuggerStepThrough]
+        public static global::Microsoft.Extensions.AI.AIFunction CreateSearchArticles(
+            global::Demo.SearchArticlesSettings settings,
+            global::Typeshift.Generated.ToolJson json) =>
+            new SearchArticlesFunction(settings, json);
 
-        public override string Name => "search_articles";
+        [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+        [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+        private sealed class SearchArticlesFunction(
+            global::Demo.SearchArticlesSettings settings,
+            global::Typeshift.Generated.ToolJson json)
+            : global::Typeshift.Generated.GeneratedToolFunction(json)
+        {
+            private static readonly global::System.Collections.Generic.IReadOnlyList<global::Typeshift.Generated.ToolParameter> ModelParameters =
+            [
+                new("query", typeof(string))
+                {
+                    Description = "What to search for."
+                }
+            ];
 
-        public override string Description => "Searches the help center.";
+            public override string Name => "search_articles";
 
-        protected override global::System.Collections.Generic.IReadOnlyList<global::Typeshift.Generated.ToolParameter> Parameters => ModelParameters;
+            public override string Description => "Searches the help center.";
 
-        protected override global::System.Threading.Tasks.ValueTask<object?> InvokeToolAsync(
-            global::Microsoft.Extensions.AI.AIFunctionArguments arguments,
-            global::System.IServiceProvider services,
-            global::System.Threading.CancellationToken ct) =>
-            new(GetResult(global::Demo.KnowledgeToolset.SearchArticles(
-                GetArgument<string>(arguments, "query"),
-                settings)));
+            protected override global::System.Collections.Generic.IReadOnlyList<global::Typeshift.Generated.ToolParameter> Parameters => ModelParameters;
+
+            protected override global::System.Threading.Tasks.ValueTask<object?> InvokeToolAsync(
+                global::Microsoft.Extensions.AI.AIFunctionArguments arguments,
+                global::System.IServiceProvider services,
+                global::System.Threading.CancellationToken ct) =>
+                new(GetResult(global::Demo.KnowledgeToolset.SearchArticles(
+                    GetArgument<string>(arguments, "query"),
+                    settings)));
+        }
     }
 }
 
@@ -178,7 +187,7 @@ partial class KnowledgeToolset
 #nullable enable
 #pragma warning disable CS0612, CS0618
 
-[assembly: global::Typeshift.Generated.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule), 19)]
+[assembly: global::Typeshift.Generated.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule), 20)]
 
 namespace Typeshift.Generated;
 

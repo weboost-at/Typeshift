@@ -666,11 +666,41 @@ public static class DiagnosticSources
 
             public static string Echo(string text) => text;
 
-            public static void CreateEcho()
+            public static class ToolNames
             {
+                public const string Echo = "echo";
             }
         }
         // end-snippet
+        """;
+
+    // D6: the class that holds the factories of a toolset's tools
+    public const string MemberNamedLikeTheGeneratedClass =
+        """
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+
+            public static int TypeshiftGenerated => 1;
+        }
+        """;
+
+    public const string ToolsetNamedLikeTheGeneratedClass =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class TypeshiftGenerated : Toolset
+        {
+            public TypeshiftGenerated() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+        }
         """;
 
     // A configurable setting gives the tool an EchoOverrides record in the toolset
@@ -3354,31 +3384,24 @@ public static class DiagnosticSources
         }
         """;
 
-    public const string ToolsetNamedLikeAToolsFunction =
+    // A class cannot hold a member of its own name, and a tool with configurable settings gets EchoOverrides
+    public const string ToolsetNamedLikeAToolsOverrides =
         """
         using Typeshift;
 
         namespace Demo;
 
-        internal partial class EchoFunction : Toolset
+        internal record EchoSettings
         {
-            public EchoFunction() => AddTool(Echo).WithDescription("Echoes.");
-
-            public static string Echo(string text) => text;
+            public int Repeat { get; init; } = 1;
         }
-        """;
 
-    public const string ToolsetNamedLikeAToolsFactory =
-        """
-        using Typeshift;
-
-        namespace Demo;
-
-        internal partial class CreateTicket : Toolset
+        internal partial class EchoOverrides : Toolset
         {
-            public CreateTicket() => AddTool(Ticket).WithDescription("Creates.");
+            public EchoOverrides() =>
+                AddTool(Echo).WithDescription("Echoes.").WithSettings<EchoSettings>().Configurable(s => s.Repeat);
 
-            public static string Ticket(string text) => text;
+            public static string Echo(string text, EchoSettings settings) => text;
         }
         """;
 

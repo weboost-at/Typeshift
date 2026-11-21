@@ -707,7 +707,9 @@ public partial class AgentGenerationTests : GeneratorTestBase
 
         // Assert
         run.Assert.CompilesCleanly();
-        run.Source("Demo.ResearchAgent.g.cs").Should().Contain("global::Demo.CompanyToolset.CreateFind(json)");
+        run.Source("Demo.ResearchAgent.g.cs")
+            .Should()
+            .Contain("global::Demo.CompanyToolset.TypeshiftGenerated.CreateFind(json)");
     }
 
     [Theory]

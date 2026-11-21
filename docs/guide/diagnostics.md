@@ -425,7 +425,7 @@ internal partial class EchoToolset : Toolset
     public static string Echo(string text, EchoSettings settings) => text;
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L1248-L1261' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh012' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L1278-L1291' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh012' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 A `Func<int>` has no stored form. Remove the pick, or change the member's type. A member that
@@ -554,7 +554,7 @@ internal partial class EchoAgent : Agent
     public EchoAgent(string model) => WithChatOptions().WithModel("openai", model);
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L925-L930' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh016' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L955-L960' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh016' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 A constructor with parameters is the usual cause, whether it takes a value, as `EchoAgent(string model)` does, or
@@ -599,9 +599,10 @@ own, name Typeshift's with its namespace.
 
 ## TSH018
 
-**Member clashes with a generated member.** A member of yours has a name the generator writes, such as `Settings` in an
-agent, or `CreateSearchTickets`, a tool's factory, or `ToolNames`, the class of the tools' names, in the toolset or the
-agent that declares the tool.
+**Member clashes with a generated member.** A member of yours has a name the generator writes into your class, such
+as `Settings` in an agent, or `ToolNames`, the class of the tools' names, or `{Tool}Overrides`, the record of a
+tool's configurable settings, in the toolset or the agent that declares the tool. A toolset with tools also gets
+`TypeshiftGenerated`, the hidden class of the tools' factories.
 
 <!-- snippet: tsh018 -->
 <a id='snippet-tsh018'></a>
@@ -612,20 +613,23 @@ internal partial class EchoToolset : Toolset
 
     public static string Echo(string text) => text;
 
-    public static void CreateEcho()
+    public static class ToolNames
     {
+        public const string Echo = "echo";
     }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L662-L673' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh018' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L662-L674' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh018' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-The generator writes a factory `CreateEcho` for the tool `echo`. Rename your member.
-[Generated members](./generated-members.md#names-and-hidden-members) lists the names, the hidden ones included.
+The generator writes a class `ToolNames` with a constant `Echo` for the tool `echo`, so remove your class and use
+the generated one, or rename yours. [Generated members](./generated-members.md#names-and-hidden-members) lists the
+names, the hidden ones included. A tool's factory, `Create{Tool}`, and its function, `{Tool}Function`, live in the
+nested `TypeshiftGenerated` class, so they share no name with a member of yours.
 
 The class itself is reported when it has such a name, since a class cannot hold a member of its own name: an agent
-named `Settings`, or a toolset named `EchoFunction` with a tool `echo`. Rename the class, or give the tool another
-name with `WithName("...")`.
+named `Settings`, or a toolset named `EchoOverrides` with a tool `echo` whose settings are configurable. Rename the
+class, or give the tool another name with `WithName("...")`.
 
 ## TSH019
 
@@ -676,7 +680,7 @@ namespace Billing
     }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L1291-L1307' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh022' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L1321-L1337' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh022' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Give one of them a `WithStorageKind` of its own, such as `WithStorageKind("BillingHelp")`.
@@ -700,7 +704,7 @@ internal partial class LeadAgent : Agent
     public LeadAgent() => UseAgent<HelpAgent>();
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L1336-L1346' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh023' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L1366-L1376' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh023' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 `HelpAgent` has no description. Give that agent a `<summary>` or a `WithDescription(...)` in its constructor, or fix
@@ -739,7 +743,7 @@ internal partial class LeadAgent : Agent
     public LeadAgent() => UseAgent<HelpAgent>();
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L1446-L1465' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh024' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L1476-L1495' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh024' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Add an [approval rule](./tool-approval.md#approval-rules) that decides the calls of `close`, or offer the agent with
@@ -763,7 +767,7 @@ internal partial class EchoAgent : Agent
     }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L1030-L1040' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh025' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L1060-L1070' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh025' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Remove the second `UseToolset<EchoToolset>()`. The first three cases below show while you type, the others when you
@@ -813,7 +817,7 @@ internal partial class TellAgent : Agent
     }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L2030-L2050' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh026' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L2060-L2080' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh026' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Break the circle by removing one of these `UseAgent<T>()` calls, or by replacing one with `UseHandoff<T>()`, because
@@ -848,7 +852,7 @@ internal static class Startup
         services.AddTypeshift().WithStore<Clock>();
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L2662-L2670' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh028' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L2692-L2700' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh028' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Implement one of them, or pass the store you meant. A store's id type picks the ids it serves, as
@@ -870,7 +874,7 @@ public partial class HelpAgent : Agent
         WithChatOptions().WithModel(new ProviderKey("openai"), "fast-model").Configurable(o => o.ModelId);
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L2932-L2940' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh029' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L2962-L2970' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh029' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Name providers by a string, a number, a `Guid` or an enum, or keep the model out of the settings: an agent whose
@@ -892,7 +896,7 @@ internal static class Startup
         services.AddTypeshift().WithChatClientProvider<Clients>();
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L2962-L2970' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh030' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L2992-L3000' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh030' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Implement `IChatClientProvider<T>` for the [provider id type](./models.md#the-provider-id-type) of your agents, such
@@ -980,7 +984,7 @@ internal partial class LeadAgent : Agent
     public LeadAgent() => UseAgent<HelpAgent>();
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L1472-L1487' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh034' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L1502-L1517' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh034' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Declare `UseQuestions()` on the calling agent, which can [ask the user](./tool-approval.md#asking-the-user) and pass
@@ -1002,7 +1006,7 @@ internal partial class DeskToolset : Toolset
     public static string AskUser(string question) => question;
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L1523-L1530' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh035' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L1553-L1560' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh035' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The method `AskUser` names its tool `ask_user`, which is one of the reserved names:
@@ -1059,7 +1063,7 @@ internal partial class DeskAgent : Agent
     }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L1770-L1789' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh037' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L1800-L1819' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh037' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Remove the pick, so that only your code sets the mode: `WithMode(...)` for the agent's runs, an approved plan, and
@@ -1127,7 +1131,7 @@ internal partial class VersionedAgent : Agent
     }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L753-L762' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh039' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L783-L792' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh039' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Two values are reported:
@@ -1162,7 +1166,7 @@ internal static class Startup
         Create(client);
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L3640-L3650' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh040' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L3663-L3673' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh040' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The analyzer reports these spellings:
@@ -1195,7 +1199,7 @@ internal sealed class RefundDesk(AgentHost<SupportAgent> support)
     }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L3731-L3742' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh041' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L3754-L3765' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh041' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Run the copy, as in `support.WithSettingsId(customer).RunAsync(question)`, or keep it in a variable and run that
@@ -1226,7 +1230,7 @@ internal sealed class TicketFollowUp(TypeshiftRuntime runtime)
     }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L3778-L3792' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh042' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L3801-L3815' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh042' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Take the copy without `using`, and dispose the host where its work ends. The analyzer reports nothing for
@@ -1252,7 +1256,7 @@ internal partial class DeskAgent : Agent
     }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L3926-L3936' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh043' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L3949-L3959' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh043' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Remove the `Exclude`, include the tool, or remove the mark. To make a tool ask your app, it has to be offered

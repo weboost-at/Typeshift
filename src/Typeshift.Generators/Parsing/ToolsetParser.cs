@@ -34,7 +34,7 @@ internal static class ToolsetParser
 
         declarations = ParseTools(toolset, constructors, documented, reporter, ct);
         var tools = declarations.Select(declaration => declaration.Tool).ToEquatableArray();
-        var clash = ClashesWithToolNames(toolset, tools.Count, reporter);
+        var clash = ClashesWithClasses(toolset, tools.Count, [Names.ToolNamesClass, Names.GeneratedClass], reporter);
 
         // A partial in another file would declare another class than a file-local one
         return notPartial is null && !clash && !toolset.IsFileLocalOrNestedInOne()
@@ -42,15 +42,15 @@ internal static class ToolsetParser
             : null;
     }
 
-    // D6: a toolset or an agent with tools gets a class of constants that name them, which no member of the user's
-    // may share and the class itself cannot be named like (TSH018)
-    public static bool ClashesWithToolNames(INamedTypeSymbol owner, int tools, Reporter reporter)
+    // D6: a toolset or an agent with tools gets a class of constants that name them, and a toolset a class of their
+    // factories, which no member of the user's may share and the class itself cannot be named like (TSH018)
+    public static bool ClashesWithClasses(INamedTypeSymbol owner, int tools, string[] classes, Reporter reporter)
     {
         if (tools == 0) return false;
 
-        var clash = owner.Name == Names.ToolNamesClass
+        var clash = classes.Contains(owner.Name)
             ? owner
-            : owner.GetMembers(Names.ToolNamesClass).FirstOrDefault(Names.IsUsers);
+            : classes.SelectMany(name => owner.GetMembers(name)).FirstOrDefault(Names.IsUsers);
 
         if (clash is null) return false;
 

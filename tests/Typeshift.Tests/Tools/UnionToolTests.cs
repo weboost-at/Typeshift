@@ -11,7 +11,7 @@ public class UnionToolTests : HostTestBase
     public void Given_A_Union_Parameter_Each_Case_Of_Its_Schema_Names_Its_Type()
     {
         // Act
-        var adopt = UnionToolset.CreateAdopt(Json);
+        var adopt = UnionToolset.TypeshiftGenerated.CreateAdopt(Json);
 
         // Assert
         adopt.JsonSchema.Assert.ParameterCaseTypes("pet", "object", "object");
@@ -27,7 +27,7 @@ public class UnionToolTests : HostTestBase
             .Reply(Call(Data.Tool.CallId, "adopt", ("pet", cat)))
             .Reply(Text(Data.Tool.Answer));
 
-        var options = new ChatOptions { Tools = [UnionToolset.CreateAdopt(Json)] };
+        var options = new ChatOptions { Tools = [UnionToolset.TypeshiftGenerated.CreateAdopt(Json)] };
 
         // Act
         var response = await FunctionLoop().GetResponseAsync(Data.Tool.Question, options, Ct);
@@ -44,7 +44,7 @@ public class UnionToolTests : HostTestBase
             .Reply(Call(Data.Tool.CallId, "find_ticket", ("key", Data.Tool.Query)))
             .Reply(Text(Data.Tool.Answer));
 
-        var options = new ChatOptions { Tools = [UnionToolset.CreateFindTicket(Json)] };
+        var options = new ChatOptions { Tools = [UnionToolset.TypeshiftGenerated.CreateFindTicket(Json)] };
 
         // Act
         var response = await FunctionLoop().GetResponseAsync(Data.Tool.Question, options, Ct);
@@ -61,7 +61,7 @@ public class UnionToolTests : HostTestBase
             .Reply(Call(Data.Tool.CallId, "find_ticket", ("key", Data.Tool.Lives)))
             .Reply(Text(Data.Tool.Answer));
 
-        var options = new ChatOptions { Tools = [UnionToolset.CreateFindTicket(Json)] };
+        var options = new ChatOptions { Tools = [UnionToolset.TypeshiftGenerated.CreateFindTicket(Json)] };
 
         // Act
         var response = await FunctionLoop().GetResponseAsync(Data.Tool.Question, options, Ct);
@@ -78,7 +78,7 @@ public class UnionToolTests : HostTestBase
             .Reply(Call(Data.Tool.CallId, "find_ticket_by_number", ("number", $"{Data.Tool.Lives}")))
             .Reply(Text(Data.Tool.Answer));
 
-        var options = new ChatOptions { Tools = [UnionToolset.CreateFindTicketByNumber(Json)] };
+        var options = new ChatOptions { Tools = [UnionToolset.TypeshiftGenerated.CreateFindTicketByNumber(Json)] };
 
         // Act
         var response = await FunctionLoop().GetResponseAsync(Data.Tool.Question, options, Ct);
@@ -91,7 +91,7 @@ public class UnionToolTests : HostTestBase
     public async Task Given_Two_Cases_That_Read_A_Json_String_A_String_Fails_The_Call()
     {
         // Arrange
-        var redeem = UnionToolset.CreateRedeem(Json);
+        var redeem = UnionToolset.TypeshiftGenerated.CreateRedeem(Json);
         var code = JsonSerializer.SerializeToElement(Data.Tool.Query);
 
         // Act
@@ -105,7 +105,7 @@ public class UnionToolTests : HostTestBase
     public async Task Given_Json_That_Fits_No_Case_The_Failure_Names_The_Cases()
     {
         // Arrange
-        var find = UnionToolset.CreateFindTicket(Json);
+        var find = UnionToolset.TypeshiftGenerated.CreateFindTicket(Json);
         var key = JsonSerializer.SerializeToElement(true);
 
         // Act
@@ -121,7 +121,7 @@ public class UnionToolTests : HostTestBase
     public async Task Given_A_Json_Null_For_A_Union_Argument_It_Binds_The_Empty_Union()
     {
         // Arrange
-        var find = UnionToolset.CreateFindTicket(Json);
+        var find = UnionToolset.TypeshiftGenerated.CreateFindTicket(Json);
 
         // Act
         var result = await find.InvokeAsync(Arguments(("key", JsonElement.Parse("null"))), Ct);
@@ -134,7 +134,7 @@ public class UnionToolTests : HostTestBase
     public async Task Given_A_Text_That_Starts_Like_Json_A_Union_With_A_Text_Case_Binds_It()
     {
         // Arrange
-        var find = UnionToolset.CreateFindTicket(Json);
+        var find = UnionToolset.TypeshiftGenerated.CreateFindTicket(Json);
         var title = $"[urgent] {Data.Tool.Query}";
 
         // Act
@@ -152,7 +152,7 @@ public class UnionToolTests : HostTestBase
             .Reply(Call(Data.Tool.CallId, "reserve", ("seats", $"{Data.Tool.Lives}")))
             .Reply(Text(Data.Tool.Answer));
 
-        var options = new ChatOptions { Tools = [UnionToolset.CreateReserve(Json)] };
+        var options = new ChatOptions { Tools = [UnionToolset.TypeshiftGenerated.CreateReserve(Json)] };
 
         // Act
         var response = await FunctionLoop().GetResponseAsync(Data.Tool.Question, options, Ct);

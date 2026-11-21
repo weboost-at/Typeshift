@@ -28,7 +28,7 @@ internal static class ToolsetEmitter
             toolset.Type,
             toolset.ExperimentalIds.Concat(GetExperimentalIds(toolset.Tools)),
             toolset.Tools.Select(tool => Stamp(toolset, tool)),
-            writer => WriteTools(writer, toolset.Tools));
+            writer => WriteToolset(writer, toolset.Tools));
 
     // D4, D12: what agents pick in UseToolset<T>().Include(t => t.X), in the global namespace and a file of its own,
     // so every file has the picks in scope, whatever it imports; null for a toolset the generated code cannot reach
@@ -43,26 +43,48 @@ internal static class ToolsetEmitter
         return writer.ToString();
     }
 
-    // The members of each tool, in the toolset or the agent that declares it, after the constants that name them
+    // The members of each tool in the toolset or the agent that declares it: the constants that name them, and the
+    // overrides of a tool with configurable settings
     public static void WriteTools(SourceWriter writer, EquatableArray<ToolModel> tools)
     {
         if (tools.Count == 0) return;
 
         WriteToolNames(writer, tools);
 
-        foreach (var tool in tools)
+        foreach (var tool in tools.Where(HasOverrides))
         {
             writer.Line();
+            WriteOverrides(writer, tool, tool.Settings!);
+        }
+    }
 
-            if (HasOverrides(tool))
-            {
-                WriteOverrides(writer, tool, tool.Settings!);
-                writer.Line();
-            }
+    // D6: each tool's factory and function, in a nested class, so no member of the user's shares a name with them
+    public static void WriteFactories(SourceWriter writer, EquatableArray<ToolModel> tools)
+    {
+        foreach (var tool in tools)
+        {
+            if (tool != tools[0]) writer.Line();
 
             WriteFactory(writer, tool);
             writer.Line();
             WriteFunction(writer, tool);
+        }
+    }
+
+    // D10: the factories are public and hidden, since an agent of another assembly creates the tools
+    private static void WriteToolset(SourceWriter writer, EquatableArray<ToolModel> tools)
+    {
+        if (tools.Count == 0) return;
+
+        WriteTools(writer, tools);
+        writer.Line();
+        Docs.WriteSummary(writer, "The factories of the tools declared here, which generated agents call.");
+        writer.Line(Names.Hidden);
+        writer.Lines(Names.Generated);
+
+        using (writer.Block($"public static class {Names.GeneratedClass}"))
+        {
+            WriteFactories(writer, tools);
         }
     }
 
@@ -104,7 +126,7 @@ internal static class ToolsetEmitter
         {
             Names.Literal(tool.Name),
             Names.Literal(Names.ToolProperty(tool.Name)),
-            Names.Literal(Names.FactoryName(tool.Name))
+            Names.Literal(Names.ToolsetFactory(tool.Name))
         };
 
         if (tool.Settings is { } settings) arguments.Add($"Settings = typeof({settings.Type})");

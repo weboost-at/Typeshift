@@ -211,7 +211,8 @@ The table lists every entry by its ID, with the section that holds it and whethe
 
 - **Status:** carried (v0 D2), extended.
 - **Decision:** per toolset a `{Tool}Overrides` record per tool with configurable settings, a nested `ToolNames`
-  class of one constant per tool (D13), which an agent with tools of its own gets too, and a
+  class of one constant per tool (D13), which an agent with tools of its own gets too, a hidden nested class
+  `TypeshiftGenerated` of each tool's factory and function, and a
   `Tstools_{full name}` extension block in the global namespace (D12); per agent the nested `Settings`
   record, a private `Configure{Tool}()` per offered tool with settings and a `Tshost_{full name}` extension
   block in the global namespace (D12); per assembly a module. Keywords get `@`. A clash with a user member is
@@ -219,6 +220,14 @@ The table lists every entry by its ID, with the section that holds it and whethe
   a class named like a member written into it. Two tools of one class that would share a generated member are
   TSH007. A generated file is named after its class's full name. The compiler compares those file names without
   case, so where two full names differ only by case, each file's name also carries a hash of its class's spelling.
+- **A tool's factory and function:** `Create{Tool}` and the private `{Tool}Function` were members of the toolset up
+  to 0.1.0-alpha.7, so a method `CreateReport` beside `AddTool(Report)` was TSH018, and so was a toolset named
+  `CreateTicket` with a tool `ticket`. They live in `TypeshiftGenerated` now, a public static class, hidden, since an
+  agent of another assembly calls the factory, and the stamp names it from the toolset,
+  `TypeshiftGenerated.Create{Tool}` (D7). Two tools whose factory and function share a name there stay TSH007. An
+  agent's own tools have theirs in a class `Tools` inside the agent's `TypeshiftGenerated`, apart from the builders
+  of `Configure{Tool}()`: `x_builder`'s factory would take the name of `create_x`'s builder. `{Tool}Overrides` and
+  `ToolNames` stay members of the class, since an app names them.
 - **Names a generated type already has:** a generated property never takes the name of a member its type has from
   `object` (`Names.ObjectMembers`) or declares itself, and gets a suffix instead: `Tool` on the tool list and in an
   agent's `Settings`, `Value` in an overrides record. A tool's constant in `ToolNames` takes the name of its property
@@ -233,7 +242,8 @@ The table lists every entry by its ID, with the section that holds it and whethe
   `Acme.Tools`. The hash is FNV-1a, the same on every machine. The name travels in the `[GeneratedModule]` stamp
   (D7), so no reader derives it.
 - **Agents:** besides those, the hidden `Declaration` override, one private nested class `TypeshiftGenerated` (the
-  declaration, the builders and the per-agent store of `Configure{Tool}()` values) and one private field
+  declaration, the builders, the per-agent store of `Configure{Tool}()` values and the factories and functions of
+  the agent's own tools) and one private field
   `_typeshift`, so an agent gains as few names as possible. A tool's member in `Settings` named like an option or a
   record member gets a `Tool` suffix, and one more while another offered tool has that name: beside `kind_tool`,
   the tool `kind` is `KindToolTool`. A public agent's `Settings` cannot name the overrides of an internal toolset:
@@ -248,8 +258,9 @@ The table lists every entry by its ID, with the section that holds it and whethe
 - **Status:** approved.
 - **Context:** v0's stamps carried tool names only, so an agent rebuilt `{Tool}Overrides` names with its own
   generator version.
-- **Decision:** tool stamps name the overrides type and the list property, and every module stamp has a stamp
-  version; an unknown version is TSH020.
+- **Decision:** tool stamps name the overrides type, the list property and the factory, from the toolset, as
+  `TypeshiftGenerated.Create{Tool}` since stamp version 20 (D6), and every module stamp has a stamp version; an
+  unknown version is TSH020.
 - **What the version covers:** everything generated code binds to, since code generated under one version runs
   against the library of another once a referenced project was built earlier. That is the shape of the stamps, every
   member of `Typeshift.Generated`, `IStorable<TSelf>` and `Agent.Declaration`. A change to any of them raises
@@ -510,8 +521,9 @@ The table lists every entry by its ID, with the section that holds it and whethe
 - **Decision:** `AddTool(method)` in an agent's constructor, with the toolsets' chain, backed by a static method of the
   agent. The agent offers its own tools after its toolsets' tools. They do not form a toolset: they get no tool list, no
   toolset stamp and no registration, so no other agent offers them and `Include` and `Exclude` do not pick them.
-- **As built:** the generator reads them with the toolsets' parser and writes their overrides, factories and functions
-  into the agent, where the agent's `Settings`, its `Configure{Tool}()` methods and its declaration list them as they
+- **As built:** the generator reads them with the toolsets' parser and writes their overrides into the agent and their
+  factories and functions into its `TypeshiftGenerated` class (D6), where the agent's `Settings`, its
+  `Configure{Tool}()` methods and its declaration list them as they
   list a toolset's tools. The analyzer applies every tool rule. An own tool's name differs from the agent's toolsets'
   (TSH025) and from every tool of the agents its standing approvals reach or come from (TSH007), since an approval names
   its tool: handoffs pass the conversation on, directly or through other agents, and a sub-agent runs with its caller's

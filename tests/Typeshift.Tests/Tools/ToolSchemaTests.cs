@@ -13,7 +13,7 @@ public class ToolSchemaTests : UnitTestBase
     public void Given_A_Struct_Parameter_Defaulting_To_Default_Its_Schema_Carries_The_Default()
     {
         // Act
-        var locate = SchemaToolset.CreateLocate(Json);
+        var locate = SchemaToolset.TypeshiftGenerated.CreateLocate(Json);
 
         // Assert
         locate.JsonSchema.Assert.ParameterDefault("point", """{"latitude":0,"longitude":0}""");
@@ -23,7 +23,7 @@ public class ToolSchemaTests : UnitTestBase
     public void Given_An_Undocumented_JsonElement_Parameter_Its_Schema_Accepts_Any_Json()
     {
         // Act
-        var echo = SchemaToolset.CreateEchoJson(Json);
+        var echo = SchemaToolset.TypeshiftGenerated.CreateEchoJson(Json);
 
         // Assert
         echo.JsonSchema.Assert.ParameterSchema("value", "{}");
@@ -33,7 +33,7 @@ public class ToolSchemaTests : UnitTestBase
     public void Given_A_Polymorphic_Parameter_Each_Case_Of_Its_Schema_Names_Its_Type()
     {
         // Act
-        var draw = ShapeToolset.CreateDraw(Json);
+        var draw = ShapeToolset.TypeshiftGenerated.CreateDraw(Json);
 
         // Assert
         draw.JsonSchema.Assert.ParameterCaseTypes("shape", "object", "object");
@@ -43,7 +43,7 @@ public class ToolSchemaTests : UnitTestBase
     public void Given_A_Nullable_Polymorphic_Parameter_Each_Case_Of_Its_Schema_Accepts_Null()
     {
         // Act
-        var draw = ShapeToolset.CreateDraw(Json);
+        var draw = ShapeToolset.TypeshiftGenerated.CreateDraw(Json);
 
         // Assert
         draw.JsonSchema.Assert.ParameterCasesAcceptNull("outline");
@@ -53,7 +53,7 @@ public class ToolSchemaTests : UnitTestBase
     public void Given_A_Nullable_Reference_Parameter_It_Is_Typed_As_Nullable()
     {
         // Act
-        var search = SchemaToolset.CreateSearchCompanies(Json);
+        var search = SchemaToolset.TypeshiftGenerated.CreateSearchCompanies(Json);
 
         // Assert
         search.JsonSchema.Assert.ParameterTypes("country", "string", "null");
@@ -69,7 +69,7 @@ public class ToolSchemaTests : UnitTestBase
         });
 
         // Act
-        var search = SchemaToolset.CreateSearchCompanies(Json);
+        var search = SchemaToolset.TypeshiftGenerated.CreateSearchCompanies(Json);
 
         // Assert
         search.JsonSchema.Assert.MatchesWithoutDescriptions(reflected.JsonSchema);
@@ -85,7 +85,7 @@ public class ToolSchemaTests : UnitTestBase
         });
 
         // Act
-        var count = TreeToolset.CreateCountCategories(Json);
+        var count = TreeToolset.TypeshiftGenerated.CreateCountCategories(Json);
 
         // Assert
         count.JsonSchema.Assert.MatchesWithoutDescriptions(reflected.JsonSchema);
@@ -95,7 +95,7 @@ public class ToolSchemaTests : UnitTestBase
     public void Given_A_Parameter_Type_Json_Cannot_Hold_The_Error_Names_The_Tool_And_The_Parameter()
     {
         // Arrange
-        var report = BindingToolset.CreateReport(Json);
+        var report = BindingToolset.TypeshiftGenerated.CreateReport(Json);
 
         // Act
         var schema = () => report.JsonSchema;
@@ -110,7 +110,7 @@ public class ToolSchemaTests : UnitTestBase
     public void Given_A_Parameter_Json_Cannot_Hold_Itself_The_Error_Says_To_Use_Another_Type()
     {
         // Arrange
-        var wait = BindingToolset.CreateWait(Json);
+        var wait = BindingToolset.TypeshiftGenerated.CreateWait(Json);
 
         // Act
         var schema = () => wait.JsonSchema;
@@ -125,7 +125,7 @@ public class ToolSchemaTests : UnitTestBase
     public void Given_Param_Docs_They_Become_The_Parameter_Descriptions()
     {
         // Act
-        var search = SchemaToolset.CreateSearchCompanies(Json);
+        var search = SchemaToolset.TypeshiftGenerated.CreateSearchCompanies(Json);
 
         // Assert
         search.JsonSchema.Assert.ParameterDescription("query", "What to search for.");
@@ -135,7 +135,7 @@ public class ToolSchemaTests : UnitTestBase
     public void Given_A_Parameter_With_A_Description_Attribute_And_No_Param_Docs_The_Schema_Describes_It()
     {
         // Act
-        var lookUp = DescribedToolset.CreateLookUpOrder(Json);
+        var lookUp = DescribedToolset.TypeshiftGenerated.CreateLookUpOrder(Json);
 
         // Assert
         lookUp.JsonSchema.Assert.ParameterDescription("number", "The order number, like A-123.");
@@ -145,7 +145,7 @@ public class ToolSchemaTests : UnitTestBase
     public void Given_A_Parameter_With_Param_Docs_And_A_Description_Attribute_The_Docs_Describe_It()
     {
         // Act
-        var cancel = DescribedToolset.CreateCancelOrder(Json);
+        var cancel = DescribedToolset.TypeshiftGenerated.CreateCancelOrder(Json);
 
         // Assert
         cancel.JsonSchema.Assert.ParameterDescription("number", "The number of the order to cancel.");
@@ -155,7 +155,7 @@ public class ToolSchemaTests : UnitTestBase
     public void Given_A_Method_With_A_Description_Attribute_And_No_Summary_The_Attribute_Describes_The_Tool()
     {
         // Act
-        var lookUp = DescribedToolset.CreateLookUpOrder(Json);
+        var lookUp = DescribedToolset.TypeshiftGenerated.CreateLookUpOrder(Json);
 
         // Assert
         lookUp.Description.Should().Be("Looks an order up by its number.");
@@ -165,7 +165,7 @@ public class ToolSchemaTests : UnitTestBase
     public void Given_A_Method_With_A_Summary_And_A_Description_Attribute_The_Summary_Describes_The_Tool()
     {
         // Act
-        var cancel = DescribedToolset.CreateCancelOrder(Json);
+        var cancel = DescribedToolset.TypeshiftGenerated.CreateCancelOrder(Json);
 
         // Assert
         cancel.Description.Should().Be("Cancels an order.");
@@ -175,10 +175,10 @@ public class ToolSchemaTests : UnitTestBase
     public void Given_Two_Tools_Each_Gets_A_Schema_Of_Its_Own()
     {
         // Arrange
-        _ = SchemaToolset.CreateLocate(Json).JsonSchema;
+        _ = SchemaToolset.TypeshiftGenerated.CreateLocate(Json).JsonSchema;
 
         // Act
-        var count = SchemaToolset.CreateCountWords(Json).JsonSchema;
+        var count = SchemaToolset.TypeshiftGenerated.CreateCountWords(Json).JsonSchema;
 
         // Assert
         count.Assert.Properties("text");
@@ -188,7 +188,7 @@ public class ToolSchemaTests : UnitTestBase
     public void Given_Parameters_The_Call_Fills_They_Stay_Out_Of_The_Schema()
     {
         // Act
-        var probe = ProbeToolset.CreateProbe(new ProbeSettings(), Json);
+        var probe = ProbeToolset.TypeshiftGenerated.CreateProbe(new ProbeSettings(), Json);
 
         // Assert
         probe.JsonSchema.Assert.Properties("query");
@@ -198,7 +198,7 @@ public class ToolSchemaTests : UnitTestBase
     public void Given_No_WithDescription_The_Summary_Is_The_Tool_Description()
     {
         // Act
-        var count = SchemaToolset.CreateCountWords(Json);
+        var count = SchemaToolset.TypeshiftGenerated.CreateCountWords(Json);
 
         // Assert
         count.Description.Should().Be("Counts the words of a text.");
@@ -208,7 +208,7 @@ public class ToolSchemaTests : UnitTestBase
     public void Given_An_Async_Method_Without_WithName_The_Tool_Is_Named_Without_The_Suffix()
     {
         // Act
-        var count = SchemaToolset.CreateCountWords(Json);
+        var count = SchemaToolset.TypeshiftGenerated.CreateCountWords(Json);
 
         // Assert
         count.Name.Should().Be("count_words");
@@ -218,7 +218,7 @@ public class ToolSchemaTests : UnitTestBase
     public void Given_WithName_The_Tool_Goes_By_That_Name()
     {
         // Act
-        var echo = SchemaToolset.CreateEchoJson(Json);
+        var echo = SchemaToolset.TypeshiftGenerated.CreateEchoJson(Json);
 
         // Assert
         echo.Name.Should().Be("echo_json");

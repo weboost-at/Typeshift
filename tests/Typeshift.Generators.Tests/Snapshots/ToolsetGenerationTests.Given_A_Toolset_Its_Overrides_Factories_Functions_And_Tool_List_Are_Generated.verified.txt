@@ -40,18 +40,18 @@ namespace Demo;
 [global::Typeshift.Generated.GeneratedTool(
     "search_tickets",
     "SearchTickets",
-    "CreateSearchTickets",
+    "TypeshiftGenerated.CreateSearchTickets",
     Settings = typeof(global::Demo.SearchTicketsSettings),
     Overrides = typeof(global::Demo.TicketToolset.SearchTicketsOverrides))]
 [global::Typeshift.Generated.GeneratedTool(
     "close_ticket",
     "CloseTicket",
-    "CreateCloseTicket",
+    "TypeshiftGenerated.CreateCloseTicket",
     RequiresApproval = true)]
 [global::Typeshift.Generated.GeneratedTool(
     "forget_ticket",
     "ForgetTicket",
-    "CreateForgetTicket")]
+    "TypeshiftGenerated.CreateForgetTicket")]
 partial class TicketToolset
 {
     /// <summary>
@@ -157,151 +157,160 @@ partial class TicketToolset
     }
 
     /// <summary>
-    /// Creates the <c>search_tickets</c> tool; generated agents call it.
+    /// The factories of the tools declared here, which generated agents call.
     /// </summary>
-    /// <param name="settings">The settings the tool runs with.</param>
-    /// <param name="json">How the tool binds its arguments and serializes its result.</param>
-    /// <returns>The tool.</returns>
     [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
     [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
     [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-    [global::System.Diagnostics.DebuggerStepThrough]
-    public static global::Microsoft.Extensions.AI.AIFunction CreateSearchTickets(
-        global::Demo.SearchTicketsSettings settings,
-        global::Typeshift.Generated.ToolJson json) =>
-        new SearchTicketsFunction(settings, json);
-
-    [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
-    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-    private sealed class SearchTicketsFunction(
-        global::Demo.SearchTicketsSettings settings,
-        global::Typeshift.Generated.ToolJson json)
-        : global::Typeshift.Generated.GeneratedToolFunction(json)
+    public static class TypeshiftGenerated
     {
-        private static readonly global::System.Collections.Generic.IReadOnlyList<global::Typeshift.Generated.ToolParameter> ModelParameters =
-        [
-            new("query", typeof(string))
-            {
-                Description = "Words the ticket's title contains."
-            },
-            new("author", typeof(string))
-            {
-                Description = "Only tickets of this author, or null for all.",
-                IsNullable = true
-            }
-        ];
+        /// <summary>
+        /// Creates the <c>search_tickets</c> tool; generated agents call it.
+        /// </summary>
+        /// <param name="settings">The settings the tool runs with.</param>
+        /// <param name="json">How the tool binds its arguments and serializes its result.</param>
+        /// <returns>The tool.</returns>
+        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+        [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+        [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+        [global::System.Diagnostics.DebuggerStepThrough]
+        public static global::Microsoft.Extensions.AI.AIFunction CreateSearchTickets(
+            global::Demo.SearchTicketsSettings settings,
+            global::Typeshift.Generated.ToolJson json) =>
+            new SearchTicketsFunction(settings, json);
 
-        public override string Name => "search_tickets";
-
-        public override string Description => "Searches the customer's tickets, newest first.";
-
-        public override bool IsReadOnly => true;
-
-        protected override global::System.Collections.Generic.IReadOnlyList<global::Typeshift.Generated.ToolParameter> Parameters => ModelParameters;
-
-        protected override async global::System.Threading.Tasks.ValueTask<object?> InvokeToolAsync(
-            global::Microsoft.Extensions.AI.AIFunctionArguments arguments,
-            global::System.IServiceProvider services,
-            global::System.Threading.CancellationToken ct) =>
-            GetResult(await global::Demo.TicketToolset.SearchTicketsAsync(
-                GetArgument<string>(arguments, "query"),
-                GetArgument<string?>(arguments, "author"),
-                settings,
-                services,
-                ct).ConfigureAwait(false));
-    }
-
-    /// <summary>
-    /// Creates the <c>close_ticket</c> tool; generated agents call it.
-    /// </summary>
-    /// <param name="json">How the tool binds its arguments and serializes its result.</param>
-    /// <returns>The tool.</returns>
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
-    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-    [global::System.Diagnostics.DebuggerStepThrough]
-    public static global::Microsoft.Extensions.AI.AIFunction CreateCloseTicket(
-        global::Typeshift.Generated.ToolJson json) =>
-        new global::Microsoft.Extensions.AI.ApprovalRequiredAIFunction(new CloseTicketFunction(json));
-
-    [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
-    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-    private sealed class CloseTicketFunction(
-        global::Typeshift.Generated.ToolJson json)
-        : global::Typeshift.Generated.GeneratedToolFunction(json)
-    {
-        private static readonly global::System.Collections.Generic.IReadOnlyList<global::Typeshift.Generated.ToolParameter> ModelParameters =
-        [
-            new("number", typeof(int))
-            {
-                Description = "The ticket's number."
-            },
-            new("reason", typeof(string))
-            {
-                Description = "Why it is closed, as the customer will read it."
-            },
-            new("notify", typeof(bool))
-            {
-                Description = "Whether the customer is told.",
-                HasDefaultValue = true,
-                DefaultValue = true
-            }
-        ];
-
-        public override string Name => "close_ticket";
-
-        public override string Description => "Closes a ticket for good.";
-
-        protected override global::System.Collections.Generic.IReadOnlyList<global::Typeshift.Generated.ToolParameter> Parameters => ModelParameters;
-
-        protected override global::System.Threading.Tasks.ValueTask<object?> InvokeToolAsync(
-            global::Microsoft.Extensions.AI.AIFunctionArguments arguments,
-            global::System.IServiceProvider services,
-            global::System.Threading.CancellationToken ct)
+        [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+        [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+        private sealed class SearchTicketsFunction(
+            global::Demo.SearchTicketsSettings settings,
+            global::Typeshift.Generated.ToolJson json)
+            : global::Typeshift.Generated.GeneratedToolFunction(json)
         {
-            global::Demo.TicketToolset.CloseTicket(
-                GetArgument<int>(arguments, "number"),
-                GetArgument<string>(arguments, "reason"),
-                GetArgument<bool>(arguments, "notify", true));
+            private static readonly global::System.Collections.Generic.IReadOnlyList<global::Typeshift.Generated.ToolParameter> ModelParameters =
+            [
+                new("query", typeof(string))
+                {
+                    Description = "Words the ticket's title contains."
+                },
+                new("author", typeof(string))
+                {
+                    Description = "Only tickets of this author, or null for all.",
+                    IsNullable = true
+                }
+            ];
 
-            return default;
+            public override string Name => "search_tickets";
+
+            public override string Description => "Searches the customer's tickets, newest first.";
+
+            public override bool IsReadOnly => true;
+
+            protected override global::System.Collections.Generic.IReadOnlyList<global::Typeshift.Generated.ToolParameter> Parameters => ModelParameters;
+
+            protected override async global::System.Threading.Tasks.ValueTask<object?> InvokeToolAsync(
+                global::Microsoft.Extensions.AI.AIFunctionArguments arguments,
+                global::System.IServiceProvider services,
+                global::System.Threading.CancellationToken ct) =>
+                GetResult(await global::Demo.TicketToolset.SearchTicketsAsync(
+                    GetArgument<string>(arguments, "query"),
+                    GetArgument<string?>(arguments, "author"),
+                    settings,
+                    services,
+                    ct).ConfigureAwait(false));
         }
-    }
 
-    /// <summary>
-    /// Creates the <c>forget_ticket</c> tool; generated agents call it.
-    /// </summary>
-    /// <param name="json">How the tool binds its arguments and serializes its result.</param>
-    /// <returns>The tool.</returns>
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
-    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-    [global::System.Diagnostics.DebuggerStepThrough]
-    public static global::Microsoft.Extensions.AI.AIFunction CreateForgetTicket(
-        global::Typeshift.Generated.ToolJson json) =>
-        new ForgetTicketFunction(json);
+        /// <summary>
+        /// Creates the <c>close_ticket</c> tool; generated agents call it.
+        /// </summary>
+        /// <param name="json">How the tool binds its arguments and serializes its result.</param>
+        /// <returns>The tool.</returns>
+        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+        [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+        [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+        [global::System.Diagnostics.DebuggerStepThrough]
+        public static global::Microsoft.Extensions.AI.AIFunction CreateCloseTicket(
+            global::Typeshift.Generated.ToolJson json) =>
+            new global::Microsoft.Extensions.AI.ApprovalRequiredAIFunction(new CloseTicketFunction(json));
 
-    [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
-    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-    private sealed class ForgetTicketFunction(
-        global::Typeshift.Generated.ToolJson json)
-        : global::Typeshift.Generated.GeneratedToolFunction(json)
-    {
-        private static readonly global::System.Collections.Generic.IReadOnlyList<global::Typeshift.Generated.ToolParameter> ModelParameters = [];
-
-        public override string Name => "forget_ticket";
-
-        public override string Description => "Forgets what was read.";
-
-        protected override global::System.Collections.Generic.IReadOnlyList<global::Typeshift.Generated.ToolParameter> Parameters => ModelParameters;
-
-        protected override async global::System.Threading.Tasks.ValueTask<object?> InvokeToolAsync(
-            global::Microsoft.Extensions.AI.AIFunctionArguments arguments,
-            global::System.IServiceProvider services,
-            global::System.Threading.CancellationToken ct)
+        [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+        [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+        private sealed class CloseTicketFunction(
+            global::Typeshift.Generated.ToolJson json)
+            : global::Typeshift.Generated.GeneratedToolFunction(json)
         {
-            await global::Demo.TicketToolset.Forget(arguments).ConfigureAwait(false);
-            return null;
+            private static readonly global::System.Collections.Generic.IReadOnlyList<global::Typeshift.Generated.ToolParameter> ModelParameters =
+            [
+                new("number", typeof(int))
+                {
+                    Description = "The ticket's number."
+                },
+                new("reason", typeof(string))
+                {
+                    Description = "Why it is closed, as the customer will read it."
+                },
+                new("notify", typeof(bool))
+                {
+                    Description = "Whether the customer is told.",
+                    HasDefaultValue = true,
+                    DefaultValue = true
+                }
+            ];
+
+            public override string Name => "close_ticket";
+
+            public override string Description => "Closes a ticket for good.";
+
+            protected override global::System.Collections.Generic.IReadOnlyList<global::Typeshift.Generated.ToolParameter> Parameters => ModelParameters;
+
+            protected override global::System.Threading.Tasks.ValueTask<object?> InvokeToolAsync(
+                global::Microsoft.Extensions.AI.AIFunctionArguments arguments,
+                global::System.IServiceProvider services,
+                global::System.Threading.CancellationToken ct)
+            {
+                global::Demo.TicketToolset.CloseTicket(
+                    GetArgument<int>(arguments, "number"),
+                    GetArgument<string>(arguments, "reason"),
+                    GetArgument<bool>(arguments, "notify", true));
+
+                return default;
+            }
+        }
+
+        /// <summary>
+        /// Creates the <c>forget_ticket</c> tool; generated agents call it.
+        /// </summary>
+        /// <param name="json">How the tool binds its arguments and serializes its result.</param>
+        /// <returns>The tool.</returns>
+        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+        [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+        [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+        [global::System.Diagnostics.DebuggerStepThrough]
+        public static global::Microsoft.Extensions.AI.AIFunction CreateForgetTicket(
+            global::Typeshift.Generated.ToolJson json) =>
+            new ForgetTicketFunction(json);
+
+        [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+        [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+        private sealed class ForgetTicketFunction(
+            global::Typeshift.Generated.ToolJson json)
+            : global::Typeshift.Generated.GeneratedToolFunction(json)
+        {
+            private static readonly global::System.Collections.Generic.IReadOnlyList<global::Typeshift.Generated.ToolParameter> ModelParameters = [];
+
+            public override string Name => "forget_ticket";
+
+            public override string Description => "Forgets what was read.";
+
+            protected override global::System.Collections.Generic.IReadOnlyList<global::Typeshift.Generated.ToolParameter> Parameters => ModelParameters;
+
+            protected override async global::System.Threading.Tasks.ValueTask<object?> InvokeToolAsync(
+                global::Microsoft.Extensions.AI.AIFunctionArguments arguments,
+                global::System.IServiceProvider services,
+                global::System.Threading.CancellationToken ct)
+            {
+                await global::Demo.TicketToolset.Forget(arguments).ConfigureAwait(false);
+                return null;
+            }
         }
     }
 }
@@ -311,7 +320,7 @@ partial class TicketToolset
 #nullable enable
 #pragma warning disable CS0612, CS0618
 
-[assembly: global::Typeshift.Generated.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule), 19)]
+[assembly: global::Typeshift.Generated.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule), 20)]
 
 namespace Typeshift.Generated;
 

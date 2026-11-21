@@ -70,10 +70,12 @@ fails on an import across.
    those, which `ModelShapeTests` checks. They carry no locations, so code that moves within the file of a toolset
    or an agent leaves its output cached.
 4. **Emitting** (`Emitting/ToolsetEmitter.cs`) writes, for each tool, an overrides record when it has configurable
-   settings, a hidden `Create{Tool}` factory and a private `GeneratedToolFunction` subclass, after a nested
-   `ToolNames` class with a constant per tool (D13). For each toolset it writes an extension block on `ToolList<T>`
-   with a property per tool, in a file of its own and the global namespace (D12), plus a `[GeneratedTool]` stamp per
-   tool for agents in other assemblies (D7). What it writes is many times what it reads: a toolset of three tools
+   settings, after a nested `ToolNames` class with a constant per tool (D13). The tool's hidden `Create{Tool}`
+   factory and its private `GeneratedToolFunction` subclass go into a hidden class nested in the toolset,
+   `TypeshiftGenerated`, so they take no name of the user's (D6). For each toolset it writes an extension block on
+   `ToolList<T>` with a property per tool, in a file of its own and the global namespace (D12), plus a
+   `[GeneratedTool]` stamp per tool for agents in other assemblies, which names the factory from the toolset (D7).
+   What it writes is many times what it reads: a toolset of three tools
    and an agent that uses two toolsets, 78 lines in `ScaleSources`, generate about 1,340 lines and 83 KB of C#, more than
    half of it XML docs, and add about 21 KB to the assembly. It grows in step with the toolsets and agents, and the
    `measure` command of `tools/Typeshift.Tools.Generators` prints it, so a change can be weighed against it.
@@ -83,8 +85,9 @@ fails on an import across.
    properties are the generator's own output, so a pick from it does not bind there. The parser walks those calls as
    invalid operations and reads the picks from syntax instead. `Parsing/Catalog.cs` resolves the uses against the
    compilation's toolsets and those the references stamp (`Parsing/ReferenceReader.cs`), then adds the agent's own
-   tools, whose members `AgentEmitter` writes into the agent through `ToolsetEmitter.WriteTools`. An agent's output
-   stays cached while what it offers stays the same.
+   tools, whose members `AgentEmitter` writes into the agent through `ToolsetEmitter.WriteTools`, and their
+   factories into a class `Tools` of its `TypeshiftGenerated` through `ToolsetEmitter.WriteFactories`. An agent's
+   output stays cached while what it offers stays the same.
 6. **Registration.** `Emitting/ModuleEmitter.cs` writes one module, stamped with `[GeneratedModule]`, per assembly
    that declares toolsets or agents or holds a JSON context or a `[SchemaAnnotations]` class. The package adds that class to each
    project with XML docs on, so by default every project gets a module (D55). The module registers each agent with

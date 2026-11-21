@@ -2126,6 +2126,95 @@ public static class ShapeSources
         }
         """;
 
+    // D6: a tool's factory and function live in a class nested in the toolset, so the toolset's own members may have
+    // their names
+    public const string MembersNamedLikeAToolsFactoryAndFunction =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+
+            public static void CreateEcho()
+            {
+            }
+
+            public sealed class EchoFunction
+            {
+            }
+        }
+        """;
+
+    // A class holds no member of its own name, and the factory and the function are members of the nested class
+    public const string ToolsetNamedLikeAToolsFunction =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class EchoFunction : Toolset
+        {
+            public EchoFunction() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+        }
+        """;
+
+    public const string ToolsetNamedLikeAToolsFactory =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class CreateTicket : Toolset
+        {
+            public CreateTicket() => AddTool(Ticket).WithDescription("Creates.");
+
+            public static string Ticket(string text) => text;
+        }
+        """;
+
+    // D6: an agent's own tools have their factories and functions in a class of their own in the agent's
+    // declaration: draft_builder's factory is named like the builder of create_draft's Configure{Tool}(), and tools'
+    // like the declaration's CreateTools, and the agent's own members take their names
+    public const string OwnToolsNamedLikeTheDeclarationsMembers =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal sealed record DraftSettings
+        {
+            public int Length { get; init; } = 100;
+        }
+
+        internal partial class DraftAgent : Agent
+        {
+            public DraftAgent()
+            {
+                WithDescription("Drafts.");
+                AddTool(CreateDraft).WithDescription("Creates a draft.").WithSettings<DraftSettings>();
+                AddTool(DraftBuilder).WithDescription("Builds a draft.");
+                AddTool(Tools).WithDescription("Lists the tools.");
+            }
+
+            public static string CreateDraft(string text, DraftSettings settings) => text[..settings.Length];
+
+            public static string DraftBuilder(string text) => text;
+
+            public static string Tools() => "create_draft, draft_builder";
+
+            public static void CreateDraftBuilder()
+            {
+            }
+        }
+        """;
+
     // The agent offers the tools it includes in the order of its picks, which is not the toolset's here
     public const string ToolsIncludedInAnotherOrder =
         """

@@ -383,9 +383,10 @@ the agent declares itself replaces the generated one.
 
 ### Tools of the agent's own
 
-**Triggered by** an `AddTool(...)` in the agent's constructor. The agent gets the tool's `Create{Tool}` and
-`{Tool}Function`, its `{Tool}Overrides` when it has configurable members, and a [`ToolNames`](#toolnames) class, as a
-toolset does. It gets no tool list and no toolset stamp.
+**Triggered by** an `AddTool(...)` in the agent's constructor. The agent gets the tool's `{Tool}Overrides` when it
+has configurable members, and a [`ToolNames`](#toolnames) class, as a toolset does. The tool's
+[factory and function](#create-tool-and-tool-function) go into the agent's private `TypeshiftGenerated` class. It
+gets no tool list and no toolset stamp.
 
 ### Host members
 
@@ -403,8 +404,8 @@ reference. In the projects of your own solution it lists it, though not for `Typ
 
 ## Per toolset
 
-Every tool also gets a hidden factory, `Create{Tool}`, and a private class, `{Tool}Function`, which
-[Names and hidden members](#names-and-hidden-members) describes.
+Every tool also gets a hidden factory, `Create{Tool}`, and a private class, `{Tool}Function`, in a hidden class
+nested in the toolset, `TypeshiftGenerated`, which [Names and hidden members](#names-and-hidden-members) describes.
 
 ### `{Tool}Overrides`
 
@@ -510,8 +511,11 @@ The class is [hidden](#names-and-hidden-members), since you pick from the proper
 
 <a id="create-tool-and-tool-function"></a>
 
-**`Create{Tool}` and `{Tool}Function`** are triggered by every `AddTool(...)`. This one gives `CreateCloseTicket`
-and `CloseTicketFunction`:
+**`Create{Tool}` and `{Tool}Function`** are triggered by every `AddTool(...)`. They live in `TypeshiftGenerated`, a
+public static class nested in the toolset and hidden, so an agent of another assembly reaches the factory and no
+member of yours shares a name with either. A tool of an agent's own has them in the agent's private
+`TypeshiftGenerated` class. This one gives `TicketToolset.TypeshiftGenerated.CreateCloseTicket` and
+`CloseTicketFunction`:
 
 <!-- snippet: approval-tool -->
 <a id='snippet-approval-tool'></a>
@@ -538,7 +542,7 @@ assemblies read it to offer the tool.
 **Every agent** also gets:
 
 - an override of `Declaration`, which holds what the generator read from its constructor;
-- a private nested class `TypeshiftGenerated`;
+- a private nested class `TypeshiftGenerated`, which also holds the factories and functions of its own tools;
 - a private field `_typeshift`, when it has a `Configure{Tool}()`.
 
 **A project** gets its module, the module's stamp and the schema annotations class of the table above:

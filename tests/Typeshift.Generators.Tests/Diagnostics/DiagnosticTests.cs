@@ -891,7 +891,7 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
-    public void Given_A_Member_Named_Like_A_Generated_Factory_TSH018_Is_Reported_On_It()
+    public void Given_A_Class_Of_Its_Own_Named_Like_The_Tool_Names_TSH018_Is_Reported_On_It()
     {
         // Act
         var run = Run(DiagnosticSources.ClashingMember);
@@ -900,8 +900,35 @@ public class DiagnosticTests : GeneratorTestBase
         run.Assert.Reports(
             "TSH018",
             DiagnosticSeverity.Error,
-            "CreateEcho",
-            message: "The member 'CreateEcho' clashes with a member the generator writes for 'echo'");
+            "ToolNames",
+            message: "The class 'ToolNames' clashes with a member the generator writes for 'EchoToolset'");
+    }
+
+    [Fact]
+    public void Given_A_Member_Named_Like_The_Class_Of_The_Tools_Factories_TSH018_Is_Reported_On_It()
+    {
+        // Act
+        var run = Run(DiagnosticSources.MemberNamedLikeTheGeneratedClass);
+
+        // Assert
+        run.Assert.Reports("TSH018", DiagnosticSeverity.Error, "TypeshiftGenerated");
+    }
+
+    [Theory]
+    [InlineData(nameof(ShapeSources.MembersNamedLikeAToolsFactoryAndFunction))]
+    [InlineData(nameof(ShapeSources.ToolsetNamedLikeAToolsFunction))]
+    [InlineData(nameof(ShapeSources.ToolsetNamedLikeAToolsFactory))]
+    [InlineData(nameof(ShapeSources.OwnToolsNamedLikeTheDeclarationsMembers))]
+    public void Given_The_Name_Of_A_Tools_Factory_Outside_The_Class_That_Holds_It_It_Compiles_Cleanly(string shape)
+    {
+        // Arrange
+        var source = SourceCatalogs.Read(typeof(ShapeSources), shape);
+
+        // Act
+        var run = Run(source);
+
+        // Assert
+        run.Assert.CompilesCleanly();
     }
 
     [Fact]
@@ -2796,13 +2823,13 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
-    public void Given_A_Toolset_Named_Like_A_Tools_Function_TSH018_Is_Reported_On_Its_Name()
+    public void Given_A_Toolset_Named_Like_A_Tools_Overrides_TSH018_Is_Reported_On_Its_Name()
     {
         // Act
-        var run = Run(DiagnosticSources.ToolsetNamedLikeAToolsFunction);
+        var run = Run(DiagnosticSources.ToolsetNamedLikeAToolsOverrides);
 
         // Assert
-        run.Assert.Reports("TSH018", DiagnosticSeverity.Error, "EchoFunction");
+        run.Assert.Reports("TSH018", DiagnosticSeverity.Error, "EchoOverrides");
     }
 
     [Fact]
@@ -2826,13 +2853,13 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
-    public void Given_A_Toolset_Named_Like_A_Tools_Factory_TSH018_Is_Reported_On_Its_Name()
+    public void Given_A_Toolset_Named_Like_The_Class_Of_Its_Tools_Factories_TSH018_Is_Reported_On_Its_Name()
     {
         // Act
-        var run = Run(DiagnosticSources.ToolsetNamedLikeAToolsFactory);
+        var run = Run(DiagnosticSources.ToolsetNamedLikeTheGeneratedClass);
 
         // Assert
-        run.Assert.Reports("TSH018", DiagnosticSeverity.Error, "CreateTicket");
+        run.Assert.Reports("TSH018", DiagnosticSeverity.Error, "TypeshiftGenerated");
     }
 
     [Fact]

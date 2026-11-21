@@ -135,9 +135,9 @@ partial class DeskAgent
 
             return
             [
-                global::Demo.TicketToolset.CreateCloseTicket(json),
-                global::Demo.DeskAgent.CreateLookUpCustomer(lookUpCustomerSettings, json),
-                global::Demo.DeskAgent.CreateRefundOrder(json)
+                global::Demo.TicketToolset.TypeshiftGenerated.CreateCloseTicket(json),
+                global::Demo.DeskAgent.TypeshiftGenerated.Tools.CreateLookUpCustomer(lookUpCustomerSettings, json),
+                global::Demo.DeskAgent.TypeshiftGenerated.Tools.CreateRefundOrder(json)
             ];
         }
 
@@ -157,6 +157,96 @@ partial class DeskAgent
             {
                 configured.lookUpCustomer = (configured.lookUpCustomer ?? new()) with { Limit = value };
                 return this;
+            }
+        }
+
+        public static class Tools
+        {
+            /// <summary>
+            /// Creates the <c>look_up_customer</c> tool; generated agents call it.
+            /// </summary>
+            /// <param name="settings">The settings the tool runs with.</param>
+            /// <param name="json">How the tool binds its arguments and serializes its result.</param>
+            /// <returns>The tool.</returns>
+            [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+            [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+            [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+            [global::System.Diagnostics.DebuggerStepThrough]
+            public static global::Microsoft.Extensions.AI.AIFunction CreateLookUpCustomer(
+                global::Demo.LookUpSettings settings,
+                global::Typeshift.Generated.ToolJson json) =>
+                new LookUpCustomerFunction(settings, json);
+
+            [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+            [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+            private sealed class LookUpCustomerFunction(
+                global::Demo.LookUpSettings settings,
+                global::Typeshift.Generated.ToolJson json)
+                : global::Typeshift.Generated.GeneratedToolFunction(json)
+            {
+                private static readonly global::System.Collections.Generic.IReadOnlyList<global::Typeshift.Generated.ToolParameter> ModelParameters =
+                [
+                    new("email", typeof(string))
+                    {
+                        Description = "The customer's email address."
+                    }
+                ];
+
+                public override string Name => "look_up_customer";
+
+                public override string Description => "Looks a customer up.";
+
+                public override bool IsReadOnly => true;
+
+                protected override global::System.Collections.Generic.IReadOnlyList<global::Typeshift.Generated.ToolParameter> Parameters => ModelParameters;
+
+                protected override global::System.Threading.Tasks.ValueTask<object?> InvokeToolAsync(
+                    global::Microsoft.Extensions.AI.AIFunctionArguments arguments,
+                    global::System.IServiceProvider services,
+                    global::System.Threading.CancellationToken ct) =>
+                    new(GetResult(global::Demo.DeskAgent.LookUpCustomer(
+                        GetArgument<string>(arguments, "email"),
+                        settings)));
+            }
+
+            /// <summary>
+            /// Creates the <c>refund_order</c> tool; generated agents call it.
+            /// </summary>
+            /// <param name="json">How the tool binds its arguments and serializes its result.</param>
+            /// <returns>The tool.</returns>
+            [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+            [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+            [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+            [global::System.Diagnostics.DebuggerStepThrough]
+            public static global::Microsoft.Extensions.AI.AIFunction CreateRefundOrder(
+                global::Typeshift.Generated.ToolJson json) =>
+                new global::Microsoft.Extensions.AI.ApprovalRequiredAIFunction(new RefundOrderFunction(json));
+
+            [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+            [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+            private sealed class RefundOrderFunction(
+                global::Typeshift.Generated.ToolJson json)
+                : global::Typeshift.Generated.GeneratedToolFunction(json)
+            {
+                private static readonly global::System.Collections.Generic.IReadOnlyList<global::Typeshift.Generated.ToolParameter> ModelParameters =
+                [
+                    new("order", typeof(int))
+                ];
+
+                public override string Name => "refund_order";
+
+                public override string Description => "Refunds an order.";
+
+                protected override global::System.Collections.Generic.IReadOnlyList<global::Typeshift.Generated.ToolParameter> Parameters => ModelParameters;
+
+                protected override global::System.Threading.Tasks.ValueTask<object?> InvokeToolAsync(
+                    global::Microsoft.Extensions.AI.AIFunctionArguments arguments,
+                    global::System.IServiceProvider services,
+                    global::System.Threading.CancellationToken ct)
+                {
+                    global::Demo.DeskAgent.RefundOrder(GetArgument<int>(arguments, "order"));
+                    return default;
+                }
             }
         }
     }
@@ -243,93 +333,6 @@ partial class DeskAgent
             global::Typeshift.Generated.StorableJson.Check<int>(global::Typeshift.Generated.StorableJson.Member(element, "limit"), global::Typeshift.Generated.StorableJson.Path(path, "limit"), global::Typeshift.Generated.StorableJson.TryReadNumber<int>);
         }
     }
-
-    /// <summary>
-    /// Creates the <c>look_up_customer</c> tool; generated agents call it.
-    /// </summary>
-    /// <param name="settings">The settings the tool runs with.</param>
-    /// <param name="json">How the tool binds its arguments and serializes its result.</param>
-    /// <returns>The tool.</returns>
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
-    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-    [global::System.Diagnostics.DebuggerStepThrough]
-    public static global::Microsoft.Extensions.AI.AIFunction CreateLookUpCustomer(
-        global::Demo.LookUpSettings settings,
-        global::Typeshift.Generated.ToolJson json) =>
-        new LookUpCustomerFunction(settings, json);
-
-    [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
-    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-    private sealed class LookUpCustomerFunction(
-        global::Demo.LookUpSettings settings,
-        global::Typeshift.Generated.ToolJson json)
-        : global::Typeshift.Generated.GeneratedToolFunction(json)
-    {
-        private static readonly global::System.Collections.Generic.IReadOnlyList<global::Typeshift.Generated.ToolParameter> ModelParameters =
-        [
-            new("email", typeof(string))
-            {
-                Description = "The customer's email address."
-            }
-        ];
-
-        public override string Name => "look_up_customer";
-
-        public override string Description => "Looks a customer up.";
-
-        public override bool IsReadOnly => true;
-
-        protected override global::System.Collections.Generic.IReadOnlyList<global::Typeshift.Generated.ToolParameter> Parameters => ModelParameters;
-
-        protected override global::System.Threading.Tasks.ValueTask<object?> InvokeToolAsync(
-            global::Microsoft.Extensions.AI.AIFunctionArguments arguments,
-            global::System.IServiceProvider services,
-            global::System.Threading.CancellationToken ct) =>
-            new(GetResult(global::Demo.DeskAgent.LookUpCustomer(
-                GetArgument<string>(arguments, "email"),
-                settings)));
-    }
-
-    /// <summary>
-    /// Creates the <c>refund_order</c> tool; generated agents call it.
-    /// </summary>
-    /// <param name="json">How the tool binds its arguments and serializes its result.</param>
-    /// <returns>The tool.</returns>
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
-    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-    [global::System.Diagnostics.DebuggerStepThrough]
-    public static global::Microsoft.Extensions.AI.AIFunction CreateRefundOrder(
-        global::Typeshift.Generated.ToolJson json) =>
-        new global::Microsoft.Extensions.AI.ApprovalRequiredAIFunction(new RefundOrderFunction(json));
-
-    [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
-    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-    private sealed class RefundOrderFunction(
-        global::Typeshift.Generated.ToolJson json)
-        : global::Typeshift.Generated.GeneratedToolFunction(json)
-    {
-        private static readonly global::System.Collections.Generic.IReadOnlyList<global::Typeshift.Generated.ToolParameter> ModelParameters =
-        [
-            new("order", typeof(int))
-        ];
-
-        public override string Name => "refund_order";
-
-        public override string Description => "Refunds an order.";
-
-        protected override global::System.Collections.Generic.IReadOnlyList<global::Typeshift.Generated.ToolParameter> Parameters => ModelParameters;
-
-        protected override global::System.Threading.Tasks.ValueTask<object?> InvokeToolAsync(
-            global::Microsoft.Extensions.AI.AIFunctionArguments arguments,
-            global::System.IServiceProvider services,
-            global::System.Threading.CancellationToken ct)
-        {
-            global::Demo.DeskAgent.RefundOrder(GetArgument<int>(arguments, "order"));
-            return default;
-        }
-    }
 }
 
 // HintName: Typeshift.Generated.SubjectModule.g.cs
@@ -337,7 +340,7 @@ partial class DeskAgent
 #nullable enable
 #pragma warning disable CS0612, CS0618
 
-[assembly: global::Typeshift.Generated.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule), 19)]
+[assembly: global::Typeshift.Generated.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule), 20)]
 
 namespace Typeshift.Generated;
 

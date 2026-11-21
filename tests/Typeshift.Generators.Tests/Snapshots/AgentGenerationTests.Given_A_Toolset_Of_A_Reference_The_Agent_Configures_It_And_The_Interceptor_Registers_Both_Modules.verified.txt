@@ -151,7 +151,7 @@ partial class ResearchAgent
 
             return
             [
-                global::Companies.CompanyToolset.CreateFindCompanies(findCompaniesSettings, json)
+                global::Companies.CompanyToolset.TypeshiftGenerated.CreateFindCompanies(findCompaniesSettings, json)
             ];
         }
 
@@ -229,7 +229,7 @@ namespace System.Runtime.CompilerServices
 #nullable enable
 #pragma warning disable CS0612, CS0618
 
-[assembly: global::Typeshift.Generated.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule), 19)]
+[assembly: global::Typeshift.Generated.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule), 20)]
 
 namespace Typeshift.Generated;
 

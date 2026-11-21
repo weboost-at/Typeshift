@@ -411,10 +411,21 @@ internal static class AgentEmitter
             writer.Line();
             WriteCreateTools(writer, output, configured);
 
-            if (configured.Count == 0) return;
+            if (configured.Count > 0)
+            {
+                writer.Line();
+                WriteConfigured(writer, configured);
+            }
+
+            // D6: apart from the builders, whose names a factory could take, as create_x's and x_builder's would
+            if (agent.Tools.Count == 0) return;
 
             writer.Line();
-            WriteConfigured(writer, configured);
+
+            using (writer.Block($"public static class {Names.OwnToolsClass}"))
+            {
+                ToolsetEmitter.WriteFactories(writer, agent.Tools);
+            }
         }
     }
 

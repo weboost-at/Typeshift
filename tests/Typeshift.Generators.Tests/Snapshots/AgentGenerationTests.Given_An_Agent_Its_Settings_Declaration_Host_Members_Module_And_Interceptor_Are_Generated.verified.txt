@@ -1180,8 +1180,8 @@ partial class SupportAgent
 
             return
             [
-                global::Demo.TicketToolset.CreateSearchTickets(searchTicketsSettings, json),
-                global::Demo.TicketToolset.CreateCloseTicket(json)
+                global::Demo.TicketToolset.TypeshiftGenerated.CreateSearchTickets(searchTicketsSettings, json),
+                global::Demo.TicketToolset.TypeshiftGenerated.CreateCloseTicket(json)
             ];
         }
 
@@ -1258,7 +1258,7 @@ namespace System.Runtime.CompilerServices
 #nullable enable
 #pragma warning disable CS0612, CS0618
 
-[assembly: global::Typeshift.Generated.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule), 19)]
+[assembly: global::Typeshift.Generated.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule), 20)]
 
 namespace Typeshift.Generated;
 

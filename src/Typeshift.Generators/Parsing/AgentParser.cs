@@ -14,7 +14,7 @@ namespace Typeshift.Generators.Parsing;
 internal static class AgentParser
 {
     // D6: the members the generator adds to every agent, which no member of the user's may share
-    public static readonly string[] Members = ["Settings", "Declaration", "TypeshiftGenerated", "_typeshift"];
+    public static readonly string[] Members = ["Settings", "Declaration", Names.GeneratedClass, "_typeshift"];
 
     // Null for an agent the generator cannot extend; its declarations are still parsed, so every mistake is reported
     public static AgentModel? Parse(
@@ -83,7 +83,7 @@ internal static class AgentParser
         var description = stated ?? XmlDocs.Read(agent, ct).Summary;
 
         var providerId = ReadProviderId(agent, constructors, declarations, reporter);
-        var toolNamesClash = ToolsetParser.ClashesWithToolNames(agent, tools.Count, reporter);
+        var toolNamesClash = ToolsetParser.ClashesWithClasses(agent, tools.Count, [Names.ToolNamesClass], reporter);
 
         // A partial in another file would declare another class than a file-local one
         if (notPartial is not null || clash is not null || toolNamesClash || agent.IsFileLocalOrNestedInOne())

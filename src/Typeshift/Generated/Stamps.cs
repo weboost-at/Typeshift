@@ -96,7 +96,7 @@ public sealed class ModuleToolsetAttribute(Type toolset) : Attribute
 /// </summary>
 /// <param name="name">The tool's name.</param>
 /// <param name="property">The tool's property on the toolset's tool list.</param>
-/// <param name="factory">The static method that creates the tool.</param>
+/// <param name="factory">The static method that creates the tool, named from the toolset.</param>
 [EditorBrowsable(EditorBrowsableState.Never)]
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
 public sealed class GeneratedToolAttribute(string name, string property, string factory) : Attribute
@@ -112,7 +112,8 @@ public sealed class GeneratedToolAttribute(string name, string property, string 
     public string Property { get; } = property;
 
     /// <summary>
-    /// The static method that creates the tool.
+    /// The static method that creates the tool, named from the toolset, as in
+    /// <c>TypeshiftGenerated.CreateSearchTickets</c>.
     /// </summary>
     public string Factory { get; } = factory;
 

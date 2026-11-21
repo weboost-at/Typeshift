@@ -240,6 +240,14 @@ All notable changes to this project are documented here. The format follows
   `InvalidOperationException` it threw before.
 - The package depends on Microsoft.Extensions.AI 10.11.1, up from 10.10.0, and on
   Microsoft.Extensions.DependencyInjection 10.0.15, up from 10.0.12.
+- **Breaking:** a tool's hidden factory, `Create{Tool}`, and its function class, `{Tool}Function`, live in a hidden
+  class nested in the toolset, `TypeshiftGenerated`, so they take no name of your class: a method `CreateReport`
+  beside `AddTool(Report)`, or a toolset named `CreateTicket` with a tool `ticket`, compiles, where both were TSH018.
+  Code that creates a tool through its factory, such as a test, writes
+  `TicketToolset.TypeshiftGenerated.CreateSearchTickets(json)` for `TicketToolset.CreateSearchTickets(json)`. A
+  member of yours named `TypeshiftGenerated` in a toolset with tools is TSH018 now. A tool of an agent's own has its
+  factory and function in the agent's private `TypeshiftGenerated` class. Module stamps are at version 20, so a
+  referenced project built with an earlier Typeshift is TSH020 until it is rebuilt.
 - **Breaking:** `host.CreateChatClientAsync(options)` takes only options that `ResolveOptionsAsync` returned, and
   throws an `ArgumentException` for `ChatOptions` your code made, such as `new ChatOptions()`. Create the client from
   `await host.ResolveOptionsAsync()` instead. The client keeps those options: a call without options runs with them,

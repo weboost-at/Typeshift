@@ -208,10 +208,10 @@ partial class DeskAgent
 
             return
             [
-                .. (searchTicketsOffered ? new global::Microsoft.Extensions.AI.AITool[] { global::Demo.TicketToolset.CreateSearchTickets(searchTicketsSettings, json) } : []),
-                global::Demo.TicketToolset.CreateCloseTicket(json),
-                .. (noteTicketOffered ? new global::Microsoft.Extensions.AI.AITool[] { new global::Microsoft.Extensions.AI.ApprovalRequiredAIFunction(global::Demo.TicketToolset.CreateNoteTicket(json)) } : []),
-                global::Demo.TicketToolset.CreateSearchTicketsEnabled(searchTicketsEnabledSettings, json)
+                .. (searchTicketsOffered ? new global::Microsoft.Extensions.AI.AITool[] { global::Demo.TicketToolset.TypeshiftGenerated.CreateSearchTickets(searchTicketsSettings, json) } : []),
+                global::Demo.TicketToolset.TypeshiftGenerated.CreateCloseTicket(json),
+                .. (noteTicketOffered ? new global::Microsoft.Extensions.AI.AITool[] { new global::Microsoft.Extensions.AI.ApprovalRequiredAIFunction(global::Demo.TicketToolset.TypeshiftGenerated.CreateNoteTicket(json)) } : []),
+                global::Demo.TicketToolset.TypeshiftGenerated.CreateSearchTicketsEnabled(searchTicketsEnabledSettings, json)
             ];
         }
 
@@ -410,7 +410,7 @@ partial class ReaderAgent
 
             return
             [
-                .. (searchTicketsOffered ? new global::Microsoft.Extensions.AI.AITool[] { global::Demo.TicketToolset.CreateSearchTickets(searchTicketsSettings, json) } : [])
+                .. (searchTicketsOffered ? new global::Microsoft.Extensions.AI.AITool[] { global::Demo.TicketToolset.TypeshiftGenerated.CreateSearchTickets(searchTicketsSettings, json) } : [])
             ];
         }
 
@@ -624,9 +624,9 @@ partial class TriageAgent
 
             return
             [
-                global::Demo.TicketToolset.CreateSearchTickets(searchTicketsSettings, json),
-                .. (noteTicketOffered ? new global::Microsoft.Extensions.AI.AITool[] { new global::Microsoft.Extensions.AI.ApprovalRequiredAIFunction(global::Demo.TicketToolset.CreateNoteTicket(json)) } : []),
-                global::Demo.TicketToolset.CreateSearchTicketsEnabled(searchTicketsEnabledSettings, json)
+                global::Demo.TicketToolset.TypeshiftGenerated.CreateSearchTickets(searchTicketsSettings, json),
+                .. (noteTicketOffered ? new global::Microsoft.Extensions.AI.AITool[] { new global::Microsoft.Extensions.AI.ApprovalRequiredAIFunction(global::Demo.TicketToolset.TypeshiftGenerated.CreateNoteTicket(json)) } : []),
+                global::Demo.TicketToolset.TypeshiftGenerated.CreateSearchTicketsEnabled(searchTicketsEnabledSettings, json)
             ];
         }
 
