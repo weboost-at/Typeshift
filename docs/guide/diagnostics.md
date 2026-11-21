@@ -1267,9 +1267,9 @@ Remove the `Exclude`, include the tool, or remove the mark. To make a tool ask y
 
 **Declaration in a constructor Typeshift never runs.** Typeshift creates each toolset and agent with `new()`, which
 runs the parameterless constructor and the constructors it chains to with `this(...)`, and no other. A declaration
-in another constructor would describe a class no instance is: its values, such as the instructions here, would never
-reach a run, while the generated code would offer the tools and settings it names. So the generator reads the
-constructors `new()` runs, and the analyzer reports a declaration in any other:
+in another constructor never runs: its values, such as the instructions here, would never reach a run, while the
+generated code would still offer the tools and settings it names. So the generator reads the constructors `new()`
+runs, and the analyzer reports a declaration in any other:
 
 <!-- snippet: tsh044 -->
 <a id='snippet-tsh044'></a>
