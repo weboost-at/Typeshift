@@ -56,3 +56,5 @@ public class ResolvedChatOptionsTests : UnitTestBase
             _ => throw new InvalidOperationException($"Add a sample of {type} for the property that has it.")
         };
 }
+
+#pragma warning restore TYPESHIFT001

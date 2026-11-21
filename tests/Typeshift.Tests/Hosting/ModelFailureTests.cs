@@ -126,3 +126,5 @@ public class ModelFailureTests : UnitTestBase
         failure.Should().Be(ModelFailure.Unavailable);
     }
 }
+
+#pragma warning restore TYPESHIFT001

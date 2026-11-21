@@ -855,3 +855,5 @@ public sealed class TelemetryTests : AgentTestBase
         Activities.Under(Activities.Run(Data.Agent.ConversationId))
             .Single(activity => activity.DisplayName == "execute_tool probe");
 }
+
+#pragma warning restore TYPESHIFT001

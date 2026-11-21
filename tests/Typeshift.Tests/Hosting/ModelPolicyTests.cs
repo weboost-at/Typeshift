@@ -200,3 +200,5 @@ public class ModelPolicyTests : UnitTestBase
             .Or(ModelFailure.Rejected).FallbackToModel("fallback-model")
             .Or(ModelFailure.Auth | ModelFailure.Unknown).FallbackToProvider(Vendor.Other);
 }
+
+#pragma warning restore TYPESHIFT001

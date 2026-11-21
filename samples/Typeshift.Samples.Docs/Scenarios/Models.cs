@@ -184,3 +184,5 @@ internal static partial class Models
         return client;
     }
 }
+
+#pragma warning restore TYPESHIFT001

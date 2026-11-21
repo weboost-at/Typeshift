@@ -780,3 +780,5 @@ public class SubAgentTests : MultiAgentTestBase
         return handingOff;
     }
 }
+
+#pragma warning restore TYPESHIFT001

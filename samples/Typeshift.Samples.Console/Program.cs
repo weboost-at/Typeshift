@@ -149,3 +149,5 @@ static void Expect(bool holds, string what)
 {
     if (!holds) throw new InvalidOperationException($"Unexpected: {what}");
 }
+
+#pragma warning restore TYPESHIFT001

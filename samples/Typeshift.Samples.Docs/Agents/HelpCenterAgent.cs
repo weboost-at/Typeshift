@@ -25,3 +25,5 @@ internal partial class HelpCenterAgent : Agent
             .Exclude(t => t.DeleteArticle);
     }
 }
+
+#pragma warning restore TYPESHIFT001

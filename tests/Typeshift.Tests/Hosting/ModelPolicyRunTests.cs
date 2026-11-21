@@ -520,3 +520,5 @@ public class ModelPolicyRunTests : AgentTestBase
 
     private HttpRequestException Failed(HttpStatusCode status) => new(Data.Agent.Reason, null, status);
 }
+
+#pragma warning restore TYPESHIFT001

@@ -227,3 +227,5 @@ internal static class ShownRegistrations
         if (!condition) throw new InvalidOperationException($"Expected {what}.");
     }
 }
+
+#pragma warning restore TYPESHIFT001

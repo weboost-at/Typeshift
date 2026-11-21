@@ -1021,3 +1021,5 @@ public class CompactionTests : AgentTestBase
         return Tokens.Estimate(request.Messages, request.Options);
     }
 }
+
+#pragma warning restore TYPESHIFT001

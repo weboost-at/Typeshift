@@ -1048,3 +1048,5 @@ public class HandoffTests : MultiAgentTestBase
             ? (await front.RunStreamingAsync(input, ct: Ct).ToListAsync(Ct)).ToChatResponse()
             : await front.RunAsync(input, ct: Ct);
 }
+
+#pragma warning restore TYPESHIFT001

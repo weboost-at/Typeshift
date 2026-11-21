@@ -37,3 +37,5 @@ public partial class PolicyAgent : Agent
     /// <param name="query">What to look up.</param>
     private static string Look(string query) => query;
 }
+
+#pragma warning restore TYPESHIFT001
