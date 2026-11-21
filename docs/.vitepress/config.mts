@@ -216,7 +216,11 @@ export default withMermaid(
     },
     mermaid: {
       theme: 'neutral',
-      look: 'handDrawn'
+      look: 'handDrawn',
+      // Mermaid 11's layout and label width: 12 lays flowcharts out with ELK and wraps labels at 120 pixels, which
+      // cuts off the last line of a label that wraps twice
+      layout: 'dagre',
+      flowchart: { wrappingWidth: 200, minNodeWidth: 0 }
     },
     // Mermaid alone is a chunk of several megabytes, loaded only by pages with a diagram
     vite: {
