@@ -1421,7 +1421,7 @@ The table lists every entry by its ID, with the section that holds it and whethe
   0.1.0-alpha.6), which left documents behind under names nobody could predict; entries with rising times, which a
   store that orders by time passes; for the taken number, passing a store that refuses it or stores it alike, which
   passes a store whose unique key a migration forgot, and a flag of the store's, `RefusesTakenSequences`, under
-  which the check looked (0.1.0-alpha.7), which passed a store that never set it.
+  which the check looked (tagged 0.1.0-alpha.7, never published), which passed a store that never set it.
 
 ### D42. Settings ids and conversation ids are separate; conversations grow by appending {#d42}
 
@@ -2015,7 +2015,8 @@ The table lists every entry by its ID, with the section that holds it and whethe
   which gave it nothing to keep runs apart with short of a lock around every run, streaming included;
   `AppendConversationAsync(conversation, entry, expectedLast)`, as a save takes a version, which breaks every store;
   a lease or a heartbeat in the store, a method every store implements, open for steering and live updates across
-  containers; refusing as an option, which a store declared with `RefusesTakenSequences` (0.1.0-alpha.7), where a
+  containers; refusing as an option, which a store declared with `RefusesTakenSequences` (tagged 0.1.0-alpha.7, never
+  published), where a
   store without the key interleaved two instances' runs without a word; a refused run that loads again and goes on,
   which interleaves with a run still going on; numbering
   from the last loaded entry instead of the highest, where a number skipped after a failed append and taken by

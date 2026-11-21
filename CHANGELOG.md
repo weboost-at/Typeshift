@@ -147,11 +147,9 @@ All notable changes to this project are documented here. The format follows
   conversation lacks a step.
 - Each conversation entry carries a number, `ConversationEntry.Sequence`, so two instances of your app no longer
   interleave one conversation's entries: a store with a unique key on the conversation and the number refuses the
-  entry of the run that appends second, which stops with a `ConversationBusyException`. A store says that it does
-  with `RefusesTakenSequences => true`, and `VerifyAsync` then checks it. `InMemoryTypeshiftStore<TId>` refuses such
-  entries. A store that never looks at the number works as before, and entries stored before load with none, the
-  next run numbering on from their count. "Refuse a second run" in the guide's store page shows the key and the
-  insert.
+  entry of the run that appends second, which stops with a `ConversationBusyException`. Entries stored before load
+  with none, the next run numbering on from their count. "Refuse a second run" in the guide's store page shows the
+  key and the insert.
 - `AgentHost<TAgent>` runs, answers, resumes and resolves options itself, without the agent's `Settings`: a method
   generic over the agent, such as `AskAsync<TAgent>(AgentHost<TAgent> host, string question)`, calls
   `host.RunAsync(question, ct)` and runs any agent. It was CS1929, since only each agent's generated members could
@@ -231,11 +229,9 @@ All notable changes to this project are documented here. The format follows
 ### Changed
 
 - **Breaking:** every conversation store refuses an entry whose `Sequence` its conversation holds already, with a
-  `StoreConflictException` and nothing stored, so two instances of your app never interleave one conversation.
-  `IConversationStore<TId>.RefusesTakenSequences` is gone: delete `public bool RefusesTakenSequences => true;` from
-  your store, and give one that stored such an entry a unique key on the conversation and the number, as "Refuse a
-  second run" in the guide's store page shows. `VerifyAsync` fails a store that stores the entry, where it passed a
-  store without the flag.
+  `StoreConflictException` and nothing stored, so two instances of your app never interleave one conversation. Give
+  your store a unique key on the conversation and the number, as "Refuse a second run" in the guide's store page
+  shows; `VerifyAsync` fails a store that stores such an entry. `InMemoryTypeshiftStore<TId>` refuses them.
 - **Breaking:** a run that asks your app a decision throws a `ConversationStoreException` at once, whatever
   `StoreFailure` says, when the store fails to save the decisions document or the model's response that asks. It
   threw the store's exception, which is now the inner exception, and `Response` holds the model's response that
