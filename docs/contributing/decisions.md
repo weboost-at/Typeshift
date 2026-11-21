@@ -577,7 +577,7 @@ The table lists every entry by its ID, with the section that holds it and whethe
 - **Context:** v0 gave each tool call a fresh scope of the root container, so request-scoped services (the current
   customer) never reached tools, context or the chat client provider (audit finding 2).
 - **Decision:** `AgentHost<TAgent>` is transient and keeps the provider it was resolved from, or the scope
-  `TypeshiftRuntime.CreateHost<TAgent>()` created for it (D76). Tools, context providers, middleware, the MCP tool
+  `runtime.CreateHost<TAgent>()` created for it (D76). Tools, context providers, middleware, the MCP tool
   provider and the chat client provider resolve from it. Agents and toolsets stay singletons, the store too.
 - **Never the root's:** a host the container resolves from the root provider, as one injected into a singleton or
   a `BackgroundService` is, throws an `InvalidOperationException` that names the runtime and a scope. The guide
@@ -1560,7 +1560,7 @@ The table lists every entry by its ID, with the section that holds it and whethe
   container provides one per id type you ask for"). Beside registered stores, a tracker of an id type no
   `IConversationStore<TId>` keeps throws at its first call, with the message a run under such an id gets, since it
   would watch nothing forever. `AddCoreServices` registers the open generic, whose public
-  constructor takes the `TypeshiftRuntime`. Under Native AOT, `Microsoft.Extensions.DependencyInjection` refuses to
+  constructor takes the `ITypeshiftRuntime`. Under Native AOT, `Microsoft.Extensions.DependencyInjection` refuses to
   close an open generic over a value type, so `WithConversationTracker<TId>()` registers the tracker of one type as a
   singleton of its own; the console sample resolves `ConversationTracker<Guid>` through it, and that of `string`
   through the open generic, published as Native AOT.
@@ -1646,8 +1646,10 @@ The table lists every entry by its ID, with the section that holds it and whethe
 - **Context:** the owner asked for less ceremony, "Wolverine-style", and chose `TypeshiftRuntime.Create`, first named
   `TypeshiftApp`, over a factory on each agent. A first run took a `ServiceCollection`, `AddTypeshift()`, a provider,
   a scope and a host from it.
-- **Decision:** `TypeshiftRuntime.Create(client, configure)` builds a container and returns its runtime, which owns it,
-  and `runtime.CreateHost<TAgent>()` returns a host in a scope of its own (D76). The generator intercepts `Create` as it
+- **Decision:** `TypeshiftRuntime.Create(client, configure)` builds a container and returns its runtime, an
+  `ITypeshiftRuntime` that owns it, and `runtime.CreateHost<TAgent>()` returns a host in a scope of its own (D76).
+  `TypeshiftRuntime` is a static class that holds only `Create`, so the interceptor and TSH040 still find the call by
+  the name it is written with. The generator intercepts `Create` as it
   does `AddTypeshift()` (D1): the interceptor builds a `ServiceCollection`, registers the core services and the modules
   with its own `AddTypeshift`, and `ModuleRegistration.CreateRuntime` registers the client as an instance for every
   agent, the default client (D63), runs `configure` on the chain and builds the provider with scope validation. The
@@ -1679,8 +1681,8 @@ The table lists every entry by its ID, with the section that holds it and whethe
   and an app with a container still built a scope by hand for each background job. The owner asked for one root in
   both kinds of app, after Wolverine's `WolverineRuntime`, which creates short-lived `IMessageBus` instances, and
   renamed `TypeshiftApp` to `TypeshiftRuntime`.
-- **Decision:** `AddCoreServices` registers `TypeshiftRuntime` as a singleton over the root provider, so a singleton of
-  the app, such as a background service, injects it. `Create` resolves that singleton from the container it builds and
+- **Decision:** `AddCoreServices` registers `ITypeshiftRuntime` as a singleton over the root provider, so a singleton
+  of the app, such as a background service, injects it. `Create` resolves that singleton from the container it builds and
   hands it the container. Disposing that runtime disposes the container, which disposes the runtime again, and the
   second call finds nothing left to dispose. A runtime your app's container created owns nothing, and disposing it does
   nothing. `runtime.CreateHost<TAgent>()` creates an async scope and a host that owns it: one unit of work, whose runs
@@ -1697,11 +1699,15 @@ The table lists every entry by its ID, with the section that holds it and whethe
   so `runtime.Agent<T>().Agent` compiled, hid that the caller owns what the call returns and must dispose it; a
   factory named for the disposable it creates says so, as the owner chose. It went without an `[Obsolete]` twin,
   since the release that renames it breaks other calls of the same code too.
+- **An interface (owner):** "Everything goes through the runtime", as an interface. The class behind
+  `ITypeshiftRuntime` is internal (`Runtime`), so an app injects the interface, a test of the app's code fakes it,
+  and a member the runtime gains later is no break for a class of the app's that wraps it. `ConversationTracker<TId>`
+  takes the interface. A public sealed class, as up to 0.1.0-alpha.7, tied every app to the one implementation.
 - **The scope a job fills:** `host.Services` is the scope a host's runs use. A job has no request middleware to
   fill your app's scoped state, such as the current tenant, so it sets it there before it runs; without it, the
   tools of a job ran with that state empty, and the job fell back to a scope of its own made by hand. No lambda and
   no second object: the host is the unit of work, so its scope is a member of it.
-- **Where:** `Hosting/TypeshiftRuntime.cs`, `Hosting/AgentHost.cs`, `Agents/Agent.cs`,
+- **Where:** `Hosting/ITypeshiftRuntime.cs`, `Hosting/TypeshiftRuntime.cs`, `Hosting/AgentHost.cs`, `Agents/Agent.cs`,
   `Generated/ModuleRegistration.cs`, `Analysis/TypeshiftAnalyzer.cs`.
 - **Alternatives:** a separate `AgentScope` object that holds a scope and hands out hosts, which the owner turned
   down; one scope for the runtime's lifetime, D75's first design, whose scoped services, such as the chat client

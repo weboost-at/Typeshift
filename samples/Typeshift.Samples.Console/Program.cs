@@ -18,7 +18,7 @@ services.AddTypeshift()
 // end-snippet
 
 await using var provider = services.BuildServiceProvider();
-await using var research = provider.GetRequiredService<TypeshiftRuntime>().CreateHost<ResearchAgent>();
+await using var research = provider.GetRequiredService<ITypeshiftRuntime>().CreateHost<ResearchAgent>();
 
 var conversationId = Guid.CreateVersion7();
 var customerId = Guid.CreateVersion7();
@@ -86,7 +86,7 @@ Expect(images.Any(content => content is FunctionResultContent { Result: IList<AI
 
 // Decisions: questions asked and answered, then a tool call approved, each stored, listed and carried out without
 // reflection. The decision and its answer cross JSON as an endpoint would send and receive them
-await using var outreach = provider.GetRequiredService<TypeshiftRuntime>().CreateHost<OutreachAgent>();
+await using var outreach = provider.GetRequiredService<ITypeshiftRuntime>().CreateHost<OutreachAgent>();
 var contact = outreach.WithConversationId(Guid.CreateVersion7());
 
 var asking = await contact.RunAsync("Write to a company in Vienna.");
@@ -106,7 +106,7 @@ Expect(mailed.Text == "Sent to Prater Motion.", mailed.Text);
 
 // The catalog lists the agents and toolsets their modules registered, and creates the host of a kind it lists, as
 // an endpoint does that takes the agent from its route: closed over the agent's type at registration, not reflected
-var runtime = provider.GetRequiredService<TypeshiftRuntime>();
+var runtime = provider.GetRequiredService<ITypeshiftRuntime>();
 var kinds = string.Join(", ", runtime.Agents.Select(agent => agent.Kind).Order(StringComparer.Ordinal));
 Expect(kinds == "OutreachAgent, ResearchAgent", kinds);
 

@@ -27,7 +27,7 @@ services.AddTypeshift() --> InterceptParser --> InterceptorEmitter -------> AddT
 
 | Namespace | Holds |
 |---|---|
-| `Typeshift` | `Toolset` and the tool chain (`ToolBuilder`, the settings builders), `ToolName`, `ToolList<T>`; `Agent` and its chains (`ChatOptionsBuilder`, `ToolsetUse<T>`, `RunOptionsBuilder`), `RunOptions`; `TypeshiftRuntime`, `AgentHost<T>`, `IChatClientProvider<TProviderId>`, `TypeshiftBuilder`. |
+| `Typeshift` | `Toolset` and the tool chain (`ToolBuilder`, the settings builders), `ToolName`, `ToolList<T>`; `Agent` and its chains (`ChatOptionsBuilder`, `ToolsetUse<T>`, `RunOptionsBuilder`), `RunOptions`; `ITypeshiftRuntime` and the static `TypeshiftRuntime.Create`, `AgentHost<T>`, `IChatClientProvider<TProviderId>`, `TypeshiftBuilder`. |
 | `Typeshift.Generated` | What only generated code calls, hidden from editors (D10): `GeneratedToolFunction`, `ToolParameter`, `ToolJson`, `AgentDeclaration`, `AgentRuns`, `ModuleRegistration` and the stamps. |
 | `Microsoft.Extensions.DependencyInjection` | `AddTypeshift()`, which throws unless the generator intercepts it (D1). |
 
@@ -35,7 +35,8 @@ At runtime the declaration chains only return the next builder or record a value
 chat and run options or `Configure{Tool}()`. Which tools exist, what an agent offers and what may change at runtime
 is decided by the generated code alone (D4).
 
-`TypeshiftRuntime` is a singleton over the root provider, which `AddCoreServices` registers. `CreateHost<TAgent>()`
+`ITypeshiftRuntime` is a singleton over the root provider, which `AddCoreServices` registers, and an internal class
+`Runtime` implements it. `CreateHost<TAgent>()`
 creates an async scope and a host that owns it, and disposing the host disposes the scope; a host the container
 resolved owns nothing. The runtime that `Create` returns owns the container it built, so disposing the runtime
 disposes the container. A runtime an app's own container created leaves that container alone (D76).

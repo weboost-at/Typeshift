@@ -4,7 +4,7 @@ using Typeshift.Samples.Agents;
 namespace Typeshift.Samples.Hosting;
 
 // begin-snippet: job-scoped-state
-internal sealed class TenantDigest(TypeshiftRuntime runtime)
+internal sealed class TenantDigest(ITypeshiftRuntime runtime)
 {
     public async Task<string> DigestAsync(string tenant, CancellationToken ct)
     {

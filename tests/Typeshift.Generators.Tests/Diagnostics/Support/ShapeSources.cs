@@ -1299,7 +1299,7 @@ public static class ShapeSources
             {
                 public static void Register(IServiceCollection services) => services.AddTypeshift();
 
-                public static TypeshiftRuntime Start(IChatClient client) => TypeshiftRuntime.Create(client);
+                public static ITypeshiftRuntime Start(IChatClient client) => TypeshiftRuntime.Create(client);
             }
         }
         """;
@@ -2535,7 +2535,7 @@ public static class ShapeSources
             public SupportAgent() => WithInstructions("Answer questions about refunds.");
         }
 
-        internal sealed class Desk(TypeshiftRuntime runtime, AgentHost<SupportAgent> support)
+        internal sealed class Desk(ITypeshiftRuntime runtime, AgentHost<SupportAgent> support)
         {
             public async Task<string> AnswerAsync(string question, int customer)
             {

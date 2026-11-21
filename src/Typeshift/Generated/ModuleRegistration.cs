@@ -36,8 +36,9 @@ public static class ModuleRegistration
         // D72: the tracker of every id type an app asks for; WithConversationTracker<TId>() closes one for Native AOT
         services.TryAddSingleton(typeof(ConversationTracker<>));
 
-        // D76: the root's services, whatever scope resolves it
-        services.TryAddSingleton(provider => new TypeshiftRuntime(provider));
+        // D76: the root's services, whatever scope resolves it, behind the interface an app injects
+        services.TryAddSingleton(provider => new Runtime(provider));
+        services.TryAddSingleton<ITypeshiftRuntime>(provider => provider.GetRequiredService<Runtime>());
 
         return new TypeshiftBuilder(services);
     }
@@ -51,7 +52,7 @@ public static class ModuleRegistration
     /// <param name="configure">What else the app registers; null for nothing.</param>
     /// <returns>The runtime.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="client"/> is null.</exception>
-    public static TypeshiftRuntime CreateRuntime(
+    public static ITypeshiftRuntime CreateRuntime(
         IServiceCollection services,
         TypeshiftBuilder builder,
         IChatClient client,
@@ -64,7 +65,7 @@ public static class ModuleRegistration
         services.AddSingleton(client);
         configure?.Invoke(builder);
 
-        return TypeshiftRuntime.Owning(
+        return Runtime.Owning(
             services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true }));
     }
 

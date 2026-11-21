@@ -283,7 +283,7 @@ public sealed class TypeshiftBuilder
     {
         // D72: closed here, so the container makes no generic type at run time
         _services.TryAddSingleton(provider => new ConversationTracker<TId>(
-            provider.GetRequiredService<TypeshiftRuntime>()));
+            provider.GetRequiredService<ITypeshiftRuntime>()));
 
         return this;
     }

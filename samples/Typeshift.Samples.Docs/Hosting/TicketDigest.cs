@@ -4,7 +4,7 @@ using Typeshift.Samples.Agents;
 namespace Typeshift.Samples.Hosting;
 
 // begin-snippet: background-host
-internal sealed class TicketDigest(TypeshiftRuntime runtime, TimeProvider time) : BackgroundService
+internal sealed class TicketDigest(ITypeshiftRuntime runtime, TimeProvider time) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {

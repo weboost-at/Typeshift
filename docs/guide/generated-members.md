@@ -400,7 +400,7 @@ name is `Tshost_` and the agent's full name, each part after its length, such as
 `Demo.SupportAgent`, so no two agents share one. The class is [hidden](#names-and-hidden-members), since you call the
 members on the host and never need its name: type completion leaves it out where your assembly is a compiled
 reference. In the projects of your own solution it lists it, though not for `Type` or `Host`, where you look for
-`TypeshiftRuntime` or `AgentHost`.
+`ITypeshiftRuntime` or `AgentHost`.
 
 ## Per toolset
 

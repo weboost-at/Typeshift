@@ -6,7 +6,7 @@ internal static class KnownTypes
 {
     // D7: raised whenever the stamps change shape or a member generated code binds to changes; a reference with
     // another version is TSH020
-    public const int StampVersion = 20;
+    public const int StampVersion = 21;
 
     public const string Toolset = "Typeshift.Toolset";
 
@@ -42,6 +42,9 @@ internal static class KnownTypes
     public const string Runtime = "Typeshift." + RuntimeName;
 
     public const string RuntimeMethod = "Create";
+
+    // D76: what Create returns, the interface over the library's runtime
+    public const string RuntimeInterface = "Typeshift.ITypeshiftRuntime";
 
     public const string GeneratedModuleAttribute = "Typeshift.Generated.GeneratedModuleAttribute";
 

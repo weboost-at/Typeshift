@@ -76,7 +76,7 @@ internal static class InterceptorEmitter
 
         writer.Lines(
             $"""
-            public static global::{KnownTypes.Runtime} {KnownTypes.RuntimeMethod}(
+            public static global::{KnownTypes.RuntimeInterface} {KnownTypes.RuntimeMethod}(
                 global::Microsoft.Extensions.AI.IChatClient client,
                 global::System.Action<{Builder}>? configure = null)
             """);

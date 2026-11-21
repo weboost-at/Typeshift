@@ -9,7 +9,7 @@ namespace Typeshift;
 /// <summary>
 /// Runs <typeparamref name="TAgent"/> with the services of its scope: its tools and its chat client provider resolve
 /// there. Registered as transient by <c>AddTypeshift()</c>: inject it, or resolve it from a scope, never from the root
-/// provider. <see cref="TypeshiftRuntime.CreateHost{TAgent}"/> creates one in a scope of its own, which disposing the
+/// provider. <see cref="ITypeshiftRuntime.CreateHost{TAgent}"/> creates one in a scope of its own, which disposing the
 /// host disposes. Its runs, answers, resumes and <c>ResolveOptionsAsync</c> are its own, so code generic over the agent
 /// calls them too. The generator adds the agent's typed members: the same runs with the agent's <c>Settings</c> for
 /// the run, and <c>LoadSettingsAsync</c>, <c>SaveSettingsAsync</c> and <c>UpdateSettingsAsync</c>.
@@ -58,12 +58,12 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     // service, where scopes are not validated, and the root would keep it until the app stops, so it is refused.
     // The root hands a factory the provider the runtime holds, a scope another
     internal static AgentHost<TAgent> Resolved(IServiceProvider services) =>
-        ReferenceEquals(services, services.GetRequiredService<TypeshiftRuntime>().Services)
+        ReferenceEquals(services, services.GetRequiredService<ITypeshiftRuntime>().Services)
             ? throw new InvalidOperationException(
                 $"AgentHost<{typeof(TAgent).Name}> was resolved from the root provider, as a host injected into a "
                 + "singleton is. Its runs would share one instance of each scoped service, such as the chat client "
                 + "provider of one customer, and the root would keep every host until the app stops: inject "
-                + $"TypeshiftRuntime and call CreateHost<{typeof(TAgent).Name}>() for each unit of work, or resolve "
+                + $"ITypeshiftRuntime and call CreateHost<{typeof(TAgent).Name}>() for each unit of work, or resolve "
                 + "the host from a scope.")
             : In(services);
 
@@ -75,7 +75,7 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     // D76: a job fills the scope of its unit of work here, as a request's middleware fills the request's
     /// <summary>
     /// The services the host's runs use: those of the scope it was resolved from, or of the scope
-    /// <see cref="TypeshiftRuntime.CreateHost{TAgent}"/> created for it. A job sets scoped state through them before
+    /// <see cref="ITypeshiftRuntime.CreateHost{TAgent}"/> created for it. A job sets scoped state through them before
     /// it runs, such as the current tenant its tools read.
     /// More in the guide:
     /// <see href="https://weboost-at.github.io/Typeshift/guide/using-an-agent#run-from-a-background-job">Run from a
@@ -1010,7 +1010,7 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     }
 
     /// <summary>
-    /// Disposes the scope of a host <see cref="TypeshiftRuntime.CreateHost{TAgent}"/> created, and with it the scoped
+    /// Disposes the scope of a host <see cref="ITypeshiftRuntime.CreateHost{TAgent}"/> created, and with it the scoped
     /// services its runs resolved. A copy from <c>WithSettingsId</c> or <c>WithConversationId</c> disposes the same
     /// scope, so the host and its copies may each be disposed, and once one of them is, a run of any of them throws
     /// an <see cref="ObjectDisposedException"/>. A host your app's container resolved, injected into a request for
@@ -1020,7 +1020,7 @@ public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, ID
     public ValueTask DisposeAsync() => _scope?.DisposeAsync() ?? ValueTask.CompletedTask;
 
     /// <summary>
-    /// Disposes the scope of a host <see cref="TypeshiftRuntime.CreateHost{TAgent}"/> created, as a copy of it does.
+    /// Disposes the scope of a host <see cref="ITypeshiftRuntime.CreateHost{TAgent}"/> created, as a copy of it does.
     /// Prefer <see cref="DisposeAsync"/>: this one throws when a scoped service disposes only asynchronously.
     /// </summary>
     /// <exception cref="InvalidOperationException">

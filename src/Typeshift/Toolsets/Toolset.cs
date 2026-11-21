@@ -9,13 +9,13 @@ namespace Typeshift;
 public abstract class Toolset
 {
     /// <summary>
-    /// A name for people, which the runtime's <see cref="TypeshiftRuntime.Toolsets"/> lists for a tool picker; null
+    /// A name for people, which the runtime's <see cref="ITypeshiftRuntime.Toolsets"/> lists for a tool picker; null
     /// unless <see cref="WithDisplayName"/> sets it.
     /// </summary>
     public string? DisplayName { get; private set; }
 
     /// <summary>
-    /// Names the toolset for people, as <see cref="TypeshiftRuntime.Toolsets"/> lists it.
+    /// Names the toolset for people, as <see cref="ITypeshiftRuntime.Toolsets"/> lists it.
     /// </summary>
     /// <param name="displayName">The name.</param>
     protected void WithDisplayName(string displayName) => DisplayName = displayName;

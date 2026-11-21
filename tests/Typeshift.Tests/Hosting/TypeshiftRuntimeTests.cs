@@ -303,11 +303,24 @@ public class TypeshiftRuntimeTests : AgentTestBase
     public void Given_A_Container_The_Root_And_A_Scope_Resolve_One_Runtime()
     {
         // Act
-        var root = Services.GetRequiredService<TypeshiftRuntime>();
-        var scoped = Scope.GetRequiredService<TypeshiftRuntime>();
+        var root = Services.GetRequiredService<ITypeshiftRuntime>();
+        var scoped = Scope.GetRequiredService<ITypeshiftRuntime>();
 
         // Assert
         scoped.Should().BeSameAs(root);
+    }
+
+    [Fact]
+    public async Task Given_A_Runtime_Of_Create_Its_Container_Resolves_It_As_The_Runtime()
+    {
+        // Arrange
+        await using var runtime = TypeshiftRuntime.Create(ChatClient);
+
+        // Act
+        var resolved = runtime.Services.GetRequiredService<ITypeshiftRuntime>();
+
+        // Assert
+        resolved.Should().BeSameAs(runtime);
     }
 
     [Theory]
@@ -328,7 +341,7 @@ public class TypeshiftRuntimeTests : AgentTestBase
         resolve.Should().Throw<InvalidOperationException>().WithMessage(
             "AgentHost<ProbeAgent> was resolved from the root provider, as a host injected into a singleton is. Its "
             + "runs would share one instance of each scoped service, such as the chat client provider of one "
-            + "customer, and the root would keep every host until the app stops: inject TypeshiftRuntime and call "
+            + "customer, and the root would keep every host until the app stops: inject ITypeshiftRuntime and call "
             + "CreateHost<ProbeAgent>() for each unit of work, or resolve the host from a scope.");
     }
 

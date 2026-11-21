@@ -22,7 +22,7 @@ public sealed class ConversationTracker<TId> where TId : notnull
     /// <param name="runtime">The runtime whose runs it tracks.</param>
     /// <exception cref="ArgumentNullException"><paramref name="runtime"/> is null.</exception>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public ConversationTracker(TypeshiftRuntime runtime)
+    public ConversationTracker(ITypeshiftRuntime runtime)
     {
         ArgumentNullException.ThrowIfNull(runtime);
 

@@ -3702,7 +3702,7 @@ public static class DiagnosticSources
         internal static class Startup
         {
             public static object? Start(IServiceCollection services, IChatClient client) =>
-                (Func<IChatClient, Action<TypeshiftBuilder>?, TypeshiftRuntime>)TypeshiftRuntime.Create;
+                (Func<IChatClient, Action<TypeshiftBuilder>?, ITypeshiftRuntime>)TypeshiftRuntime.Create;
         }
         """;
 
@@ -3799,7 +3799,7 @@ public static class DiagnosticSources
         }
 
         // begin-snippet: tsh042
-        internal sealed class TicketFollowUp(TypeshiftRuntime runtime)
+        internal sealed class TicketFollowUp(ITypeshiftRuntime runtime)
         {
             public async Task FollowUpAsync(IEnumerable<string> tickets)
             {
@@ -3827,7 +3827,7 @@ public static class DiagnosticSources
             public SupportAgent() => WithInstructions("Answer questions about refunds.");
         }
 
-        internal sealed class Desk(TypeshiftRuntime runtime)
+        internal sealed class Desk(ITypeshiftRuntime runtime)
         {
             private readonly AgentHost<SupportAgent> _support = runtime.CreateHost<SupportAgent>();
 

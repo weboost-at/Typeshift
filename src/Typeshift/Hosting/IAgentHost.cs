@@ -5,7 +5,7 @@ namespace Typeshift;
 // D83: the host of an agent your code does not name, which the runtime creates by kind or by type, and the library
 // passes a sub-agent or an agent handed off to (D33, D34). Only AgentHost<TAgent> implements it
 /// <summary>
-/// The host of an agent whose type your code does not name: one <see cref="TypeshiftRuntime.CreateHost(string)"/>
+/// The host of an agent whose type your code does not name: one <see cref="ITypeshiftRuntime.CreateHost(string)"/>
 /// creates by the agent's kind, or a scope resolves as a service keyed by it. It has the members of
 /// <see cref="AgentHost{TAgent}"/> that take none of the agent's generated <c>Settings</c>, so one endpoint runs any
 /// agent. Only the library implements it.

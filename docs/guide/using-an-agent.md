@@ -103,13 +103,13 @@ reach the tools of another, and because the root keeps every host it creates unt
 ## Run from a background job
 
 A `BackgroundService` is a singleton, so a host it took in its constructor would come from the root provider, which
-throws. Take the `TypeshiftRuntime` in its place, which `AddTypeshift()` registers, and get a host from it for each
+throws. Take the `ITypeshiftRuntime` in its place, which `AddTypeshift()` registers, and get a host from it for each
 job:
 
 <!-- snippet: background-host -->
 <a id='snippet-background-host'></a>
 ```cs
-internal sealed class TicketDigest(TypeshiftRuntime runtime, TimeProvider time) : BackgroundService
+internal sealed class TicketDigest(ITypeshiftRuntime runtime, TimeProvider time) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -148,7 +148,7 @@ them. A job has no request, so it fills them itself, through the host's `Service
 <!-- snippet: job-scoped-state -->
 <a id='snippet-job-scoped-state'></a>
 ```cs
-internal sealed class TenantDigest(TypeshiftRuntime runtime)
+internal sealed class TenantDigest(ITypeshiftRuntime runtime)
 {
     public async Task<string> DigestAsync(string tenant, CancellationToken ct)
     {

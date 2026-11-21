@@ -258,6 +258,10 @@ All notable changes to this project are documented here. The format follows
   list, any referenced type under the `System` or `Microsoft` namespaces such as `StringBuilder`, is TSH012, also
   inside a record of yours. It compiled and stored what the class's setters reach, a `StringBuilder` its capacity and its length.
   Give the member a record of your own, or keep it in code with `NotConfigurable(...)`.
+- **Breaking:** the runtime is the interface `ITypeshiftRuntime`. `TypeshiftRuntime.Create(client)` returns one, and
+  `services.AddTypeshift()` registers it as one, over a class of the library's. `TypeshiftRuntime` is a static class
+  that holds only `Create`. Inject `ITypeshiftRuntime` where you injected `TypeshiftRuntime`, as in
+  `TicketDigest(ITypeshiftRuntime runtime)`, and resolve it as `GetRequiredService<ITypeshiftRuntime>()`.
 - **Breaking:** `host.CreateChatClientAsync(options)` takes only options that `ResolveOptionsAsync` returned, and
   throws an `ArgumentException` for `ChatOptions` your code made, such as `new ChatOptions()`. Create the client from
   `await host.ResolveOptionsAsync()` instead. The client keeps those options: a call without options runs with them,

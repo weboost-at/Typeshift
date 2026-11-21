@@ -56,11 +56,11 @@ internal static class RunningAgents
         var generic = await AgentAnswers.AskAsync(support, "Where is my refund?", CancellationToken.None);
         Expect(generic == $"{support.Agent.Name}: {answer.Text}", "a method generic over the agent runs it");
 
-        var digest = new TicketDigest(provider.GetRequiredService<TypeshiftRuntime>(), TimeProvider.System);
+        var digest = new TicketDigest(provider.GetRequiredService<ITypeshiftRuntime>(), TimeProvider.System);
         var digested = await digest.DigestAsync(CancellationToken.None);
         Expect(digested.Length > 0, "a background job answers from a scope of its own");
 
-        var tenants = new TenantDigest(provider.GetRequiredService<TypeshiftRuntime>());
+        var tenants = new TenantDigest(provider.GetRequiredService<ITypeshiftRuntime>());
         var forTenant = await tenants.DigestAsync("acme", CancellationToken.None);
         Expect(forTenant.Length > 0, "a job that sets its tenant in its host's scope answers");
 

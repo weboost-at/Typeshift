@@ -55,7 +55,7 @@ and `anthropic`, and a run takes the client registered under its provider
 | Each toolset | Singleton |
 | Each agent | Singleton |
 | `AgentHost<TAgent>` per agent | Transient, so it runs with the services of the scope it was resolved from. Resolving it from the root provider throws ([Using an agent](./using-an-agent.md#run-from-a-console-app)) |
-| `TypeshiftRuntime`, which gives each host a scope of its own ([The runtime](#the-runtime)) | Singleton |
+| `ITypeshiftRuntime`, which gives each host a scope of its own ([The runtime](#the-runtime)) | Singleton |
 | The JSON contexts of each assembly, which tools ask before the defaults | Singleton |
 | `ConversationTracker<TId>` of each id type your app asks for ([Live runs](./conversations.md#live-runs)), and the core services runs need | Singleton |
 
@@ -140,9 +140,10 @@ for `WithModel("openai", "gpt-5-mini")`, or an enum of yours. See
 
 ## The runtime
 
-`TypeshiftRuntime` is the root of Typeshift in your app. It gives you the host of every agent of your project and of
+`ITypeshiftRuntime` is the root of Typeshift in your app. It gives you the host of every agent of your project and of
 the projects it references. Each host it gives you is one unit of work, such as a job, with scoped services of its
-own.
+own. The class behind the interface is the library's, so your app injects the interface, and a test of your own code
+can give it a fake.
 
 A console tool or a script without a container of its own creates the runtime with one chat client, the default
 client of its runs:
@@ -198,7 +199,8 @@ await using var runtime = TypeshiftRuntime.Create(client, typeshift =>
 - After `services.AddTypeshift()`, the chain's `Services` are the `services` you called it on, so a `With...` call of
   your own, written as an extension of `TypeshiftBuilder`, registers into either kind of app.
 
-An app with a container gets the runtime from `services.AddTypeshift()`, which registers it as a singleton. Inject it
+An app with a container gets the runtime from `services.AddTypeshift()`, which registers `ITypeshiftRuntime` as a
+singleton. Inject it
 where no request's scope is at hand, such as in a background service, and take a host from it for each job, as
 [Run from a background job](./using-an-agent.md#run-from-a-background-job) shows. Your container owns that runtime,
 so disposing it does nothing. A request injects the host itself, from the request's scope
@@ -212,7 +214,7 @@ The runtime's members:
 
 | Member | Does |
 |---|---|
-| `TypeshiftRuntime.Create(client, configure)` | Creates a runtime without a container. `client` serves the runs that name no provider, and `configure` takes the rest of the chain. |
+| `TypeshiftRuntime.Create(client, configure)` | Creates a runtime without a container and returns it as an `ITypeshiftRuntime`. `client` serves the runs that name no provider, and `configure` takes the rest of the chain. `TypeshiftRuntime` is a static class that holds only this method. |
 | `CreateHost<TAgent>()` | Creates the host of an agent: a unit of work with scoped services of its own, which you dispose. |
 | `CreateHost(Type agent)`, `CreateHost(string kind)` | Creates the host of an agent by its type or its kind, as an `IAgentHost` ([The catalog](#the-catalog)). |
 | `Agents`, `Toolsets` | Lists the agents and toolsets of your project and the projects it references ([The catalog](#the-catalog)). |

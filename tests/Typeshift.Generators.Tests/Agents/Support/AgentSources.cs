@@ -406,7 +406,7 @@ public static class AgentSources
 
         internal static class Program
         {
-            public static TypeshiftRuntime Start(IChatClient client) =>
+            public static ITypeshiftRuntime Start(IChatClient client) =>
                 TypeshiftRuntime.Create(client, typeshift => typeshift.WithStore<InMemoryTypeshiftStore<int>>());
         }
         """;
@@ -428,7 +428,7 @@ public static class AgentSources
 
         internal static class Program
         {
-            public static TypeshiftRuntime Start(IChatClient client) => {{receiver}}.Create(client);
+            public static ITypeshiftRuntime Start(IChatClient client) => {{receiver}}.Create(client);
         }
         """;
 
@@ -448,7 +448,7 @@ public static class AgentSources
 
         internal static class Program
         {
-            public static TypeshiftRuntime Start(Microsoft.Extensions.AI.IChatClient client) =>
+            public static ITypeshiftRuntime Start(Microsoft.Extensions.AI.IChatClient client) =>
                 TypeshiftRuntime.Create(client, typeshift => typeshift.WithFileStore(store => store.Folder = "data"));
         }
         """;
@@ -509,7 +509,7 @@ public static class AgentSources
 
         internal static class Program
         {
-            public static TypeshiftRuntime Start(dynamic client) => TypeshiftRuntime.Create(client);
+            public static ITypeshiftRuntime Start(dynamic client) => TypeshiftRuntime.Create(client);
         }
         """;
 }

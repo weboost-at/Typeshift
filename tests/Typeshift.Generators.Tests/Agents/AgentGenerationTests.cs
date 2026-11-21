@@ -195,7 +195,7 @@ public partial class AgentGenerationTests : GeneratorTestBase
 
         // Assert
         var interceptor = run.Source("Typeshift.Generated.AddTypeshiftInterceptor.g.cs");
-        interceptor.Should().Contain("public static global::Typeshift.TypeshiftRuntime Create(");
+        interceptor.Should().Contain("public static global::Typeshift.ITypeshiftRuntime Create(");
         interceptor.Should().Contain("CreateRuntime(services, AddTypeshift(services), client, configure)");
         interceptor.Should().Contain("Module.Register(services);");
     }

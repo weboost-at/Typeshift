@@ -215,7 +215,7 @@ public object Typeshift.ConversationStoreException.Conversation { get; }
 public Typeshift.ConversationStoreException.ConversationStoreException(string message, object conversation, Microsoft.Extensions.AI.ChatResponse response, System.Exception inner)
 public Microsoft.Extensions.AI.ChatResponse Typeshift.ConversationStoreException.Response { get; }
 public sealed class Typeshift.ConversationTracker<TId> where TId : notnull
-public Typeshift.ConversationTracker<TId>.ConversationTracker(Typeshift.TypeshiftRuntime runtime)
+public Typeshift.ConversationTracker<TId>.ConversationTracker(Typeshift.ITypeshiftRuntime runtime)
 public System.Collections.Generic.IReadOnlyList<Typeshift.LiveRun<TId>> Typeshift.ConversationTracker<TId>.Runs { get; }
 public bool Typeshift.ConversationTracker<TId>.TrySteer(TId conversation, Microsoft.Extensions.AI.ChatMessage input)
 public bool Typeshift.ConversationTracker<TId>.TrySteer(TId conversation, string input)
@@ -359,7 +359,7 @@ public static Typeshift.TypeshiftBuilder Typeshift.Generated.ModuleRegistration.
 public static void Typeshift.Generated.ModuleRegistration.AddJsonContext(Microsoft.Extensions.DependencyInjection.IServiceCollection services, System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver context)
 public static void Typeshift.Generated.ModuleRegistration.AddSchemaAnnotations(Microsoft.Extensions.DependencyInjection.IServiceCollection services, Weboost.SchemaAnnotations.ISchemaAnnotationSource source)
 public static void Typeshift.Generated.ModuleRegistration.AddToolset<TToolset>(Microsoft.Extensions.DependencyInjection.IServiceCollection services, System.Func<TToolset> create, params Typeshift.ToolInfo[] tools) where TToolset : Typeshift.Toolset
-public static Typeshift.TypeshiftRuntime Typeshift.Generated.ModuleRegistration.CreateRuntime(Microsoft.Extensions.DependencyInjection.IServiceCollection services, Typeshift.TypeshiftBuilder builder, Microsoft.Extensions.AI.IChatClient client, System.Action<Typeshift.TypeshiftBuilder>? configure)
+public static Typeshift.ITypeshiftRuntime Typeshift.Generated.ModuleRegistration.CreateRuntime(Microsoft.Extensions.DependencyInjection.IServiceCollection services, Typeshift.TypeshiftBuilder builder, Microsoft.Extensions.AI.IChatClient client, System.Action<Typeshift.TypeshiftBuilder>? configure)
 public static bool Typeshift.Generated.ModuleRegistration.TryAddModule(Microsoft.Extensions.DependencyInjection.IServiceCollection services, System.Type module)
 public sealed class Typeshift.Generated.ModuleToolsetAttribute : System.Attribute
 public Typeshift.Generated.ModuleToolsetAttribute.ModuleToolsetAttribute(System.Type toolset)
@@ -498,6 +498,13 @@ public interface Typeshift.IToolApprovalRule
 abstract System.Threading.Tasks.ValueTask<Typeshift.RuleVerdict> Typeshift.IToolApprovalRule.DecideAsync(Microsoft.Extensions.AI.FunctionCallContent call, Typeshift.AgentRun run, System.Threading.CancellationToken ct)
 public interface Typeshift.IToolMiddleware
 abstract System.Threading.Tasks.ValueTask<object?> Typeshift.IToolMiddleware.InvokeAsync(Microsoft.Extensions.AI.FunctionInvocationContext call, System.Func<System.Threading.Tasks.ValueTask<object?>> next, System.Threading.CancellationToken ct)
+public interface Typeshift.ITypeshiftRuntime : System.IAsyncDisposable, System.IDisposable
+abstract System.Collections.Generic.IReadOnlyList<Typeshift.AgentInfo> Typeshift.ITypeshiftRuntime.Agents { get; }
+abstract Typeshift.IAgentHost Typeshift.ITypeshiftRuntime.CreateHost(System.Type agent)
+abstract Typeshift.IAgentHost Typeshift.ITypeshiftRuntime.CreateHost(string kind)
+abstract Typeshift.AgentHost<TAgent> Typeshift.ITypeshiftRuntime.CreateHost<TAgent>() where TAgent : Typeshift.Agent
+abstract System.IServiceProvider Typeshift.ITypeshiftRuntime.Services { get; }
+abstract System.Collections.Generic.IReadOnlyList<Typeshift.ToolsetInfo> Typeshift.ITypeshiftRuntime.Toolsets { get; }
 public interface Typeshift.ITypeshiftStore<TId> : Typeshift.ISettingsStore<TId>, Typeshift.IConversationStore<TId>, Typeshift.IDecisionStore<TId> where TId : notnull
 public sealed class Typeshift.InMemoryTypeshiftStore<TId> : Typeshift.ITypeshiftStore<TId>, Typeshift.ISettingsStore<TId>, Typeshift.IConversationStore<TId>, Typeshift.IDecisionStore<TId>, Typeshift.IAgentSettingsStore where TId : notnull
 public System.Threading.Tasks.Task Typeshift.InMemoryTypeshiftStore<TId>.AppendConversationAsync(TId conversation, Typeshift.ConversationEntry entry, System.Threading.CancellationToken ct)
@@ -780,13 +787,5 @@ public void Typeshift.TypeshiftOptions.NewConversationIds<TId>(System.Func<TId> 
 public bool Typeshift.TypeshiftOptions.PersistAllConversations { get; set; }
 public Typeshift.StoreFailure Typeshift.TypeshiftOptions.StoreFailure { get; set; }
 public Typeshift.TypeshiftOptions.TypeshiftOptions()
-public sealed class Typeshift.TypeshiftRuntime : System.IAsyncDisposable, System.IDisposable
-public System.Collections.Generic.IReadOnlyList<Typeshift.AgentInfo> Typeshift.TypeshiftRuntime.Agents { get; }
-public static Typeshift.TypeshiftRuntime Typeshift.TypeshiftRuntime.Create(Microsoft.Extensions.AI.IChatClient client, System.Action<Typeshift.TypeshiftBuilder>? configure = null)
-public Typeshift.IAgentHost Typeshift.TypeshiftRuntime.CreateHost(System.Type agent)
-public Typeshift.IAgentHost Typeshift.TypeshiftRuntime.CreateHost(string kind)
-public Typeshift.AgentHost<TAgent> Typeshift.TypeshiftRuntime.CreateHost<TAgent>() where TAgent : Typeshift.Agent
-public void Typeshift.TypeshiftRuntime.Dispose()
-public System.Threading.Tasks.ValueTask Typeshift.TypeshiftRuntime.DisposeAsync()
-public System.IServiceProvider Typeshift.TypeshiftRuntime.Services { get; }
-public System.Collections.Generic.IReadOnlyList<Typeshift.ToolsetInfo> Typeshift.TypeshiftRuntime.Toolsets { get; }
+public static class Typeshift.TypeshiftRuntime
+public static Typeshift.ITypeshiftRuntime Typeshift.TypeshiftRuntime.Create(Microsoft.Extensions.AI.IChatClient client, System.Action<Typeshift.TypeshiftBuilder>? configure = null)

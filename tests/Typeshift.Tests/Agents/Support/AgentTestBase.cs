@@ -16,7 +16,7 @@ public abstract class AgentTestBase : HostTestBase
     protected AgentHost<TAgent> Host<TAgent>() where TAgent : Agent =>
         Scope.GetRequiredService<AgentHost<TAgent>>();
 
-    protected TypeshiftRuntime Runtime => Services.GetRequiredService<TypeshiftRuntime>();
+    protected ITypeshiftRuntime Runtime => Services.GetRequiredService<ITypeshiftRuntime>();
 
     protected ConversationTracker<Guid> Tracker => Services.GetRequiredService<ConversationTracker<Guid>>();
 
