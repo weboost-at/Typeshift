@@ -37,31 +37,23 @@ public interface IConversationStore<TId> where TId : notnull
 
     /// <summary>
     /// Appends an entry to a conversation, creating it on the first. Runs append as they go, so this is the hot path.
-    /// Store the entry as the JSON its <see cref="ConversationEntry.Serialize"/> writes. In one container, one run
-    /// appends to a conversation at a time. Across containers, such as two instances of your app, refuse an entry
-    /// whose <see cref="ConversationEntry.Sequence"/> the conversation holds already: the run that appended second
-    /// then stops with a <c>ConversationBusyException</c>, so the two never interleave. An append that throws
+    /// Store the entry as the JSON its <see cref="ConversationEntry.Serialize"/> writes. Refuse an entry whose
+    /// <see cref="ConversationEntry.Sequence"/> the conversation holds already, with a
+    /// <see cref="StoreConflictException"/> and nothing stored, as a unique key on the conversation and the number
+    /// does: of two runs that loaded the conversation at the same point, such as in two instances of your app, the one
+    /// that appends second then stops with a <c>ConversationBusyException</c>, so the two never interleave. An entry
+    /// numbered 0, as one stored before entries were numbered, carries no number to refuse. An append that throws
     /// anything else is logged and not retried, and fails the run as it ends.
+    /// More in the guide:
+    /// <see href="https://weboost-at.github.io/Typeshift/guide/implementing-a-store#refuse-a-second-run">Refuse a
+    /// second run</see>.
     /// </summary>
     /// <param name="conversation">The conversation's id.</param>
     /// <param name="entry">The entry.</param>
     /// <param name="ct">Cancels the append.</param>
     /// <returns>A task that completes once the entry is stored.</returns>
     /// <exception cref="StoreConflictException">
-    /// The conversation holds an entry of this entry's <see cref="ConversationEntry.Sequence"/> already, for a store
-    /// that refuses such an entry.
+    /// The conversation holds an entry of this entry's <see cref="ConversationEntry.Sequence"/> already.
     /// </exception>
     Task AppendConversationAsync(TId conversation, ConversationEntry entry, CancellationToken ct);
-
-    /// <summary>
-    /// Whether the store refuses an entry whose <see cref="ConversationEntry.Sequence"/> the conversation holds
-    /// already, with a <see cref="StoreConflictException"/> and nothing stored, as a unique key on the conversation
-    /// and the number does. <c>VerifyAsync</c> then checks that it does. Runs number their entries either way, and a
-    /// store that does not refuse them keeps working: two instances of your app that run one conversation at once
-    /// then interleave its entries.
-    /// More in the guide:
-    /// <see href="https://weboost-at.github.io/Typeshift/guide/implementing-a-store#refuse-a-second-run">Refuse a
-    /// second run</see>.
-    /// </summary>
-    bool RefusesTakenSequences => false;
 }

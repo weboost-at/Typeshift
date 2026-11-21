@@ -34,9 +34,6 @@ public sealed class InMemoryTypeshiftStore<TId> : ITypeshiftStore<TId>, IAgentSe
         Save(_agentDocuments, kind, json, loadedVersion, $"The agent's {kind}");
 
     /// <inheritdoc />
-    public bool RefusesTakenSequences => true;
-
-    /// <inheritdoc />
     public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(TId conversation, CancellationToken ct) =>
         Task.FromResult(Load(conversation, sinceSummary: false));
 

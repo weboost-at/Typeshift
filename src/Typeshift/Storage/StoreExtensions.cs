@@ -551,13 +551,10 @@ public static class StoreExtensions
                 exception);
         }
 
-        if (store.RefusesTakenSequences)
-        {
-            throw Broken(
-                "The store says it refuses an entry under a number its conversation holds, and stored one: keep a "
-                + "unique key on the conversation and the entry's Sequence, and throw a StoreConflictException when it "
-                + "refuses an entry.");
-        }
+        throw Broken(
+            "An append under a number its conversation holds was stored, and a second run of the conversation then "
+            + "interleaves with the first: keep a unique key on the conversation and the entry's Sequence, and throw a "
+            + "StoreConflictException when it refuses an entry.");
 
         async Task AppendAsync(ConversationEntry[] steps)
         {

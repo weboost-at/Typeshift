@@ -1,4 +1,3 @@
-using Typeshift.Tests.Conversations.Support;
 using Typeshift.Tests.Persistence.Support;
 using FluentAssertions;
 
@@ -466,17 +465,7 @@ public class StoreExtensionsTests : UnitTestBase
     }
 
     [Fact]
-    public async Task Given_A_Store_That_Never_Looks_At_The_Numbers_Of_Entries_It_Passes()
-    {
-        // Act
-        var verify = () => new StoredJsonStore().VerifyAsync(Id, OtherId, Ct);
-
-        // Assert
-        await verify.Should().NotThrowAsync();
-    }
-
-    [Fact]
-    public async Task Given_A_Store_That_Says_It_Refuses_A_Taken_Number_And_Stores_It_It_Fails_Naming_The_Key()
+    public async Task Given_A_Store_That_Stores_An_Entry_Under_A_Taken_Number_It_Fails_Naming_The_Key()
     {
         // Act
         var verify = () => new TakenNumberStore(TakenNumber.Stored).VerifyAsync(Id, OtherId, Ct);

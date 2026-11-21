@@ -120,6 +120,7 @@ internal sealed class MinimalStore : ITypeshiftStore<int>, IAgentSettingsStore
     private readonly Dictionary<string, StoredDocument> _agentSettings = [];
     private readonly Dictionary<int, StoredDocument> _decisions = [];
     private readonly Dictionary<int, List<string>> _conversations = [];
+    private readonly HashSet<(int Conversation, long Sequence)> _sequences = [];
 
     public Task<StoredDocument?> LoadAsync(int id, string kind, CancellationToken ct) =>
         Load(_settings, (id, kind));
@@ -143,6 +144,10 @@ internal sealed class MinimalStore : ITypeshiftStore<int>, IAgentSettingsStore
     {
         lock (_gate)
         {
+            // A second run, which loaded the conversation before this number was taken, stops here. 0 is no number
+            if (entry.Sequence > 0 && !_sequences.Add((conversation, entry.Sequence)))
+                throw new StoreConflictException($"Conversation {conversation} holds entry {entry.Sequence} already.");
+
             _conversations.TryAdd(conversation, []);
             _conversations[conversation].Add(entry.Serialize());
         }
@@ -192,21 +197,22 @@ internal sealed class MinimalStore : ITypeshiftStore<int>, IAgentSettingsStore
     }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/MinimalStore.cs#L3-L84' title='Snippet source file'>snippet source</a> | <a href='#snippet-minimal-store' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/MinimalStore.cs#L3-L89' title='Snippet source file'>snippet source</a> | <a href='#snippet-minimal-store' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 - A save compares the version it is given with the stored one, 0 when nothing is stored, and writes under the same
   lock. Of two saves that loaded one version, the first wins and the second throws a `StoreConflictException`
   ([Save with a version](#save-with-a-version)).
 - An entry is kept as the JSON of `entry.Serialize()`, in the order runs append it, and read back with
-  `ConversationEntry.Deserialize`.
+  `ConversationEntry.Deserialize`. An entry under a number its conversation holds already throws a
+  `StoreConflictException`, which stops a second run of the conversation
+  ([Refuse a second run](#refuse-a-second-run)).
 - `LoadConversationSinceCompactionAsync` loads the whole conversation and returns what `SinceLastSummary()`, an
   extension of `ConversationEntries`, keeps of it: the last summary and the entries after it, or every entry of a
   conversation that has no summary.
 - `IAgentSettingsStore` keeps [each agent's own settings](./settings-and-stores.md#agent-settings), in a dictionary of
   their own. Leave it out when your app keeps settings only under ids.
-- It passes [`VerifyAsync`](#check-your-store), as the docs sample checks. It does not refuse a second run's entries,
-  which a store may leave out ([Refuse a second run](#refuse-a-second-run)).
+- It passes [`VerifyAsync`](#check-your-store), as the docs sample checks.
 
 Memory is gone when the app stops, so your store puts a table of your database where each dictionary is. The rest of
 this page builds that store on EF Core, and makes it fast and safe under load: each save checks and writes in one
@@ -241,14 +247,11 @@ shows. Each method takes a `CancellationToken` last:
 | `SaveAsync(id, kind, json, loadedVersion)` | Saves a document's JSON if its stored version still equals `loadedVersion` (0 when nothing is stored yet), and returns the new version. Throws a `StoreConflictException` when another save came first. |
 | `LoadConversationAsync(conversation)` | Returns every entry of a conversation, summaries included, oldest first. |
 | `LoadConversationSinceCompactionAsync(conversation)` | Returns what a run reads: the last summary and the entries after it ([Start from the last summary](#start-from-the-last-summary)). |
-| `AppendConversationAsync(conversation, entry)` | Appends one entry to a conversation. The first entry creates the conversation. Throws a `StoreConflictException`, in a store that checks, when the conversation holds an entry of the entry's number already ([Refuse a second run](#refuse-a-second-run)). |
+| `AppendConversationAsync(conversation, entry)` | Appends one entry to a conversation. The first entry creates the conversation. Throws a `StoreConflictException` when the conversation holds an entry of the entry's number already ([Refuse a second run](#refuse-a-second-run)). |
 | `LoadDecisionsAsync(conversation)` | Returns the conversation's decisions document as a `StoredDocument`, or null when none is stored ([Keep decisions](#keep-decisions)). |
 | `SaveDecisionsAsync(conversation, json, loadedVersion)` | Saves the conversation's decisions document if its stored version still equals `loadedVersion`, as `SaveAsync` does, and returns the new version. |
 | `LoadAsync(kind)` | Returns an agent's own document of a kind, as `LoadAsync(id, kind)` does under an id. |
 | `SaveAsync(kind, json, loadedVersion)` | Saves an agent's own document of a kind, as `SaveAsync(id, kind, json, loadedVersion)` does under an id. |
-
-`IConversationStore<TId>` also has a property, `RefusesTakenSequences`, which is false unless your store refuses a
-second run's entries and says so ([Refuse a second run](#refuse-a-second-run)).
 
 The database on this page has a table for settings, keyed by id and kind together
 ([Key settings by id and kind](#key-settings-by-id-and-kind)), one for conversations, keyed by a number the database
@@ -624,8 +627,7 @@ instead of loading every conversation whole.
 Within one container, a conversation has one run at a time ([One run at a time](./conversations.md#one-run-at-a-time)).
 Two instances of your app each have their own container, though, and both can run one conversation at once: a message
 posted twice lands on each, or one resumes a chat the other still answers. Their entries then interleave, and the
-history reads as neither run. Your store is the one place both instances meet, so it is the one that can refuse the
-second run.
+history reads as neither run. Your store is the one place both instances meet, so it refuses the second run.
 
 Each entry carries a number for this, its `Sequence`. A run numbers its first entry one past the highest number it
 loaded, and counts up from there. Two runs that loaded the conversation at the same point give their next entries
@@ -641,14 +643,11 @@ ON CONFLICT (conversation, sequence) DO NOTHING;
 The insert changes no row when the number is taken, and then your store throws a `StoreConflictException`. The run
 it refused stops with a `ConversationBusyException`, before its next model call or tool call, and what it stored
 before stays. On SQL Server, run a plain `INSERT` and treat the duplicate-key error of a unique index, number 2601,
-as the conflict. The EF Core store inserts with `ON CONFLICT DO NOTHING`, as its save does, and says that it refuses
-taken numbers:
+as the conflict. The EF Core store inserts with `ON CONFLICT DO NOTHING`, as its save does:
 
 <!-- snippet: ef-core-append -->
 <a id='snippet-ef-core-append'></a>
 ```cs
-public bool RefusesTakenSequences => true;
-
 public async Task AppendConversationAsync(int conversation, ConversationEntry entry, CancellationToken ct)
 {
     await using var db = await contexts.CreateDbContextAsync(ct);
@@ -669,11 +668,11 @@ public async Task AppendConversationAsync(int conversation, ConversationEntry en
         throw new StoreConflictException($"Conversation {conversation} holds entry {entry.Sequence} already.");
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/EfTypeshiftStore.cs#L129-L151' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-append' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/EfTypeshiftStore.cs#L129-L149' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-append' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-- **Say so with `RefusesTakenSequences`.** It is false unless your store returns true, and
-  [`VerifyAsync`](#check-your-store) then checks that the store refuses a taken number.
+- **Refuse in the statement that writes.** A check before the insert lets two runs pass it at once, and a check
+  after it leaves the entry stored. [`VerifyAsync`](#check-your-store) fails a store that stores a taken number.
 - **Keep ordering by your own row number.** A number can be skipped after an append that failed, and the numbers of
   entries stored before entries had one are 0. Order and the last summary stay with the row number, as above.
 - **Leave older rows without a number.** Add the column so that it allows NULL, which a unique key allows any number
@@ -683,9 +682,6 @@ public async Task AppendConversationAsync(int conversation, ConversationEntry en
 - **Tell your own retry from a second run.** A database client that retries an insert that had succeeded, as EF Core's
   retry on failure can, finds the number taken by its own row. Compare that row's JSON with the entry, and return
   without an exception when they are the same.
-
-A store that does not refuse taken numbers keeps working, and two runs of one conversation in two instances then
-interleave as before. The [decisions document](#keep-decisions) still keeps an approved call from starting twice.
 
 ## Keep decisions
 
@@ -746,7 +742,7 @@ public async Task<long> SaveDecisionsAsync(int conversation, string json, long l
 }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/EfTypeshiftStore.cs#L153-L190' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-decisions' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/EfTypeshiftStore.cs#L151-L188' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-decisions' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Keep decisions in a table of their own, as the sample does, or under a key no settings id can take. Settings ids and
@@ -755,8 +751,8 @@ customer 7's settings, where a delete or a filter meant for settings reaches the
 
 The version keeps an approved call from starting twice, and the entries' numbers keep the history in order around
 it. When one instance carries out an approved call and another finds the call started and stores that its effect is
-unknown, a store that [refuses a second run](#refuse-a-second-run) refuses whichever of the two appends its result
-second, so the history holds one result for the call.
+unknown, your store [refuses whichever of the two](#refuse-a-second-run) appends its result second, so the history
+holds one result for the call.
 
 ## Migrate older settings
 
@@ -814,9 +810,9 @@ await store.VerifyAsync(9001, 9002);
   conversation whole and from the last summary on, which is every entry while there is no summary. Each entry must
   come back unchanged, in the order it was appended.
 - The entries carry numbers as a run's do, and the other id's conversation holds the first entry's number too, which
-  no store may refuse. Last, it appends an entry under a number the conversation holds. A store may store it, or
-  refuse it with a `StoreConflictException` and store nothing; any other exception fails, and so does storing it in
-  a store whose `RefusesTakenSequences` is true ([Refuse a second run](#refuse-a-second-run)).
+  no store may refuse. Last, it appends an entry under a number the conversation holds, which a store refuses with a
+  `StoreConflictException`, storing nothing. Storing it fails, and so does any other exception
+  ([Refuse a second run](#refuse-a-second-run)).
 - For decisions, it saves a conversation's document and loads it back, then runs the saves that must conflict: at
   version 0, with an old version, and at another version than 0 before anything is stored.
 - It takes two ids. Before anything else, it saves a document and appends an entry under the second one, and at the

@@ -22,7 +22,14 @@ public sealed class SharedSummaryStore : IConversationStore<Guid>
 
     public Task AppendConversationAsync(Guid conversation, ConversationEntry entry, CancellationToken ct)
     {
-        lock (_rows) _rows.Add((conversation, entry.Serialize()));
+        lock (_rows)
+        {
+            if (entry.Sequence > 0 && Load(conversation, start: 0).Any(held => held.Sequence == entry.Sequence))
+                throw new StoreConflictException($"Conversation {conversation} holds entry {entry.Sequence} already.");
+
+            _rows.Add((conversation, entry.Serialize()));
+        }
+
         return Task.CompletedTask;
     }
 

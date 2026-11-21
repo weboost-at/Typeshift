@@ -59,7 +59,7 @@ public static class Demo
     }
 
     // The store on disk the demos share, for the chain's WithStore
-    public static JsonFileStore Store() => new(DataDirectory);
+    public static JsonFileStore Store() => new(DataDirectory, TimeProvider.System);
 
     public static bool Flag(string[] args, string flag) => args.Contains(flag, StringComparer.Ordinal);
 

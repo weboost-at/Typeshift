@@ -478,7 +478,6 @@ public interface Typeshift.IConversationStore<TId> where TId : notnull
 abstract System.Threading.Tasks.Task Typeshift.IConversationStore<TId>.AppendConversationAsync(TId conversation, Typeshift.ConversationEntry entry, System.Threading.CancellationToken ct)
 abstract System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Typeshift.ConversationEntry>> Typeshift.IConversationStore<TId>.LoadConversationAsync(TId conversation, System.Threading.CancellationToken ct)
 abstract System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Typeshift.ConversationEntry>> Typeshift.IConversationStore<TId>.LoadConversationSinceCompactionAsync(TId conversation, System.Threading.CancellationToken ct)
-bool Typeshift.IConversationStore<TId>.RefusesTakenSequences { get; }
 public interface Typeshift.IDecisionStore<TId> where TId : notnull
 abstract System.Threading.Tasks.Task<Typeshift.StoredDocument?> Typeshift.IDecisionStore<TId>.LoadDecisionsAsync(TId conversation, System.Threading.CancellationToken ct)
 abstract System.Threading.Tasks.Task<long> Typeshift.IDecisionStore<TId>.SaveDecisionsAsync(TId conversation, string json, long loadedVersion, System.Threading.CancellationToken ct)
@@ -508,7 +507,6 @@ public System.Threading.Tasks.Task<Typeshift.StoredDocument?> Typeshift.InMemory
 public System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Typeshift.ConversationEntry>> Typeshift.InMemoryTypeshiftStore<TId>.LoadConversationAsync(TId conversation, System.Threading.CancellationToken ct)
 public System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Typeshift.ConversationEntry>> Typeshift.InMemoryTypeshiftStore<TId>.LoadConversationSinceCompactionAsync(TId conversation, System.Threading.CancellationToken ct)
 public System.Threading.Tasks.Task<Typeshift.StoredDocument?> Typeshift.InMemoryTypeshiftStore<TId>.LoadDecisionsAsync(TId conversation, System.Threading.CancellationToken ct)
-public bool Typeshift.InMemoryTypeshiftStore<TId>.RefusesTakenSequences { get; }
 public System.Threading.Tasks.Task<long> Typeshift.InMemoryTypeshiftStore<TId>.SaveAsync(TId id, string kind, string json, long loadedVersion, System.Threading.CancellationToken ct)
 public System.Threading.Tasks.Task<long> Typeshift.InMemoryTypeshiftStore<TId>.SaveAsync(string kind, string json, long loadedVersion, System.Threading.CancellationToken ct)
 public System.Threading.Tasks.Task<long> Typeshift.InMemoryTypeshiftStore<TId>.SaveDecisionsAsync(TId conversation, string json, long loadedVersion, System.Threading.CancellationToken ct)

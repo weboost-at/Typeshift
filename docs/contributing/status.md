@@ -180,11 +180,10 @@ that no row names, and on a name that is no test class.
   sees it.
 - **One container per conversation.** A run claims its conversation in its container only (D50): an app's service
   provider, or a runtime from `TypeshiftRuntime.Create`, so two runtimes in one process are two containers too.
-  Across containers, the store keeps two runs apart only when it refuses an entry under a number its conversation
-  holds, and then it stops the run that appends second, after that run may have called the model or a tool; with a
-  store that does not refuse, the two runs' entries interleave. A resume calls the model before it appends, so with
-  several instances an entry without an ending one still looks the same for an interrupted run and for one another
-  instance is on. Steering (`TrySteer`) and live updates (`WatchAsync`, `Runs`) reach the runs of their own container
+  Across containers, the store refuses an entry under a number its conversation holds, and so stops the run that
+  appends second, after that run may have called the model or a tool. A resume calls the model before it appends,
+  so with several instances an entry without an ending one still looks the same for an interrupted run and for one
+  another instance is on. Steering (`TrySteer`) and live updates (`WatchAsync`, `Runs`) reach the runs of their own container
   only. A claim in the store, such as a lease with a heartbeat, and a publisher behind the tracker would carry both
   across containers, and wait for a user who needs them.
 - **Hosted MCP servers a client cannot send.** A `HostedMcpServerTool` (D35) reaches the provider only through a

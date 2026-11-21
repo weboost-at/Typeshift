@@ -147,7 +147,7 @@ you ship, your app has to do these things itself:
 - Turn compaction on for agents whose conversations grow long ([Compaction](./conversations.md#compaction)).
 - Answer a message to a chat that is still answering with a status of its own, not an error
   ([A chat that is answering](./chat-endpoint.md#a-chat-that-is-answering)). With several instances of your app,
-  write a store that refuses a second run's entries
+  check with `VerifyAsync` that your store refuses a second run's entries
   ([Refuse a second run](./implementing-a-store.md#refuse-a-second-run)), and route each conversation to one
   instance ([Running on several instances](./conversations.md#running-on-several-instances)).
 - Read API keys from your app's configuration, never from code ([A real client](./models.md#a-real-client)).

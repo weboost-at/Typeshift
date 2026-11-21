@@ -28,11 +28,11 @@ public sealed record ConversationEntry(string Agent, IReadOnlyList<ChatMessage> 
 
     /// <summary>
     /// The entry's number in its conversation: one past the highest the run that appended it had loaded or appended
-    /// before. A store that keeps a unique key on the conversation and this number refuses the entry of a run that
-    /// loaded the conversation before another run, in another container, appended under the number, and the refused
-    /// run stops (<see cref="IConversationStore{TId}.RefusesTakenSequences"/>). A number can be skipped, after an
-    /// append that failed, and numbers do not order the entries: the order they were appended in does. 0 for an
-    /// entry stored before entries were numbered.
+    /// before. The store refuses the entry of a run that loaded the conversation before another run, in another
+    /// container, appended under the number, as a unique key on the conversation and this number does, and the
+    /// refused run stops (<see cref="IConversationStore{TId}.AppendConversationAsync"/>). A number can be skipped,
+    /// after an append that failed, and numbers do not order the entries: the order they were appended in does. 0 for
+    /// an entry stored before entries were numbered.
     /// </summary>
     public long Sequence { get; init; }
 

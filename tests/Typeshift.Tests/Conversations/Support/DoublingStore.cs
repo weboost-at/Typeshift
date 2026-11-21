@@ -1,7 +1,7 @@
 namespace Typeshift.Tests.Conversations.Support;
 
-// A store in memory that appends every entry twice, as a store without a key on the entries' numbers whose append
-// was retried after it had succeeded
+// A store in memory that appends every entry twice, as a store from before every store kept a key on the entries'
+// numbers stored a conversation when its append was retried after it had succeeded
 public sealed class DoublingStore : ITypeshiftStore<Guid>
 {
     private readonly InMemoryTypeshiftStore<Guid> _store = new();
@@ -21,10 +21,12 @@ public sealed class DoublingStore : ITypeshiftStore<Guid>
         CancellationToken ct) =>
         _conversations.LoadConversationSinceCompactionAsync(conversation, ct);
 
-    public async Task AppendConversationAsync(Guid conversation, ConversationEntry entry, CancellationToken ct)
+    public Task AppendConversationAsync(Guid conversation, ConversationEntry entry, CancellationToken ct)
     {
-        await _conversations.AppendConversationAsync(conversation, entry, ct);
-        await _conversations.AppendConversationAsync(conversation, entry, ct);
+        _conversations.Add(conversation, entry.Serialize());
+        _conversations.Add(conversation, entry.Serialize());
+
+        return Task.CompletedTask;
     }
 
     public Task<StoredDocument?> LoadDecisionsAsync(Guid conversation, CancellationToken ct) =>

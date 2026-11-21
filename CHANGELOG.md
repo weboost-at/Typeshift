@@ -230,6 +230,12 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
+- **Breaking:** every conversation store refuses an entry whose `Sequence` its conversation holds already, with a
+  `StoreConflictException` and nothing stored, so two instances of your app never interleave one conversation.
+  `IConversationStore<TId>.RefusesTakenSequences` is gone: delete `public bool RefusesTakenSequences => true;` from
+  your store, and give one that stored such an entry a unique key on the conversation and the number, as "Refuse a
+  second run" in the guide's store page shows. `VerifyAsync` fails a store that stores the entry, where it passed a
+  store without the flag.
 - The package depends on Microsoft.Extensions.AI 10.11.1, up from 10.10.0, and on
   Microsoft.Extensions.DependencyInjection 10.0.15, up from 10.0.12.
 - **Breaking:** `host.CreateChatClientAsync(options)` takes only options that `ResolveOptionsAsync` returned, and

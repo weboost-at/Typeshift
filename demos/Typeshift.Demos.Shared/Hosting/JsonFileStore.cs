@@ -6,12 +6,17 @@ namespace Typeshift.Demos.Hosting;
 /// A store on disk, for demos that survive a restart: documents as one JSON file each under their kind, conversations
 /// as one file of JSON lines each, appended as the run goes, and each conversation's decisions as one JSON file.
 /// </summary>
-public sealed class JsonFileStore(string directory) : ITypeshiftStore<Guid>
+public sealed class JsonFileStore(string directory, TimeProvider time) : ITypeshiftStore<Guid>
 {
+    // How long an append waits for another process's append to the same conversation, in tries and the pause between
+    private const int LockAttempts = 200;
+
+    private static readonly TimeSpan LockPause = TimeSpan.FromMilliseconds(10);
+
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
-    // One file operation at a time keeps versions honest and no read meets a write; a demo has no second process to
-    // guard against
+    // One file operation at a time keeps versions honest and no read meets a write in this process. Only an append to
+    // a conversation is guarded against a second process, by its lock file
     private readonly SemaphoreSlim _files = new(1, 1);
 
     public Task<StoredDocument?> LoadAsync(Guid id, string kind, CancellationToken ct) =>
@@ -47,9 +52,11 @@ public sealed class JsonFileStore(string directory) : ITypeshiftStore<Guid>
         (await LoadConversationAsync(conversation, ct)).SinceLastSummary();
 
     // Of two runs that loaded a conversation at the same point, the one that appends second is refused, as a unique
-    // key on the conversation and the number would refuse it
-    public bool RefusesTakenSequences => true;
-
+    // key on the conversation and the number would refuse it, also in another process: the number is checked and the
+    // line written while the conversation's lock file is open with FileShare.None. On a local disk that keeps out the
+    // append of every process using this store, as Windows refuses a second open and .NET takes an advisory lock on
+    // Linux and macOS. A program that writes the file without that lock, or a network share that keeps no locks, can
+    // still slip an entry in between
     public async Task AppendConversationAsync(Guid conversation, ConversationEntry entry, CancellationToken ct)
     {
         var path = ConversationPath(conversation);
@@ -58,11 +65,15 @@ public sealed class JsonFileStore(string directory) : ITypeshiftStore<Guid>
 
         try
         {
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            await using var held = await LockAsync($"{path}.lock", ct);
+
             // A demo's conversations are short, so the file is read whole to find the number
-            if (entry.Sequence > 0 && (await ReadEntriesAsync(path, ct)).Any(held => held.Sequence == entry.Sequence))
+            var entries = entry.Sequence > 0 ? await ReadEntriesAsync(path, ct) : [];
+
+            if (entries.Any(stored => stored.Sequence == entry.Sequence))
                 throw new StoreConflictException($"Conversation {conversation} holds entry {entry.Sequence} already.");
 
-            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             await using var file = new FileStream(
                 path,
                 FileMode.OpenOrCreate,
@@ -156,6 +167,24 @@ public sealed class JsonFileStore(string directory) : ITypeshiftStore<Guid>
         finally
         {
             _files.Release();
+        }
+    }
+
+    // Another process holds the lock while it appends to the conversation, so this one tries again after a pause,
+    // and gives up with the last IOException after about two seconds. The file stays: a process that waits for it
+    // would otherwise lock a file deleted under it
+    private async Task<FileStream> LockAsync(string path, CancellationToken ct)
+    {
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                return new FileStream(path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+            }
+            catch (IOException) when (attempt < LockAttempts)
+            {
+                await Task.Delay(LockPause, time, ct);
+            }
         }
     }
 

@@ -127,8 +127,6 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts)
     // end-snippet
 
     // begin-snippet: ef-core-append
-    public bool RefusesTakenSequences => true;
-
     public async Task AppendConversationAsync(int conversation, ConversationEntry entry, CancellationToken ct)
     {
         await using var db = await contexts.CreateDbContextAsync(ct);

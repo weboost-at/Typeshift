@@ -140,7 +140,7 @@ decisions: the decisions that wait, with the calls they stand for, the answers y
 and, once it ran or was rejected, its result, and never a request for approval or its answer.
 
 Each entry is a `ConversationEntry`: the name of its agent in `Agent`, its `Messages`, the time it was stored in `At`
-and its number in `Sequence`, which lets a store refuse a second run of the conversation
+and its number in `Sequence`, by which your store refuses a second run of the conversation
 ([One run at a time](#one-run-at-a-time)). A model response has its `Model` and `Usage` too, and the `Provider` its
 agent ran on, as text, unless that was the default client. The entry that ends a run has `EndsRun`, and `IsSummary`
 is true on the entry [compaction](#compaction) appends when it summarizes, which is how your code and your store tell
@@ -272,7 +272,7 @@ that is still going on.
 
 With one instance of your app, nothing else can be running the conversation after a restart, so such an entry means
 the run was interrupted. With several instances, or during a rolling deploy, another instance may be answering that
-chat at this moment. A store that refuses a second run's entries stops whichever of the two runs appends second
+chat at this moment. Your store refuses a second run's entries and so stops whichever of the two runs appends second
 ([Running on several instances](#running-on-several-instances)), but a resume calls the model before it stores
 anything, so that call is paid for, and the run it stops may be the one that was answering. There, resume only when
 the last entry's `At` is older than a limit your app chooses, or behind a lease of your own.
@@ -514,11 +514,10 @@ Behind a load balancer, or during a rolling deploy, two instances of your app ca
 has a container of its own, so what Typeshift keeps in memory stays in that instance, and only what it keeps in your
 store reaches the other. Through your store, these hold across instances:
 
-- **One run at a time**, when your store refuses an entry under a number its conversation holds already
-  ([Refuse a second run](./implementing-a-store.md#refuse-a-second-run)), as the store in memory and the EF Core store
-  of these docs do. Of two runs that loaded the conversation at the same point, the one that appends second stops
-  with a `ConversationBusyException` before its next model call or tool call. What it stored before stays, and its
-  `InnerException` is the store's `StoreConflictException`.
+- **One run at a time**, since your store refuses an entry under a number its conversation holds already
+  ([Refuse a second run](./implementing-a-store.md#refuse-a-second-run)). Of two runs that loaded the conversation at
+  the same point, the one that appends second stops with a `ConversationBusyException` before its next model call or
+  tool call. What it stored before stays, and its `InnerException` is the store's `StoreConflictException`.
 - **Decisions.** Each change of a conversation's decisions is saved against the version it loaded
   ([Keep decisions](./implementing-a-store.md#keep-decisions)), so a decision is answered once and the calls it
   approves start once, whichever instance answers or carries them out, as with a second tab
@@ -527,8 +526,7 @@ store reaches the other. Through your store, these hold across instances:
 
 A run the store refused keeps what it did before: a tool it called has run, and its result is not stored, so the
 model of the other run never reads it. The other run's answer is the conversation's, and a run whose end alone the
-store refused answered already and returns its answer. With a store that does not refuse a taken number, the entries
-of the two runs interleave.
+store refused answered already and returns its answer.
 
 These stay in the container that runs the conversation:
 

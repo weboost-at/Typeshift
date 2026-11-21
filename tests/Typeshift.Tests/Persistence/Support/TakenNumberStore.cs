@@ -2,7 +2,7 @@ using System.Collections.Concurrent;
 
 namespace Typeshift.Tests.Persistence.Support;
 
-// How a store that says it refuses an entry under a number its conversation holds gets it wrong
+// How a store gets the refusal of an entry under a number its conversation holds wrong
 public enum TakenNumber
 {
     // Stores it, as a table whose unique key a migration forgot
@@ -18,12 +18,10 @@ public enum TakenNumber
     StoredThenRefused
 }
 
-// Keeps conversations in memory and says it refuses an entry under a number its conversation holds
+// Keeps conversations in memory and gets the refusal of an entry under a number its conversation holds wrong
 public sealed class TakenNumberStore(TakenNumber fault) : IConversationStore<Guid>
 {
     private readonly ConcurrentDictionary<Guid, List<ConversationEntry>> _rows = [];
-
-    public bool RefusesTakenSequences => true;
 
     public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(Guid conversation, CancellationToken ct) =>
         Task.FromResult<IReadOnlyList<ConversationEntry>>([.. _rows.GetValueOrDefault(conversation) ?? []]);

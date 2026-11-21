@@ -10,6 +10,7 @@ internal sealed class MinimalStore : ITypeshiftStore<int>, IAgentSettingsStore
     private readonly Dictionary<string, StoredDocument> _agentSettings = [];
     private readonly Dictionary<int, StoredDocument> _decisions = [];
     private readonly Dictionary<int, List<string>> _conversations = [];
+    private readonly HashSet<(int Conversation, long Sequence)> _sequences = [];
 
     public Task<StoredDocument?> LoadAsync(int id, string kind, CancellationToken ct) =>
         Load(_settings, (id, kind));
@@ -33,6 +34,10 @@ internal sealed class MinimalStore : ITypeshiftStore<int>, IAgentSettingsStore
     {
         lock (_gate)
         {
+            // A second run, which loaded the conversation before this number was taken, stops here. 0 is no number
+            if (entry.Sequence > 0 && !_sequences.Add((conversation, entry.Sequence)))
+                throw new StoreConflictException($"Conversation {conversation} holds entry {entry.Sequence} already.");
+
             _conversations.TryAdd(conversation, []);
             _conversations[conversation].Add(entry.Serialize());
         }
