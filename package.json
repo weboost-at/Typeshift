@@ -12,7 +12,7 @@
     "docs:check": "npm run docs:snippets:check && npm run docs:lint && npm run docs:build"
   },
   "devDependencies": {
-    "markdownlint-cli2": "0.24.1",
+    "markdownlint-cli2": "0.24.2",
     "mermaid": "11.17.2",
     "vitepress": "1.6.4",
     "vitepress-plugin-llms": "1.15.0",
