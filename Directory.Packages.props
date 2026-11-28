@@ -2,33 +2,33 @@
 
   <PropertyGroup>
     <!-- D8: the compiler of the .NET 10 SDK, the oldest one that compiles the C# 14 the generated code needs -->
-    <RoslynVersion>5.0.0</RoslynVersion>
+    <RoslynVersion>5.6.0</RoslynVersion>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageVersion Include="Anthropic" Version="12.55.0" />
+    <PackageVersion Include="Anthropic" Version="12.60.0" />
     <PackageVersion Include="Bogus" Version="35.6.5" />
     <!-- Pinned: version 8 changed its license. -->
-    <PackageVersion Include="FluentAssertions" Version="[7.2.0]" />
+    <PackageVersion Include="FluentAssertions" Version="[7.2.2]" />
     <!-- The docs sample alone, to run an agent as an Agent Framework AIAgent. 1.27.0 is the newest on
          Microsoft.Extensions.AI 10.10, the library's, so the two move together -->
-    <PackageVersion Include="Microsoft.Agents.AI" Version="1.27.0" />
+    <PackageVersion Include="Microsoft.Agents.AI" Version="1.28.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0" />
     <!-- Build-time only, for the clock rule (BannedSymbols.txt). Runs in every compiler the generator runs in. -->
     <PackageVersion Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="$(RoslynVersion)" />
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="$(RoslynVersion)" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.12" />
-    <PackageVersion Include="Microsoft.Extensions.AI" Version="10.10.0" />
-    <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="10.10.0" />
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.12" />
-    <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="10.10.0" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.15" />
+    <PackageVersion Include="Microsoft.Extensions.AI" Version="10.11.1" />
+    <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="10.11.1" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.15" />
+    <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="10.11.1" />
     <PackageVersion Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.12.0" />
     <PackageVersion Include="MinVer" Version="7.0.0" />
-    <PackageVersion Include="ModelContextProtocol.Core" Version="2.1.0" />
+    <PackageVersion Include="ModelContextProtocol.Core" Version="2.4.0" />
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.4" />
-    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.19.1" />
+    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.21.0" />
     <PackageVersion Include="Weboost.SchemaAnnotations" Version="1.0.0" />
-    <PackageVersion Include="xunit.v3" Version="4.0.2" />
+    <PackageVersion Include="xunit.v3" Version="4.0.3" />
   </ItemGroup>
 
 </Project>
