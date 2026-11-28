@@ -6,7 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageVersion Include="Anthropic" Version="12.55.0" />
+    <PackageVersion Include="Anthropic" Version="13.14.0" />
     <PackageVersion Include="Bogus" Version="35.6.5" />
     <!-- Pinned: version 8 changed its license. -->
     <PackageVersion Include="FluentAssertions" Version="[7.2.0]" />
